@@ -2,15 +2,8 @@
 
 class ComponentInfo
 {
-    /** @var string */
-    public $name;
-
-    /** @var string */
-    public $tag;
-
-    /** @var string */
-    public $fullpath;
-
-    /** @var string */
-    public $templatePath;
+    public string $name;
+    public string $tag;
+    public string $fullpath;
+    public string $templatePath;
 }

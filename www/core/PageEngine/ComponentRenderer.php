@@ -6,12 +6,12 @@ class ComponentRenderer
     {
         $this->childs = [];
     }
-    /** @var BaseComponent */
-    public $component;
+
+    public BaseComponent $component;
 
     /** @var mixed */
     public $template;
 
     /** @var ComponentRenderer[]  */
-    public $childs;
+    public array $childs;
 }
