@@ -11,4 +11,5 @@ class TagItemType
     const TextContent = 'TextContent';
     const Component = 'Component';
     const Expression = 'Expression';
+    const Attribute = 'Attribute';
 }

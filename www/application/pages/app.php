@@ -3,8 +3,8 @@
 class AppComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';
-
     public string $model = 'Page';
+    public string $url = '/';
 
     function __construct()
     {

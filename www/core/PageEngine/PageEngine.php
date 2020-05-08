@@ -132,7 +132,7 @@ class PageEngine
              * 7. Events
              * 8. special attribute expressions
              * 9. attributes
-             * 10. escaping and quotes skipping
+             * 10. escaping \" \' {} $
              */
 
             $rootTag = new TagItem();
@@ -143,7 +143,8 @@ class PageEngine
             $saveContent = false;
             $skipSaving = false;
             $hasNoChildren = false;
-
+            $breakBySpaces = false;
+            $lastBrealSymbol = '"';
             $content = '';
             $count = count($raw);
             for ($i = 0; $i < $count; $i++) {
@@ -159,6 +160,7 @@ class PageEngine
                             $skipCount = 1;
                             $saveContent = true;
                             $nextType = new TagItemType(TagItemType::TextContent);
+                            $breakBySpaces = false;
                             break;
                         }
                     case '/': {
@@ -177,13 +179,53 @@ class PageEngine
 
                             break;
                         }
+                    case "'":
+                    case '"': {
+                            if ($nextType->Type == TagItemType::Attribute) {
+                                if ($breakBySpaces) {
+                                    $breakBySpaces = false;
+                                    $lastBrealSymbol = $char;
+                                } else if ($lastBrealSymbol === $char) {
+                                    $breakBySpaces = true;
+                                }
+                            }
+                            break;
+                        }
+                    case '=': { // attribute value
+                            break;
+                        }
+                    default: {
+                            if (ctype_space($char)) { // space characters
+                                if ($breakBySpaces) {
+                                    $skipCount = 1;
+                                    $saveContent = true;
+                                    $nextType = new TagItemType(TagItemType::Attribute);
+                                }
+                                if ($nextType->Type == TagItemType::Tag) {
+                                    if (!empty($content)) {
+                                        $breakBySpaces = true;
+                                        $skipCount = 1;
+                                        $saveContent = true;
+                                        $nextType = new TagItemType(TagItemType::Attribute);
+                                    }
+                                }
+                            }
+                            break;
+                        }
                 }
                 if ($saveContent) {
                     if (!empty($content)) {
                         if (!$skipSaving) {
                             //add new child
                             $child = $currentParent->newChild();
-                            $child->Content = $content;
+                            if (
+                                $currentType->Type === TagItemType::TextContent
+                                || $currentType->Type === TagItemType::Expression
+                            ) {
+                                $child->Content = $content;
+                            } else {
+                                $child->Name = $content;
+                            }
                             $child->type = $currentType;
                             if ($currentType->Type == TagItemType::Tag && !$hasNoChildren) {
                                 $currentParent = &$currentParent->currentChild();
