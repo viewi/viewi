@@ -136,7 +136,7 @@ class PageEngine
              */
 
             $rootTag = new TagItem();
-            $currentParent = &$rootTag->newChild();
+            $currentParent = &$rootTag;
             $currentType = new TagItemType(TagItemType::TextContent);
             $nextType = new TagItemType(TagItemType::TextContent);
             $skipCount = 0;
@@ -145,7 +145,9 @@ class PageEngine
             $hasNoChildren = false;
             $breakBySpaces = false;
             $lastBrealSymbol = '"';
+            $collectValue = false;
             $content = '';
+            $value = '';
             $count = count($raw);
             for ($i = 0; $i < $count; $i++) {
                 $char = $raw[$i];
@@ -185,13 +187,23 @@ class PageEngine
                                 if ($breakBySpaces) {
                                     $breakBySpaces = false;
                                     $lastBrealSymbol = $char;
+                                    $skipCount = 1;
                                 } else if ($lastBrealSymbol === $char) {
                                     $breakBySpaces = true;
+                                    $skipCount = 1;
                                 }
                             }
                             break;
                         }
                     case '=': { // attribute value
+                            if ($nextType->Type == TagItemType::Attribute) {
+                                if (!$collectValue) {
+                                    $collectValue = true;
+                                    $skipCount = 1;
+                                }
+                            } else {
+                                $collectValue = false;
+                            }
                             break;
                         }
                     default: {
@@ -225,6 +237,9 @@ class PageEngine
                                 $child->Content = $content;
                             } else {
                                 $child->Name = $content;
+                                if (!empty($value)) {
+                                    $child->Content = $value;
+                                }
                             }
                             $child->type = $currentType;
                             if ($currentType->Type == TagItemType::Tag && !$hasNoChildren) {
@@ -233,10 +248,16 @@ class PageEngine
                         } else {
                             if ($currentType->Type == TagItemType::Tag) {
                                 $currentParent = &$currentParent->parent();
+                                if($currentParent === null)
+                                {
+                                    throw new Exception("Detected closing tag `$content` but open tag is missing!");
+                                }
                             }
                         }
                         //clear content
+                        $collectValue = false;
                         $content = '';
+                        $value = '';
                     }
                     $currentType = $nextType;
                     $saveContent = false;
@@ -246,7 +267,11 @@ class PageEngine
                 if ($skipCount > 0) {
                     $skipCount--;
                 } else {
-                    $content .= $char;
+                    if ($collectValue) {
+                        $value .= $char;
+                    } else {
+                        $content .= $char;
+                    }
                 }
             }
             $rootTag->cleanParents();

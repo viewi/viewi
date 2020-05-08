@@ -5,13 +5,12 @@ class TagItem
     public string $Name;
     public string $Content;
     public TagItemType $type;
-    public bool $IsText;
     private ?TagItem $Parent;
 
     /** @var TagItem[] */
     private array $childs = [];
 
-    public function &parent(): TagItem
+    public function &parent(): ?TagItem
     {
         return $this->Parent;
     }
