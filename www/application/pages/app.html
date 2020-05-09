@@ -1,5 +1,20 @@
+<div title="Title of $model model">title test</div>
+<a src="$url">Home page</a>
+<br attr="some value" />
+$about
+<div>
+    $about {$testsList[0]}
+    <div>{$testsList[1]}</div>
+    <div>My friend {$friend->Name} is {$friend->Age} years old</div>
+    <p>{$model}Model</p>
+    <p>Name: {getFullName()}</p>
+    <p>Occupation: {getOccupation()}</p>
+</div>
+<br />
+<b>test</b>
+<br />
 Content text "test string" 'another one' done.
-<p data-name='test name is "Mike".' title="My dad's story" src="$url" class="long-text test">1 + 1 is {1+1}</p>
+<p data-name='test name is "Mike".' title="My dad's story" class="long-text test">1 + 1 is {1+1}</p>
 <header aria-disabled id="my-header"></header>
 <f:table xmlns:f="https://www.w3schools.com/furniture">
     <f:name>Xml parsing demo</f:name>
@@ -12,13 +27,6 @@ plain text
     header
 </h1>
 <HomePage />
-<div>
-    $about
-    <p>{$model}Model</p>
-    <p>Name: {getFullName()}</p>
-    <p>Occupation: $getOccupation()</p>
-</div>
-<br />
 <hr />
 <HomePage />
 <HomePage>

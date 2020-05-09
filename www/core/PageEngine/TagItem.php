@@ -2,17 +2,28 @@
 
 class TagItem
 {
-    public string $Name;
-    public string $Content;
-    public TagItemType $type;
+    public ?string $Name = null;
+    public ?string $Content = null;
+    public TagItemType $Type;
     private ?TagItem $Parent;
 
     /** @var TagItem[] */
-    private array $childs = [];
+    private ?array $childs;
 
     public function &parent(): ?TagItem
     {
         return $this->Parent;
+    }
+    public function prependChild(TagItem $item): void
+    {
+        array_unshift($this->childs, $item);
+    }
+    public function &getChildren(): ?array
+    {
+        if (!isset($this->childs)) {
+            return [];
+        }
+        return $this->childs;
     }
 
     public function &currentChild(): TagItem
@@ -24,6 +35,9 @@ class TagItem
     {
         $child = new TagItem();
         $child->Parent = &$this;
+        if (!isset($this->childs)) {
+            $this->childs = array();
+        }
         $this->childs[] = $child;
         return $this->childs[count($this->childs) - 1];
     }
@@ -35,9 +49,11 @@ class TagItem
 
     public function cleanParents(): void
     {
-        $this->Parent = null;
-        foreach ($this->childs as &$child) {
-            $child->cleanParents();
+        unset($this->Parent);
+        if (isset($this->childs)) {
+            foreach ($this->childs as &$child) {
+                $child->cleanParents();
+            }
         }
     }
 }

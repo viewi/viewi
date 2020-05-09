@@ -2,10 +2,10 @@
 
 class TagItemType
 {
-    public string $Type;
+    public string $Name;
     public function __construct(string $type)
     {
-        $this->Type = $type;
+        $this->Name = $type;
     }
     const Tag = 'Tag';
     const TextContent = 'TextContent';

@@ -6,9 +6,10 @@ include 'application/pages/app.php';
 
 $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'pages',
+    __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
     AppComponent::class
 );
-$page->StartApp();
+$page->startApp();
 
 ?>
 <style>

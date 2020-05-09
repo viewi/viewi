@@ -5,9 +5,13 @@ class AppComponent extends BaseComponent
     public string $about = 'This is php/js page engine';
     public string $model = 'Page';
     public string $url = '/';
-
+    public array $testsList = ['My test', 'your test'];
+    public Friend $friend;
     function __construct()
     {
+        $this->friend = new Friend();
+        $this->friend->Name = 'Jhon Doe';
+        $this->friend->Age = 30;
     }
 
     function getFullName(): string
@@ -19,4 +23,10 @@ class AppComponent extends BaseComponent
     {
         return 'Web developer';
     }
+}
+
+class Friend
+{
+    public string $Name;
+    public int $Age;
 }
