@@ -2,9 +2,9 @@
 
 class TagItem
 {
-    public ?string $Name = null;
     public ?string $Content = null;
     public TagItemType $Type;
+    public bool $ItsExpression = false;
     private ?TagItem $Parent;
 
     /** @var TagItem[] */

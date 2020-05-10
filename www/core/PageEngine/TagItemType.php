@@ -10,6 +10,6 @@ class TagItemType
     const Tag = 'Tag';
     const TextContent = 'TextContent';
     const Component = 'Component';
-    const Expression = 'Expression';
     const Attribute = 'Attribute';
+    const AttributeValue = 'AttributeValue';
 }
