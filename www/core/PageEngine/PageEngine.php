@@ -146,19 +146,43 @@ class PageEngine
         $goDown = false;
         $goUp = false;
         $waitForTagEnd = false;
+        $escapeNextChar = false; // $ < > { }
         while ($i < $length) {
             $char = $raw[$i];
             if (!$itsBlockExpression) {
                 switch ($char) {
+                    case '\\': {
+                            $escapeNextChar = true;
+                            $skipCount = 1;
+                            break;
+                        }
                     case '<': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             if ($currentType->Name === TagItemType::TextContent) {
+                                if (
+                                    $i + 1 < $length // there still some content
+                                    && !ctype_alpha($raw[$i + 1]) //any letter
+                                    && $raw[$i + 1] !== '$' // dynamic tag
+                                    && $raw[$i + 1] !== '/' // self closing tag
+                                ) {
+                                    // it's not a tag
+                                    break;
+                                }
                                 $nextType = new TagItemType(TagItemType::Tag);
                                 $skipCount = 1;
                                 $saveContent = true;
                                 break;
                             }
+                            break;
                         }
                     case '>': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             if ($waitForTagEnd) {
                                 $waitForTagEnd = false;
                                 $skipCount = 1;
@@ -177,8 +201,13 @@ class PageEngine
                                 }
                                 break;
                             }
+                            break;
                         }
                     case '/': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             if ($currentType->Name === TagItemType::Tag) { // <tag/> or </tag>
                                 $skipCount = 1;
                                 if (empty($content) || ctype_space($content)) { // </tag> closing tag
@@ -197,21 +226,29 @@ class PageEngine
                             if ($currentType->Name === TagItemType::Attribute) {
                                 $skipCount = 1;
                                 $waitForTagEnd = true;
-                                $goUp = true;
                                 $saveContent = true;
                             }
+                            break;
                         }
                     case '=': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             if ($currentType->Name === TagItemType::Attribute) {
                                 $skipCount = 1;
                                 $saveContent = true;
                                 $nextType = new TagItemType(TagItemType::AttributeValue);
                                 $goDown = true;
-                                break;
                             }
+                            break;
                         }
                     case "'":
                     case '"': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             if ($currentType->Name === TagItemType::AttributeValue) {
                                 if ($detectedQuoteChar) {
                                     if ($detectedQuoteChar === $char) { // end of value, closing quote " or '
@@ -225,10 +262,20 @@ class PageEngine
                                     $detectedQuoteChar = $char;
                                     $skipCount = 1;
                                 }
-                                break;
                             }
+                            break;
+                        }
+                    case '}': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                            }
+                            break;
                         }
                     case '{': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             $itsBlockExpression = true;
                             $skipCount = 1;
                             $skipInExpression = 1;
@@ -238,11 +285,19 @@ class PageEngine
                             break;
                         }
                     case '$': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             $nextIsExpression = true;
                             $saveContent = true;
                             break;
                         }
                     default: {
+                            if ($escapeNextChar) { // no escaping matched
+                                $escapeNextChar = false;
+                                $content .= '\\'; // returning back 
+                            }
                             if (ctype_space($char)) {
                                 if (
                                     $currentType->Name === TagItemType::Tag
@@ -295,7 +350,6 @@ class PageEngine
                     $child->Type = $currentType;
                     $child->Content = $content;
                     $child->ItsExpression = $itsExpression;
-
                     if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
                         if (
                             !strpos($content, ':')
@@ -304,6 +358,7 @@ class PageEngine
                             if (!isset($this->components[$content])) {
                                 throw new Exception("Component `$content` not found.");
                             }
+
                             $child->Type = new TagItemType(TagItemType::Component);
                         }
                     }
