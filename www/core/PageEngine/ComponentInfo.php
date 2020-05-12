@@ -2,8 +2,9 @@
 
 class ComponentInfo
 {
-    public string $name;
-    public string $tag;
-    public string $fullpath;
-    public string $templatePath;
+    public string $Name;
+    public string $ComponentName;
+    public string $Tag;
+    public string $Fullpath;
+    public string $TemplatePath;
 }

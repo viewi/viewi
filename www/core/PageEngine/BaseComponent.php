@@ -1,5 +1,5 @@
 <?php
 
-class BaseComponent
+abstract class BaseComponent
 {
 }
