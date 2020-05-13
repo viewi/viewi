@@ -1,15 +1,17 @@
 {(4+5)*3 + 4/((5+4)-1)}
-<$dynamicTag $dynamicAttr="$dynValue">$content</$dynamicTag>
+<$dynamicTag>$content</$dynamicTag>
 <a src="$url">Home page</a>
 <HomePage></HomePage>
-<HomePage><HomePage>text</HomePage></HomePage>
+<HomePage>
+    <HomePage>text</HomePage>
+</HomePage>
 <br />
 "testing =*&%#@!)(*&" \/ 30\$ \> 15\$ & 10 \
 \
 < 20 \{O_o\} hello ' ""' \noescape <hr />
 Content text "test string" 'another one' done.
 <div data-name='test name is "Mike".' title="My dad's story">{$testsList[1]}</div>
-<p>{$model}Model</p>
+<p $dynamicAttr="$dynValue">{$model}Model</p>
 $about
 <div title="Title of $model model">title test</div>
 <p class="long-text test" title="Awesome">paragraph text</p>

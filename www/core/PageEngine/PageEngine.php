@@ -76,6 +76,11 @@ class PageEngine
         //$this->debug($this->tokens);
     }
 
+    function render()
+    {
+        $this->renderComponent($this->rootComponent, null, []);
+    }
+
     function Compile(): void
     {
         $pages = $this->getDirContents($this->sourcePath);
@@ -116,8 +121,8 @@ class PageEngine
                 }
             }
         }
-        $this->debug($this->sourcePath);
-        $this->debug($this->buildPath);
+        //$this->debug($this->sourcePath);
+        //$this->debug($this->buildPath);
         foreach ($this->components as $className => &$componentInfo) {
             $this->templates[$className] = $this->compileTemplate($componentInfo);
             $this->build($this->templates[$className]);
@@ -128,14 +133,15 @@ class PageEngine
     {
         $buildFilePath = str_replace($this->sourcePath, $this->buildPath, $pageTemplate->Path);
         $pathinfo = pathinfo($buildFilePath);
-        $this->debug($pageTemplate->Path);
-        $this->debug($pathinfo);
+        //$this->debug($pageTemplate->Path);
+        //$this->debug($pathinfo);
         if (!file_exists($pathinfo['dirname'])) {
             mkdir($pathinfo['dirname'], 0777, true);
         }
         $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
         $phpPath = $pathWOext . '.php';
         file_put_contents($phpPath, $pageTemplate->PhpHtmlContent);
+        $pageTemplate->ComponentInfo->BuildPath = $phpPath;
     }
 
     function build(PageTemplate &$pageTemplate): void
@@ -144,12 +150,14 @@ class PageEngine
         $moduleContent = file_get_contents($moduleTemplatePath);
         $parts = explode("//#content", $moduleContent, 2);
         $html = $parts[0];
+        $renderFunction = "Render{$pageTemplate->ComponentInfo->Name}";
         $html = str_replace('BaseComponent', $pageTemplate->ComponentInfo->ComponentName, $html);
-        $html = str_replace('RenderFunction', "Render{$pageTemplate->ComponentInfo->Name}", $html);
+        $html = str_replace('RenderFunction', $renderFunction, $html);
         $html .= '?>';
         $this->buildInternal($pageTemplate, $html);
         $html .= '<?php' . $parts[1];
         $pageTemplate->PhpHtmlContent = $html;
+        $pageTemplate->ComponentInfo->RenderFunction = $renderFunction;
         //$this->debug(htmlentities($html));
         //$this->debug(json_encode($pageTemplate, JSON_PRETTY_PRINT));
     }
@@ -163,9 +171,8 @@ class PageEngine
         $this->latestPageTemplate = $previousPageTemplate;
     }
 
-    function compileExpression(string $expression, $class = null): string // TODO: validate expression
+    function convertExpressionToCode(string $expression): string
     {
-        $code = '<?=htmlentities(';
         $expression = implode('$component->', explode('$', $expression));
         if (strpos($expression, '(') !== false) {
             $raw = str_split($expression);
@@ -197,14 +204,26 @@ class PageEngine
                 $expression = substr_replace($expression, '$component->', $pos, 0);
             }
         }
-        $code .= $expression;
+        return $expression;
+    }
+
+    function compileExpression(string $expression, $class = null): string // TODO: validate expression
+    {
+        $code = '<?=htmlentities(';
+        $code .= $this->convertExpressionToCode($expression);
         $code .= ')?>';
 
         return $code;
     }
 
-    function renderComponent(string $componentName, BaseComponent $parentComponent, array $slots)
+    function renderComponent(string $componentName, ?BaseComponent $parentComponent, array $slots)
     {
+        //$this->debug($this->templates[$componentName]->ComponentInfo);
+        include_once $this->templates[$componentName]->ComponentInfo->Fullpath;
+        include_once $this->templates[$componentName]->ComponentInfo->BuildPath;
+        $pageClass = $this->templates[$componentName]->ComponentInfo->ComponentName;
+        $classInstance = new $pageClass();
+        ($this->templates[$componentName]->ComponentInfo->RenderFunction)($classInstance, $this);
     }
 
     function compileComponentExpression(TagItem $tagItem, string &$html): void
@@ -235,11 +254,27 @@ class PageEngine
         }
         //render component
         $slotsArg = var_export($slots, true);
-        $html .= "<?php \$pageEngine->renderComponent('{$tagItem->Content}', \$component, $slotsArg); ?>";
+        $componentName = $tagItem->ItsExpression
+            ? $this->convertExpressionToCode($tagItem->Content)
+            : "'{$tagItem->Content}'";
+        $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, $slotsArg); ?>";
     }
-
+    private bool $extraLine = false;
     function buildTag(TagItem &$tagItem, string &$html): void
     {
+        if ($tagItem->Type->Name == TagItemType::Component) {
+            $this->compileComponentExpression($tagItem, $html);
+            $this->extraLine = true;
+            return;
+        }
+
+        if ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression) { // dynamic tag
+            $this->compileComponentExpression($tagItem, $html);
+            $this->extraLine = true;
+            return;
+            //$html .= "<$replaceByTag data-component=\"{$content}\"";
+        }
+
         $replaceByTag = 'div';
         /** @var TagItem[] */
         $children = $tagItem->getChildren();
@@ -258,15 +293,18 @@ class PageEngine
             }
         }
 
-        if ($tagItem->Type->Name == TagItemType::Component) {
-            $this->compileComponentExpression($tagItem, $html);
-            return;
-            //$html .= "<$replaceByTag data-component=\"{$content}\"";
-        }
-
         if ($tagItem->Type->Name == TagItemType::TextContent) {
+            if ($this->extraLine) {
+                $this->extraLine = false;
+                if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
+                    $html .= PHP_EOL;
+                }
+            }
             $html .= $content;
+        } else {
+            $this->extraLine = false;
         }
+        $this->extraLine = $tagItem->ItsExpression;
 
         if ($tagItem->Type->Name == TagItemType::Attribute) {
             $html .= ' ' . $content . ($noChildren
@@ -281,8 +319,8 @@ class PageEngine
         if (!$noChildren) {
             foreach ($children as &$childTag) {
                 if (
-                    $childTag->Type->Name == TagItemType::TextContent
-                    || $childTag->Type->Name == TagItemType::Tag
+                    $childTag->Type->Name === TagItemType::TextContent
+                    || $childTag->Type->Name === TagItemType::Tag
                 ) {
                     if ($noContent) {
                         $noContent = false;
@@ -317,7 +355,6 @@ class PageEngine
             $html .= "_<[||{$content}||]>_";
             $html .= "</$replaceByTag>";
         }
-
         // if ($tagItem->Type->Name == TagItemType::Expression) {
         //     $html .= "_(||{$tagItem->Content}||)_";
         // }

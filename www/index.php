@@ -12,6 +12,13 @@ $page = new PageEngine(
 );
 $page->startApp();
 
+// testing 
+ob_start();
+$page->render();
+$html = ob_get_contents();
+ob_end_clean();
+echo '<pre>' . htmlentities($html) . '</pre>';
+echo $html;
 ?>
 <style>
     html,

@@ -7,6 +7,9 @@ class AppComponent extends BaseComponent
     public string $url = '/';
     public array $testsList = ['My test', 'your test'];
     public Friend $friend;
+    public string $dynamicTag = 'HomePage';
+    public string $dynamicAttr = 'data-dynamic';
+    public string $dynValue = 'Dynamic value';
     function __construct()
     {
         $this->friend = new Friend();

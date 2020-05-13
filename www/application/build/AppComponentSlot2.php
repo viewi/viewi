@@ -2,5 +2,10 @@
 
 function RenderAppComponentSlot2(AppComponent $component, PageEngine $pageEngine)
 {
-    ?>text<?php
+    ?>
+    <?php $pageEngine->renderComponent('HomePage', $component, array (
+  0 => 'AppComponentSlot3',
+)); ?>
+
+<?php
 }
