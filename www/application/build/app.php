@@ -1,19 +1,22 @@
 <?php
 
-function RenderAppComponent(AppComponent $component, PageEngine $pageEngine)
+function RenderAppComponent(AppComponent $component, PageEngine $pageEngine, array $slots)
 {
-    ?><?=htmlentities((4+5)*3 + 4/((5+4)-1))?>
+    ?><?php $pageEngine->renderComponent('HomePage', $component, array (
+)); ?>
 
 <?php $pageEngine->renderComponent($component->dynamicTag, $component, array (
   0 => 'AppComponentSlot1',
 )); ?>
 
-<a src="<?=htmlentities($component->url)?>">Home page</a>
-<?php $pageEngine->renderComponent('HomePage', $component, array (
-)); ?>
-
 <?php $pageEngine->renderComponent('HomePage', $component, array (
   0 => 'AppComponentSlot2',
+)); ?>
+
+<?=htmlentities((4+5)*3 + 4/((5+4)-1))?>
+
+<a src="<?=htmlentities($component->url)?>">Home page</a>
+<?php $pageEngine->renderComponent('HomePage', $component, array (
 )); ?>
 
 <br/>
@@ -58,7 +61,7 @@ plain text
 )); ?>
 
 <?php $pageEngine->renderComponent('HomePage', $component, array (
-  0 => 'AppComponentSlot4',
+  0 => 'AppComponentSlot3',
 )); ?>
 
 <footer>Footer</footer><?php

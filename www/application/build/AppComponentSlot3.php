@@ -1,6 +1,8 @@
 <?php
 
-function RenderAppComponentSlot3(AppComponent $component, PageEngine $pageEngine)
+function RenderAppComponentSlot3(AppComponent $component, PageEngine $pageEngine, array $slots)
 {
-    ?>text<?php
+    ?>
+    <span>render inside <?=htmlentities($component->model)?></span>
+<?php
 }

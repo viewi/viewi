@@ -40,13 +40,15 @@ class PageEngine
         'content,element,shadow,template,blockquote,iframe,tfoot' .
         'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' .
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
-        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view,template';
+        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view,template,slot';
 
     /** @var string[string] */
     private array $selfClosingTags;
 
     private string $selfClosingTagsString = 'area,base,br,col,command,embed,hr' .
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
+
+    private bool $extraLine = false;
 
     public function __construct(string $sourcePath, string $buildPath, string $rootComponent)
     {
@@ -216,14 +218,16 @@ class PageEngine
         return $code;
     }
 
-    function renderComponent(string $componentName, ?BaseComponent $parentComponent, array $slots)
+    function renderComponent(?string $componentName, ?BaseComponent $parentComponent, array $slots)
     {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
-        include_once $this->templates[$componentName]->ComponentInfo->Fullpath;
-        include_once $this->templates[$componentName]->ComponentInfo->BuildPath;
-        $pageClass = $this->templates[$componentName]->ComponentInfo->ComponentName;
-        $classInstance = new $pageClass();
-        ($this->templates[$componentName]->ComponentInfo->RenderFunction)($classInstance, $this);
+        if ($componentName) {
+            include_once $this->templates[$componentName]->ComponentInfo->Fullpath;
+            include_once $this->templates[$componentName]->ComponentInfo->BuildPath;
+            $pageClass = $this->templates[$componentName]->ComponentInfo->ComponentName;
+            $classInstance = new $pageClass();
+            ($this->templates[$componentName]->ComponentInfo->RenderFunction)($classInstance, $this, $slots);
+        }
     }
 
     function compileComponentExpression(TagItem $tagItem, string &$html): void
@@ -240,12 +244,13 @@ class PageEngine
             $slotPageTemplate->ComponentInfo->Name = $name;
             $slotPageTemplate->ComponentInfo->ComponentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
             $slotPageTemplate->ComponentInfo->Tag = $name;
+            //$this->debug($this->latestPageTemplate->ComponentInfo);
             $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->Fullpath);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $name;
             $phpPath = $pathWOext . '.php';
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $htmlPath;
-            $slotPageTemplate->ComponentInfo->Fullpath = $phpPath;
+            $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$name] = $slotPageTemplate;
             $this->build($this->templates[$name]);
@@ -259,7 +264,12 @@ class PageEngine
             : "'{$tagItem->Content}'";
         $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, $slotsArg); ?>";
     }
-    private bool $extraLine = false;
+    function compileSlotExpression(TagItem $tagItem, string &$html): void
+    {
+        $componentName = '$slots[0]';
+        $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, []); ?>";
+    }
+
     function buildTag(TagItem &$tagItem, string &$html): void
     {
         if ($tagItem->Type->Name == TagItemType::Component) {
@@ -268,10 +278,17 @@ class PageEngine
             return;
         }
 
-        if ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression) { // dynamic tag
-            $this->compileComponentExpression($tagItem, $html);
-            $this->extraLine = true;
-            return;
+        if ($tagItem->Type->Name == TagItemType::Tag) {
+            if ($tagItem->ItsExpression) { // dynamic tag
+                $this->compileComponentExpression($tagItem, $html);
+                $this->extraLine = true;
+                return;
+            }
+            if ($tagItem->Content === 'slot') { // render slot
+                $this->compileSlotExpression($tagItem, $html);
+                //$this->extraLine = true;
+                return;
+            }
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
         }
 

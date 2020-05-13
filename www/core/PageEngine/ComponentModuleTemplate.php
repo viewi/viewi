@@ -1,6 +1,6 @@
 <?php
 
-function RenderFunction(BaseComponent $component, PageEngine $pageEngine)
+function RenderFunction(BaseComponent $component, PageEngine $pageEngine, array $slots)
 {
     //#content
 }
