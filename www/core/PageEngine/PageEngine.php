@@ -344,6 +344,7 @@ class PageEngine
                     $html .= '>';
                 }
                 $html .= '</' . $content . '>';
+                $this->extraLine = false;
             }
         } else if ($tagItem->Type->Name == TagItemType::Component) {
             if ($noContent) {

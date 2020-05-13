@@ -22,7 +22,6 @@ function RenderAppComponent(AppComponent $component, PageEngine $pageEngine)
 < 20 {O_o} hello ' ""' \noescape <hr/>
 Content text "test string" 'another one' done.
 <div data-name="test name is &quot;Mike&quot;." title="My dad's story"><?=htmlentities($component->testsList[1])?></div>
-
 <p <?=htmlentities($component->dynamicAttr)?>="<?=htmlentities($component->dynValue)?>"><?=htmlentities($component->model)?>Model</p>
 <?=htmlentities($component->about)?>
 
@@ -36,13 +35,10 @@ Content text "test string" 'another one' done.
     <div>My friend <?=htmlentities($component->friend->Name)?> is <?=htmlentities($component->friend->Age)?> years old</div>
     <p><?=htmlentities($component->model)?>Model</p>
     <p>Name: <?=htmlentities($component->getFullName())?></p>
-
     <p>Occupation: <?=htmlentities($component->getOccupation())?></p>
-
 </div>
 <br/>
 <b>1 + 1 is <?=htmlentities(1+1)?></b>
-
 <header aria-disabled id="my-header"></header>
 <f:table xmlns:f="https://www.w3schools.com/furniture">
     <f:name>Xml parsing demo</f:name>
