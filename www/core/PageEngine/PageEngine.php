@@ -83,8 +83,20 @@ class PageEngine
         $this->renderComponent($this->rootComponent, null, []);
     }
 
+    function removeDirectory($path)
+    {
+        $files = glob($path . '/*');
+        foreach ($files as $file) {
+            is_dir($file) ? $this->removeDirectory($file) : unlink($file);
+        }
+        rmdir($path);
+        return;
+    }
+
     function Compile(): void
     {
+
+        $this->removeDirectory($this->buildPath);
         $pages = $this->getDirContents($this->sourcePath);
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
@@ -230,7 +242,7 @@ class PageEngine
         }
     }
 
-    function compileComponentExpression(TagItem $tagItem, string &$html): void
+    function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null): void
     {
         // generate slot(s)
         $children = $tagItem->getChildren();
@@ -262,12 +274,36 @@ class PageEngine
         $componentName = $tagItem->ItsExpression
             ? $this->convertExpressionToCode($tagItem->Content)
             : "'{$tagItem->Content}'";
+        if ($slotName) {
+            $componentName = "$slotName ? $slotName : '{$slots[0]}'";
+            $slotsArg = '[]';
+        }
         $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, $slotsArg); ?>";
     }
     function compileSlotExpression(TagItem $tagItem, string &$html): void
     {
+        $slotName = false;
+        $defaultContent = false;
         $componentName = '$slots[0]';
-        $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, []); ?>";
+        $children = $tagItem->getChildren();
+        if (!empty($children)) {
+            $defaultTagItem = new TagItem();
+            foreach ($children as &$childTag) {
+                if (
+                    $childTag->Type->Name !== TagItemType::Attribute
+                    && $childTag->Type->Name !== TagItemType::AttributeValue
+                ) { // default content
+                    $defaultTagItem->addChild($childTag);
+                    $defaultContent = true;
+                }
+            }
+            if ($defaultContent) {
+                $this->compileComponentExpression($defaultTagItem, $html, $componentName);
+            }
+        }
+        if (!$defaultContent) {
+            $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, []); ?>";
+        }
     }
 
     function buildTag(TagItem &$tagItem, string &$html): void

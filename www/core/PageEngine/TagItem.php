@@ -18,6 +18,16 @@ class TagItem
     {
         array_unshift($this->childs, $item);
     }
+
+    public function setChildren(array $children): void
+    {
+        $this->childs = $children;
+    }
+
+    /**
+     * 
+     * @return null|TagItem[] 
+     */
     public function &getChildren(): ?array
     {
         if (!isset($this->childs)) {
@@ -29,6 +39,14 @@ class TagItem
     public function &currentChild(): TagItem
     {
         return $this->childs[count($this->childs) - 1];
+    }
+
+    public function addChild(TagItem $child): void
+    {
+        if (!isset($this->childs)) {
+            $this->childs = array();
+        }
+        $this->childs[] = $child;
     }
 
     public function &newChild(): TagItem

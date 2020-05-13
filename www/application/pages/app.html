@@ -1,45 +1,51 @@
-<HomePage></HomePage>
-<$dynamicTag>$content</$dynamicTag>
-<HomePage>text</HomePage>
-{(4+5)*3 + 4/((5+4)-1)}
-<a src="$url">Home page</a>
-<HomePage></HomePage>
-<br />
-"testing =*&%#@!)(*&" \/ 30\$ \> 15\$ & 10 \
-\
-< 20 \{O_o\} hello ' ""' \noescape <hr />
-Content text "test string" 'another one' done.
-<div data-name='test name is "Mike".' title="My dad's story">{$testsList[1]}</div>
-<p $dynamicAttr="$dynValue">{$model}Model</p>
-$about
-<div title="Title of $model model">title test</div>
-<p class="long-text test" title="Awesome">paragraph text</p>
-<a><b>text</b></a>
-<br attr="some value" data-test="hedge" />
-<div>
-    $about {$testsList[0]}
-    <div>My friend {$friend->Name} is {$friend->Age} years old</div>
-    <p>{$model}Model</p>
-    <p>Name: {getFullName()}</p>
-    <p>Occupation: {getOccupation()}</p>
-</div>
-<br />
-<b>1 + 1 is {1+1}</b>
-<header aria-disabled id="my-header"></header>
-<f:table xmlns:f="https://www.w3schools.com/furniture">
-    <f:name>Xml parsing demo</f:name>
-    <f:width>80</f:width>
-    <f:length>120</f:length>
-</f:table>
-plain text
-<b>test</b>
-<h1>
-    header
-</h1>
-<HomePage />
-<hr />
 <HomePage />
 <HomePage>
-    <span>render inside $model</span>
+    <$dynamicTag>$content</$dynamicTag>
+    <HomePage>
+        <HomePage>
+            <HomePage>
+                <$dynamicTag>$content</$dynamicTag>
+            </HomePage>
+        </HomePage>
+    </HomePage>
+    {(4+5)*3 + 4/((5+4)-1)}
+    <a src="$url">Home page</a>
+    <br />
+    "testing =*&%#@!)(*&" \/ 30\$ \> 15\$ & 10 \
+    \
+    < 20 \{O_o\} hello ' ""' \noescape <hr />
+    Content text "test string" 'another one' done.
+    <div data-name='test name is "Mike".' title="My dad's story">{$testsList[1]}</div>
+    <p $dynamicAttr="$dynValue">{$model}Model</p>
+    $about
+    <div title="Title of $model model">title test</div>
+    <p class="long-text test" title="Awesome">paragraph text</p>
+    <a><b>text</b></a>
+    <br attr="some value" data-test="hedge" />
+    <div>
+        $about {$testsList[0]}
+        <div>My friend {$friend->Name} is {$friend->Age} years old</div>
+        <p>{$model}Model</p>
+        <p>Name: {getFullName()}</p>
+        <p>Occupation: {getOccupation()}</p>
+    </div>
+    <br />
+    <b>1 + 1 is {1+1}</b>
+    <header aria-disabled id="my-header"></header>
+    <f:table xmlns:f="https://www.w3schools.com/furniture">
+        <f:name>Xml parsing demo</f:name>
+        <f:width>80</f:width>
+        <f:length>120</f:length>
+    </f:table>
+    plain text
+    <b>test</b>
+    <h1>
+        header
+    </h1>
+    <HomePage />
+    <hr />
+    <HomePage>
+        <span>render inside $model</span>
+    </HomePage>
+    <footer>Footer</footer>
 </HomePage>
-<footer>Footer</footer>
