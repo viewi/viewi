@@ -2,10 +2,12 @@
 
 function RenderAppComponentSlot4(AppComponent $component, PageEngine $pageEngine, array $slots)
 {
+    $slotContents = [];
     ?>
-            <?php $pageEngine->renderComponent('HomePage', $component, array (
-  0 => 'AppComponentSlot5',
-)); ?>
+            <?php
+$slotContents[] = 'AppComponentSlot5';
+$pageEngine->renderComponent('HomePage', $component, $slotContents);
+?>
 
-        <?php
+        <?php   
 }

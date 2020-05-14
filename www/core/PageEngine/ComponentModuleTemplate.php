@@ -2,5 +2,6 @@
 
 function RenderFunction(BaseComponent $component, PageEngine $pageEngine, array $slots)
 {
-    //#content
+    $slotContents = [];
+    //#content   
 }

@@ -36,11 +36,11 @@ class PageEngine
         'caption,col,colgroup,table,thead,tbody,td,th,tr,' .
         'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' .
         'output,progress,select,textarea,' .
-        'details,dialog,menu,menuitem,summary,' .
+        'polygon,polyline,details,dialog,menu,menuitem,summary,' .
         'content,element,shadow,template,blockquote,iframe,tfoot' .
         'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' .
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
-        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view,template,slot';
+        'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotcontent';
 
     /** @var string[string] */
     private array $selfClosingTags;
@@ -83,13 +83,15 @@ class PageEngine
         $this->renderComponent($this->rootComponent, null, []);
     }
 
-    function removeDirectory($path)
+    function removeDirectory($path, $removeRoot = false)
     {
         $files = glob($path . '/*');
         foreach ($files as $file) {
-            is_dir($file) ? $this->removeDirectory($file) : unlink($file);
+            is_dir($file) ? $this->removeDirectory($file, true) : unlink($file);
         }
-        rmdir($path);
+        if ($removeRoot) {
+            rmdir($path);
+        }
         return;
     }
 
@@ -237,7 +239,7 @@ class PageEngine
             include_once $this->templates[$componentName]->ComponentInfo->Fullpath;
             include_once $this->templates[$componentName]->ComponentInfo->BuildPath;
             $pageClass = $this->templates[$componentName]->ComponentInfo->ComponentName;
-            $classInstance = new $pageClass();
+            $classInstance = new $pageClass(); // TODO: reuse instance
             ($this->templates[$componentName]->ComponentInfo->RenderFunction)($classInstance, $this, $slots);
         }
     }
@@ -247,44 +249,76 @@ class PageEngine
         // generate slot(s)
         $children = $tagItem->getChildren();
         $slots = [];
+        $slotContentName = false;
+        $componentBaseName = '';
         if (!empty($children)) { // has slot(s)
+
+            if ($tagItem->Content === 'slotContent') { // <slotContent name=""
+                $defaultTagItem = new TagItem();
+                foreach ($children as &$childTag) {
+                    if (
+                        $childTag->Type->Name !== TagItemType::Attribute
+                        && $childTag->Type->Name !== TagItemType::AttributeValue
+                    ) { // default content
+                        $defaultTagItem->addChild($childTag);
+                    } else if ($childTag->Type->Name === TagItemType::Attribute) {
+                        if ($childTag->Content === 'name') {
+                            $slotNameAttributeValues = $childTag->getChildren();
+                            if (!empty($slotNameAttributeValues)) {
+                                $slotContentName = "'{$slotNameAttributeValues[0]->Content}'";
+                                if ($slotNameAttributeValues[0]->ItsExpression) {
+                                    $slotContentName = $this->convertExpressionToCode($slotNameAttributeValues[0]->Content);
+                                }
+                            }
+                        }
+                    }
+                }
+                $tagItem = $defaultTagItem;
+            }
+
             $this->slotCounter++;
-            $name = "{$this->latestPageTemplate->ComponentInfo->ComponentName}Slot{$this->slotCounter}";
+            $partialComponentName = $slotContentName ? 'SlotComponent' : 'Slot';
+            $componentBaseName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
+                "$partialComponentName{$this->slotCounter}";
             $slotPageTemplate = new PageTemplate();
             $slotPageTemplate->RootTag = $tagItem;
             $slotPageTemplate->ComponentInfo = new ComponentInfo();
-            $slotPageTemplate->ComponentInfo->Name = $name;
+            $slotPageTemplate->ComponentInfo->Name = $componentBaseName;
             $slotPageTemplate->ComponentInfo->ComponentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
-            $slotPageTemplate->ComponentInfo->Tag = $name;
+            $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
             //$this->debug($this->latestPageTemplate->ComponentInfo);
             $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->Fullpath);
-            $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $name;
+            $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $componentBaseName;
             $phpPath = $pathWOext . '.php';
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $htmlPath;
             $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
             $slotPageTemplate->Path = $htmlPath;
-            $this->templates[$name] = $slotPageTemplate;
-            $this->build($this->templates[$name]);
-            $this->save($this->templates[$name]);
-            $slots[] = $name;
+            $this->templates[$componentBaseName] = $slotPageTemplate;
+            $this->build($this->templates[$componentBaseName]);
+            $this->save($this->templates[$componentBaseName]);
         }
         //render component
-        $slotsArg = var_export($slots, true);
         $componentName = $tagItem->ItsExpression
             ? $this->convertExpressionToCode($tagItem->Content)
             : "'{$tagItem->Content}'";
         if ($slotName) {
-            $componentName = "$slotName ? $slotName : '{$slots[0]}'";
-            $slotsArg = '[]';
+            $componentName = "$slotName ? $slotName : '{$componentBaseName}'";
         }
-        $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, $slotsArg); ?>";
+        if ($slotContentName) {
+            $html .= "<?php \$slotContents[$slotContentName] = '{$componentBaseName}'; ?>";
+        } else {
+            $html .= "<?php" .
+                ($componentBaseName ? PHP_EOL . "\$slotContents[] = '$componentBaseName';" : '') .
+                PHP_EOL . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents);" .
+                PHP_EOL . "?>";
+        }
     }
     function compileSlotExpression(TagItem $tagItem, string &$html): void
     {
         $slotName = false;
         $defaultContent = false;
-        $componentName = '$slots[0]';
+        $componentName = '$slots[count($slots) - 1]';
         $children = $tagItem->getChildren();
         if (!empty($children)) {
             $defaultTagItem = new TagItem();
@@ -295,6 +329,17 @@ class PageEngine
                 ) { // default content
                     $defaultTagItem->addChild($childTag);
                     $defaultContent = true;
+                } else if ($childTag->Type->Name === TagItemType::Attribute) {
+                    if ($childTag->Content === 'name') {
+                        $slotNameAttributeValues = $childTag->getChildren();
+                        if (!empty($slotNameAttributeValues)) {
+                            $slotName = "'{$slotNameAttributeValues[0]->Content}'";
+                            if ($slotNameAttributeValues[0]->ItsExpression) {
+                                $slotName = $this->convertExpressionToCode($slotNameAttributeValues[0]->Content);
+                            }
+                            $componentName = "\$slots[$slotName]";
+                        }
+                    }
                 }
             }
             if ($defaultContent) {
@@ -309,6 +354,19 @@ class PageEngine
     function buildTag(TagItem &$tagItem, string &$html): void
     {
         if ($tagItem->Type->Name == TagItemType::Component) {
+
+            // extract slotContents
+            $children = $tagItem->getChildren();
+            foreach ($children as &$childTag) {
+                if (
+                    $childTag->Type->Name === TagItemType::Tag
+                    && $childTag->Content === 'slotContent'
+                ) { // slot content
+                    $this->compileComponentExpression($childTag, $html);
+                }
+            }
+
+            // compile component
             $this->compileComponentExpression($tagItem, $html);
             $this->extraLine = true;
             return;
@@ -322,7 +380,15 @@ class PageEngine
             }
             if ($tagItem->Content === 'slot') { // render slot
                 $this->compileSlotExpression($tagItem, $html);
+                return;
+            }
+            if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
+                // render like component but put slot names
+                // create new function to render all children
+                // put slot name in renderArgument
+                //$this->compileComponentExpression($tagItem, $html);
                 //$this->extraLine = true;
+                //skip
                 return;
             }
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
