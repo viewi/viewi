@@ -4,14 +4,21 @@ function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pag
 {
     $slotContents = [];
     ?>
+        <span class="my-class" class.show="<?=htmlentities($component->true)?>">
+
+            attribute merge
+        </span>
+        <span class="my-class"<?=$component->true ? ' disabled="disabled"' : ''?><?=$component->false ? ' checked="checked"' : ''?>>
+            BOOLEAN attributes
+        </span>
         <?php
-$slotContents[0] = 'AppComponentSlot3';
-$pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot3';
+    $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
 ?>
 
         <?php
-$slotContents[0] = 'AppComponentSlot4';
-$pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot4';
+    $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 
         <?=htmlentities((4+5)*3 + 4/((5+4)-1))?>
@@ -52,13 +59,13 @@ $pageEngine->renderComponent('HomePage', $component, $slotContents);
             header
         </h1>
         <?php
-$pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 
         <hr/>
         <?php
-$slotContents[0] = 'AppComponentSlot8';
-$pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot8';
+    $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 
         <footer>Footer</footer>

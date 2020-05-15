@@ -5,8 +5,8 @@ function RenderAppComponentSlot6(AppComponent $component, PageEngine $pageEngine
     $slotContents = [];
     ?>
                     <?php
-$slotContents[0] = 'AppComponentSlot7';
-$pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot7';
+    $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
 ?>
 
                 <?php   

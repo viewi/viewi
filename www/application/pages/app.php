@@ -11,6 +11,9 @@ class AppComponent extends BaseComponent
     public string $dynamicAttr = 'data-dynamic';
     public string $dynValue = 'Dynamic value';
     public string $content = 'Dynamic Content Test';
+    public string $className = 'app-component';
+    public bool $true = true;
+    public bool $false = false;
     function __construct()
     {
         $this->friend = new Friend();

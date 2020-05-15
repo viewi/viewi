@@ -25,6 +25,7 @@ class PageEngine
 
     /** @var string[string] */
     private array $reservedTags;
+    private string $identation = '    ';
 
     private string $reservedTagsString = 'html,body,base,head,link,meta,style,title,' .
         'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' .
@@ -47,6 +48,13 @@ class PageEngine
     private string $selfClosingTagsString = 'area,base,br,col,command,embed,hr' .
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
 
+    /** @var string[string] */
+    private array $booleanAttributes;
+    private string $booleanAttributesString = 'async,autofocus,autoplay,checked,controls,' .
+        'default,defer,disabled,formnovalidate,hidden,ismap,itemscope,loop,' .
+        'multiple,muted,nomodule,novalidate,open,readonly,required,reversed,' .
+        'selected';
+
     private bool $extraLine = false;
     private bool $development;
     public function __construct(string $sourcePath, string $buildPath, bool $development)
@@ -59,6 +67,7 @@ class PageEngine
         $this->development = $development;
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
+        $this->booleanAttributes = array_flip(explode(',', $this->booleanAttributesString));
     }
 
     function render(string $component)
@@ -330,11 +339,11 @@ class PageEngine
         }
         if ($slotContentName) {
             $eol = PHP_EOL;
-            $html .= "<?php $eol\$slotContents[$slotContentName] = '{$componentBaseName}';$eol?>";
+            $html .= "<?php$eol{$this->identation}\$slotContents[$slotContentName] = '{$componentBaseName}';$eol?>";
         } else {
             $html .= "<?php" .
-                ($componentBaseName ? PHP_EOL . "\$slotContents[0] = '$componentBaseName';" : '') .
-                PHP_EOL . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents);" .
+                ($componentBaseName ? PHP_EOL . $this->identation . "\$slotContents[0] = '$componentBaseName';" : '') .
+                PHP_EOL . $this->identation . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents);" .
                 PHP_EOL . "?>";
         }
     }
@@ -453,6 +462,15 @@ class PageEngine
         $this->extraLine = $tagItem->ItsExpression;
 
         if ($tagItem->Type->Name == TagItemType::Attribute) {
+            if (
+                !$noChildren && count($children) == 1 && $children[0]->ItsExpression
+                && isset($this->booleanAttributes[strtolower($tagItem->Content)])
+            ) { // attribute is boolean, TODO: check argument expression to has boolean type
+                // compile if based on expression
+                $condition = $this->convertExpressionToCode($children[0]->Content);
+                $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
+                return;
+            }
             $html .= ' ' . $content . ($noChildren
                 ? ''
                 : '="');
