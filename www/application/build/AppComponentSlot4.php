@@ -5,7 +5,7 @@ function RenderAppComponentSlot4(AppComponent $component, PageEngine $pageEngine
     $slotContents = [];
     ?>
             <?php
-$slotContents[] = 'AppComponentSlot5';
+$slotContents[0] = 'AppComponentSlot5';
 $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 

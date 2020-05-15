@@ -5,6 +5,7 @@ function RenderAppComponentSlot9(AppComponent $component, PageEngine $pageEngine
     $slotContents = [];
     ?>
     
+    <div>SLOT by default 1</div>
     
 <?php   
 }

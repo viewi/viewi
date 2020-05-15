@@ -1,16 +1,16 @@
 <?php
 
-function RenderAppComponentSlotComponent2(AppComponent $component, PageEngine $pageEngine, array $slots)
+function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pageEngine, array $slots)
 {
     $slotContents = [];
     ?>
         <?php
-$slotContents[] = 'AppComponentSlot3';
+$slotContents[0] = 'AppComponentSlot3';
 $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
 ?>
 
         <?php
-$slotContents[] = 'AppComponentSlot4';
+$slotContents[0] = 'AppComponentSlot4';
 $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 
@@ -57,7 +57,7 @@ $pageEngine->renderComponent('HomePage', $component, $slotContents);
 
         <hr/>
         <?php
-$slotContents[] = 'AppComponentSlot8';
+$slotContents[0] = 'AppComponentSlot8';
 $pageEngine->renderComponent('HomePage', $component, $slotContents);
 ?>
 

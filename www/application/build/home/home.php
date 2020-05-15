@@ -6,7 +6,7 @@ function RenderHomePage(HomePage $component, PageEngine $pageEngine, array $slot
     ?>Recursion <?=htmlentities($component->title)?>
 
 <?php
-$slotContents[] = 'HomePageSlot10';
-$pageEngine->renderComponent($slots[count($slots) - 1] ? $slots[count($slots) - 1] : 'HomePageSlot10', $component, $slotContents);
+$slotContents[0] = 'HomePageSlot10';
+$pageEngine->renderComponent($slots[0] ? $slots[0] : 'HomePageSlot10', $component, $slotContents);
 ?><?php   
 }

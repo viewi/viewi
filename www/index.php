@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 include 'core/PageEngine/PageEngine.php';
 include 'application/pages/app.php';
+include 'application/pages/home/home.php';
 
 $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'pages',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
-    AppComponent::class
+    true
 );
-$page->startApp();
-
+$page->render(AppComponent::class);
 // testing 
-ob_start();
-$page->render();
-$html = ob_get_contents();
-ob_end_clean();
-echo '<pre>' . htmlentities($html) . '</pre>';
-echo $html;
+// ob_start();
+
+// $html = ob_get_contents();
+// ob_end_clean();
+// echo '<pre>' . htmlentities($html) . '</pre>';
+// echo $html;
+// 
 ?>
 <style>
     html,

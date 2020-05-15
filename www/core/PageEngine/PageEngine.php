@@ -11,7 +11,6 @@ class PageEngine
 {
     private string $sourcePath;
     private string $buildPath;
-    private string $rootComponent;
     private ?PageTemplate $latestPageTemplate = null;
     private int $slotCounter = 0;
 
@@ -49,38 +48,34 @@ class PageEngine
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
 
     private bool $extraLine = false;
-
-    public function __construct(string $sourcePath, string $buildPath, string $rootComponent)
+    private bool $development;
+    public function __construct(string $sourcePath, string $buildPath, bool $development)
     {
         $this->sourcePath = $sourcePath;
         $this->buildPath = $buildPath;
-        $this->rootComponent = $rootComponent;
         $this->components = [];
         $this->tokens = [];
         $this->templates = [];
+        $this->development = $development;
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
     }
-    function startApp(): void
+
+    function render(string $component)
     {
-        $this->Compile();
-        if (!isset($this->components[$this->rootComponent])) {
-            throw new Exception("Component {$this->rootComponent} is missing!");
+        if ($this->development) {
+            $this->Compile();
+        } else {
+            // include component infos
+            $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+            include_once $componentsPath;
+            ReadComponentsInfo($this);
         }
-        $root = $this->components[$this->rootComponent];
-        $rootApp = new ComponentRenderer();
-        $rootApp->component = new $root->Name();
 
-        //$this->debug($rootApp);
-        //$this->debug($this->rootComponent . ' ' . $this->path);
-        //$this->debug($this->templates);
-        //$this->debug($this->components);
-        //$this->debug($this->tokens);
-    }
-
-    function render()
-    {
-        $this->renderComponent($this->rootComponent, null, []);
+        if (!isset($this->components[$component])) {
+            throw new Exception("Component {$component} is missing!");
+        }
+        $this->renderComponent($component, null, []);
     }
 
     function removeDirectory($path, $removeRoot = false)
@@ -106,6 +101,7 @@ class PageEngine
                 $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
                 $templatePath = $pathWOext . '.html';
                 $componentInfo = new ComponentInfo();
+                $componentInfo->ItsSlot = false;
                 $componentInfo->Fullpath = $filename;
                 if (isset($pages[$templatePath])) {
                     $componentInfo->TemplatePath = $templatePath;
@@ -140,11 +136,36 @@ class PageEngine
         //$this->debug($this->sourcePath);
         //$this->debug($this->buildPath);
         foreach ($this->components as $className => &$componentInfo) {
-            $this->templates[$className] = $this->compileTemplate($componentInfo);
-            $this->build($this->templates[$className]);
-            $this->save($this->templates[$className]);
+            if (!$componentInfo->ItsSlot) {
+                $this->templates[$className] = $this->compileTemplate($componentInfo);
+                $this->build($this->templates[$className]);
+                $this->save($this->templates[$className]);
+            }
+        }
+        $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+        $content = var_export(json_decode(json_encode($this->components), true), true);
+        $componentsInfoTemplate = __DIR__ . DIRECTORY_SEPARATOR . 'ComponentsInfoTemplate.php';
+        $templateContent = file_get_contents($componentsInfoTemplate);
+        $parts = explode("//#content", $templateContent, 2);
+        $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
+        file_put_contents($componentsPath, $content);
+        //$this->debug($this->components);
+    }
+
+    /**
+     * 
+     * @param ComponentInfo[] $componentsInfo 
+     * @return void 
+     */
+    function setComponentsInfo(array $componentsInfo): void
+    {
+        foreach ($componentsInfo as &$item) {
+            $componentInfo = new ComponentInfo();
+            $componentInfo->fromArray($item);
+            $this->components[$componentInfo->Name] = $componentInfo;
         }
     }
+
     function save(PageTemplate &$pageTemplate)
     {
         $buildFilePath = str_replace($this->sourcePath, $this->buildPath, $pageTemplate->Path);
@@ -236,11 +257,11 @@ class PageEngine
     {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
-            include_once $this->templates[$componentName]->ComponentInfo->Fullpath;
-            include_once $this->templates[$componentName]->ComponentInfo->BuildPath;
-            $pageClass = $this->templates[$componentName]->ComponentInfo->ComponentName;
-            $classInstance = new $pageClass(); // TODO: reuse instance
-            ($this->templates[$componentName]->ComponentInfo->RenderFunction)($classInstance, $this, $slots);
+            include_once $this->components[$componentName]->Fullpath;
+            include_once $this->components[$componentName]->BuildPath;
+            $pageClass = $this->components[$componentName]->ComponentName;
+            $classInstance = new $pageClass(); // TODO: reuse instance, TODO: dependency inject
+            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots);
         }
     }
 
@@ -277,12 +298,13 @@ class PageEngine
             }
 
             $this->slotCounter++;
-            $partialComponentName = $slotContentName ? 'SlotComponent' : 'Slot';
+            $partialComponentName = $slotContentName ? 'SlotContent' : 'Slot';
             $componentBaseName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
                 "$partialComponentName{$this->slotCounter}";
             $slotPageTemplate = new PageTemplate();
             $slotPageTemplate->RootTag = $tagItem;
             $slotPageTemplate->ComponentInfo = new ComponentInfo();
+            $slotPageTemplate->ComponentInfo->ItsSlot = true;
             $slotPageTemplate->ComponentInfo->Name = $componentBaseName;
             $slotPageTemplate->ComponentInfo->ComponentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
             $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
@@ -295,6 +317,7 @@ class PageEngine
             $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
+            $this->components[$componentBaseName] = $slotPageTemplate->ComponentInfo;
             $this->build($this->templates[$componentBaseName]);
             $this->save($this->templates[$componentBaseName]);
         }
@@ -306,10 +329,11 @@ class PageEngine
             $componentName = "$slotName ? $slotName : '{$componentBaseName}'";
         }
         if ($slotContentName) {
-            $html .= "<?php \$slotContents[$slotContentName] = '{$componentBaseName}'; ?>";
+            $eol = PHP_EOL;
+            $html .= "<?php $eol\$slotContents[$slotContentName] = '{$componentBaseName}';$eol?>";
         } else {
             $html .= "<?php" .
-                ($componentBaseName ? PHP_EOL . "\$slotContents[] = '$componentBaseName';" : '') .
+                ($componentBaseName ? PHP_EOL . "\$slotContents[0] = '$componentBaseName';" : '') .
                 PHP_EOL . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents);" .
                 PHP_EOL . "?>";
         }
@@ -318,7 +342,7 @@ class PageEngine
     {
         $slotName = false;
         $defaultContent = false;
-        $componentName = '$slots[count($slots) - 1]';
+        $componentName = '$slots[0]';
         $children = $tagItem->getChildren();
         if (!empty($children)) {
             $defaultTagItem = new TagItem();
@@ -363,6 +387,9 @@ class PageEngine
                     && $childTag->Content === 'slotContent'
                 ) { // slot content
                     $this->compileComponentExpression($childTag, $html);
+                } else {
+                    // default slot content
+
                 }
             }
 
