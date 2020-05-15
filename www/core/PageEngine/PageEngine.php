@@ -446,6 +446,53 @@ class PageEngine
             if (isset($this->selfClosingTags[strtolower($content)])) {
                 $selfClosing = true;
             }
+            if (!$noChildren) { // merge attributes
+                $newChildren = [];
+                foreach ($children as &$childTag) {
+                    if ($childTag->Type->Name === TagItemType::Attribute) {
+                        $attributeName = $childTag->Content;
+                        $mergeValues = $childTag->getChildren();
+
+                        $valueToReplace = false;
+                        if (strpos($attributeName, '.') !== false) {
+                            $parts = explode('.', $attributeName, 2);
+                            $attributeName = $parts[0];
+                            $valueToReplace = $parts[1];
+                            $childTag->Content = $attributeName;
+                        }
+                        if (isset($newChildren[$attributeName])) { // merge values
+                            $firstTime = true;
+                            foreach ($mergeValues as &$attrValueItem) {
+                                if ($valueToReplace !== false) {
+                                    $attrValueItem->Content = "{$attrValueItem->Content} ? ' $valueToReplace' : ''";
+                                    $newChildren[$attributeName]->addChild($attrValueItem);
+                                    break;
+                                } else {
+                                    if ($firstTime) {
+                                        $spaceValue = new TagItem();
+                                        $spaceValue->Type = new TagItemType(TagItemType::AttributeValue);
+                                        $spaceValue->Content = ' ';
+                                        $newChildren[$attributeName]->addChild($spaceValue);
+                                        $firstTime = false;
+                                    }
+                                    $newChildren[$attributeName]->addChild($attrValueItem);
+                                }
+                            }
+                        } else {
+                            if ($valueToReplace !== false) {
+                                $mergeValues[0]->Content = "{$mergeValues[0]->Content} ? '$valueToReplace' : ''";
+                            }
+                            $newChildren[$attributeName] = $childTag;
+                        }
+                    } else {
+                        $newChildren[] = $childTag;
+                    }
+                }
+                //$this->debug($children);
+                $tagItem->setChildren(array_values($newChildren));
+                $children = $tagItem->getChildren();
+                //$this->debug($children);
+            }
         }
 
         if ($tagItem->Type->Name == TagItemType::TextContent) {
@@ -461,7 +508,7 @@ class PageEngine
         }
         $this->extraLine = $tagItem->ItsExpression;
 
-        if ($tagItem->Type->Name == TagItemType::Attribute) {
+        if ($tagItem->Type->Name === TagItemType::Attribute) {
             if (
                 !$noChildren && count($children) == 1 && $children[0]->ItsExpression
                 && isset($this->booleanAttributes[strtolower($tagItem->Content)])
@@ -476,10 +523,10 @@ class PageEngine
                 : '="');
         }
 
-        if ($tagItem->Type->Name == TagItemType::AttributeValue) {
+        if ($tagItem->Type->Name === TagItemType::AttributeValue) {
             $html .= $tagItem->ItsExpression ? $content : htmlentities($content);
         }
-
+        // CHILDRENS scope
         if (!$noChildren) {
             foreach ($children as &$childTag) {
                 if (
@@ -496,11 +543,12 @@ class PageEngine
                 $this->buildTag($childTag, $html);
             }
         }
-        if ($tagItem->Type->Name == TagItemType::Attribute) {
+        // END CHILDRENS scope
+        if ($tagItem->Type->Name === TagItemType::Attribute) {
             $html .= ($noChildren ? '' : '"');
         }
 
-        if ($tagItem->Type->Name == TagItemType::Tag) {
+        if ($tagItem->Type->Name === TagItemType::Tag) {
             if ($selfClosing) {
                 $html .= '/>';
             } else {
@@ -510,7 +558,7 @@ class PageEngine
                 $html .= '</' . $content . '>';
                 $this->extraLine = false;
             }
-        } else if ($tagItem->Type->Name == TagItemType::Component) {
+        } else if ($tagItem->Type->Name === TagItemType::Component) {
             if ($noContent) {
                 $html .= '>';
             }

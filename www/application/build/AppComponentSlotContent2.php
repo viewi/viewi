@@ -4,7 +4,7 @@ function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pag
 {
     $slotContents = [];
     ?>
-        <span class="my-class" class.show="<?=htmlentities($component->true)?>">
+        <span class="my-class <?=htmlentities($component->className)?><?=htmlentities($component->false ? ' show' : '')?><?=htmlentities($component->true ? ' active' : '')?>">
 
             attribute merge
         </span>
