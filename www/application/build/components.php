@@ -25,6 +25,17 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'RenderFunction' => 'RenderHomePage',
     'ItsSlot' => false,
   ),
+  'UserItem' => 
+  array (
+    'Name' => 'UserItem',
+    'ComponentName' => 'UserItem',
+    'Tag' => 'UserItem',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\userItem.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\userItem.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\home\\userItem.php',
+    'RenderFunction' => 'RenderUserItem',
+    'ItsSlot' => false,
+  ),
   'Layout' => 
   array (
     'Name' => 'Layout',
@@ -135,26 +146,81 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'RenderFunction' => 'RenderAppComponentSlot9',
     'ItsSlot' => true,
   ),
-  'HomePageSlot10' => 
+  'AppComponentSlot10' => 
   array (
-    'Name' => 'HomePageSlot10',
-    'ComponentName' => 'HomePage',
-    'Tag' => 'HomePageSlot10',
-    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\home.php',
-    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\HomePageSlot10.html',
-    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\home\\HomePageSlot10.php',
-    'RenderFunction' => 'RenderHomePageSlot10',
+    'Name' => 'AppComponentSlot10',
+    'ComponentName' => 'AppComponent',
+    'Tag' => 'AppComponentSlot10',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\app.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\AppComponentSlot10.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\AppComponentSlot10.php',
+    'RenderFunction' => 'RenderAppComponentSlot10',
     'ItsSlot' => true,
   ),
-  'LayoutSlot11' => 
+  'AppComponentSlot11' => 
   array (
-    'Name' => 'LayoutSlot11',
+    'Name' => 'AppComponentSlot11',
+    'ComponentName' => 'AppComponent',
+    'Tag' => 'AppComponentSlot11',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\app.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\AppComponentSlot11.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\AppComponentSlot11.php',
+    'RenderFunction' => 'RenderAppComponentSlot11',
+    'ItsSlot' => true,
+  ),
+  'AppComponentSlot12' => 
+  array (
+    'Name' => 'AppComponentSlot12',
+    'ComponentName' => 'AppComponent',
+    'Tag' => 'AppComponentSlot12',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\app.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\AppComponentSlot12.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\AppComponentSlot12.php',
+    'RenderFunction' => 'RenderAppComponentSlot12',
+    'ItsSlot' => true,
+  ),
+  'AppComponentSlot13' => 
+  array (
+    'Name' => 'AppComponentSlot13',
+    'ComponentName' => 'AppComponent',
+    'Tag' => 'AppComponentSlot13',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\app.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\AppComponentSlot13.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\AppComponentSlot13.php',
+    'RenderFunction' => 'RenderAppComponentSlot13',
+    'ItsSlot' => true,
+  ),
+  'HomePageSlot14' => 
+  array (
+    'Name' => 'HomePageSlot14',
+    'ComponentName' => 'HomePage',
+    'Tag' => 'HomePageSlot14',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\home.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\HomePageSlot14.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\home\\HomePageSlot14.php',
+    'RenderFunction' => 'RenderHomePageSlot14',
+    'ItsSlot' => true,
+  ),
+  'UserItemSlot15' => 
+  array (
+    'Name' => 'UserItemSlot15',
+    'ComponentName' => 'UserItem',
+    'Tag' => 'UserItemSlot15',
+    'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\userItem.php',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\home\\UserItemSlot15.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\home\\UserItemSlot15.php',
+    'RenderFunction' => 'RenderUserItemSlot15',
+    'ItsSlot' => true,
+  ),
+  'LayoutSlot16' => 
+  array (
+    'Name' => 'LayoutSlot16',
     'ComponentName' => 'Layout',
-    'Tag' => 'LayoutSlot11',
+    'Tag' => 'LayoutSlot16',
     'Fullpath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\layouts\\layout.php',
-    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\layouts\\LayoutSlot11.html',
-    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\layouts\\LayoutSlot11.php',
-    'RenderFunction' => 'RenderLayoutSlot11',
+    'TemplatePath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\pages\\layouts\\LayoutSlot16.html',
+    'BuildPath' => 'C:\\Users\\Ivan\\source\\repos\\pageless.local.com\\www\\application\\build\\layouts\\LayoutSlot16.php',
+    'RenderFunction' => 'RenderLayoutSlot16',
     'ItsSlot' => true,
   ),
 ));   

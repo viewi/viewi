@@ -57,6 +57,8 @@ class PageEngine
 
     private bool $extraLine = false;
     private bool $development;
+    private array $componentArguments = [];
+
     public function __construct(string $sourcePath, string $buildPath, bool $development)
     {
         $this->sourcePath = $sourcePath;
@@ -199,6 +201,15 @@ class PageEngine
         $renderFunction = "Render{$pageTemplate->ComponentInfo->Name}";
         $html = str_replace('BaseComponent', $pageTemplate->ComponentInfo->ComponentName, $html);
         $html = str_replace('RenderFunction', $renderFunction, $html);
+
+        $scopeArguments = implode(', ', $this->componentArguments);
+        if ($scopeArguments) {
+            $scopeArguments = ', ' . $scopeArguments;
+        } else {
+            $scopeArguments = ', ...$scope';
+        }
+        $html = str_replace('/** scope*/', $scopeArguments, $html);
+        // 
         $html .= '?>';
         $this->buildInternal($pageTemplate, $html);
         $html .= '<?php' . $parts[1];
@@ -219,7 +230,34 @@ class PageEngine
 
     function convertExpressionToCode(string $expression): string
     {
-        $expression = implode('$component->', explode('$', $expression));
+        if (!empty($this->componentArguments)) { // exclude variables in scope
+            $parts1 = explode(' ', $expression);
+            foreach ($parts1 as &$item1) {
+                $parts2 = explode('=>', $item1);
+                foreach ($parts2 as &$item2) {
+                    $parts3 = explode('(', $item2);
+                    foreach ($parts3 as &$item3) {
+                        $parts4 = explode('->', $item3, 2);
+                        foreach ($parts4 as &$item4) {
+                            if (strpos($item4, '$') === 0) {
+                                if (!isset($this->componentArguments[$item4])) {
+                                    $item4 = '$component->' . substr($item4, 1);
+                                }
+                            }
+                            break;
+                        }
+                        $item3 = implode('->', $parts4);
+                    }
+                    $item2 = implode('(', $parts3);
+                }
+                $item1 = implode('=>', $parts2);
+            }
+            //$this->debug($expression);
+            $expression = implode(' ', $parts1);
+            //$this->debug($expression);
+        } else {
+            $expression = implode('$component->', explode('$', $expression));
+        }
         if (strpos($expression, '(') !== false) {
             $raw = str_split($expression);
             $count = count($raw);
@@ -262,7 +300,7 @@ class PageEngine
         return $code;
     }
 
-    function renderComponent(?string $componentName, ?BaseComponent $parentComponent, array $slots)
+    function renderComponent(?string $componentName, ?BaseComponent $parentComponent, array $slots, ...$componentArguments)
     {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
@@ -270,7 +308,7 @@ class PageEngine
             include_once $this->components[$componentName]->BuildPath;
             $pageClass = $this->components[$componentName]->ComponentName;
             $classInstance = new $pageClass(); // TODO: reuse instance, TODO: dependency inject
-            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots);
+            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$componentArguments);
         }
     }
 
@@ -341,9 +379,15 @@ class PageEngine
             $eol = PHP_EOL;
             $html .= "<?php$eol{$this->identation}\$slotContents[$slotContentName] = '{$componentBaseName}';$eol?>";
         } else {
+            $scopeArguments = implode(', ', $this->componentArguments);
+            if ($scopeArguments) {
+                $scopeArguments = ', ' . $scopeArguments;
+            } else {
+                $scopeArguments = ', ...$scope';
+            }
             $html .= "<?php" .
                 ($componentBaseName ? PHP_EOL . $this->identation . "\$slotContents[0] = '$componentBaseName';" : '') .
-                PHP_EOL . $this->identation . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents);" .
+                PHP_EOL . $this->identation . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents$scopeArguments);" .
                 PHP_EOL . "?>";
         }
     }
@@ -386,6 +430,46 @@ class PageEngine
 
     function buildTag(TagItem &$tagItem, string &$html): void
     {
+        $foreach = false;
+        /** @var TagItem[] */
+        $children = $tagItem->getChildren();
+        if (
+            $tagItem->Type->Name == TagItemType::Tag
+            || $tagItem->Type->Name == TagItemType::Component
+        ) {
+            foreach ($children as &$childTag) {
+                if ($childTag->Content === 'foreach') {
+                    $childTag->Skip = true;
+                    $foreach = '';
+                    $foreachItems = $childTag->getChildren();
+                    foreach ($foreachItems as &$foreachValueItem) {
+                        $foreach .= $foreachValueItem->Content;
+                    }
+                    continue;
+                }
+            }
+        }
+
+        $foreachArguments = [];
+
+        if ($foreach) {
+            $foreachParts = explode(' as ', $foreach, 2);
+            $foreachSource = $this->convertExpressionToCode($foreachParts[0]);
+            $foreachAsParts = explode('=>', $foreachParts[1]);
+            //$this->debug($tagItem);
+            //$this->debug($foreach);
+            //$this->debug($foreachAsParts);
+            foreach ($foreachAsParts as $foreachArgument) {
+                $argument = trim($foreachArgument);
+                $this->componentArguments[$argument] = $argument;
+                $foreachArguments[$argument] = $argument;
+            }
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "foreach($foreachSource as {$foreachParts[1]}){" .
+                PHP_EOL . $this->identation . "?>";
+        }
+
+
         if ($tagItem->Type->Name == TagItemType::Component) {
 
             // extract slotContents
@@ -405,6 +489,7 @@ class PageEngine
             // compile component
             $this->compileComponentExpression($tagItem, $html);
             $this->extraLine = true;
+            $this->endForeach($foreach, $foreachArguments, $html);
             return;
         }
 
@@ -412,10 +497,12 @@ class PageEngine
             if ($tagItem->ItsExpression) { // dynamic tag
                 $this->compileComponentExpression($tagItem, $html);
                 $this->extraLine = true;
+                $this->endForeach($foreach, $foreachArguments, $html);
                 return;
             }
             if ($tagItem->Content === 'slot') { // render slot
                 $this->compileSlotExpression($tagItem, $html);
+                $this->endForeach($foreach, $foreachArguments, $html);
                 return;
             }
             if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
@@ -425,14 +512,15 @@ class PageEngine
                 //$this->compileComponentExpression($tagItem, $html);
                 //$this->extraLine = true;
                 //skip
+
                 return;
             }
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
         }
-
+        if ($tagItem->Skip) {
+            return;
+        }
         $replaceByTag = 'div';
-        /** @var TagItem[] */
-        $children = $tagItem->getChildren();
         $noChildren = empty($children);
         $noContent = true;
         $selfClosing = false;
@@ -568,11 +656,27 @@ class PageEngine
             $html .= "_<[||{$content}||]>_";
             $html .= "</$replaceByTag>";
         }
+
+        $this->endForeach($foreach, $foreachArguments, $html);
+
         // if ($tagItem->Type->Name == TagItemType::Expression) {
         //     $html .= "_(||{$tagItem->Content}||)_";
         // }
     }
-
+    function endForeach($foreach, $foreachArguments, &$html)
+    {
+        if ($foreach) {
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "}" .
+                PHP_EOL . $this->identation . "?>";
+            foreach ($foreachArguments as $argument) {
+                unset($this->componentArguments[$argument]);
+            }
+            // $this->debug($foreach);
+            // $this->debug($foreachArguments);
+            // $this->debug($this->componentArguments);
+        }
+    }
     function compileTemplate(ComponentInfo $componentInfo): PageTemplate
     {
         $template = new PageTemplate();
@@ -635,6 +739,9 @@ class PageEngine
                             break;
                         }
                     case '>': {
+                            if ($currentType->Name === TagItemType::AttributeValue) {
+                                break;
+                            }
                             if ($escapeNextChar) {
                                 $escapeNextChar = false;
                                 break;

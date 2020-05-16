@@ -1,13 +1,15 @@
 <?php
 
-function RenderAppComponentSlot6(AppComponent $component, PageEngine $pageEngine, array $slots)
+function RenderAppComponentSlot6(AppComponent $component, PageEngine $pageEngine, array $slots
+    , ...$scope
+)
 {
     $slotContents = [];
     ?>
-                    <?php
+            <?php
     $slotContents[0] = 'AppComponentSlot7';
-    $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
+    $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 
-                <?php   
+        <?php   
 }

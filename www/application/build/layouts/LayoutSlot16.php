@@ -1,6 +1,8 @@
 <?php
 
-function RenderLayoutSlot11(Layout $component, PageEngine $pageEngine, array $slots)
+function RenderLayoutSlot16(Layout $component, PageEngine $pageEngine, array $slots
+    , ...$scope
+)
 {
     $slotContents = [];
     ?>

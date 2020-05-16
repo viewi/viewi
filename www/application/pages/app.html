@@ -3,7 +3,35 @@
         <title>App title</title>
     </slotContent>
     <div>SLOT by default 1</div>
+    <UserItem foreach="$users as $uid => $user">
+        UserItem Slot: $uid {$user->Name} {$user->Age}
+    </UserItem>
+    <div foreach="$users as $uid => $user">
+        Div Slot: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>
+    </div>
     <slotContent name="body">
+
+        <UserItem foreach="$users as $uid => $user">
+            UserItem: $uid {$user->Name} {$user->Age}
+        </UserItem>
+        <div foreach="$users as $uid => $user">
+            Div: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>
+        </div>
+        <ul>
+            <li foreach="$users as $uid => $user">
+                $uid {$user->Name} {$user->Age}
+            </li>
+        </ul>
+        <ul>
+            <li foreach="$users as $uid=>$user">
+                $uid {$user->Name} {$user->Age}
+            </li>
+        </ul>
+        <ul>
+            <li foreach="$testsArray as $item">
+                $item
+            </li>
+        </ul>
         <span class="my-class $className" class.show="$false" class.active="$true">
             attribute merge
         </span>

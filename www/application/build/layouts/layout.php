@@ -1,6 +1,8 @@
 <?php
 
-function RenderLayout(Layout $component, PageEngine $pageEngine, array $slots)
+function RenderLayout(Layout $component, PageEngine $pageEngine, array $slots
+    , ...$scope
+)
 {
     $slotContents = [];
     ?><!DOCTYPE html>
@@ -8,8 +10,8 @@ function RenderLayout(Layout $component, PageEngine $pageEngine, array $slots)
 
 <head>
     <?php
-    $slotContents[0] = 'LayoutSlot11';
-    $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'LayoutSlot11', $component, $slotContents);
+    $slotContents[0] = 'LayoutSlot16';
+    $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'LayoutSlot16', $component, $slotContents, ...$scope);
 ?>
 </head>
 

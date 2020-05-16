@@ -1,9 +1,62 @@
 <?php
 
-function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pageEngine, array $slots)
+function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pageEngine, array $slots
+    , ...$scope
+)
 {
     $slotContents = [];
     ?>
+
+        <?php
+    foreach($component->users as $uid => $user){
+    ?><?php
+    $slotContents[0] = 'AppComponentSlot3';
+    $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
+?><?php
+    }
+    ?>
+
+        <?php
+    foreach($component->users as $uid => $user){
+    ?><div>
+            Div: <?php
+    $slotContents[0] = 'AppComponentSlot4';
+    $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
+?>
+
+        </div><?php
+    }
+    ?>
+        <ul>
+            <?php
+    foreach($component->users as $uid => $user){
+    ?><li>
+                <?=htmlentities($uid)?> <?=htmlentities($user->Name)?> <?=htmlentities($user->Age)?>
+
+            </li><?php
+    }
+    ?>
+        </ul>
+        <ul>
+            <?php
+    foreach($component->users as $uid=>$user){
+    ?><li>
+                <?=htmlentities($uid)?> <?=htmlentities($user->Name)?> <?=htmlentities($user->Age)?>
+
+            </li><?php
+    }
+    ?>
+        </ul>
+        <ul>
+            <?php
+    foreach($component->testsArray as $item){
+    ?><li>
+                <?=htmlentities($item)?>
+
+            </li><?php
+    }
+    ?>
+        </ul>
         <span class="my-class <?=htmlentities($component->className)?><?=htmlentities($component->false ? ' show' : '')?><?=htmlentities($component->true ? ' active' : '')?>">
 
             attribute merge
@@ -12,13 +65,13 @@ function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pag
             BOOLEAN attributes
         </span>
         <?php
-    $slotContents[0] = 'AppComponentSlot3';
-    $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot5';
+    $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents, ...$scope);
 ?>
 
         <?php
-    $slotContents[0] = 'AppComponentSlot4';
-    $pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot6';
+    $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 
         <?=htmlentities((4+5)*3 + 4/((5+4)-1))?>
@@ -59,13 +112,13 @@ function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pag
             header
         </h1>
         <?php
-    $pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 
         <hr/>
         <?php
-    $slotContents[0] = 'AppComponentSlot8';
-    $pageEngine->renderComponent('HomePage', $component, $slotContents);
+    $slotContents[0] = 'AppComponentSlot10';
+    $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 
         <footer>Footer</footer>

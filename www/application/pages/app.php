@@ -5,7 +5,8 @@ class AppComponent extends BaseComponent
     public string $about = 'This is php/js page engine';
     public string $model = 'Page';
     public string $url = '/';
-    public array $testsList = ['My test', 'your test'];
+    public array $testsArray = ['My test', 'your test'];
+    public array $users = [];
     public Friend $friend;
     public string $dynamicTag = 'HomePage';
     public string $dynamicAttr = 'data-dynamic';
@@ -19,6 +20,13 @@ class AppComponent extends BaseComponent
         $this->friend = new Friend();
         $this->friend->Name = 'Jhon Doe';
         $this->friend->Age = 30;
+        $letters = 'abcdefghijklmnopqrstuvwxyz';
+        for ($i = 0; $i < 2; $i++) {
+            $user = new Friend();
+            $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
+            $user->Age = 30 + $i;
+            $this->users['user-'.$i] = $user;
+        }
     }
 
     function getFullName(): string

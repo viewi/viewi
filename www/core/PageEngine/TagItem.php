@@ -5,6 +5,7 @@ class TagItem
     public ?string $Content = null;
     public TagItemType $Type;
     public bool $ItsExpression = false;
+    public bool $Skip = false;
     private ?TagItem $Parent;
 
     /** @var TagItem[] */
