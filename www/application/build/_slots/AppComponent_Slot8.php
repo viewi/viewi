@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlot8(
+function RenderAppComponent_Slot8(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -9,7 +9,7 @@ function RenderAppComponentSlot8(
     $slotContents = [];
     ?>
                     <?php
-    $slotContents[0] = 'AppComponentSlot9';
+    $slotContents[0] = 'AppComponent_Slot9';
     $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents, ...$scope);
 ?>
 

@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlot13(
+function RenderAppComponent_Slot13(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots

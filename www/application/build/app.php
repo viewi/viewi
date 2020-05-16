@@ -8,11 +8,11 @@ function RenderAppComponent(
 ) {
     $slotContents = [];
     ?><?php
-    $slotContents['head'] = 'AppComponentSlotContent1';
+    $slotContents['head'] = 'AppComponent_SlotContent1';
 ?><?php
-    $slotContents['body'] = 'AppComponentSlotContent2';
+    $slotContents['body'] = 'AppComponent_SlotContent2';
 ?><?php
-    $slotContents[0] = 'AppComponentSlot11';
+    $slotContents[0] = 'AppComponent_Slot11';
     $pageEngine->renderComponent('Layout', $component, $slotContents, ...$scope);
 ?><?php   
 }

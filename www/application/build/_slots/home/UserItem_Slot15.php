@@ -1,6 +1,6 @@
 <?php
 
-function RenderUserItemSlot15(
+function RenderUserItem_Slot15(
     UserItem $component,
     PageEngine $pageEngine,
     array $slots

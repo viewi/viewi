@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlot6(
+function RenderAppComponent_Slot6(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -9,7 +9,7 @@ function RenderAppComponentSlot6(
     $slotContents = [];
     ?>
             <?php
-    $slotContents[0] = 'AppComponentSlot7';
+    $slotContents[0] = 'AppComponent_Slot7';
     $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 

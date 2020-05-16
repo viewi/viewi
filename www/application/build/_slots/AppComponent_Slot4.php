@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlot4(
+function RenderAppComponent_Slot4(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots

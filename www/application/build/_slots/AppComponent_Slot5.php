@@ -1,13 +1,11 @@
 <?php
 
-function RenderAppComponentSlotContent1(
+function RenderAppComponent_Slot5(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
 ) {
     $slotContents = [];
-    ?>
-        <title>App title</title>
-    <?php   
+    ?><?=htmlentities($component->content)?><?php   
 }

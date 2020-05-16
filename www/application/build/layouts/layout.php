@@ -12,8 +12,8 @@ function RenderLayout(
 
 <head>
     <?php
-    $slotContents[0] = 'LayoutSlot16';
-    $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'LayoutSlot16', $component, $slotContents, ...$scope);
+    $slotContents[0] = 'Layout_Slot16';
+    $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot16', $component, $slotContents, ...$scope);
 ?>
 </head>
 

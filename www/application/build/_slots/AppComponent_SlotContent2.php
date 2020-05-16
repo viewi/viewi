@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlotContent2(
+function RenderAppComponent_SlotContent2(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -39,7 +39,7 @@ function RenderAppComponentSlotContent2(
         <?php
     foreach($component->users as $uid => $user){
     ?><?php
-    $slotContents[0] = 'AppComponentSlot3';
+    $slotContents[0] = 'AppComponent_Slot3';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?><?php
     }
@@ -49,7 +49,7 @@ function RenderAppComponentSlotContent2(
     foreach($component->users as $uid => $user){
     ?><div>
             Div: <?php
-    $slotContents[0] = 'AppComponentSlot4';
+    $slotContents[0] = 'AppComponent_Slot4';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?>
 
@@ -94,12 +94,12 @@ function RenderAppComponentSlotContent2(
             BOOLEAN attributes
         </span>
         <?php
-    $slotContents[0] = 'AppComponentSlot5';
+    $slotContents[0] = 'AppComponent_Slot5';
     $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents, ...$scope);
 ?>
 
         <?php
-    $slotContents[0] = 'AppComponentSlot6';
+    $slotContents[0] = 'AppComponent_Slot6';
     $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 
@@ -146,7 +146,7 @@ function RenderAppComponentSlotContent2(
 
         <hr/>
         <?php
-    $slotContents[0] = 'AppComponentSlot10';
+    $slotContents[0] = 'AppComponent_Slot10';
     $pageEngine->renderComponent('HomePage', $component, $slotContents, ...$scope);
 ?>
 

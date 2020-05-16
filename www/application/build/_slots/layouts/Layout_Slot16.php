@@ -1,6 +1,6 @@
 <?php
 
-function RenderLayoutSlot16(
+function RenderLayout_Slot16(
     Layout $component,
     PageEngine $pageEngine,
     array $slots

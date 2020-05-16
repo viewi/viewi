@@ -183,7 +183,11 @@ class PageEngine
 
     function save(PageTemplate &$pageTemplate)
     {
-        $buildFilePath = str_replace($this->sourcePath, $this->buildPath, $pageTemplate->Path);
+        $buildPath = $this->buildPath;
+        if ($pageTemplate->ItsSlot) {
+            $buildPath .= DIRECTORY_SEPARATOR . '_slots';
+        }
+        $buildFilePath = str_replace($this->sourcePath, $buildPath, $pageTemplate->Path);
         $pathinfo = pathinfo($buildFilePath);
         //$this->debug($pageTemplate->Path);
         //$this->debug($pathinfo);
@@ -349,10 +353,11 @@ class PageEngine
             }
 
             $this->slotCounter++;
-            $partialComponentName = $slotContentName ? 'SlotContent' : 'Slot';
+            $partialComponentName = $slotContentName ? '_SlotContent' : '_Slot';
             $componentBaseName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
                 "$partialComponentName{$this->slotCounter}";
             $slotPageTemplate = new PageTemplate();
+            $slotPageTemplate->ItsSlot = true;
             $slotPageTemplate->RootTag = $tagItem;
             $slotPageTemplate->ComponentInfo = new ComponentInfo();
             $slotPageTemplate->ComponentInfo->ItsSlot = true;

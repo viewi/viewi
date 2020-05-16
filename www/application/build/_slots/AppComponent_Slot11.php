@@ -1,6 +1,6 @@
 <?php
 
-function RenderAppComponentSlot11(
+function RenderAppComponent_Slot11(
     AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -13,7 +13,7 @@ function RenderAppComponentSlot11(
     <?php
     foreach($component->users as $uid => $user){
     ?><?php
-    $slotContents[0] = 'AppComponentSlot12';
+    $slotContents[0] = 'AppComponent_Slot12';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?><?php
     }
@@ -23,7 +23,7 @@ function RenderAppComponentSlot11(
     foreach($component->users as $uid => $user){
     ?><div>
         Div Slot: <?php
-    $slotContents[0] = 'AppComponentSlot13';
+    $slotContents[0] = 'AppComponent_Slot13';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?>
 
