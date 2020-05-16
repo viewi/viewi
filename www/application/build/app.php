@@ -1,9 +1,11 @@
 <?php
 
-function RenderAppComponent(AppComponent $component, PageEngine $pageEngine, array $slots
+function RenderAppComponent(
+    AppComponent $component,
+    PageEngine $pageEngine,
+    array $slots
     , ...$scope
-)
-{
+) {
     $slotContents = [];
     ?><?php
     $slotContents['head'] = 'AppComponentSlotContent1';

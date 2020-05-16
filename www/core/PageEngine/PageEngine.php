@@ -427,10 +427,57 @@ class PageEngine
             $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, []); ?>";
         }
     }
-
+    function startForeach(string $foreach, string &$html, array &$foreachArguments)
+    {
+        $foreachParts = explode(' as ', $foreach, 2);
+        $foreachSource = $this->convertExpressionToCode($foreachParts[0]);
+        $foreachAsParts = explode('=>', $foreachParts[1]);
+        //$this->debug($tagItem);
+        //$this->debug($foreach);
+        //$this->debug($foreachAsParts);
+        foreach ($foreachAsParts as $foreachArgument) {
+            $argument = trim($foreachArgument);
+            $this->componentArguments[$argument] = $argument;
+            $foreachArguments[$argument] = $argument;
+        }
+        $html .= "<?php" . PHP_EOL . $this->identation .
+            "foreach($foreachSource as {$foreachParts[1]}){" .
+            PHP_EOL . $this->identation . "?>";
+    }
+    function endForeach($foreach, $foreachArguments, &$html)
+    {
+        if ($foreach) {
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "}" .
+                PHP_EOL . $this->identation . "?>";
+            foreach ($foreachArguments as $argument) {
+                unset($this->componentArguments[$argument]);
+            }
+            // $this->debug($foreach);
+            // $this->debug($foreachArguments);
+            // $this->debug($this->componentArguments);
+        }
+    }
+    function startIf(string $ifExpression, string &$html)
+    {
+        $ifCode = $this->convertExpressionToCode($ifExpression);
+        $html .= "<?php" . PHP_EOL . $this->identation .
+            "if($ifCode){" .
+            PHP_EOL . $this->identation . "?>";
+    }
+    function closeIf(string $ifExpression, string &$html)
+    {
+        if ($ifExpression) {
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "}" .
+                PHP_EOL . $this->identation . "?>";
+        }
+    }
     function buildTag(TagItem &$tagItem, string &$html): void
     {
         $foreach = false;
+        $ifExpression = false;
+        $firstFound = false;
         /** @var TagItem[] */
         $children = $tagItem->getChildren();
         if (
@@ -438,12 +485,28 @@ class PageEngine
             || $tagItem->Type->Name == TagItemType::Component
         ) {
             foreach ($children as &$childTag) {
-                if ($childTag->Content === 'foreach') {
+                if ($childTag->Content === 'foreach') { //foreach detected
                     $childTag->Skip = true;
                     $foreach = '';
-                    $foreachItems = $childTag->getChildren();
-                    foreach ($foreachItems as &$foreachValueItem) {
-                        $foreach .= $foreachValueItem->Content;
+                    $ifItems = $childTag->getChildren();
+                    foreach ($ifItems as &$ifValueItem) {
+                        $foreach .= $ifValueItem->Content;
+                    }
+                    if (!$firstFound) {
+                        $firstFound = 'foreach';
+                    }
+                    continue;
+                }
+
+                if ($childTag->Content === 'if') { // if detected
+                    $childTag->Skip = true;
+                    $ifExpression = '';
+                    $ifItems = $childTag->getChildren();
+                    foreach ($ifItems as &$ifValueItem) {
+                        $ifExpression .= $ifValueItem->Content;
+                    }
+                    if (!$firstFound) {
+                        $firstFound = 'if';
                     }
                     continue;
                 }
@@ -451,24 +514,15 @@ class PageEngine
         }
 
         $foreachArguments = [];
-
-        if ($foreach) {
-            $foreachParts = explode(' as ', $foreach, 2);
-            $foreachSource = $this->convertExpressionToCode($foreachParts[0]);
-            $foreachAsParts = explode('=>', $foreachParts[1]);
-            //$this->debug($tagItem);
-            //$this->debug($foreach);
-            //$this->debug($foreachAsParts);
-            foreach ($foreachAsParts as $foreachArgument) {
-                $argument = trim($foreachArgument);
-                $this->componentArguments[$argument] = $argument;
-                $foreachArguments[$argument] = $argument;
-            }
-            $html .= "<?php" . PHP_EOL . $this->identation .
-                "foreach($foreachSource as {$foreachParts[1]}){" .
-                PHP_EOL . $this->identation . "?>";
+        if ($ifExpression && $firstFound === 'if') {
+            $this->startIf($ifExpression, $html);
         }
-
+        if ($foreach) {
+            $this->startForeach($foreach, $html, $foreachArguments);
+        }
+        if ($ifExpression && $firstFound !== 'if') {
+            $this->startIf($ifExpression, $html);
+        }
 
         if ($tagItem->Type->Name == TagItemType::Component) {
 
@@ -489,7 +543,13 @@ class PageEngine
             // compile component
             $this->compileComponentExpression($tagItem, $html);
             $this->extraLine = true;
+            if ($ifExpression && $firstFound === 'if') {
+                $this->closeIf($ifExpression, $html);
+            }
             $this->endForeach($foreach, $foreachArguments, $html);
+            if ($ifExpression && $firstFound !== 'if') {
+                $this->closeIf($ifExpression, $html);
+            }
             return;
         }
 
@@ -497,12 +557,24 @@ class PageEngine
             if ($tagItem->ItsExpression) { // dynamic tag
                 $this->compileComponentExpression($tagItem, $html);
                 $this->extraLine = true;
+                if ($ifExpression && $firstFound === 'if') {
+                    $this->closeIf($ifExpression, $html);
+                }
                 $this->endForeach($foreach, $foreachArguments, $html);
+                if ($ifExpression && $firstFound !== 'if') {
+                    $this->closeIf($ifExpression, $html);
+                }
                 return;
             }
             if ($tagItem->Content === 'slot') { // render slot
                 $this->compileSlotExpression($tagItem, $html);
+                if ($ifExpression && $firstFound === 'if') {
+                    $this->closeIf($ifExpression, $html);
+                }
                 $this->endForeach($foreach, $foreachArguments, $html);
+                if ($ifExpression && $firstFound !== 'if') {
+                    $this->closeIf($ifExpression, $html);
+                }
                 return;
             }
             if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
@@ -657,26 +729,19 @@ class PageEngine
             $html .= "</$replaceByTag>";
         }
 
+        if ($ifExpression && $firstFound === 'if') {
+            $this->closeIf($ifExpression, $html);
+        }
         $this->endForeach($foreach, $foreachArguments, $html);
+        if ($ifExpression && $firstFound !== 'if') {
+            $this->closeIf($ifExpression, $html);
+        }
 
         // if ($tagItem->Type->Name == TagItemType::Expression) {
         //     $html .= "_(||{$tagItem->Content}||)_";
         // }
     }
-    function endForeach($foreach, $foreachArguments, &$html)
-    {
-        if ($foreach) {
-            $html .= "<?php" . PHP_EOL . $this->identation .
-                "}" .
-                PHP_EOL . $this->identation . "?>";
-            foreach ($foreachArguments as $argument) {
-                unset($this->componentArguments[$argument]);
-            }
-            // $this->debug($foreach);
-            // $this->debug($foreachArguments);
-            // $this->debug($this->componentArguments);
-        }
-    }
+
     function compileTemplate(ComponentInfo $componentInfo): PageTemplate
     {
         $template = new PageTemplate();

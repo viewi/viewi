@@ -10,8 +10,19 @@
         Div Slot: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>
     </div>
     <slotContent name="body">
-
-        <UserItem foreach="$users as $uid => $user">
+        <div if="$true">
+            true
+        </div>
+        <div if="$false">
+            false
+        </div>
+        <div if="true">
+            true
+        </div>
+        <div if="false">
+            false
+        </div>
+        <UserItem foreach="$users as $uid => $user" if="$user->Age > 29">
             UserItem: $uid {$user->Name} {$user->Age}
         </UserItem>
         <div foreach="$users as $uid => $user">

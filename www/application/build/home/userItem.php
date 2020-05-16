@@ -1,9 +1,11 @@
 <?php
 
-function RenderUserItem(UserItem $component, PageEngine $pageEngine, array $slots
+function RenderUserItem(
+    UserItem $component,
+    PageEngine $pageEngine,
+    array $slots
     , ...$scope
-)
-{
+) {
     $slotContents = [];
     ?><div>User details:</div>
 <div>

@@ -1,18 +1,51 @@
 <?php
 
-function RenderAppComponentSlotContent2(AppComponent $component, PageEngine $pageEngine, array $slots
+function RenderAppComponentSlotContent2(
+    AppComponent $component,
+    PageEngine $pageEngine,
+    array $slots
     , ...$scope
-)
-{
+) {
     $slotContents = [];
     ?>
-
+        <?php
+    if($component->true){
+    ?><div>
+            true
+        </div><?php
+    }
+    ?>
+        <?php
+    if($component->false){
+    ?><div>
+            false
+        </div><?php
+    }
+    ?>
+        <?php
+    if(true){
+    ?><div>
+            true
+        </div><?php
+    }
+    ?>
+        <?php
+    if(false){
+    ?><div>
+            false
+        </div><?php
+    }
+    ?>
         <?php
     foreach($component->users as $uid => $user){
+    ?><?php
+    if($user->Age > 29){
     ?><?php
     $slotContents[0] = 'AppComponentSlot3';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?><?php
+    }
+    ?><?php
     }
     ?>
 

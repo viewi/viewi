@@ -1,9 +1,11 @@
 <?php
 
-function RenderHomePage(HomePage $component, PageEngine $pageEngine, array $slots
+function RenderHomePage(
+    HomePage $component,
+    PageEngine $pageEngine,
+    array $slots
     , ...$scope
-)
-{
+) {
     $slotContents = [];
     ?>Recursion <?=htmlentities($component->title)?>
 

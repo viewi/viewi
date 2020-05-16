@@ -1,9 +1,11 @@
 <?php
 
-function RenderLayout(Layout $component, PageEngine $pageEngine, array $slots
+function RenderLayout(
+    Layout $component,
+    PageEngine $pageEngine,
+    array $slots
     , ...$scope
-)
-{
+) {
     $slotContents = [];
     ?><!DOCTYPE html>
 <html>
