@@ -22,8 +22,29 @@
         <div if="false">
             false
         </div>
-        <UserItem foreach="$users as $uid => $user" if="$user->Age > 29">
-            UserItem: $uid {$user->Name} {$user->Age}
+        <UserItem foreach="$users as $uid => $user">
+            user-$uid
+            <div if="$user->Age < 31">
+                <b>
+                    Age < 31: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else-if="$user->Name === 'Jhonz Doeb'">
+                <b>
+                    else-if Jhonz Doeb: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else-if="$user->Age === 32">
+                <b>
+                    else-if age 32: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else>
+                <b>
+                    else: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+
         </UserItem>
         <div foreach="$users as $uid => $user">
             Div: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>

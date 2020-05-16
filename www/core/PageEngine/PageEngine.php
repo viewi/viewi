@@ -160,6 +160,10 @@ class PageEngine
         $parts = explode("//#content", $templateContent, 2);
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
+        foreach ($this->templates as &$template) {
+            $template->RootTag->cleanParents();
+        }
+
         //$this->debug($this->components);
     }
 
@@ -465,18 +469,84 @@ class PageEngine
             "if($ifCode){" .
             PHP_EOL . $this->identation . "?>";
     }
-    function closeIf(string $ifExpression, string &$html)
+    function closeIf(string $ifExpression, string &$html, bool $closeIfTag)
     {
         if ($ifExpression) {
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "}" .
+                ($closeIfTag ? (PHP_EOL . $this->identation . "?>") : '');
+        }
+    }
+    function startElseIf(string $elseIfExpression, string &$html)
+    {
+        $ifCode = $this->convertExpressionToCode($elseIfExpression);
+        $html .= " else if ($ifCode){" .
+            PHP_EOL . $this->identation . "?>";
+    }
+    function closeElseIf(string $elseIfExpression, string &$html, bool $closeIfTag)
+    {
+        if ($elseIfExpression) {
+            $html .= "<?php" . PHP_EOL . $this->identation .
+                "}" .
+                ($closeIfTag ? PHP_EOL . $this->identation . "?>" : '');
+        }
+    }
+    function startElse(string &$html)
+    {
+        $html .= " else {" .
+            PHP_EOL . $this->identation . "?>";
+    }
+    function closeElse(string $elseExpression, string &$html)
+    {
+        if ($elseExpression) {
             $html .= "<?php" . PHP_EOL . $this->identation .
                 "}" .
                 PHP_EOL . $this->identation . "?>";
         }
     }
+    function getCloseIfTag(TagItem &$tagItem): bool
+    {
+        $closeIfTag = true;
+        $parentChilds = $tagItem->parent()->getChildren();
+        $startLookingForElif = false;
+        $textsToSkip = [];
+        foreach ($parentChilds as &$parentChildren) {
+            if ($parentChildren === $tagItem) {
+                $startLookingForElif = true;
+                continue;
+            }
+            if ($startLookingForElif) {
+                if (
+                    $parentChildren->Type->Name == TagItemType::Tag
+                    || $parentChildren->Type->Name == TagItemType::Component
+                ) {
+                    $elifChildren = $parentChildren->getChildren();
+                    foreach ($elifChildren as &$elifChild) {
+                        if (
+                            $elifChild->Type->Name == TagItemType::Attribute
+                            && ($elifChild->Content === 'else-if' || $elifChild->Content === 'else')
+                        ) {
+                            $closeIfTag = false;
+                            foreach ($textsToSkip as &$textItem) {
+                                $textItem->Skip = true;
+                            }
+                        }
+                    }
+                    break;
+                } elseif ($parentChildren->Type->Name === TagItemType::TextContent) {
+                    $textsToSkip[] = &$parentChildren;
+                }
+            }
+        }
+        return $closeIfTag;
+    }
     function buildTag(TagItem &$tagItem, string &$html): void
     {
         $foreach = false;
         $ifExpression = false;
+        $closeIfTag = true;
+        $elseIfExpression = false;
+        $elseExpression = false;
         $firstFound = false;
         /** @var TagItem[] */
         $children = $tagItem->getChildren();
@@ -485,7 +555,10 @@ class PageEngine
             || $tagItem->Type->Name == TagItemType::Component
         ) {
             foreach ($children as &$childTag) {
-                if ($childTag->Content === 'foreach') { //foreach detected
+                if (
+                    $childTag->Type->Name == TagItemType::Attribute
+                    && $childTag->Content === 'foreach'
+                ) { //foreach detected
                     $childTag->Skip = true;
                     $foreach = '';
                     $ifItems = $childTag->getChildren();
@@ -498,7 +571,10 @@ class PageEngine
                     continue;
                 }
 
-                if ($childTag->Content === 'if') { // if detected
+                if (
+                    $childTag->Type->Name == TagItemType::Attribute
+                    && $childTag->Content === 'if'
+                ) { // if detected
                     $childTag->Skip = true;
                     $ifExpression = '';
                     $ifItems = $childTag->getChildren();
@@ -508,12 +584,36 @@ class PageEngine
                     if (!$firstFound) {
                         $firstFound = 'if';
                     }
+                    // detect if else of else-if towards
+                    $closeIfTag = $this->getCloseIfTag($tagItem);
+                    continue;
+                }
+                if ($childTag->Content === 'else-if') { // else if detected
+                    $childTag->Skip = true;
+                    $elseIfExpression = '';
+                    $ifItems = $childTag->getChildren();
+                    foreach ($ifItems as &$ifValueItem) {
+                        $elseIfExpression .= $ifValueItem->Content;
+                    }
+                    // detect if else of else-if towards
+                    $closeIfTag = $this->getCloseIfTag($tagItem);
+                    continue;
+                }
+                if ($childTag->Content === 'else') { // else detected
+                    $childTag->Skip = true;
+                    $elseExpression = true;
                     continue;
                 }
             }
         }
 
         $foreachArguments = [];
+        if ($elseExpression) {
+            $this->startElse($html);
+        }
+        if ($elseIfExpression) {
+            $this->startElseIf($elseIfExpression, $html);
+        }
         if ($ifExpression && $firstFound === 'if') {
             $this->startIf($ifExpression, $html);
         }
@@ -544,12 +644,14 @@ class PageEngine
             $this->compileComponentExpression($tagItem, $html);
             $this->extraLine = true;
             if ($ifExpression && $firstFound === 'if') {
-                $this->closeIf($ifExpression, $html);
+                $this->closeIf($ifExpression, $html, $closeIfTag);
             }
             $this->endForeach($foreach, $foreachArguments, $html);
             if ($ifExpression && $firstFound !== 'if') {
-                $this->closeIf($ifExpression, $html);
+                $this->closeIf($ifExpression, $html, $closeIfTag);
             }
+            $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
+            $this->closeElse($elseExpression, $html);
             return;
         }
 
@@ -558,23 +660,27 @@ class PageEngine
                 $this->compileComponentExpression($tagItem, $html);
                 $this->extraLine = true;
                 if ($ifExpression && $firstFound === 'if') {
-                    $this->closeIf($ifExpression, $html);
+                    $this->closeIf($ifExpression, $html, $closeIfTag);
                 }
                 $this->endForeach($foreach, $foreachArguments, $html);
                 if ($ifExpression && $firstFound !== 'if') {
-                    $this->closeIf($ifExpression, $html);
+                    $this->closeIf($ifExpression, $html, $closeIfTag);
                 }
+                $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
+                $this->closeElse($elseExpression, $html);
                 return;
             }
             if ($tagItem->Content === 'slot') { // render slot
                 $this->compileSlotExpression($tagItem, $html);
                 if ($ifExpression && $firstFound === 'if') {
-                    $this->closeIf($ifExpression, $html);
+                    $this->closeIf($ifExpression, $html, $closeIfTag);
                 }
                 $this->endForeach($foreach, $foreachArguments, $html);
                 if ($ifExpression && $firstFound !== 'if') {
-                    $this->closeIf($ifExpression, $html);
+                    $this->closeIf($ifExpression, $html, $closeIfTag);
                 }
+                $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
+                $this->closeElse($elseExpression, $html);
                 return;
             }
             if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
@@ -730,13 +836,14 @@ class PageEngine
         }
 
         if ($ifExpression && $firstFound === 'if') {
-            $this->closeIf($ifExpression, $html);
+            $this->closeIf($ifExpression, $html, $closeIfTag);
         }
         $this->endForeach($foreach, $foreachArguments, $html);
         if ($ifExpression && $firstFound !== 'if') {
-            $this->closeIf($ifExpression, $html);
+            $this->closeIf($ifExpression, $html, $closeIfTag);
         }
-
+        $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
+        $this->closeElse($elseExpression, $html);
         // if ($tagItem->Type->Name == TagItemType::Expression) {
         //     $html .= "_(||{$tagItem->Content}||)_";
         // }
@@ -1029,7 +1136,6 @@ class PageEngine
             $i++;
         }
 
-        $template->RootTag->cleanParents();
         return $template;
     }
 

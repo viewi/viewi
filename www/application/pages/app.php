@@ -21,11 +21,11 @@ class AppComponent extends BaseComponent
         $this->friend->Name = 'Jhon Doe';
         $this->friend->Age = 30;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
-        for ($i = 0; $i < 2; $i++) {
+        for ($i = 0; $i < 3; $i++) {
             $user = new Friend();
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
-            $this->users['user-'.$i] = $user;
+            $this->users['ID-'.$i] = $user;
         }
     }
 

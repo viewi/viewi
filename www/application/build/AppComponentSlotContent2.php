@@ -39,13 +39,9 @@ function RenderAppComponentSlotContent2(
         <?php
     foreach($component->users as $uid => $user){
     ?><?php
-    if($user->Age > 29){
-    ?><?php
     $slotContents[0] = 'AppComponentSlot3';
     $pageEngine->renderComponent('UserItem', $component, $slotContents, $uid, $user);
 ?><?php
-    }
-    ?><?php
     }
     ?>
 
