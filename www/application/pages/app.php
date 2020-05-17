@@ -15,6 +15,7 @@ class AppComponent extends BaseComponent
     public string $className = 'app-component';
     public bool $true = true;
     public bool $false = false;
+    public string $html = '<b>raw html demo</b>';
     function __construct()
     {
         $this->friend = new Friend();
@@ -25,7 +26,7 @@ class AppComponent extends BaseComponent
             $user = new Friend();
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
-            $this->users['ID-'.$i] = $user;
+            $this->users['ID-' . $i] = $user;
         }
     }
 

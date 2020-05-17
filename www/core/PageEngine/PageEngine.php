@@ -301,10 +301,15 @@ class PageEngine
 
     function compileExpression(string $expression, $class = null): string // TODO: validate expression
     {
-        $code = '<?=htmlentities(';
-        $code .= $this->convertExpressionToCode($expression);
-        $code .= ')?>';
-
+        if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
+            $code = '<?=';
+            $code .= $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2));
+            $code .= '?>';
+        } else {
+            $code = '<?=htmlentities(';
+            $code .= $this->convertExpressionToCode($expression);
+            $code .= ')?>';
+        }
         return $code;
     }
 
@@ -1023,7 +1028,7 @@ class PageEngine
                             }
                             $itsBlockExpression = true;
                             $skipCount = 1;
-                            $skipInExpression = 1;
+                            $skipInExpression = 0;
                             $saveContent = true;
                             $nextIsExpression = true;
                             $saveContent = true;
@@ -1071,6 +1076,7 @@ class PageEngine
                     switch ($char) {
                         case '{': {
                                 $blocksCount++;
+                                // $this->debug($blocksCount);
                                 break;
                             }
                         case '}': {
@@ -1080,6 +1086,7 @@ class PageEngine
                                     $itsBlockExpression = false;
                                     $skipCount = 1;
                                     $saveContent = true;
+                                    // $this->debug($content);
                                 }
                                 break;
                             }
