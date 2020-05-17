@@ -11,6 +11,7 @@ class ComponentInfo
         $this->BuildPath = $item['BuildPath'];
         $this->RenderFunction = $item['RenderFunction'];
         $this->ItsSlot = $item['ItsSlot'];
+        $this->Inputs = $item['Inputs'] ?? [];
     }
     public string $Name;
     public string $ComponentName;
@@ -20,4 +21,5 @@ class ComponentInfo
     public string $BuildPath;
     public string $RenderFunction;
     public bool $ItsSlot;
+    public array $Inputs;
 }

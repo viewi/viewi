@@ -11,7 +11,9 @@ $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
     true
 );
+//for ($i = 0; $i < 10; $i++) {
 $page->render(AppComponent::class);
+//}
 // testing 
 // ob_start();
 

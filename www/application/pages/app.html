@@ -10,9 +10,17 @@
         Div Slot: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>
     </div>
     <slotContent name="body">
+        <UserItem title="User item title">
+            Only title provided
+            <br />
+        </UserItem>
+        <UserItem foreach="$users as $uid => $user" user="$user" active="true" title="{getFullName()}">
+            Arguments test
+            <br />
+        </UserItem>
         {{$html}}
         $html
-        <template id="test" foreach="$users as $uid => $user" if="$user->Age < 32">
+        <template foreach="$users as $uid => $user" if="$user->Age < 32">
             Template user-$uid
         </template>
         <div if="$true">

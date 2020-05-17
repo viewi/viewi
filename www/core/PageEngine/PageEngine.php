@@ -58,7 +58,7 @@ class PageEngine
     private bool $extraLine = false;
     private bool $development;
     private array $componentArguments = [];
-
+    private bool $compiled = false;
     public function __construct(string $sourcePath, string $buildPath, bool $development)
     {
         $this->sourcePath = $sourcePath;
@@ -86,7 +86,7 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
-        $this->renderComponent($component, null, []);
+        $this->renderComponent($component, null, [], []);
     }
 
     function removeDirectory($path, $removeRoot = false)
@@ -103,7 +103,10 @@ class PageEngine
 
     function Compile(): void
     {
-
+        if ($this->compiled) {
+            return;
+        }
+        $this->compiled = true;
         $this->removeDirectory($this->buildPath);
         $pages = $this->getDirContents($this->sourcePath);
         foreach (array_keys($pages) as $filename) {
@@ -313,19 +316,32 @@ class PageEngine
         return $code;
     }
 
-    function renderComponent(?string $componentName, ?BaseComponent $parentComponent, array $slots, ...$componentArguments)
-    {
+    function renderComponent(
+        ?string $componentName,
+        ?BaseComponent $parentComponent,
+        array $slots,
+        array $componentArguments,
+        ...$slotArguments
+    ) {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
-            include_once $this->components[$componentName]->Fullpath;
-            include_once $this->components[$componentName]->BuildPath;
-            $pageClass = $this->components[$componentName]->ComponentName;
+            $compInfo = &$this->components[$componentName];
+            include_once $compInfo->Fullpath;
+            include_once $compInfo->BuildPath;
+            $pageClass = $compInfo->ComponentName;
             $classInstance = new $pageClass(); // TODO: reuse instance, TODO: dependency inject
-            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$componentArguments);
+            // init input properties
+            // TODO: cache properties
+            foreach ($componentArguments as $key => $inputValue) {
+                if (isset($compInfo->Inputs[$key])) {
+                    $classInstance->{$key} = $inputValue;
+                }
+            }
+            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$slotArguments);
         }
     }
 
-    function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null): void
+    function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null, array $inputArguments = []): void
     {
         // generate slot(s)
         $children = $tagItem->getChildren();
@@ -399,9 +415,23 @@ class PageEngine
             } else {
                 $scopeArguments = ', ...$scope';
             }
+            $inputArgumentsCode = '[]';
+            if (!empty($inputArguments)) {
+                $inputArgumentsCode = '[' . PHP_EOL;
+                foreach ($inputArguments as $key => $expressionCode) {
+                    $inputArgumentsCode .= "'$key' => $expressionCode," . PHP_EOL;
+                }
+                $inputArgumentsCode .= ']';
+            }
+
             $html .= "<?php" .
                 ($componentBaseName ? PHP_EOL . $this->identation . "\$slotContents[0] = '$componentBaseName';" : '') .
-                PHP_EOL . $this->identation . "\$pageEngine->renderComponent($componentName, \$component, \$slotContents$scopeArguments);" .
+                PHP_EOL . $this->identation . "\$pageEngine->renderComponent(" .
+                "$componentName, " .
+                "\$component, " .
+                "\$slotContents, " .
+                "$inputArgumentsCode" .
+                "$scopeArguments);" .
                 PHP_EOL . "?>";
         }
     }
@@ -438,7 +468,7 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, []); ?>";
+            $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, [], []); ?>";
         }
     }
     function startForeach(string $foreach, string &$html, array &$foreachArguments)
@@ -550,6 +580,15 @@ class PageEngine
         }
         return $closeIfTag;
     }
+    function getChildValues(TagItem &$tagItem): string
+    {
+        $combinedValue = '';
+        $children = $tagItem->getChildren();
+        foreach ($children as &$child) {
+            $combinedValue .= $child->Content;
+        }
+        return $combinedValue;
+    }
     function buildTag(TagItem &$tagItem, string &$html): void
     {
         $foreach = false;
@@ -598,7 +637,10 @@ class PageEngine
                     $closeIfTag = $this->getCloseIfTag($tagItem);
                     continue;
                 }
-                if ($childTag->Content === 'else-if') { // else if detected
+                if (
+                    $childTag->Type->Name == TagItemType::Attribute
+                    && $childTag->Content === 'else-if'
+                ) { // else if detected
                     $childTag->Skip = true;
                     $elseIfExpression = '';
                     $ifItems = $childTag->getChildren();
@@ -609,7 +651,10 @@ class PageEngine
                     $closeIfTag = $this->getCloseIfTag($tagItem);
                     continue;
                 }
-                if ($childTag->Content === 'else') { // else detected
+                if (
+                    $childTag->Type->Name == TagItemType::Attribute
+                    && $childTag->Content === 'else'
+                ) { // else detected
                     $childTag->Skip = true;
                     $elseExpression = true;
                     continue;
@@ -636,7 +681,8 @@ class PageEngine
 
         if ($tagItem->Type->Name == TagItemType::Component) {
 
-            // extract slotContents
+            $inputArguments = [];
+            // extract slotContents and input arguments
             $children = $tagItem->getChildren();
             foreach ($children as &$childTag) {
                 if (
@@ -644,14 +690,54 @@ class PageEngine
                     && $childTag->Content === 'slotContent'
                 ) { // slot content
                     $this->compileComponentExpression($childTag, $html);
-                } else {
-                    // default slot content
+                } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
+                    $childTag->Skip = true; // component can't has attributes
+                    // pass arguments
+                    //$this->debug($tagItem->Content);
+                    if (isset($this->components[$tagItem->Content])) {
+                        $className = $this->components[$tagItem->Content]->ComponentName;
+                        include_once $this->components[$tagItem->Content]->Fullpath;
 
+                        if (class_exists($className)) {
+                            //$this->debug($className);
+                            if (!isset($this->components[$tagItem->Content]->Inputs)) {
+                                $this->components[$tagItem->Content]->Inputs = [];
+                            }
+                            $reflect = new ReflectionClass($className);
+                            $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
+                            $propsMap = [];
+                            foreach ($props as $propertyInfo) {
+                                $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
+                            }
+                            $inputArgument = $childTag->Content;
+                            if (isset($propsMap[$inputArgument])) {
+                                if (!isset($this->components[$tagItem->Content]->Inputs[$inputArgument])) {
+                                    $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
+                                }
+                                $inputValue = $this->getChildValues($childTag);
+                                if (
+                                    strpos($inputValue, '(') === false
+                                    && $inputValue[0] !== '$'
+                                    && !ctype_digit($inputValue)
+                                    && $inputValue !== 'true'
+                                    && $inputValue !== 'false'
+                                ) { // its a string
+                                    $inputValue = str_replace("'", "\\'", $inputValue);
+                                    $inputValue = "'$inputValue'";
+                                }
+                                $inputValue = $this->convertExpressionToCode($inputValue);
+                                $inputArguments[$inputArgument] = $inputValue;
+                                // $this->debug($inputArgument);
+                                // $this->debug($inputValue);
+                                // $this->debug($propsMap);
+                            }
+                        }
+                    }
                 }
             }
-
+            //$this->debug($inputArguments, true);
             // compile component
-            $this->compileComponentExpression($tagItem, $html);
+            $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
             if ($ifExpression && $firstFound === 'if') {
                 $this->closeIf($ifExpression, $html, $closeIfTag);
@@ -1160,8 +1246,11 @@ class PageEngine
         return $template;
     }
 
-    function debug($any)
+    function debug($any, bool $checkEmpty = false): void
     {
+        if ($checkEmpty && empty($any)) {
+            return;
+        }
         echo '<pre>';
         print_r($any);
         echo '</pre>';
