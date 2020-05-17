@@ -729,6 +729,10 @@ class PageEngine
                 $newChildren = [];
                 foreach ($children as &$childTag) {
                     if ($childTag->Type->Name === TagItemType::Attribute) {
+                        if ($skipTagRender && !$childTag->Skip) { // template can't has attributes
+                            trigger_error("`template` tag can't has attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
+                            continue;
+                        }
                         $attributeName = $childTag->Content;
                         $mergeValues = $childTag->getChildren();
 

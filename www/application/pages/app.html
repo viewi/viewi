@@ -12,7 +12,7 @@
     <slotContent name="body">
         {{$html}}
         $html
-        <template foreach="$users as $uid => $user" if="$user->Age < 32">
+        <template id="test" foreach="$users as $uid => $user" if="$user->Age < 32">
             Template user-$uid
         </template>
         <div if="$true">
