@@ -10,6 +10,9 @@
         Div Slot: <UserItem>$uid {$user->Name} {$user->Age}</UserItem>
     </div>
     <slotContent name="body">
+        <template foreach="$users as $uid => $user" if="$user->Age < 32">
+            Template user-$uid
+        </template>
         <div if="$true">
             true
         </div>

@@ -711,11 +711,14 @@ class PageEngine
         $content = $tagItem->ItsExpression
             ? $this->compileExpression($tagItem->Content)
             : $tagItem->Content;
-
+        $skipTagRender = false;
         if ($tagItem->Type->Name == TagItemType::Tag) {
-            $html .= '<' . $content;
-            if (isset($this->selfClosingTags[strtolower($content)])) {
-                $selfClosing = true;
+            $skipTagRender = $tagItem->Content === 'template';
+            if (!$skipTagRender) {
+                $html .= '<' . $content;
+                if (isset($this->selfClosingTags[strtolower($content)])) {
+                    $selfClosing = true;
+                }
             }
             if (!$noChildren) { // merge attributes
                 $newChildren = [];
@@ -806,7 +809,7 @@ class PageEngine
                 ) {
                     if ($noContent) {
                         $noContent = false;
-                        if (!$selfClosing) {
+                        if (!$selfClosing && !$skipTagRender) {
                             $html .= '>';
                         }
                     }
@@ -820,14 +823,16 @@ class PageEngine
         }
 
         if ($tagItem->Type->Name === TagItemType::Tag) {
-            if ($selfClosing) {
-                $html .= '/>';
-            } else {
-                if ($noContent) {
-                    $html .= '>';
+            if (!$skipTagRender) {
+                if ($selfClosing) {
+                    $html .= '/>';
+                } else {
+                    if ($noContent) {
+                        $html .= '>';
+                    }
+                    $html .= '</' . $content . '>';
+                    $this->extraLine = false;
                 }
-                $html .= '</' . $content . '>';
-                $this->extraLine = false;
             }
         } else if ($tagItem->Type->Name === TagItemType::Component) {
             if ($noContent) {
