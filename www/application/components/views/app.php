@@ -16,8 +16,19 @@ class AppComponent extends BaseComponent
     public bool $true = true;
     public bool $false = false;
     public string $html = '<b>raw html demo</b>';
-    function __construct()
-    {
+    public NotificationService $notificationService;
+    private HttpClientService $http;
+    function __construct(
+        NotificationService $notificationService,
+        HttpClientService $http,
+        string $name,
+        ?int $cost,
+        ?NotificationService $ns,
+        ?float $f = 3,
+        ?array $test = [5, 6]
+    ) {
+        $this->notificationService = $notificationService;
+        $this->http = $http;
         $this->friend = new Friend();
         $this->friend->Name = 'Jhon Doe';
         $this->friend->Age = 30;

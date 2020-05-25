@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 include 'core/PageEngine/PageEngine.php';
-include 'application/pages/app.php';
-include 'application/pages/home/home.php';
+include 'application/components/views/app.php';
+include 'application/components/views/home/home.php';
 
 $page = new PageEngine(
-    __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'pages',
+    __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
     true
 );

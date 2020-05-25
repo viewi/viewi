@@ -2,6 +2,7 @@
 
 require 'TagItemType.php';
 require 'BaseComponent.php';
+require 'BaseService.php';
 require 'ComponentInfo.php';
 require 'ComponentRenderer.php';
 require 'PageTemplate.php';
@@ -23,7 +24,7 @@ class PageEngine
     /** @var PageTemplate[] */
     private array $templates;
 
-    /** @var string[string] */
+    /** @var string<string, string> */
     private array $reservedTags;
     private string $identation = '    ';
 
@@ -42,13 +43,13 @@ class PageEngine
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
         'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotcontent';
 
-    /** @var string[string] */
+    /** @var string<string,string> */
     private array $selfClosingTags;
 
     private string $selfClosingTagsString = 'area,base,br,col,command,embed,hr' .
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
 
-    /** @var string[string] */
+    /** @var string<string,string> */
     private array $booleanAttributes;
     private string $booleanAttributesString = 'async,autofocus,autoplay,checked,controls,' .
         'default,defer,disabled,formnovalidate,hidden,ismap,itemscope,loop,' .
@@ -101,6 +102,111 @@ class PageEngine
         return;
     }
 
+    /**
+     * 
+     * @param string $filename 
+     * @return string 
+     */
+    private function getClassNameByToken(string $filename): string
+    {
+        $tokens = token_get_all(file_get_contents($filename), TOKEN_PARSE);
+        $className = '';
+        $nextStringIsClass = false;
+        foreach ($tokens as &$token) {
+            if (is_int($token[0])) {
+                $token[] = token_name($token[0]);
+                if ($token[0] == T_CLASS) {
+                    $nextStringIsClass = true;
+                }
+                if ($nextStringIsClass && $token[0] == T_STRING) {
+                    if (empty($className)) {
+                        $className = $token[1];
+                    }
+                    $nextStringIsClass = false;
+                }
+            }
+        }
+        return $className;
+    }
+
+    /**
+     * 
+     * @param string $baseClass
+     * @return array<string, ReflectionClass>
+     */
+    private function getClasses(string $baseClass): array
+    {
+        $children  = array();
+        $types = get_declared_classes();
+        foreach ($types as $class) {
+            if (is_subclass_of($class, $baseClass)) {
+                $rf = new ReflectionClass($class);
+                $children[$class] = $rf;
+            }
+        }
+        return $children;
+    }
+
+    /**
+     * 
+     * @param ReflectionClass $reflectionClass 
+     * @return void 
+     */
+    function buildDependencies(ReflectionClass $reflectionClass): void
+    {
+    }
+
+    /**
+     * 
+     * @param ReflectionClass $reflectionClass 
+     * @return array<array,string]>>
+     */
+    function getDependencies(ReflectionClass $reflectionClass): array
+    {
+        $dependencies = [];
+        $constructor = $reflectionClass->getConstructor();
+        $construcorArgs = $constructor->getParameters();
+        if (!empty($construcorArgs)) {
+
+            foreach ($construcorArgs as $argument) {
+                $argumentName = $argument->name;
+                if ($argument->hasType()) {
+                    /** @var ReflectionNamedType $namedType */
+                    $namedType = $argument->getType();
+                    if ($namedType instanceof ReflectionNamedType) {
+                        // $this->debug($namedType->getName());
+                        // $this->debug($argument->getClass());
+                        $argumentClass = $argument->getClass(); // check if class exists
+                        $dependencies[$argumentName] =
+                            [
+                                'name' => $namedType->getName()
+                            ];
+                        if ($argument->isOptional()) {
+                            $dependencies[$argumentName]['optional'] = 1;
+                        }
+                        if ($argument->isDefaultValueAvailable() && is_null($argumentClass)) {
+                            $dependencies[$argumentName]['default'] =
+                                $argument->getDefaultValue();
+                        }
+                        if ($namedType->isBuiltin()) {
+                            $dependencies[$argumentName]['builtIn'] = 1;
+                        }
+                        if ($namedType->allowsNull()) {
+                            $dependencies[$argumentName]['null'] = 1;
+                        }
+                        if (!is_null($argumentClass)) {
+                            $this->buildDependencies($argumentClass);
+                        }
+                    }
+                } else {
+                    throw new Exception("Argument '$argumentName' in class" .
+                        "{$reflectionClass->name}' can`t be resolved without type in {$reflectionClass->getFileName()}.");
+                }
+            }
+        }
+        return $dependencies;
+    }
+    /** */
     function Compile(): void
     {
         if ($this->compiled) {
@@ -112,39 +218,33 @@ class PageEngine
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
             if ($pathinfo['extension'] === 'php') {
-                $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
-                $templatePath = $pathWOext . '.html';
-                $componentInfo = new ComponentInfo();
-                $componentInfo->ItsSlot = false;
-                $componentInfo->Fullpath = $filename;
-                if (isset($pages[$templatePath])) {
-                    $componentInfo->TemplatePath = $templatePath;
-                }
-                $tokens = token_get_all(file_get_contents($filename), TOKEN_PARSE);
-                $className = '';
-                $nextStringIsClass = false;
-                foreach ($tokens as &$token) {
-                    if (is_int($token[0])) {
-                        $token[] = token_name($token[0]);
-                        if ($token[0] == T_CLASS) {
-                            $nextStringIsClass = true;
-                        }
-                        if ($nextStringIsClass && $token[0] == T_STRING) {
-                            if (empty($className)) {
-                                $className = $token[1];
-                            }
-                            $nextStringIsClass = false;
-                        }
-                    }
-                }
-                $componentInfo->Name = $className;
-                $componentInfo->ComponentName = $className;
-                $componentInfo->Tag = $className;
+                include_once $filename;
+            }
+        }
+        $types = $this->getClasses(BaseComponent::class);
+        foreach ($types as $filename => &$reflectionClass) {
+            $componentInfo = new ComponentInfo();
+            $className = $reflectionClass->name;
+            $filename = $reflectionClass->getFileName();
+            $dependencies = $this->getDependencies($reflectionClass);
+            if (!empty($dependencies)) {
+                $componentInfo->Dependencies = $dependencies;
+            }
+            $pathinfo = pathinfo($filename);
+            $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
+            $templatePath = $pathWOext . '.html';
+            $componentInfo->ItsSlot = false;
+            $componentInfo->Fullpath = $filename;
+            if (isset($pages[$templatePath])) {
+                $componentInfo->TemplatePath = $templatePath;
+            }
+            $componentInfo->Name = $className;
+            $componentInfo->ComponentName = $className;
+            $componentInfo->Tag = $className;
 
-                if (!empty($className)) {
-                    $this->components[$className] = $componentInfo;
-                    $this->tokens[$className] = $tokens;
-                }
+            if (!empty($className)) {
+                $this->components[$className] = $componentInfo;
+                $this->tokens[$className] = $tokens;
             }
         }
         //$this->debug($this->sourcePath);

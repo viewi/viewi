@@ -12,6 +12,7 @@ class ComponentInfo
         $this->RenderFunction = $item['RenderFunction'];
         $this->ItsSlot = $item['ItsSlot'];
         $this->Inputs = $item['Inputs'] ?? [];
+        $this->Dependencies = $item['Dependencies'] ?? [];
     }
     public string $Name;
     public string $ComponentName;
@@ -21,5 +22,14 @@ class ComponentInfo
     public string $BuildPath;
     public string $RenderFunction;
     public bool $ItsSlot;
+    /**
+     * 
+     * @var array<string,int>
+     */
     public array $Inputs;
+    /**
+     * 
+     * @var array<string,array>
+     */
+    public array $Dependencies;
 }
