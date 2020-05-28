@@ -134,13 +134,15 @@ class PageEngine
      * @param string $baseClass
      * @return array<string, ReflectionClass>
      */
-    private function getClasses(string $baseClass): array
+    private function getClasses(?string $baseClass, ?string $path = null): array
     {
         $children  = array();
         $types = get_declared_classes();
         foreach ($types as $class) {
-            if (is_subclass_of($class, $baseClass)) {
-                $rf = new ReflectionClass($class);
+            $rf = new ReflectionClass($class);
+            if ($baseClass !== null && is_subclass_of($class, $baseClass)) {
+                $children[$class] = $rf;
+            } else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
                 $children[$class] = $rf;
             }
         }
@@ -154,6 +156,18 @@ class PageEngine
      */
     function buildDependencies(ReflectionClass $reflectionClass): void
     {
+        $name = $reflectionClass->name;
+        if (!isset($this->components[$name])) {
+            $componentInfo = new ComponentInfo();
+            $componentInfo->Name = $name;
+            $componentInfo->IsComponent = false;
+            $componentInfo->Fullpath = $reflectionClass->getFileName();
+            $this->components[$name] = $componentInfo;
+            $dependencies = $this->getDependencies($reflectionClass);
+            if (!empty($dependencies)) {
+                $componentInfo->Dependencies = $dependencies;
+            }
+        }
     }
 
     /**
@@ -165,42 +179,44 @@ class PageEngine
     {
         $dependencies = [];
         $constructor = $reflectionClass->getConstructor();
-        $construcorArgs = $constructor->getParameters();
-        if (!empty($construcorArgs)) {
+        if ($constructor !== null) {
+            $construcorArgs = $constructor->getParameters();
+            if (!empty($construcorArgs)) {
 
-            foreach ($construcorArgs as $argument) {
-                $argumentName = $argument->name;
-                if ($argument->hasType()) {
-                    /** @var ReflectionNamedType $namedType */
-                    $namedType = $argument->getType();
-                    if ($namedType instanceof ReflectionNamedType) {
-                        // $this->debug($namedType->getName());
-                        // $this->debug($argument->getClass());
-                        $argumentClass = $argument->getClass(); // check if class exists
-                        $dependencies[$argumentName] =
-                            [
-                                'name' => $namedType->getName()
-                            ];
-                        if ($argument->isOptional()) {
-                            $dependencies[$argumentName]['optional'] = 1;
+                foreach ($construcorArgs as $argument) {
+                    $argumentName = $argument->name;
+                    if ($argument->hasType()) {
+                        /** @var ReflectionNamedType $namedType */
+                        $namedType = $argument->getType();
+                        if ($namedType instanceof ReflectionNamedType) {
+                            // $this->debug($namedType->getName());
+                            // $this->debug($argument->getClass());
+                            $argumentClass = $argument->getClass(); // check if class exists
+                            $dependencies[$argumentName] =
+                                [
+                                    'name' => $namedType->getName()
+                                ];
+                            if ($argument->isOptional()) {
+                                $dependencies[$argumentName]['optional'] = 1;
+                            }
+                            if ($argument->isDefaultValueAvailable() && is_null($argumentClass)) {
+                                $dependencies[$argumentName]['default'] =
+                                    $argument->getDefaultValue();
+                            }
+                            if ($namedType->isBuiltin()) {
+                                $dependencies[$argumentName]['builtIn'] = 1;
+                            }
+                            if ($namedType->allowsNull()) {
+                                $dependencies[$argumentName]['null'] = 1;
+                            }
+                            if (!is_null($argumentClass)) {
+                                $this->buildDependencies($argumentClass);
+                            }
                         }
-                        if ($argument->isDefaultValueAvailable() && is_null($argumentClass)) {
-                            $dependencies[$argumentName]['default'] =
-                                $argument->getDefaultValue();
-                        }
-                        if ($namedType->isBuiltin()) {
-                            $dependencies[$argumentName]['builtIn'] = 1;
-                        }
-                        if ($namedType->allowsNull()) {
-                            $dependencies[$argumentName]['null'] = 1;
-                        }
-                        if (!is_null($argumentClass)) {
-                            $this->buildDependencies($argumentClass);
-                        }
+                    } else {
+                        throw new Exception("Argument '$argumentName' in class" .
+                            "{$reflectionClass->name}' can`t be resolved without type in {$reflectionClass->getFileName()}.");
                     }
-                } else {
-                    throw new Exception("Argument '$argumentName' in class" .
-                        "{$reflectionClass->name}' can`t be resolved without type in {$reflectionClass->getFileName()}.");
                 }
             }
         }
@@ -233,7 +249,7 @@ class PageEngine
             $pathinfo = pathinfo($filename);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $templatePath = $pathWOext . '.html';
-            $componentInfo->ItsSlot = false;
+            $componentInfo->IsComponent = true;
             $componentInfo->Fullpath = $filename;
             if (isset($pages[$templatePath])) {
                 $componentInfo->TemplatePath = $templatePath;
@@ -247,10 +263,14 @@ class PageEngine
                 $this->tokens[$className] = $tokens;
             }
         }
+        $types = $this->getClasses(null, $this->sourcePath);
+        foreach ($types as $filename => &$reflectionClass) {
+            $this->buildDependencies($reflectionClass);
+        }
         //$this->debug($this->sourcePath);
         //$this->debug($this->buildPath);
         foreach ($this->components as $className => &$componentInfo) {
-            if (!$componentInfo->ItsSlot) {
+            if ($componentInfo->IsComponent) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
                 $this->build($this->templates[$className]);
                 $this->save($this->templates[$className]);
@@ -415,6 +435,64 @@ class PageEngine
         }
         return $code;
     }
+    /**
+     * 
+     * @var array<string,object>
+     */
+    private array $Dependencies = [];
+    function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false)
+    {
+        $cache = true;
+        if ($componentInfo->IsComponent) {
+            // always new instance
+            $cache = $defaultCache;
+            include_once $componentInfo->Fullpath;
+            include_once $componentInfo->BuildPath;
+        } elseif (isset($componentInfo->IsSlot)) {
+            include_once $componentInfo->Fullpath;
+            include_once $componentInfo->BuildPath;
+            return $this->resolve($this->components[$componentInfo->ComponentName], true);
+        } else {
+            // It's service or any class (It's not component)
+            include_once $componentInfo->Fullpath;
+        }
+        $class = $componentInfo->Name;
+        if ($cache && isset($this->Dependencies[$class])) {
+            // $this->debug("From cache $class");
+            return $this->Dependencies[$class];
+        }
+        // $this->debug("Creating $class");
+        $instance = false;
+        if (empty($componentInfo->Dependencies)) {
+            $instance = new $class();
+        } else {
+            $arguments = [];
+            foreach ($componentInfo->Dependencies as $type) {
+                if (isset($type['default'])) {
+                    $arguments[] = $type['default'];
+                } else if (isset($type['null'])) {
+                    $arguments[] = null;
+                } else if (isset($type['builtIn'])) {
+                    switch ($type['name']) {
+                        case 'string': {
+                                $arguments[] = '';
+                                break;
+                            }
+                        default: {
+                                throw new Exception("Type '{$type['name']}' is not configured.");
+                                break;
+                            }
+                    }
+                } else {
+                    $arguments[] = $this->resolve($this->components[$type['name']]);
+                }
+            }
+            $instance = new $class(...$arguments);
+        }
+        // always cache for slots
+        $this->Dependencies[$class] = $instance;
+        return $instance;
+    }
 
     function renderComponent(
         ?string $componentName,
@@ -426,10 +504,8 @@ class PageEngine
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
             $compInfo = &$this->components[$componentName];
-            include_once $compInfo->Fullpath;
-            include_once $compInfo->BuildPath;
-            $pageClass = $compInfo->ComponentName;
-            $classInstance = new $pageClass(); // TODO: reuse instance, TODO: dependency inject
+            $classInstance = $this->resolve($compInfo);
+            // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
             foreach ($componentArguments as $key => $inputValue) {
@@ -481,7 +557,8 @@ class PageEngine
             $slotPageTemplate->ItsSlot = true;
             $slotPageTemplate->RootTag = $tagItem;
             $slotPageTemplate->ComponentInfo = new ComponentInfo();
-            $slotPageTemplate->ComponentInfo->ItsSlot = true;
+            $slotPageTemplate->ComponentInfo->IsComponent = false;
+            $slotPageTemplate->ComponentInfo->IsSlot = true;
             $slotPageTemplate->ComponentInfo->Name = $componentBaseName;
             $slotPageTemplate->ComponentInfo->ComponentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
             $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
