@@ -9,7 +9,7 @@ include 'application/components/views/home/home.php';
 $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
-    false
+    true
 );
 //for ($i = 0; $i < 10; $i++) {
 $page->render(AppComponent::class);

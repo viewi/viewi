@@ -140,7 +140,11 @@ class PageEngine
         $types = get_declared_classes();
         foreach ($types as $class) {
             $rf = new ReflectionClass($class);
-            if ($baseClass !== null && is_subclass_of($class, $baseClass)) {
+            if ($baseClass !== null && $path !== null) {
+                if (is_subclass_of($class, $baseClass) && strpos($rf->getFileName(), $path) === 0) {
+                    $children[$class] = $rf;
+                }
+            } else if ($baseClass !== null && is_subclass_of($class, $baseClass)) {
                 $children[$class] = $rf;
             } else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
                 $children[$class] = $rf;
@@ -237,7 +241,9 @@ class PageEngine
                 include_once $filename;
             }
         }
-        $types = $this->getClasses(BaseComponent::class);
+        $types = $this->getClasses(BaseComponent::class, $this->sourcePath);
+        // $this->debug($this->sourcePath);
+        // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
             $componentInfo = new ComponentInfo();
             $className = $reflectionClass->name;
@@ -1134,6 +1140,7 @@ class PageEngine
     function compileTemplate(ComponentInfo $componentInfo): PageTemplate
     {
         $template = new PageTemplate();
+        // $this->debug($componentInfo);
         $path = $componentInfo->TemplatePath;
         if (empty($path)) {
             throw new Exception("Argument `\$path` is missing");
