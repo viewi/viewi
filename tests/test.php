@@ -8,6 +8,14 @@ if (empty($inputs)) {
     exit;
 }
 $testTool = new UnitTestTool();
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
+$testTool->logInfoMessage('*');
 $testTool->logInfoMessage('Welcome to Unit Testing');
 
 $files = [];

@@ -4,8 +4,7 @@ include_once '../www/core/PageEngine/PageEngine.php';
 
 class TagRenderingTest extends BaseTest
 {
-
-    public function VerifySimpleTagRendering(UnitTestScope $T)
+    private function TestComponent(string $component, UnitTestScope $T)
     {
         $page = new PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . 'app',
@@ -13,75 +12,36 @@ class TagRenderingTest extends BaseTest
             true
         );
         ob_start();
-        $page->render(HomeTest::class);
+        $page->render($component);
         $html = ob_get_contents();
         ob_end_clean();
         $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'results'
-            . DIRECTORY_SEPARATOR . 'homeTest.html');
+            . DIRECTORY_SEPARATOR . $component . '.html');
         $T->this($html)->equalsTo($expectetd);
+    }
+
+    public function VerifySimpleTagRendering(UnitTestScope $T)
+    {
+        $this->TestComponent(HomeTest::class, $T);
     }
 
     public function VerifyRawHtmlRendering(UnitTestScope $T)
     {
-        $page = new PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . 'app',
-            $T->WorkingDirectory(),
-            true
-        );
-        ob_start();
-        $page->render(RawHtmlComponent::class);
-        $html = ob_get_contents();
-        ob_end_clean();
-        $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'results'
-            . DIRECTORY_SEPARATOR . 'RawHtmlComponent.html');
-        $T->this($html)->equalsTo($expectetd);
+        $this->TestComponent(RawHtmlComponent::class, $T);
     }
 
     public function VerifyComponentRendering(UnitTestScope $T)
     {
-        $page = new PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . 'app',
-            $T->WorkingDirectory(),
-            true
-        );
-        ob_start();
-        $page->render(ComponentTest::class);
-        $html = ob_get_contents();
-        ob_end_clean();
-        $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'results'
-            . DIRECTORY_SEPARATOR . 'ComponentTest.html');
-        $T->this($html)->equalsTo($expectetd);
+        $this->TestComponent(ComponentTest::class, $T);
     }
 
     public function VerifyComponentSlotRendering(UnitTestScope $T)
     {
-        $page = new PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . 'app',
-            $T->WorkingDirectory(),
-            true
-        );
-        ob_start();
-        $page->render(ChildComponentSlot::class);
-        $html = ob_get_contents();
-        ob_end_clean();
-        $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'results'
-            . DIRECTORY_SEPARATOR . 'ChildComponentSlot.html');
-        $T->this($html)->equalsTo($expectetd);
+        $this->TestComponent(ChildComponentSlot::class, $T);
     }
 
     public function VerifyComponentSlotDefaultRendering(UnitTestScope $T)
     {
-        $page = new PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . 'app',
-            $T->WorkingDirectory(),
-            true
-        );
-        ob_start();
-        $page->render(ChildComponentSlotDefault::class);
-        $html = ob_get_contents();
-        ob_end_clean();
-        $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'results'
-            . DIRECTORY_SEPARATOR . 'ChildComponentSlotDefault.html');
-        $T->this($html)->equalsTo($expectetd);
+        $this->TestComponent(ChildComponentSlotDefault::class, $T);
     }
 }
