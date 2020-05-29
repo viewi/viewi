@@ -1,6 +1,6 @@
 <?php
 
-class HomePageV2 extends BaseComponent
+class HomeTest extends BaseComponent
 {
     public string $title = 'Wellcome to my awesome application';
 

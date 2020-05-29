@@ -950,7 +950,12 @@ class PageEngine
                 return;
             }
             if ($tagItem->Content === 'slot') { // render slot
+                // $this->debug($tagItem);
+                // foreach($tagItem->parent()->getChildren() as &$chld){
+                //     var_dump($chld->Content);
+                // }
                 $this->compileSlotExpression($tagItem, $html);
+                $this->extraLine = true;
                 if ($ifExpression && $firstFound === 'if') {
                     $this->closeIf($ifExpression, $html, $closeIfTag);
                 }
