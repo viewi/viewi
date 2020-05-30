@@ -4,33 +4,28 @@ if (PHP_SAPI !== 'cli') {
 }
 $inputs = array_slice($argv, 1);
 if (empty($inputs)) {
-    echo "You need to specify folder";
+    echo "You need to specify arguments";
     exit;
 }
 $testTool = new UnitTestTool();
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('*');
-$testTool->logInfoMessage('Welcome to Unit Testing');
-
-$files = [];
-$testTool->getDirContents(__DIR__ . DIRECTORY_SEPARATOR . $inputs[0], $files);
-foreach ($files as $fileName => $true) {
-    $pathinfo = pathinfo($fileName);
-    if ($pathinfo['extension'] === 'php') {
-        include_once $fileName;
+if (count($inputs) === 1) {
+    $testTool->Start($inputs[0]);
+} else {
+    $command = $inputs[0];
+    $arguments = array_slice($inputs, 1);
+    // echo "Running $command command\n";
+    // $testTool->debug($arguments);
+    switch ($command) {
+        case 'run': {
+                list($file, $class, $method) = $arguments;
+                $testTool->StartTestFile($file, $class, $method);
+                break;
+            }
+        default: {
+                echo "Command $command not found.\n";
+            }
     }
 }
-$testCases = $testTool->getClasses(BaseTest::class);
-foreach ($testCases as $class) {
-    $testTool->RunTest($class);
-}
-$testTool->WriteSummary();
 //$testTool->debug($testCases);
 
 // classes
@@ -75,7 +70,93 @@ class UnitTestTool
     {
         $this->startedAt = microtime(true);
     }
-    function RunTest(ReflectionClass $testClass)
+    function Start($testsFolder)
+    {
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('*');
+        $this->logInfoMessage('Welcome to Unit Testing');
+
+        $files = [];
+        $this->getDirContents(__DIR__ . DIRECTORY_SEPARATOR . $testsFolder, $files);
+        foreach ($files as $fileName => $true) {
+            if ($this->endsWith($fileName, '.test.php')) {
+                include_once $fileName;
+            }
+        }
+        $testCases = $this->getClasses(BaseTest::class);
+        foreach ($testCases as $class) {
+            $this->ExecuteTestCase($class);
+        }
+        $this->WriteSummary();
+    }
+    private function ExecuteTestCase(ReflectionClass $reflectionClass)
+    {
+        $fileLocation = $this->getTitleMessage(
+            str_replace(__DIR__ . DIRECTORY_SEPARATOR, '', $reflectionClass->getFileName())
+        );
+        $this->logInfoMessage("----------------------------------------------------------------------");
+        $this->logInfoMessage("Running tests: $fileLocation");
+        $fileName = escapeshellarg($reflectionClass->getFileName());
+        $className = escapeshellarg($reflectionClass->name);
+        $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
+        foreach ($methods as $method) {
+            $methodName = escapeshellarg($method->name);
+            $testName = $this->getTitleMessage("$methodName");
+            $this->logInfoMessage(" Test: $testName");
+            $output = shell_exec("php test.php run $fileName $className $methodName");
+            if ($output && $output[0] === '{') {
+                $json = json_decode($output, true);
+                $this->FailedCount += $json['Failed'];
+                $this->TotalCount += $json['Total'];
+                if ($json['Output']) {
+                    echo $json['Output'];
+                }
+                if ($json['Failed'] === 0) {
+                    $this->logSuccessMessage("   PASSED");
+                } else {
+                    $this->logErrorMessage("   FAILED\n   {$json['Error']}\n");
+                }
+            } else {
+                $this->debug($output);
+            }
+        }
+    }
+
+    function StartTestFile(string $fileName, string $className, string $methodName)
+    {
+        ob_start();
+        include_once $fileName;
+        $instance = new $className();
+        $workingDir = $this->createTempDir($className);
+        $scope = new UnitTestScope($this, $workingDir);
+        $errorMessage = '';
+        try {
+            $instance->$methodName($scope);
+        } catch (Throwable $error) {
+            $this->FailedCount++;
+            $errorMessage = $error->getMessage();
+        } finally {
+            $this->TotalCount++;
+            $this->removeDirectory($workingDir, true);
+        }
+        $this->removeTempDirectory($className);
+        $output = ob_get_contents();
+        ob_end_clean();
+        echo json_encode([
+            'Failed' => $this->FailedCount,
+            'Total' => $this->TotalCount,
+            'Error' => $errorMessage,
+            'Output' => $output
+        ]);
+    }
+
+    private function RunTest(ReflectionClass $testClass)
     {
         $className = $testClass->name;
         $instance = new $className();
@@ -83,11 +164,10 @@ class UnitTestTool
         $fileLocation = $this->getTitleMessage(str_replace(__DIR__ . DIRECTORY_SEPARATOR, '', $testClass->getFileName()));
         $this->logInfoMessage("----------------------------------------------------------------------");
         $this->logInfoMessage("Running tests: $fileLocation");
-        $workingDir = $this->createTempDir($className);
         foreach ($methods as $method) {
             $methodName = $method->name;
+            $workingDir = $this->createTempDir($className);
             $scope = new UnitTestScope($this, $workingDir);
-
             try {
                 $testName = $this->getTitleMessage("$methodName");
                 $this->logInfoMessage(" Test: $testName");
@@ -98,9 +178,10 @@ class UnitTestTool
                 $this->logErrorMessage("   FAILED\n   {$error->getMessage()}\n");
             } finally {
                 $this->TotalCount++;
+                $this->removeDirectory($workingDir, true);
             }
         }
-        $this->removeDirectory($workingDir, true);
+        $this->removeTempDirectory($className);
         // $this->debug(get_included_files());
     }
     function WriteSummary()
@@ -117,10 +198,12 @@ class UnitTestTool
         }
         //$this->logSuccessMessage(date("m.d.y g:i a") . "\tCompleted");
     }
-    function logSummarySuccess(string $message){
+    function logSummarySuccess(string $message)
+    {
         echo "\033[42;97m$message\033[0m\n";
     }
-    function logSummaryFail(string $message){
+    function logSummaryFail(string $message)
+    {
         echo "\033[101;97m$message\033[0m\n";
     }
     function getTitleMessage(string $message)
@@ -139,7 +222,21 @@ class UnitTestTool
     {
         echo "\033[91m$message\033[0m\n";
     }
+    function startsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        return (substr($haystack, 0, $length) === $needle);
+    }
 
+    function endsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        if ($length == 0) {
+            return true;
+        }
+
+        return (substr($haystack, -$length) === $needle);
+    }
     public function getClasses(string $baseClass): array
     {
         $children  = array();
@@ -182,6 +279,11 @@ class UnitTestTool
             mkdir($dir, 0777, true);
         }
         return $dir;
+    }
+    private function removeTempDirectory($baseName)
+    {
+        $path = 'temp' . DIRECTORY_SEPARATOR . $baseName;
+        $this->removeDirectory($path, true);
     }
     private function removeDirectory($path, $removeRoot = false)
     {
