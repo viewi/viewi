@@ -4,8 +4,13 @@ include_once '../www/core/PageEngine/PageEngine.php';
 
 class TagRenderingTest extends BaseTest
 {
-    private function TestComponent(string $component, string $path, string $expectedResultFile, UnitTestScope $T)
-    {
+    private function TestComponent(
+        string $component,
+        string $path,
+        string $expectedResultFile,
+        UnitTestScope $T,
+        bool $echoRendered = false
+    ) {
         $page = new PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
@@ -17,7 +22,9 @@ class TagRenderingTest extends BaseTest
         ob_end_clean();
         $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $path
             . DIRECTORY_SEPARATOR . $expectedResultFile);
-        // echo $html;
+        if ($echoRendered) {
+            echo $html;
+        }
         $T->this($html)->equalsTo($expectetd);
     }
 
@@ -41,8 +48,8 @@ class TagRenderingTest extends BaseTest
         $this->TestComponent(CanRenderSlotsComponent::class, 'CanRenderSlots', 'CanRenderSlots.expected.html', $T);
     }
 
-    // public function VerifyComponentSlotDefaultRendering(UnitTestScope $T)
-    // {
-    //     $this->TestComponent(ChildComponentSlotDefault::class, 'app', 'expected.html', $T);
-    // }
+    public function CanRenderAttributes(UnitTestScope $T)
+    {
+        $this->TestComponent(CanRenderAttributesComponent::class, 'CanRenderAttributes', 'CanRenderAttributes.expected.html', $T);
+    }
 }

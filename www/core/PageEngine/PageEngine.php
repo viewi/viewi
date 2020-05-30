@@ -1060,11 +1060,11 @@ class PageEngine
                 }
             }
             $html .= $content;
+            $this->extraLine = $tagItem->ItsExpression;
         } else {
             $this->extraLine = false;
         }
-        $this->extraLine = $tagItem->ItsExpression;
-
+        
         if ($tagItem->Type->Name === TagItemType::Attribute) {
             if (
                 !$noChildren && count($children) == 1 && $children[0]->ItsExpression

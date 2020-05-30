@@ -115,7 +115,7 @@ class UnitTestTool
                 $this->FailedCount += $json['Failed'];
                 $this->TotalCount += $json['Total'];
                 if ($json['Output']) {
-                    echo $json['Output'];
+                    echo $json['Output'] . PHP_EOL;
                 }
                 if ($json['Failed'] === 0) {
                     $this->logSuccessMessage("   PASSED");
