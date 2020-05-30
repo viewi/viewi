@@ -606,9 +606,9 @@ class PageEngine
                 }
                 $inputArgumentsCode .= ']';
             }
-
+            $slotsExpression = $componentBaseName ? "'$componentBaseName'" : 'false';
             $html .= "<?php" .
-                ($componentBaseName ? PHP_EOL . $this->identation . "\$slotContents[0] = '$componentBaseName';" : '') .
+                PHP_EOL . $this->identation . "\$slotContents[0] = $slotsExpression;" .
                 PHP_EOL . $this->identation . "\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "\$component, " .

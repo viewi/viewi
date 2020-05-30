@@ -17,6 +17,7 @@ class TagRenderingTest extends BaseTest
         ob_end_clean();
         $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $path
             . DIRECTORY_SEPARATOR . $expectedResultFile);
+        // echo $html;
         $T->this($html)->equalsTo($expectetd);
     }
 
