@@ -57,6 +57,7 @@ class PageEngine
         'selected';
 
     private bool $extraLine = false;
+    private TagItem $previousItem;
     private bool $development;
     private array $componentArguments = [];
     private bool $compiled = false;
@@ -331,6 +332,8 @@ class PageEngine
 
     function build(PageTemplate &$pageTemplate): void
     {
+        $this->previousItem = new TagItem();
+        $this->previousItem->Type = new TagItemType(TagItemType::TextContent);
         $moduleTemplatePath = __DIR__ . DIRECTORY_SEPARATOR . 'ComponentModuleTemplate.php';
         $moduleContent = file_get_contents($moduleTemplatePath);
         $parts = explode("//#content", $moduleContent, 2);
@@ -615,7 +618,8 @@ class PageEngine
                 "\$slotContents, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
-                PHP_EOL . "?>";
+                PHP_EOL . "\$slotContents = [];" .
+                PHP_EOL . "?>"; //
         }
     }
     function compileSlotExpression(TagItem $tagItem, string &$html): void
@@ -683,6 +687,7 @@ class PageEngine
             // $this->debug($foreach);
             // $this->debug($foreachArguments);
             // $this->debug($this->componentArguments);
+            $this->extraLine = true;
         }
     }
     function startIf(string $ifExpression, string &$html)
@@ -698,6 +703,7 @@ class PageEngine
             $html .= "<?php" . PHP_EOL . $this->identation .
                 "}" .
                 ($closeIfTag ? (PHP_EOL . $this->identation . "?>") : '');
+            $this->extraLine = true;
         }
     }
     function startElseIf(string $elseIfExpression, string &$html)
@@ -712,6 +718,7 @@ class PageEngine
             $html .= "<?php" . PHP_EOL . $this->identation .
                 "}" .
                 ($closeIfTag ? PHP_EOL . $this->identation . "?>" : '');
+            $this->extraLine = true;
         }
     }
     function startElse(string &$html)
@@ -725,6 +732,7 @@ class PageEngine
             $html .= "<?php" . PHP_EOL . $this->identation .
                 "}" .
                 PHP_EOL . $this->identation . "?>";
+            $this->extraLine = true;
         }
     }
     function getCloseIfTag(TagItem &$tagItem): bool
@@ -862,7 +870,10 @@ class PageEngine
             $this->startIf($ifExpression, $html);
         }
 
-        if ($tagItem->Type->Name == TagItemType::Component) {
+        if (
+            $tagItem->Type->Name == TagItemType::Component
+            || ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression)
+        ) {
 
             $inputArguments = [];
             // extract slotContents and input arguments
@@ -931,22 +942,24 @@ class PageEngine
             }
             $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
             $this->closeElse($elseExpression, $html);
+            $this->previousItem = &$tagItem;
             return;
         }
 
         if ($tagItem->Type->Name == TagItemType::Tag) {
             if ($tagItem->ItsExpression) { // dynamic tag
-                $this->compileComponentExpression($tagItem, $html);
-                $this->extraLine = true;
-                if ($ifExpression && $firstFound === 'if') {
-                    $this->closeIf($ifExpression, $html, $closeIfTag);
-                }
-                $this->endForeach($foreach, $foreachArguments, $html);
-                if ($ifExpression && $firstFound !== 'if') {
-                    $this->closeIf($ifExpression, $html, $closeIfTag);
-                }
-                $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
-                $this->closeElse($elseExpression, $html);
+                // $this->compileComponentExpression($tagItem, $html);
+                // $this->extraLine = true;
+                // if ($ifExpression && $firstFound === 'if') {
+                //     $this->closeIf($ifExpression, $html, $closeIfTag);
+                // }
+                // $this->endForeach($foreach, $foreachArguments, $html);
+                // if ($ifExpression && $firstFound !== 'if') {
+                //     $this->closeIf($ifExpression, $html, $closeIfTag);
+                // }
+                // $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
+                // $this->closeElse($elseExpression, $html);
+                // $this->previousItem = &$tagItem;
                 return;
             }
             if ($tagItem->Content === 'slot') { // render slot
@@ -954,6 +967,26 @@ class PageEngine
                 // foreach($tagItem->parent()->getChildren() as &$chld){
                 //     var_dump($chld->Content);
                 // }
+                // lines formating
+                // if (
+                //     $this->previousItem->Type->Name === TagItemType::TextContent
+                //     && $this->previousItem->Content !== null
+                // ) {
+                //     $breakChar = PHP_EOL;
+                //     $lines = explode(PHP_EOL, $this->previousItem->Content);
+                //     $linesCount = count($lines);
+                //     if ($linesCount > 1) {
+                //         $lastLine = $lines[$linesCount - 1];
+                //         if (ctype_space($lastLine)) {
+                //             $html = substr($html, 0, -strlen($lastLine));
+                //             // $html .= $breakChar;
+                //             // TODO: remove last new line, add this one
+                //         } elseif ($lastLine == '') {
+                //             $html .= $breakChar;
+                //         }
+                //     }
+                // }
+
                 $this->compileSlotExpression($tagItem, $html);
                 $this->extraLine = true;
                 if ($ifExpression && $firstFound === 'if') {
@@ -965,6 +998,7 @@ class PageEngine
                 }
                 $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
                 $this->closeElse($elseExpression, $html);
+                $this->previousItem = &$tagItem;
                 return;
             }
             if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
@@ -980,6 +1014,7 @@ class PageEngine
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
         }
         if ($tagItem->Skip) {
+            $this->previousItem = &$tagItem;
             return;
         }
         $replaceByTag = 'div';
@@ -1064,7 +1099,7 @@ class PageEngine
         } else {
             $this->extraLine = false;
         }
-        
+
         if ($tagItem->Type->Name === TagItemType::Attribute) {
             if (
                 !$noChildren && count($children) == 1 && $children[0]->ItsExpression
@@ -1073,6 +1108,7 @@ class PageEngine
                 // compile if based on expression
                 $condition = $this->convertExpressionToCode($children[0]->Content);
                 $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
+                $this->previousItem = &$tagItem;
                 return;
             }
             $html .= ' ' . $content . ($noChildren
@@ -1140,6 +1176,7 @@ class PageEngine
         // if ($tagItem->Type->Name == TagItemType::Expression) {
         //     $html .= "_(||{$tagItem->Content}||)_";
         // }
+        $this->previousItem = &$tagItem;
     }
 
     function compileTemplate(ComponentInfo $componentInfo): PageTemplate

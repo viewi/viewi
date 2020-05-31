@@ -23,9 +23,18 @@ class TagRenderingTest extends BaseTest
         $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $path
             . DIRECTORY_SEPARATOR . $expectedResultFile);
         if ($echoRendered) {
-            echo $html;
+            var_dump($html);
+            // var_dump($expectetd);
+
+            //    $r = str_split($html);
+            //    $e = str_split($expectetd);
+            //    for ($i = 0; $i < min(count($r), count($e)); $i++) {
+            //        var_dump([$r[$i], $e[$i]]);
+
+            //    }
+
         }
-        $T->this($html)->equalsTo($expectetd);
+        $T->this($html)->equalsToHtml($expectetd);
     }
 
     public function CanRenderTag(UnitTestScope $T)
@@ -45,11 +54,72 @@ class TagRenderingTest extends BaseTest
 
     public function CanRenderSlots(UnitTestScope $T)
     {
-        $this->TestComponent(CanRenderSlotsComponent::class, 'CanRenderSlots', 'CanRenderSlots.expected.html', $T);
+        $this->TestComponent(CanRenderSlotsComponent::class, 'CanRenderSlots', 'CanRenderSlots.expected.html', $T, false);
     }
 
     public function CanRenderAttributes(UnitTestScope $T)
     {
-        $this->TestComponent(CanRenderAttributesComponent::class, 'CanRenderAttributes', 'CanRenderAttributes.expected.html', $T);
+        $this->TestComponent(
+            CanRenderAttributesComponent::class,
+            'CanRenderAttributes',
+            'CanRenderAttributes.expected.html',
+            $T,
+            false
+        );
+    }
+
+    public function CanRenderDynamicTag(UnitTestScope $T)
+    {
+        $this->TestComponent(
+            DynTestAppComponent::class,
+            'CanRenderDynamicTag',
+            'CanRenderDynamicTag.expected.html',
+            $T,
+            false
+        );
+    }
+
+    public function CanRenderNamedSlots(UnitTestScope $T)
+    {
+        $this->TestComponent(
+            NamedSlotsAppComponent::class,
+            'CanRenderNamedSlots',
+            'CanRenderNamedSlots.expected.html',
+            $T,
+            false
+        );
+    }
+
+    public function CanPassAttributesAsComponentInputs(UnitTestScope $T)
+    {
+        $this->TestComponent(
+            CanPassAttributesAsComponentInputsComponent::class,
+            'CanPassAttributesAsComponentInputs',
+            'CanPassAttributesAsComponentInputs.expected.html',
+            $T,
+            false
+        );
+    }
+
+    public function CanRenderConditionalAttributes(UnitTestScope $T)
+    {
+        $this->TestComponent(
+            ConditionalAttributesComponent::class,
+            'CanRenderConditionalAttributes',
+            'CanRenderConditionalAttributes.expected.html',
+            $T,
+            false
+        );
+    }
+
+    public function ConditonalAndForeachRendering(UnitTestScope $T)
+    {
+        $this->TestComponent(
+            ConditonalAndForeachRenderingComponent::class,
+            'ConditonalAndForeachRendering',
+            'ConditonalAndForeachRendering.expected.html',
+            $T,
+            false
+        );
     }
 }

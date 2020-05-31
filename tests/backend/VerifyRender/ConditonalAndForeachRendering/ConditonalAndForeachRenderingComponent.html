@@ -1,0 +1,36 @@
+<div>
+    <h1>$title</h1>
+    <MemoItem foreach="$memos as $memo" memo="$memo" Text="Some raw text"></MemoItem>
+    <div foreach="$memos as $index => $memo" if="$memo->IsPublished">
+        $index. {$memo->Notes} ({ $memo->IsPublished ? 'Published' : 'In Review' })
+    </div>
+    <div foreach="$memos as $index => $memo">
+        <p if="$index === 0">
+            Zero. {$memo->Notes} ({ $memo->IsPublished ? 'Published' : 'In Review' })
+        </p>
+        <p else-if="$index === 1">
+            One. {$memo->Notes} ({ $memo->IsPublished ? 'Published' : 'In Review' })
+        </p>
+        <p else>
+            $index. {$memo->Notes} ({ $memo->IsPublished ? 'Published' : 'In Review' })
+        </p>
+    </div>
+    <div if="$status === 1">
+        I'm 1
+    </div>
+    <div else-if="$status === 2">
+        I'm 2
+    </div>
+    <div else-if="$status === 3">
+        I'm 3
+    </div>
+    <div else>
+        I'm more than 3
+    </div>
+    <div if="$active">
+        I'm { $active ? 'Active' : 'Not Active' }
+    </div>
+    <div if="{!$active}">
+        I'm opposite
+    </div>
+</div>

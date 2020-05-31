@@ -48,6 +48,18 @@ class UnitTestScope
         $this->_data = $data;
         return $this;
     }
+    public function equalsToHtml(string $content)
+    {
+        $regx = '/\n(\s)*\n/i';
+        $result = preg_replace($regx, "\n", $this->_data);
+        $expected = preg_replace($regx, "\n", $content);
+        // var_dump($result);
+        // var_dump($expected);
+        if ($result !== $expected) {
+            throw new Exception("Two html contents are not equal");
+        }
+        return $this;
+    }
     public function equalsTo(string $content)
     {
         if ($this->_data !== $content) {
@@ -109,7 +121,9 @@ class UnitTestTool
             $methodName = escapeshellarg($method->name);
             $testName = $this->getTitleMessage("$methodName");
             $this->logInfoMessage(" Test: $testName");
-            $output = shell_exec("php test.php run $fileName $className $methodName");
+            $cmd = "php test.php run $fileName $className $methodName";
+            // $this->logInfoMessage(" Executing inside scope: $cmd");
+            $output = shell_exec($cmd);
             if ($output && $output[0] === '{') {
                 $json = json_decode($output, true);
                 $this->FailedCount += $json['Failed'];

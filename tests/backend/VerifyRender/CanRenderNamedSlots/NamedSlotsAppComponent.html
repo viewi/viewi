@@ -1,0 +1,22 @@
+<div>
+    <h1>$title</h1>
+    <$noteItemComponent>
+        <slotContent name="left">Left slot, rendering $noteItemComponent</slotContent>
+        Default slot contet and rendering $noteItemComponent
+        <slotContent name="right">right slot, rendering $noteItemComponent again</slotContent>
+    </$noteItemComponent>
+    <$noteItemComponent></$noteItemComponent>
+    <HeaderComponent>
+        <slotContent name="top">Top slot, title: $title</slotContent>
+        Default slot contet
+        <slotContent name="bottom">Bottom slot, $title is title</slotContent>
+    </HeaderComponent>
+    <HeaderComponent>
+        Not top
+        <slotContent name="bottom">Bottom slot, $title is title</slotContent>
+    </HeaderComponent>
+    <HeaderComponent>
+        <slotContent name="top">Only top</slotContent>
+    </HeaderComponent>
+    <HeaderComponent>Only default</HeaderComponent>
+</div>
