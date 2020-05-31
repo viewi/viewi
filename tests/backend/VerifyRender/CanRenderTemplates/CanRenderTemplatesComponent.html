@@ -1,0 +1,7 @@
+<template>First item is: {$items[0]}</template>
+<template foreach="$items as $fruit">
+    <span>$fruit</span>
+</template>
+<div foreach="$items as $index => $fruit">
+    <template if="$index > 0">$fruit</template>
+</div>

@@ -1,0 +1,45 @@
+<Layout>
+    <slotContent name="head">
+        <title>App title</title>
+    </slotContent>
+    <p>Name: {getFullName()}</p>
+    <p>Occupation: {getOccupation()}</p>
+    <span class="my-class $className" class.show="$false" class.active="$true">
+        attribute merge
+    </span>
+    <header aria-disabled id="my-header"></header>
+    <f:table xmlns:f="https://www.w3schools.com/furniture">
+        <f:name>Xml parsing demo</f:name>
+        <f:width>80</f:width>
+        <f:length>120</f:length>
+    </f:table>
+    <slotContent name="body">
+        <UserItem foreach="$users as $uid => $user">
+            UserItem Slot: $uid {$user->Name} {$user->Age}
+        </UserItem>
+        {{$html}}
+        <UserItem foreach="$users as $uid => $user" user="$user">
+            user-$uid
+            <div if="$user->Age < 31">
+                <b>
+                    Age < 31: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else-if="$user->Name === 'Jhonz Doeb'">
+                <b>
+                    else-if Jhonz Doeb: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else-if="$user->Age === 32">
+                <b>
+                    else-if age 32: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+            <div else>
+                <b>
+                    else: $uid {$user->Name} {$user->Age}
+                </b>
+            </div>
+        </UserItem>
+    </slotContent>
+</Layout>

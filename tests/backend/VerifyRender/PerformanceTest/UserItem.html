@@ -1,0 +1,10 @@
+<p>
+    USER: <slot>no user</slot>
+    $title
+    <template if="$user !== null">
+        {$user->Name}
+    </template>
+    <template else>
+        User is not set
+    </template>
+</p>

@@ -48,6 +48,19 @@ class UnitTestScope
         $this->_data = $data;
         return $this;
     }
+    public function lessThan(float $number){
+        if ($this->_data >= $number) {
+            throw new Exception("Number should be less than $number");
+        }
+        return $this;
+    }
+    public function isNotEmpty()
+    {
+        if (!$this->_data) {
+            throw new Exception("Content should not be empty");
+        }
+        return $this;
+    }
     public function equalsToHtml(string $content)
     {
         $regx = '/\n(\s)*\n/i';
