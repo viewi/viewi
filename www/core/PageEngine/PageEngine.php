@@ -788,6 +788,7 @@ class PageEngine
         $elseIfExpression = false;
         $elseExpression = false;
         $firstFound = false;
+        $breakAll = false;
         /** @var TagItem[] */
         $children = $tagItem->getChildren();
         if (
@@ -933,35 +934,10 @@ class PageEngine
             // compile component
             $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
-            if ($ifExpression && $firstFound === 'if') {
-                $this->closeIf($ifExpression, $html, $closeIfTag);
-            }
-            $this->endForeach($foreach, $foreachArguments, $html);
-            if ($ifExpression && $firstFound !== 'if') {
-                $this->closeIf($ifExpression, $html, $closeIfTag);
-            }
-            $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
-            $this->closeElse($elseExpression, $html);
-            $this->previousItem = &$tagItem;
-            return;
+            $breakAll = true;
         }
 
-        if ($tagItem->Type->Name == TagItemType::Tag) {
-            if ($tagItem->ItsExpression) { // dynamic tag
-                // $this->compileComponentExpression($tagItem, $html);
-                // $this->extraLine = true;
-                // if ($ifExpression && $firstFound === 'if') {
-                //     $this->closeIf($ifExpression, $html, $closeIfTag);
-                // }
-                // $this->endForeach($foreach, $foreachArguments, $html);
-                // if ($ifExpression && $firstFound !== 'if') {
-                //     $this->closeIf($ifExpression, $html, $closeIfTag);
-                // }
-                // $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
-                // $this->closeElse($elseExpression, $html);
-                // $this->previousItem = &$tagItem;
-                return;
-            }
+        if ($tagItem->Type->Name == TagItemType::Tag && !$tagItem->ItsExpression) {
             if ($tagItem->Content === 'slot') { // render slot
                 // $this->debug($tagItem);
                 // foreach($tagItem->parent()->getChildren() as &$chld){
@@ -989,181 +965,165 @@ class PageEngine
 
                 $this->compileSlotExpression($tagItem, $html);
                 $this->extraLine = true;
-                if ($ifExpression && $firstFound === 'if') {
-                    $this->closeIf($ifExpression, $html, $closeIfTag);
-                }
-                $this->endForeach($foreach, $foreachArguments, $html);
-                if ($ifExpression && $firstFound !== 'if') {
-                    $this->closeIf($ifExpression, $html, $closeIfTag);
-                }
-                $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
-                $this->closeElse($elseExpression, $html);
-                $this->previousItem = &$tagItem;
-                return;
+                $breakAll = true;
             }
             if ($tagItem->Content === 'slotContent') { // render named slot (Component with named slots)
-                // render like component but put slot names
-                // create new function to render all children
-                // put slot name in renderArgument
-                //$this->compileComponentExpression($tagItem, $html);
-                //$this->extraLine = true;
-                //skip
-
-                return;
+                $breakAll = true;
             }
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
         }
         if ($tagItem->Skip) {
             $this->previousItem = &$tagItem;
-            return;
+            $breakAll = true;
         }
-        $replaceByTag = 'div';
-        $noChildren = empty($children);
-        $noContent = true;
-        $selfClosing = false;
+        if (!$breakAll) {
+            $replaceByTag = 'div';
+            $noChildren = empty($children);
+            $noContent = true;
+            $selfClosing = false;
 
-        $content = $tagItem->ItsExpression
-            ? $this->compileExpression($tagItem->Content)
-            : $tagItem->Content;
-        $skipTagRender = false;
-        if ($tagItem->Type->Name == TagItemType::Tag) {
-            $skipTagRender = $tagItem->Content === 'template';
-            if (!$skipTagRender) {
-                $html .= '<' . $content;
-                if (isset($this->selfClosingTags[strtolower($content)])) {
-                    $selfClosing = true;
+            $content = $tagItem->ItsExpression
+                ? $this->compileExpression($tagItem->Content)
+                : $tagItem->Content;
+            $skipTagRender = false;
+            if ($tagItem->Type->Name == TagItemType::Tag) {
+                $skipTagRender = $tagItem->Content === 'template';
+                if (!$skipTagRender) {
+                    $html .= '<' . $content;
+                    if (isset($this->selfClosingTags[strtolower($content)])) {
+                        $selfClosing = true;
+                    }
                 }
-            }
-            if (!$noChildren) { // merge attributes
-                $newChildren = [];
-                foreach ($children as &$childTag) {
-                    if ($childTag->Type->Name === TagItemType::Attribute) {
-                        if ($skipTagRender && !$childTag->Skip) { // template can't has attributes
-                            trigger_error("`template` tag can't has attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
-                            continue;
-                        }
-                        $attributeName = $childTag->Content;
-                        $mergeValues = $childTag->getChildren();
+                if (!$noChildren) { // merge attributes
+                    $newChildren = [];
+                    foreach ($children as &$childTag) {
+                        if ($childTag->Type->Name === TagItemType::Attribute) {
+                            if ($skipTagRender && !$childTag->Skip) { // template can't has attributes
+                                trigger_error("`template` tag can't has attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
+                                continue;
+                            }
+                            $attributeName = $childTag->Content;
+                            $mergeValues = $childTag->getChildren();
 
-                        $valueToReplace = false;
-                        if (strpos($attributeName, '.') !== false) {
-                            $parts = explode('.', $attributeName, 2);
-                            $attributeName = $parts[0];
-                            $valueToReplace = $parts[1];
-                            $childTag->Content = $attributeName;
-                        }
-                        if (isset($newChildren[$attributeName])) { // merge values
-                            $firstTime = true;
-                            foreach ($mergeValues as &$attrValueItem) {
-                                if ($valueToReplace !== false) {
-                                    $attrValueItem->Content = "{$attrValueItem->Content} ? ' $valueToReplace' : ''";
-                                    $newChildren[$attributeName]->addChild($attrValueItem);
-                                    break;
-                                } else {
-                                    if ($firstTime) {
-                                        $spaceValue = new TagItem();
-                                        $spaceValue->Type = new TagItemType(TagItemType::AttributeValue);
-                                        $spaceValue->Content = ' ';
-                                        $newChildren[$attributeName]->addChild($spaceValue);
-                                        $firstTime = false;
+                            $valueToReplace = false;
+                            if (strpos($attributeName, '.') !== false) {
+                                $parts = explode('.', $attributeName, 2);
+                                $attributeName = $parts[0];
+                                $valueToReplace = $parts[1];
+                                $childTag->Content = $attributeName;
+                            }
+                            if (isset($newChildren[$attributeName])) { // merge values
+                                $firstTime = true;
+                                foreach ($mergeValues as &$attrValueItem) {
+                                    if ($valueToReplace !== false) {
+                                        $attrValueItem->Content = "{$attrValueItem->Content} ? ' $valueToReplace' : ''";
+                                        $newChildren[$attributeName]->addChild($attrValueItem);
+                                        break;
+                                    } else {
+                                        if ($firstTime) {
+                                            $spaceValue = new TagItem();
+                                            $spaceValue->Type = new TagItemType(TagItemType::AttributeValue);
+                                            $spaceValue->Content = ' ';
+                                            $newChildren[$attributeName]->addChild($spaceValue);
+                                            $firstTime = false;
+                                        }
+                                        $newChildren[$attributeName]->addChild($attrValueItem);
                                     }
-                                    $newChildren[$attributeName]->addChild($attrValueItem);
                                 }
+                            } else {
+                                if ($valueToReplace !== false) {
+                                    $mergeValues[0]->Content = "{$mergeValues[0]->Content} ? '$valueToReplace' : ''";
+                                }
+                                $newChildren[$attributeName] = $childTag;
                             }
                         } else {
-                            if ($valueToReplace !== false) {
-                                $mergeValues[0]->Content = "{$mergeValues[0]->Content} ? '$valueToReplace' : ''";
-                            }
-                            $newChildren[$attributeName] = $childTag;
+                            $newChildren[] = $childTag;
                         }
-                    } else {
-                        $newChildren[] = $childTag;
+                    }
+                    //$this->debug($children);
+                    $tagItem->setChildren(array_values($newChildren));
+                    $children = $tagItem->getChildren();
+                    //$this->debug($children);
+                }
+            }
+
+            if ($tagItem->Type->Name == TagItemType::TextContent) {
+                if ($this->extraLine) {
+                    $this->extraLine = false;
+                    if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
+                        $html .= PHP_EOL;
                     }
                 }
-                //$this->debug($children);
-                $tagItem->setChildren(array_values($newChildren));
-                $children = $tagItem->getChildren();
-                //$this->debug($children);
-            }
-        }
-
-        if ($tagItem->Type->Name == TagItemType::TextContent) {
-            if ($this->extraLine) {
+                $html .= $content;
+                $this->extraLine = $tagItem->ItsExpression;
+            } else {
                 $this->extraLine = false;
-                if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
-                    $html .= PHP_EOL;
+            }
+
+            if ($tagItem->Type->Name === TagItemType::Attribute) {
+                if (
+                    !$noChildren && count($children) == 1 && $children[0]->ItsExpression
+                    && isset($this->booleanAttributes[strtolower($tagItem->Content)])
+                ) { // attribute is boolean, TODO: check argument expression to has boolean type
+                    // compile if based on expression
+                    $condition = $this->convertExpressionToCode($children[0]->Content);
+                    $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
+                    $this->previousItem = &$tagItem;
+                    return;
+                }
+                $html .= ' ' . $content . ($noChildren
+                    ? ''
+                    : '="');
+            }
+
+            if ($tagItem->Type->Name === TagItemType::AttributeValue) {
+                $html .= $tagItem->ItsExpression ? $content : htmlentities($content);
+            }
+            // CHILDRENS scope
+            if (!$noChildren) {
+                foreach ($children as &$childTag) {
+                    if (
+                        $childTag->Type->Name === TagItemType::TextContent
+                        || $childTag->Type->Name === TagItemType::Tag
+                    ) {
+                        if ($noContent) {
+                            $noContent = false;
+                            if (!$selfClosing && !$skipTagRender) {
+                                $html .= '>';
+                            }
+                        }
+                    }
+                    $this->buildTag($childTag, $html);
                 }
             }
-            $html .= $content;
-            $this->extraLine = $tagItem->ItsExpression;
-        } else {
-            $this->extraLine = false;
-        }
-
-        if ($tagItem->Type->Name === TagItemType::Attribute) {
-            if (
-                !$noChildren && count($children) == 1 && $children[0]->ItsExpression
-                && isset($this->booleanAttributes[strtolower($tagItem->Content)])
-            ) { // attribute is boolean, TODO: check argument expression to has boolean type
-                // compile if based on expression
-                $condition = $this->convertExpressionToCode($children[0]->Content);
-                $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
-                $this->previousItem = &$tagItem;
-                return;
+            // END CHILDRENS scope
+            if ($tagItem->Type->Name === TagItemType::Attribute) {
+                $html .= ($noChildren ? '' : '"');
             }
-            $html .= ' ' . $content . ($noChildren
-                ? ''
-                : '="');
-        }
 
-        if ($tagItem->Type->Name === TagItemType::AttributeValue) {
-            $html .= $tagItem->ItsExpression ? $content : htmlentities($content);
-        }
-        // CHILDRENS scope
-        if (!$noChildren) {
-            foreach ($children as &$childTag) {
-                if (
-                    $childTag->Type->Name === TagItemType::TextContent
-                    || $childTag->Type->Name === TagItemType::Tag
-                ) {
-                    if ($noContent) {
-                        $noContent = false;
-                        if (!$selfClosing && !$skipTagRender) {
+            if ($tagItem->Type->Name === TagItemType::Tag) {
+                if (!$skipTagRender) {
+                    if ($selfClosing) {
+                        $html .= '/>';
+                    } else {
+                        if ($noContent) {
                             $html .= '>';
                         }
+                        $html .= '</' . $content . '>';
+                        $this->extraLine = false;
                     }
                 }
-                $this->buildTag($childTag, $html);
-            }
-        }
-        // END CHILDRENS scope
-        if ($tagItem->Type->Name === TagItemType::Attribute) {
-            $html .= ($noChildren ? '' : '"');
-        }
-
-        if ($tagItem->Type->Name === TagItemType::Tag) {
-            if (!$skipTagRender) {
-                if ($selfClosing) {
-                    $html .= '/>';
-                } else {
-                    if ($noContent) {
-                        $html .= '>';
-                    }
-                    $html .= '</' . $content . '>';
-                    $this->extraLine = false;
+            } else if ($tagItem->Type->Name === TagItemType::Component) {
+                if ($noContent) {
+                    $html .= '>';
                 }
+                //render child component, TODO: replace by script
+                //$component = $this->templates[$tagItem->Content];
+                //$this->buildInternal($component, $html);
+                $html .= "_<[||{$content}||]>_";
+                $html .= "</$replaceByTag>";
             }
-        } else if ($tagItem->Type->Name === TagItemType::Component) {
-            if ($noContent) {
-                $html .= '>';
-            }
-            //render child component, TODO: replace by script
-            //$component = $this->templates[$tagItem->Content];
-            //$this->buildInternal($component, $html);
-            $html .= "_<[||{$content}||]>_";
-            $html .= "</$replaceByTag>";
         }
-
         if ($ifExpression && $firstFound === 'if') {
             $this->closeIf($ifExpression, $html, $closeIfTag);
         }
