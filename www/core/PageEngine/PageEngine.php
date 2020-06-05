@@ -61,6 +61,7 @@ class PageEngine
     private bool $development;
     private array $componentArguments = [];
     private bool $compiled = false;
+    private bool $waitingComponents = true;
     public function __construct(string $sourcePath, string $buildPath, bool $development)
     {
         $this->sourcePath = $sourcePath;
@@ -74,15 +75,25 @@ class PageEngine
         $this->booleanAttributes = array_flip(explode(',', $this->booleanAttributesString));
     }
 
+    /**
+     * 
+     * @param string $component 
+     * @return string|void
+     * @throws ReflectionException 
+     * @throws Exception Component is missing
+     */
     function render(string $component)
     {
         if ($this->development) {
             $this->Compile();
         } else {
-            // include component infos
-            $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
-            include_once $componentsPath;
-            ReadComponentsInfo($this);
+            if ($this->waitingComponents) {
+                $this->waitingComponents = false;
+                // include component infos
+                $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+                include_once $componentsPath;
+                ReadComponentsInfo($this);
+            }
         }
 
         if (!isset($this->components[$component])) {
