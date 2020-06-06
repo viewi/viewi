@@ -389,8 +389,17 @@ class PageEngine
     {
         $previousPageTemplate = $this->latestPageTemplate;
         $this->latestPageTemplate = $pageTemplate;
+        $codeToAppend = '';
         foreach ($pageTemplate->RootTag->getChildren() as &$tag) {
-            $this->buildTag($tag, $html);
+            $this->buildTag($tag, $html, $codeToAppend);
+        }
+        if ($codeToAppend) {
+            if ($this->renderReturn) {
+                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    var_export($codeToAppend, true) . ";";
+            } else {
+                $html .= $codeToAppend;
+            }
         }
         $this->latestPageTemplate = $previousPageTemplate;
     }
@@ -620,7 +629,7 @@ class PageEngine
             $componentName = "$slotName ? $slotName : '{$componentBaseName}'";
         }
         $eol = PHP_EOL;
-        $codeBegin = $this->renderReturn ? '' : "<?php$eol";
+        $codeBegin = $this->renderReturn ? $eol : "<?php$eol";
         $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
         $codeEnd = $this->renderReturn ? '' : '?>';
 
@@ -652,7 +661,7 @@ class PageEngine
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
                 PHP_EOL . $this->identation . "\$slotContents = [];" .
-                PHP_EOL . $codeEnd; //
+                $codeEnd;
         }
     }
     function compileSlotExpression(TagItem $tagItem, string &$html): void
@@ -688,13 +697,26 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $codeBegin = $this->renderReturn ? "\$_content .=" : "<?php";
+            $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
             $html .= "$codeBegin \$pageEngine->renderComponent($componentName, \$component, [], []); $codeEnd";
         }
     }
-    function startForeach(string $foreach, string &$html, array &$foreachArguments)
+    function flushBuffer(string &$html, string &$codeToAppend)
     {
+        if ($codeToAppend) {
+            if ($this->renderReturn) {
+                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    var_export($codeToAppend, true) . ";";
+            } else {
+                $html .= $codeToAppend;
+            }
+            $codeToAppend = '';
+        }
+    }
+    function startForeach(string $foreach, string &$html, string &$codeToAppend, array &$foreachArguments)
+    {
+        $this->flushBuffer($html, $codeToAppend);
         $foreachParts = explode(' as ', $foreach, 2);
         $foreachSource = $this->convertExpressionToCode($foreachParts[0]);
         $foreachAsParts = explode('=>', $foreachParts[1]);
@@ -710,9 +732,10 @@ class PageEngine
             "foreach($foreachSource as {$foreachParts[1]}){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
-    function endForeach($foreach, $foreachArguments, &$html)
+    function endForeach($foreach, $foreachArguments, &$html, string &$codeToAppend)
     {
         if ($foreach) {
+            $this->flushBuffer($html, $codeToAppend);
             $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
                 PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
@@ -725,45 +748,51 @@ class PageEngine
             $this->extraLine = true;
         }
     }
-    function startIf(string $ifExpression, string &$html)
+    function startIf(string $ifExpression, string &$html, string &$codeToAppend)
     {
+        $this->flushBuffer($html, $codeToAppend);
         $ifCode = $this->convertExpressionToCode($ifExpression);
         $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
             "if($ifCode){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
-    function closeIf(string $ifExpression, string &$html, bool $closeIfTag)
+    function closeIf(string $ifExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($ifExpression) {
+            $this->flushBuffer($html, $codeToAppend);
             $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
                 ($closeIfTag ? (PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>")) : '');
             $this->extraLine = true;
         }
     }
-    function startElseIf(string $elseIfExpression, string &$html)
+    function startElseIf(string $elseIfExpression, string &$html, string &$codeToAppend)
     {
+        $this->flushBuffer($html, $codeToAppend);
         $ifCode = $this->convertExpressionToCode($elseIfExpression);
         $html .= " else if ($ifCode){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
-    function closeElseIf(string $elseIfExpression, string &$html, bool $closeIfTag)
+    function closeElseIf(string $elseIfExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($elseIfExpression) {
+            $this->flushBuffer($html, $codeToAppend);
             $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
                 ($closeIfTag ? PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>") : '');
             $this->extraLine = true;
         }
     }
-    function startElse(string &$html)
+    function startElse(string &$html, string &$codeToAppend)
     {
+        $this->flushBuffer($html, $codeToAppend);
         $html .= " else {" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
-    function closeElse(string $elseExpression, string &$html)
+    function closeElse(string $elseExpression, string &$html, string &$codeToAppend)
     {
         if ($elseExpression) {
+            $this->flushBuffer($html, $codeToAppend);
             $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
                 PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
@@ -815,7 +844,7 @@ class PageEngine
         }
         return $combinedValue;
     }
-    function buildTag(TagItem &$tagItem, string &$html): void
+    function buildTag(TagItem &$tagItem, string &$html, string &$codeToAppend): void
     {
         $foreach = false;
         $ifExpression = false;
@@ -891,19 +920,19 @@ class PageEngine
 
         $foreachArguments = [];
         if ($elseExpression) {
-            $this->startElse($html);
+            $this->startElse($html, $codeToAppend);
         }
         if ($elseIfExpression) {
-            $this->startElseIf($elseIfExpression, $html);
+            $this->startElseIf($elseIfExpression, $html, $codeToAppend);
         }
         if ($ifExpression && $firstFound === 'if') {
-            $this->startIf($ifExpression, $html);
+            $this->startIf($ifExpression, $html, $codeToAppend);
         }
         if ($foreach) {
-            $this->startForeach($foreach, $html, $foreachArguments);
+            $this->startForeach($foreach, $html, $codeToAppend, $foreachArguments);
         }
         if ($ifExpression && $firstFound !== 'if') {
-            $this->startIf($ifExpression, $html);
+            $this->startIf($ifExpression, $html, $codeToAppend);
         }
 
         if (
@@ -919,9 +948,18 @@ class PageEngine
                     $childTag->Type->Name === TagItemType::Tag
                     && $childTag->Content === 'slotContent'
                 ) { // slot content
+                    if ($codeToAppend) {
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                        } else {
+                            $html .= $codeToAppend;
+                        }
+                        $codeToAppend = '';
+                    }
                     $this->compileComponentExpression($childTag, $html);
                 } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
-                    $childTag->Skip = true; // component can't has attributes
+                    $childTag->Skip = true; // component can't have attributes
                     // pass arguments
                     //$this->debug($tagItem->Content);
                     if (isset($this->components[$tagItem->Content])) {
@@ -967,11 +1005,20 @@ class PageEngine
             }
             //$this->debug($inputArguments, true);
             // compile component
+            if ($codeToAppend) {
+                if ($this->renderReturn) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                } else {
+                    $html .= $codeToAppend;
+                }
+                $codeToAppend = '';
+            }
             $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
             $breakAll = true;
         }
-        $codeToAppend = '';
+        // $codeToAppend = '';
         if ($tagItem->Type->Name == TagItemType::Tag && !$tagItem->ItsExpression) {
             if ($tagItem->Content === 'slot') { // render slot
                 // $this->debug($tagItem);
@@ -997,7 +1044,15 @@ class PageEngine
                 //         }
                 //     }
                 // }
-
+                if ($codeToAppend) {
+                    if ($this->renderReturn) {
+                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            var_export($codeToAppend, true) . ";";
+                    } else {
+                        $html .= $codeToAppend;
+                    }
+                    $codeToAppend = '';
+                }
                 $this->compileSlotExpression($tagItem, $html);
                 $this->extraLine = true;
                 $breakAll = true;
@@ -1099,7 +1154,7 @@ class PageEngine
                 if ($this->extraLine && !$this->renderReturn) {
                     $this->extraLine = false;
                     if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
-                        $html .= PHP_EOL;
+                        $codeToAppend .= PHP_EOL;
                     }
                 }
                 if ($this->renderReturn && $tagItem->ItsExpression) {
@@ -1122,10 +1177,14 @@ class PageEngine
                     && isset($this->booleanAttributes[strtolower($tagItem->Content)])
                 ) { // attribute is boolean, TODO: check argument expression to has boolean type
                     // compile if based on expression
+                    $condition = $this->convertExpressionToCode($children[0]->Content);
                     if ($this->renderReturn) {
+                        $this->flushBuffer($html, $codeToAppend);
+                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
                     } else {
                         $html .= $codeToAppend;
-                        $condition = $this->convertExpressionToCode($children[0]->Content);
+                        $codeToAppend = '';                        
                         $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
                         $this->previousItem = &$tagItem;
                         return;
@@ -1155,7 +1214,7 @@ class PageEngine
                         $content . ";";
                     $codeToAppend = '';
                 } else {
-                    $codeToAppend .= htmlentities($content);
+                    $codeToAppend .= $tagItem->ItsExpression ? $content : htmlentities($content);
                 }
             }
             // CHILDRENS scope
@@ -1172,16 +1231,16 @@ class PageEngine
                             }
                         }
                     }
-                    if ($codeToAppend) {
-                        if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                                var_export($codeToAppend, true) . ";";
-                        } else {
-                            $html .= $codeToAppend;
-                        }
-                        $codeToAppend = '';
-                    }
-                    $this->buildTag($childTag, $html);
+                    // if ($codeToAppend) {
+                    //     if ($this->renderReturn) {
+                    //         $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    //             var_export($codeToAppend, true) . ";";
+                    //     } else {
+                    //         $html .= $codeToAppend;
+                    //     }
+                    //     $codeToAppend = '';
+                    // }
+                    $this->buildTag($childTag, $html, $codeToAppend);
                 }
             }
             // END CHILDRENS scope
@@ -1203,23 +1262,24 @@ class PageEngine
                 }
             }
         }
-        if ($codeToAppend) {
-            if ($this->renderReturn) {
-                $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                    var_export($codeToAppend, true) . ";";
-            } else {
-                $html .= $codeToAppend;
-            }
-        }
+        // if ($codeToAppend) {
+        //     if ($this->renderReturn) {
+        //         $html .= PHP_EOL . $this->identation . "\$_content .= " .
+        //             var_export($codeToAppend, true) . ";";
+        //     } else {
+        //         $html .= $codeToAppend;
+        //     }
+        //     $codeToAppend = '';
+        // }
         if ($ifExpression && $firstFound === 'if') {
-            $this->closeIf($ifExpression, $html, $closeIfTag);
+            $this->closeIf($ifExpression, $html, $codeToAppend, $closeIfTag);
         }
-        $this->endForeach($foreach, $foreachArguments, $html);
+        $this->endForeach($foreach, $foreachArguments, $html, $codeToAppend);
         if ($ifExpression && $firstFound !== 'if') {
-            $this->closeIf($ifExpression, $html, $closeIfTag);
+            $this->closeIf($ifExpression, $html, $codeToAppend, $closeIfTag);
         }
-        $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
-        $this->closeElse($elseExpression, $html);
+        $this->closeElseIf($elseIfExpression, $html, $codeToAppend, $closeIfTag);
+        $this->closeElse($elseExpression, $html, $codeToAppend);
         $this->previousItem = &$tagItem;
     }
 
