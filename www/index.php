@@ -10,7 +10,7 @@ $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
     true,
-    true
+    false
 );
 //for ($i = 0; $i < 10; $i++) {
 $response = $page->render(AppComponent::class);

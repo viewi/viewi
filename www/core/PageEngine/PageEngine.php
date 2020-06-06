@@ -56,6 +56,7 @@ class PageEngine
         'multiple,muted,nomodule,novalidate,open,readonly,required,reversed,' .
         'selected';
 
+    private bool $lastLineIsSpace = false;
     private bool $extraLine = false;
     private TagItem $previousItem;
     private bool $development;
@@ -372,6 +373,9 @@ class PageEngine
             $html .= PHP_EOL . $this->identation . "\$_content = '';" . PHP_EOL;
         } else {
             $html .= '?>';
+            if ($this->lastLineIsSpace) {
+                $html .= PHP_EOL;
+            }
         }
         $this->buildInternal($pageTemplate, $html);
         if ($this->renderReturn) {
@@ -566,6 +570,7 @@ class PageEngine
     function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null, array $inputArguments = []): void
     {
         // generate slot(s)
+        $lastLineIsSpace = false; // $this->lastLineIsSpace;
         $children = $tagItem->getChildren();
         $slots = [];
         $slotContentName = false;
@@ -629,7 +634,7 @@ class PageEngine
             $componentName = "$slotName ? $slotName : '{$componentBaseName}'";
         }
         $eol = PHP_EOL;
-        $codeBegin = $this->renderReturn ? $eol : "<?php$eol";
+        $codeBegin = $this->renderReturn ? $eol : ($lastLineIsSpace ? $eol : '') . "<?php$eol";
         $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
         $codeEnd = $this->renderReturn ? '' : '?>';
 
@@ -1167,7 +1172,15 @@ class PageEngine
                     $codeToAppend .= $content;
                 }
                 $this->extraLine = $tagItem->ItsExpression;
+                $this->lastLineIsSpace = false;
+                if (!$tagItem->ItsExpression) {
+                    $lines = explode(PHP_EOL, $content);
+                    if ($lines[count($lines) - 1] === '' || ctype_space($lines[count($lines) - 1])) {
+                        $this->lastLineIsSpace = true;
+                    }
+                }
             } else {
+                $this->lastLineIsSpace = false;
                 $this->extraLine = false;
             }
 
@@ -1181,14 +1194,14 @@ class PageEngine
                     if ($this->renderReturn) {
                         $this->flushBuffer($html, $codeToAppend);
                         $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                        "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
+                            "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
                     } else {
                         $html .= $codeToAppend;
-                        $codeToAppend = '';                        
+                        $codeToAppend = '';
                         $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
                         $this->previousItem = &$tagItem;
-                        return;
                     }
+                    return;
                 }
                 $codeToAppend .= ' ';
                 if ($tagItem->ItsExpression && $this->renderReturn) {

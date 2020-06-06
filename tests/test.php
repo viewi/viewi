@@ -48,7 +48,8 @@ class UnitTestScope
         $this->_data = $data;
         return $this;
     }
-    public function lessThan(float $number){
+    public function lessThan(float $number)
+    {
         if ($this->_data >= $number) {
             throw new Exception("Number should be less than $number");
         }
@@ -63,9 +64,9 @@ class UnitTestScope
     }
     public function equalsToHtml(string $content)
     {
-        $regx = '/\n(\s)*\n/i';
-        $result = preg_replace($regx, "\n", $this->_data);
-        $expected = preg_replace($regx, "\n", $content);
+        $regx = '/(\s)*\n(\s)*/i';
+        $result = preg_replace($regx, " ", $this->_data);
+        $expected = preg_replace($regx, " ", $content);
         // var_dump($result);
         // var_dump($expected);
         if ($result !== $expected) {
@@ -131,6 +132,9 @@ class UnitTestTool
         $className = escapeshellarg($reflectionClass->name);
         $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
         foreach ($methods as $method) {
+            if ($method->name === '__construct') {
+                continue;
+            }
             $methodName = escapeshellarg($method->name);
             $testName = $this->getTitleMessage("$methodName");
             $this->logInfoMessage(" Test: $testName");
@@ -193,6 +197,9 @@ class UnitTestTool
         $this->logInfoMessage("Running tests: $fileLocation");
         foreach ($methods as $method) {
             $methodName = $method->name;
+            if ($methodName === '__construct') {
+                continue;
+            }
             $workingDir = $this->createTempDir($className);
             $scope = new UnitTestScope($this, $workingDir);
             try {
@@ -235,7 +242,7 @@ class UnitTestTool
     }
     function getTitleMessage(string $message)
     {
-        return "\033[32m$message\033[0m";
+        return "\033[96m$message\033[0m";
     }
     function logInfoMessage(string $message)
     {
@@ -270,7 +277,7 @@ class UnitTestTool
         $types = get_declared_classes();
         foreach ($types as $class) {
             $rf = new ReflectionClass($class);
-            if (is_subclass_of($class, $baseClass)) {
+            if (is_subclass_of($class, $baseClass) && $this->endsWith($rf->getFileName(), '.test.php')) {
                 $children[$class] = $rf;
             }
         }
