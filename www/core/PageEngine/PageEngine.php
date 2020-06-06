@@ -62,10 +62,16 @@ class PageEngine
     private array $componentArguments = [];
     private bool $compiled = false;
     private bool $waitingComponents = true;
-    public function __construct(string $sourcePath, string $buildPath, bool $development)
+    /**
+     * 
+     * @var bool true: return string, false: echo
+     */
+    private bool $renderReturn;
+    public function __construct(string $sourcePath, string $buildPath, bool $development, bool $return = false)
     {
         $this->sourcePath = $sourcePath;
         $this->buildPath = $buildPath;
+        $this->renderReturn = $return;
         $this->components = [];
         $this->tokens = [];
         $this->templates = [];
@@ -99,7 +105,8 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
-        $this->renderComponent($component, null, [], []);
+        $content = $this->renderComponent($component, null, [], []);
+        return $content;
     }
 
     function removeDirectory($path, $removeRoot = false)
@@ -361,9 +368,18 @@ class PageEngine
         }
         $html = str_replace('/** scope*/', $scopeArguments, $html);
         // 
-        $html .= '?>';
+        if ($this->renderReturn) {
+            $html .= PHP_EOL . $this->identation . "\$_content = '';" . PHP_EOL;
+        } else {
+            $html .= '?>';
+        }
         $this->buildInternal($pageTemplate, $html);
-        $html .= '<?php' . $parts[1];
+        if ($this->renderReturn) {
+            $html .= PHP_EOL . $this->identation . "return \$_content;" . PHP_EOL;
+        } else {
+            $html .= '<?php';
+        }
+        $html .= $parts[1];
         $pageTemplate->PhpHtmlContent = $html;
         $pageTemplate->ComponentInfo->RenderFunction = $renderFunction;
         //$this->debug(htmlentities($html));
@@ -445,13 +461,14 @@ class PageEngine
     function compileExpression(string $expression, $class = null): string // TODO: validate expression
     {
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
-            $code = '<?=';
+            // raw html
+            $code = $this->renderReturn ? '' : '<?=';
             $code .= $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2));
-            $code .= '?>';
+            $code .= $this->renderReturn ? '' : '?>';
         } else {
-            $code = '<?=htmlentities(';
+            $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
             $code .= $this->convertExpressionToCode($expression);
-            $code .= ')?>';
+            $code .= ')' . ($this->renderReturn ? '' : '?>');
         }
         return $code;
     }
@@ -533,7 +550,7 @@ class PageEngine
                     $classInstance->{$key} = $inputValue;
                 }
             }
-            ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$slotArguments);
+            return ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$slotArguments);
         }
     }
 
@@ -602,9 +619,14 @@ class PageEngine
         if ($slotName) {
             $componentName = "$slotName ? $slotName : '{$componentBaseName}'";
         }
+        $eol = PHP_EOL;
+        $codeBegin = $this->renderReturn ? '' : "<?php$eol";
+        $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
+        $codeEnd = $this->renderReturn ? '' : '?>';
+
         if ($slotContentName) {
-            $eol = PHP_EOL;
-            $html .= "<?php$eol{$this->identation}\$slotContents[$slotContentName] = '{$componentBaseName}';$eol?>";
+
+            $html .= "{$codeBegin}{$this->identation}\$slotContents[$slotContentName] = '{$componentBaseName}';$eol{$codeEnd}";
         } else {
             $scopeArguments = implode(', ', $this->componentArguments);
             if ($scopeArguments) {
@@ -621,16 +643,16 @@ class PageEngine
                 $inputArgumentsCode .= ']';
             }
             $slotsExpression = $componentBaseName ? "'$componentBaseName'" : 'false';
-            $html .= "<?php" .
-                PHP_EOL . $this->identation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->identation . "\$pageEngine->renderComponent(" .
+            $html .= $codeBegin .
+                $this->identation . "\$slotContents[0] = $slotsExpression;" .
+                PHP_EOL . $this->identation . "$codeMiddle\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "\$component, " .
                 "\$slotContents, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
-                PHP_EOL . "\$slotContents = [];" .
-                PHP_EOL . "?>"; //
+                PHP_EOL . $this->identation . "\$slotContents = [];" .
+                PHP_EOL . $codeEnd; //
         }
     }
     function compileSlotExpression(TagItem $tagItem, string &$html): void
@@ -666,7 +688,9 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $html .= "<?php \$pageEngine->renderComponent($componentName, \$component, [], []); ?>";
+            $codeBegin = $this->renderReturn ? "\$_content .=" : "<?php";
+            $codeEnd = $this->renderReturn ? '' : '?>';
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, \$component, [], []); $codeEnd";
         }
     }
     function startForeach(string $foreach, string &$html, array &$foreachArguments)
@@ -682,16 +706,16 @@ class PageEngine
             $this->componentArguments[$argument] = $argument;
             $foreachArguments[$argument] = $argument;
         }
-        $html .= "<?php" . PHP_EOL . $this->identation .
+        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
             "foreach($foreachSource as {$foreachParts[1]}){" .
-            PHP_EOL . $this->identation . "?>";
+            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
     function endForeach($foreach, $foreachArguments, &$html)
     {
         if ($foreach) {
-            $html .= "<?php" . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
-                PHP_EOL . $this->identation . "?>";
+                PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
             foreach ($foreachArguments as $argument) {
                 unset($this->componentArguments[$argument]);
             }
@@ -704,16 +728,16 @@ class PageEngine
     function startIf(string $ifExpression, string &$html)
     {
         $ifCode = $this->convertExpressionToCode($ifExpression);
-        $html .= "<?php" . PHP_EOL . $this->identation .
+        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
             "if($ifCode){" .
-            PHP_EOL . $this->identation . "?>";
+            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
     function closeIf(string $ifExpression, string &$html, bool $closeIfTag)
     {
         if ($ifExpression) {
-            $html .= "<?php" . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
-                ($closeIfTag ? (PHP_EOL . $this->identation . "?>") : '');
+                ($closeIfTag ? (PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>")) : '');
             $this->extraLine = true;
         }
     }
@@ -721,28 +745,28 @@ class PageEngine
     {
         $ifCode = $this->convertExpressionToCode($elseIfExpression);
         $html .= " else if ($ifCode){" .
-            PHP_EOL . $this->identation . "?>";
+            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
     function closeElseIf(string $elseIfExpression, string &$html, bool $closeIfTag)
     {
         if ($elseIfExpression) {
-            $html .= "<?php" . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
-                ($closeIfTag ? PHP_EOL . $this->identation . "?>" : '');
+                ($closeIfTag ? PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>") : '');
             $this->extraLine = true;
         }
     }
     function startElse(string &$html)
     {
         $html .= " else {" .
-            PHP_EOL . $this->identation . "?>";
+            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
     function closeElse(string $elseExpression, string &$html)
     {
         if ($elseExpression) {
-            $html .= "<?php" . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
                 "}" .
-                PHP_EOL . $this->identation . "?>";
+                PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
             $this->extraLine = true;
         }
     }
@@ -947,7 +971,7 @@ class PageEngine
             $this->extraLine = true;
             $breakAll = true;
         }
-
+        $codeToAppend = '';
         if ($tagItem->Type->Name == TagItemType::Tag && !$tagItem->ItsExpression) {
             if ($tagItem->Content === 'slot') { // render slot
                 // $this->debug($tagItem);
@@ -1000,7 +1024,20 @@ class PageEngine
             if ($tagItem->Type->Name == TagItemType::Tag) {
                 $skipTagRender = $tagItem->Content === 'template';
                 if (!$skipTagRender) {
-                    $html .= '<' . $content;
+                    $codeToAppend .= '<';
+                    if ($this->renderReturn) {
+                        if ($tagItem->ItsExpression) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                $content . ";";
+                            $codeToAppend = '';
+                        } else {
+                            $codeToAppend .= $content;
+                        }
+                    } else {
+                        $codeToAppend .= $content;
+                    }
                     if (isset($this->selfClosingTags[strtolower($content)])) {
                         $selfClosing = true;
                     }
@@ -1059,13 +1096,21 @@ class PageEngine
             }
 
             if ($tagItem->Type->Name == TagItemType::TextContent) {
-                if ($this->extraLine) {
+                if ($this->extraLine && !$this->renderReturn) {
                     $this->extraLine = false;
                     if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
                         $html .= PHP_EOL;
                     }
                 }
-                $html .= $content;
+                if ($this->renderReturn && $tagItem->ItsExpression) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $content . ";";
+                    $codeToAppend = '';
+                } else {
+                    $codeToAppend .= $content;
+                }
                 $this->extraLine = $tagItem->ItsExpression;
             } else {
                 $this->extraLine = false;
@@ -1077,18 +1122,41 @@ class PageEngine
                     && isset($this->booleanAttributes[strtolower($tagItem->Content)])
                 ) { // attribute is boolean, TODO: check argument expression to has boolean type
                     // compile if based on expression
-                    $condition = $this->convertExpressionToCode($children[0]->Content);
-                    $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
-                    $this->previousItem = &$tagItem;
-                    return;
+                    if ($this->renderReturn) {
+                    } else {
+                        $html .= $codeToAppend;
+                        $condition = $this->convertExpressionToCode($children[0]->Content);
+                        $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
+                        $this->previousItem = &$tagItem;
+                        return;
+                    }
                 }
-                $html .= ' ' . $content . ($noChildren
+                $codeToAppend .= ' ';
+                if ($tagItem->ItsExpression && $this->renderReturn) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $content . ";";
+                    $codeToAppend = '';
+                } else {
+                    $codeToAppend .= $content;
+                }
+
+                $codeToAppend .=  ($noChildren
                     ? ''
                     : '="');
             }
 
             if ($tagItem->Type->Name === TagItemType::AttributeValue) {
-                $html .= $tagItem->ItsExpression ? $content : htmlentities($content);
+                if ($tagItem->ItsExpression && $this->renderReturn) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $content . ";";
+                    $codeToAppend = '';
+                } else {
+                    $codeToAppend .= htmlentities($content);
+                }
             }
             // CHILDRENS scope
             if (!$noChildren) {
@@ -1100,39 +1168,47 @@ class PageEngine
                         if ($noContent) {
                             $noContent = false;
                             if (!$selfClosing && !$skipTagRender) {
-                                $html .= '>';
+                                $codeToAppend .= '>';
                             }
                         }
+                    }
+                    if ($codeToAppend) {
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                        } else {
+                            $html .= $codeToAppend;
+                        }
+                        $codeToAppend = '';
                     }
                     $this->buildTag($childTag, $html);
                 }
             }
             // END CHILDRENS scope
             if ($tagItem->Type->Name === TagItemType::Attribute) {
-                $html .= ($noChildren ? '' : '"');
+                $codeToAppend .= ($noChildren ? '' : '"');
             }
 
             if ($tagItem->Type->Name === TagItemType::Tag) {
                 if (!$skipTagRender) {
                     if ($selfClosing) {
-                        $html .= '/>';
+                        $codeToAppend .= '/>';
                     } else {
                         if ($noContent) {
-                            $html .= '>';
+                            $codeToAppend .= '>';
                         }
-                        $html .= '</' . $content . '>';
+                        $codeToAppend .= '</' . $content . '>';
                         $this->extraLine = false;
                     }
                 }
-            } else if ($tagItem->Type->Name === TagItemType::Component) {
-                if ($noContent) {
-                    $html .= '>';
-                }
-                //render child component, TODO: replace by script
-                //$component = $this->templates[$tagItem->Content];
-                //$this->buildInternal($component, $html);
-                $html .= "_<[||{$content}||]>_";
-                $html .= "</$replaceByTag>";
+            }
+        }
+        if ($codeToAppend) {
+            if ($this->renderReturn) {
+                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    var_export($codeToAppend, true) . ";";
+            } else {
+                $html .= $codeToAppend;
             }
         }
         if ($ifExpression && $firstFound === 'if') {
@@ -1144,9 +1220,6 @@ class PageEngine
         }
         $this->closeElseIf($elseIfExpression, $html, $closeIfTag);
         $this->closeElse($elseExpression, $html);
-        // if ($tagItem->Type->Name == TagItemType::Expression) {
-        //     $html .= "_(||{$tagItem->Content}||)_";
-        // }
         $this->previousItem = &$tagItem;
     }
 
