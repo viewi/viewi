@@ -5,7 +5,7 @@ include_once '../www/core/PageEngine/PageEngine.php';
 
 class EchoRenderingTest extends BaseRenderingTest
 {
-    public function PerformanceTest(UnitTestScope $T)
+    public function EchoRenderPerformance(UnitTestScope $T)
     {
         $component = ComplexTestComponent::class;
         $path = 'PerformanceTest';

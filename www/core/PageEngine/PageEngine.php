@@ -173,6 +173,15 @@ class PageEngine
         return $children;
     }
 
+    function getRelativeBuildPath(string $fullPath): string
+    {
+        return str_replace($this->buildPath, '', $fullPath);
+    }
+
+    function getRelativeSourcePath(string $fullPath): string
+    {
+        return str_replace($this->sourcePath, '', $fullPath);
+    }
     /**
      * 
      * @param ReflectionClass $reflectionClass 
@@ -185,7 +194,7 @@ class PageEngine
             $componentInfo = new ComponentInfo();
             $componentInfo->Name = $name;
             $componentInfo->IsComponent = false;
-            $componentInfo->Fullpath = $reflectionClass->getFileName();
+            $componentInfo->Fullpath = $this->getRelativeSourcePath($reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
             $dependencies = $this->getDependencies($reflectionClass);
             if (!empty($dependencies)) {
@@ -276,9 +285,9 @@ class PageEngine
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $templatePath = $pathWOext . '.html';
             $componentInfo->IsComponent = true;
-            $componentInfo->Fullpath = $filename;
+            $componentInfo->Fullpath = $this->getRelativeSourcePath($filename);
             if (isset($pages[$templatePath])) {
-                $componentInfo->TemplatePath = $templatePath;
+                $componentInfo->TemplatePath = $this->getRelativeSourcePath($templatePath);
             }
             $componentInfo->Name = $className;
             $componentInfo->ComponentName = $className;
@@ -336,7 +345,7 @@ class PageEngine
         if ($pageTemplate->ItsSlot) {
             $buildPath .= DIRECTORY_SEPARATOR . '_slots';
         }
-        $buildFilePath = str_replace($this->sourcePath, $buildPath, $pageTemplate->Path);
+        $buildFilePath = str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path));
         $pathinfo = pathinfo($buildFilePath);
         //$this->debug($pageTemplate->Path);
         //$this->debug($pathinfo);
@@ -346,7 +355,7 @@ class PageEngine
         $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
         $phpPath = $pathWOext . '.php';
         file_put_contents($phpPath, $pageTemplate->PhpHtmlContent);
-        $pageTemplate->ComponentInfo->BuildPath = $phpPath;
+        $pageTemplate->ComponentInfo->BuildPath = $this->getRelativeBuildPath($phpPath);
     }
 
     function build(PageTemplate &$pageTemplate): void
@@ -496,15 +505,15 @@ class PageEngine
         if ($componentInfo->IsComponent) {
             // always new instance
             $cache = $defaultCache;
-            include_once $componentInfo->Fullpath;
-            include_once $componentInfo->BuildPath;
+            include_once $this->sourcePath . $componentInfo->Fullpath;
+            include_once $this->buildPath . $componentInfo->BuildPath;
         } elseif (isset($componentInfo->IsSlot)) {
-            include_once $componentInfo->Fullpath;
-            include_once $componentInfo->BuildPath;
+            include_once $this->sourcePath . $componentInfo->Fullpath;
+            include_once $this->buildPath . $componentInfo->BuildPath;
             return $this->resolve($this->components[$componentInfo->ComponentName], true);
         } else {
             // It's service or any class (It's not component)
-            include_once $componentInfo->Fullpath;
+            include_once $this->sourcePath . $componentInfo->Fullpath;
         }
         $class = $componentInfo->Name;
         if ($cache && isset($this->Dependencies[$class])) {
@@ -618,7 +627,7 @@ class PageEngine
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $componentBaseName;
             $phpPath = $pathWOext . '.php';
             $htmlPath = $pathWOext . '.html';
-            $slotPageTemplate->ComponentInfo->TemplatePath = $htmlPath;
+            $slotPageTemplate->ComponentInfo->TemplatePath = $this->getRelativeSourcePath($htmlPath);
             $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
@@ -969,7 +978,7 @@ class PageEngine
                     //$this->debug($tagItem->Content);
                     if (isset($this->components[$tagItem->Content])) {
                         $className = $this->components[$tagItem->Content]->ComponentName;
-                        include_once $this->components[$tagItem->Content]->Fullpath;
+                        include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
 
                         if (class_exists($className)) {
                             //$this->debug($className);
@@ -1300,7 +1309,7 @@ class PageEngine
     {
         $template = new PageTemplate();
         // $this->debug($componentInfo);
-        $path = $componentInfo->TemplatePath;
+        $path = $this->sourcePath . $componentInfo->TemplatePath;
         if (empty($path)) {
             throw new Exception("Argument `\$path` is missing");
         }

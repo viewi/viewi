@@ -6,11 +6,14 @@ include 'core/PageEngine/PageEngine.php';
 include 'application/components/views/app.php';
 include 'application/components/views/home/home.php';
 
+$develop = true;
+$renderReturn = true;
+
 $page = new PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
-    true,
-    false
+    $develop,
+    $renderReturn
 );
 //for ($i = 0; $i < 10; $i++) {
 $response = $page->render(AppComponent::class);
