@@ -61,6 +61,7 @@ $html = $page->render(AppComponent::class);
 
 ### Supported features
 
-|Command    |How to use |
-|---        |---        |
-|           |           |
+|Use case                       |How to use or/and example                                          |
+|---                            |---                                                                |
+|Render variable                |Ex: `<div>$myVar</div>` (All values are automatically escaped)     |
+|Render method\`s call result   |Ex: `<div>{method()}</div>` (All values are automatically escaped) |
