@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 class RawHtmlComponent extends BaseComponent
 {
     public string $title = 'Wellcome to my awesome application';

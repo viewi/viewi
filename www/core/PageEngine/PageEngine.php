@@ -1,5 +1,12 @@
 <?php
 
+namespace Vo;
+
+use \ReflectionClass;
+use \ReflectionProperty;
+use \ReflectionNamedType;
+use \Exception;
+
 require 'TagItemType.php';
 require 'BaseComponent.php';
 require 'BaseService.php';
@@ -189,10 +196,11 @@ class PageEngine
      */
     function buildDependencies(ReflectionClass $reflectionClass): void
     {
-        $name = $reflectionClass->name;
+        $name = $reflectionClass->getShortName();
         if (!isset($this->components[$name])) {
             $componentInfo = new ComponentInfo();
             $componentInfo->Name = $name;
+            $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->IsComponent = false;
             $componentInfo->Fullpath = $this->getRelativeSourcePath($reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
@@ -227,7 +235,7 @@ class PageEngine
                             $argumentClass = $argument->getClass(); // check if class exists
                             $dependencies[$argumentName] =
                                 [
-                                    'name' => $namedType->getName()
+                                    'name' => $argumentClass ? $argumentClass->getShortName() : $namedType->getName()
                                 ];
                             if ($argument->isOptional()) {
                                 $dependencies[$argumentName]['optional'] = 1;
@@ -275,7 +283,7 @@ class PageEngine
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
             $componentInfo = new ComponentInfo();
-            $className = $reflectionClass->name;
+            $className = $reflectionClass->getShortName();
             $filename = $reflectionClass->getFileName();
             $dependencies = $this->getDependencies($reflectionClass);
             if (!empty($dependencies)) {
@@ -290,6 +298,7 @@ class PageEngine
                 $componentInfo->TemplatePath = $this->getRelativeSourcePath($templatePath);
             }
             $componentInfo->Name = $className;
+            $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->ComponentName = $className;
             $componentInfo->Tag = $className;
 
@@ -367,7 +376,7 @@ class PageEngine
         $parts = explode("//#content", $moduleContent, 2);
         $html = $parts[0];
         $renderFunction = "Render{$pageTemplate->ComponentInfo->Name}";
-        $html = str_replace('BaseComponent', $pageTemplate->ComponentInfo->ComponentName, $html);
+        $html = str_replace('BaseComponent $', $pageTemplate->ComponentInfo->Namespace . '\\' . $pageTemplate->ComponentInfo->ComponentName . ' $', $html);
         $html = str_replace('RenderFunction', $renderFunction, $html);
 
         $scopeArguments = implode(', ', $this->componentArguments);
@@ -515,7 +524,7 @@ class PageEngine
             // It's service or any class (It's not component)
             include_once $this->sourcePath . $componentInfo->Fullpath;
         }
-        $class = $componentInfo->Name;
+        $class = $componentInfo->Namespace . '\\' . $componentInfo->Name;
         if ($cache && isset($this->Dependencies[$class])) {
             // $this->debug("From cache $class");
             return $this->Dependencies[$class];
@@ -621,6 +630,7 @@ class PageEngine
             $slotPageTemplate->ComponentInfo->IsSlot = true;
             $slotPageTemplate->ComponentInfo->Name = $componentBaseName;
             $slotPageTemplate->ComponentInfo->ComponentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
+            $slotPageTemplate->ComponentInfo->Namespace = $this->latestPageTemplate->ComponentInfo->Namespace;
             $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
             //$this->debug($this->latestPageTemplate->ComponentInfo);
             $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->Fullpath);

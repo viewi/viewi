@@ -1,5 +1,5 @@
 <?php
-
+namespace Vo;
 class PageTemplate
 {
     public ComponentInfo $ComponentInfo;

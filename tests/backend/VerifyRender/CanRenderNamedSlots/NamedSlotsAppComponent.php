@@ -1,4 +1,6 @@
 <?php
+
+use Vo\BaseComponent;
 class NamedSlotsAppComponent extends BaseComponent
 {
     public string $title = 'Testing Named Slots';

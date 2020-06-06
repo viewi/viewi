@@ -1,4 +1,7 @@
-<?
+<?php
+
+use HttpTools\HttpClientService;
+
 class NotificationService
 {
     private HttpClientService $http;

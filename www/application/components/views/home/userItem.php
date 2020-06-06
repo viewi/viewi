@@ -1,5 +1,8 @@
 <?php
 
+use Vo\BaseComponent;
+use Silly\MyApp\Friend;
+
 class UserItem extends BaseComponent
 {
     public ?Friend $user = null;

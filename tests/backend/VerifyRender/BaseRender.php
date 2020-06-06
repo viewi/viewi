@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 include_once '../www/core/PageEngine/PageEngine.php';
 
 class BaseRenderingTest extends BaseTest
@@ -87,7 +89,7 @@ class BaseRenderingTest extends BaseTest
         UnitTestScope $T,
         bool $echoRendered = false
     ) {
-        $page = new PageEngine(
+        $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             true,

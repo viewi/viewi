@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 class CanRenderSlotsComponent extends BaseComponent
 {
     public string $title = 'Testing child component';

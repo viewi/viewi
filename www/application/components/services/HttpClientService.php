@@ -1,4 +1,7 @@
 <?php
+
+namespace HttpTools;
+
 class HttpClientService
 {
 

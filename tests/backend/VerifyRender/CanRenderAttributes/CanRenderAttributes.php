@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 class CanRenderAttributesComponent extends BaseComponent
 {
     public string $title = 'Testing attributes';

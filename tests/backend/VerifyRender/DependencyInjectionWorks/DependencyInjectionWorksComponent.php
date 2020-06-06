@@ -1,4 +1,6 @@
 <?php
+
+use Vo\BaseComponent;
 class DependencyInjectionWorksComponent extends BaseComponent
 {
     public NotificationDemoService $notificationService;

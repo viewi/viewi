@@ -1,10 +1,13 @@
 <?php
 
+namespace Vo;
+
 class ComponentInfo
 {
     function fromArray(array &$item)
     {
         $this->Name = $item['Name'];
+        $this->Namespace = $item['Namespace'];
         $this->IsComponent = $item['IsComponent'];
         $this->Fullpath = $item['Fullpath'];
         $this->Inputs = $item['Inputs'] ?? [];
@@ -26,6 +29,7 @@ class ComponentInfo
             $this->IsSlot = $item['IsSlot'];
     }
     public string $Name;
+    public string $Namespace;
     public string $ComponentName;
     public string $Tag;
     public string $Fullpath;

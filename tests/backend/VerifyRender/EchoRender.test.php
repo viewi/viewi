@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 include_once 'BaseRender.php';
 include_once '../www/core/PageEngine/PageEngine.php';
 
@@ -10,7 +12,7 @@ class EchoRenderingTest extends BaseRenderingTest
         $component = ComplexTestComponent::class;
         $path = 'PerformanceTest';
         $startedAt = microtime(true);
-        $page = new PageEngine(
+        $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             true
@@ -20,7 +22,7 @@ class EchoRenderingTest extends BaseRenderingTest
         $compileTime = floor((microtime(true) - $startedAt) * 1000);
 
         $startedAt = microtime(true);
-        $page = new PageEngine(
+        $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             false

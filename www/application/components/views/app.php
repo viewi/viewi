@@ -1,5 +1,11 @@
 <?php
 
+namespace Silly\MyApp;
+
+use Vo\BaseComponent;
+use \NotificationService;
+use HttpTools\HttpClientService;
+
 class AppComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';

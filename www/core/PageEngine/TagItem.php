@@ -1,5 +1,5 @@
 <?php
-
+namespace Vo;
 class TagItem
 {
     public ?string $Content = null;

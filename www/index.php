@@ -9,7 +9,7 @@ include 'application/components/views/home/home.php';
 $develop = true;
 $renderReturn = true;
 
-$page = new PageEngine(
+$page = new Vo\PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'build',
     $develop,

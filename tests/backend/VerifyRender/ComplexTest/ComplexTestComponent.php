@@ -1,4 +1,6 @@
 <?php
+
+use Vo\BaseComponent;
 class ComplexTestComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';

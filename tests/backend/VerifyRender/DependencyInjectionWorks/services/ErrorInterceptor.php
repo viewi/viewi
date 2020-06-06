@@ -1,5 +1,7 @@
 <?php
 
+use Vo\BaseComponent;
+
 class ErrorInterceptor
 {
     public string $name = 'ErrorInterceptor';

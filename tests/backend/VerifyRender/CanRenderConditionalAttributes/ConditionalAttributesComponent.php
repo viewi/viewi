@@ -1,4 +1,6 @@
 <?php
+
+use Vo\BaseComponent;
 class ConditionalAttributesComponent extends BaseComponent
 {
     public string $title = 'Testing conditonal attributes';

@@ -1,4 +1,6 @@
 <?php
+
+use Vo\BaseComponent;
 class NotificationDemoService
 {
     private HttpClientService $http;

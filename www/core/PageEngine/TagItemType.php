@@ -1,5 +1,5 @@
 <?php
-
+namespace Vo;
 class TagItemType
 {
     public string $Name;
