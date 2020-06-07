@@ -2,7 +2,9 @@
 
 ### Powerfull view engine for your application
 
-**Code:**
+##### *Requirements: php 7.4+*
+
+**Exmple Code:**
 component: *app/home.php*
 ```php
 <?php
