@@ -12,7 +12,7 @@ use Vo\BaseComponent;
 class HomeComponent extends BaseComponent
 {
     public string $title = 'My awesome application';
-
+    public User $user;
     function getFullName(): string
     {
         return 'Jhon Doe';
@@ -61,7 +61,7 @@ $html = $page->render(HomeComponent::class);
 ### Supported features
 
 **Render variable**
-`<div>$myVar</div>` or `<div>{$myVar}</div>`. All values are automatically escaped.
+`<div>$myVar</div>` or `<div>{$myVar}</div>`. In case of class or array use `{}` `<div>{$user->Name}</div>`. All values are automatically escaped.
 
 **Render method\`s call result**
 `<div>{method()}</div>`. All values are automatically escaped.
@@ -209,9 +209,69 @@ And this will run `foreach` first and then check `if` condition for each item
 <div foreach="$array as $item" if="$item->active"...`
 ```
 
-**DI**
+**Boolean attributes**
+If html attribute is boolean () you can pass condition into attribute value, and it will render attribute based on  that condition.
+component: *app/HomeLink.php*
+```php
+//...
+class HomeLink extends BaseComponent
+{
+    public bool $isDisabled = true;
+    public bool $checked = false;
+//...
+```
+template: *app/HomeLink.html*
+```html
+<button disabled="$isDisabled">Send</button>
+<input type="checkbox" value="1" checked="$checked" />
+```
+*Result:*
+```html
+<button disabled="disabled">Send</button>
+<input type="checkbox" value="1" />
+```
 
-****
+**Conditional attributes**
+Conditional attributes help you to simplify using attributes based on conditions.
+For example, instead of using `$condition ? 'one' : 'two'` like here
+```html
+<div class="panel {$selected ? 'show' : ''}"></div>
+```
+you can use `class.show="$selected"` like here
+```html
+<div class="panel" class.show="$selected"></div>
+```
+You can have as many attributes as you want, all of it will be merged during render.
+
+
+**Passing inputs into component**
+You can pass any data into component, data will be assigned to component's public properties.
+component: *app/HomeLink.php*
+```php
+//...
+class HomeLink extends BaseComponent
+{
+    public string $url;
+    public string $title;
+    public bool $active;
+//...
+```
+template: *app/HomeLink.html*
+```html
+<a href="$url" class.active="$active">$title</a>
+```
+template: *app/home.html*
+```html
+<h1>$title</h1>
+<HomeLink title="My title" url="/" active="true"></HomeLink>
+<HomeLink title="$title" url="/blog" active="false"></HomeLink>
+```
+*Result:*
+```html
+<h1>My awesome application</h1>
+<a href="/" class="active">My title</a>
+<a href="/blog">My awesome application</a>
+```
 
 **Template**
 You can use tag `<template>` to group elements into one logical entity on one side, and on the other side only `<template>` content will be rendered. Usefull when use in combination with `if` or/and `foreach`.
@@ -233,3 +293,22 @@ template: *app/home.html*
     <a href="/">Back home</a>
     <a href="/blog">Blog</a>
 ```
+
+**DI**
+Dependency injection. Simply you can have constructor in your component, and all required arguments will be resolved automatically during render.
+```php
+//...
+class HomeLink extends BaseComponent
+{
+    function __construct(
+        NotificationService $notificationService,
+        HttpClientService $http,
+        string $name,
+        ?int $cost,
+        ?NotificationService $ns,
+        ?float $f = 3,
+        ?array $test = [5, 6]
+    ) {
+//...
+```
+You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctlly and avoiding recursions. All services will be shared between all components during render, all child components will be created every time as new.
