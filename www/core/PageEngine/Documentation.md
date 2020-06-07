@@ -62,16 +62,16 @@ $html = $page->render(HomeComponent::class);
 
 ### Supported features
 
-**Render variable**
+##### Render variable
 `<div>$myVar</div>` or `<div>{$myVar}</div>`. In case of class or array use `{}` `<div>{$user->Name}</div>`. All values are automatically escaped.
 
-**Render method\`s call result**
+##### Render method\`s call result
 `<div>{method()}</div>`. All values are automatically escaped.
 
-**Render raw html**
+##### Render raw html
 `<div>{{$raw}}</div>`
 
-**Render component**
+##### Render component
 Put component class name (without namespace) as a tag in your template.
 For example:
 component: *app/HomeLink.php*
@@ -107,7 +107,7 @@ template: *app/home.html*
 <a href="/">Home</a>
 ```
 
-**Slots**
+##### Slots
 You can pass content into component which will be rendered instead of `<slot>` tag. Also you can specify default content (optional).
 template: *app/HomeLink.html*
 ```html
@@ -126,7 +126,7 @@ template: *app/home.html*
 <a href="/">Home</a>
 ```
 
-**Named slots**
+##### Named slots
 You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without name attribute bacames slot by default and any content outside `<slotContent..` tag becames content for default slot `<slot>` (without name attribute).
 template: *app/HomeLink.html*
 ```html
@@ -154,7 +154,7 @@ template: *app/home.html*
     <a href="/">slot by default</a>
 ```
 
-**If statement**
+##### If statement
 `<tag if="$condition"...`
 ```php
 //...
@@ -174,7 +174,7 @@ template: *app/home.html*
 <div>Will be rendered if active is true</div>
 ```
 
-**Foreach**
+##### Foreach
 ```php
 <tag foreach="$array as $item"..
 //or
@@ -200,7 +200,7 @@ template: *app/home.html*
 <div>Banana</div>
 ```
 
-**If and foreach combinations**
+##### If and foreach combinations
 You can have `if` and `foreach` together, but order matters: 
 This will check `if` condition first, and if i'ts true will execute `foreach`
 ```php
@@ -211,8 +211,8 @@ And this will run `foreach` first and then check `if` condition for each item
 <div foreach="$array as $item" if="$item->active"...`
 ```
 
-**Boolean attributes**
-If html attribute is boolean () you can pass condition into attribute value, and it will render attribute based on  that condition.
+##### Boolean attributes
+If html attribute is boolean you can pass condition into attribute value, and it will render attribute based on  that condition. List of boolean attributes: `async` `autofocus` `autoplay` `checked` `controls` `default` `defer` `disabled` `formnovalidate` `hidden` `ismap` `itemscope` `loop` `multiple` `muted` `nomodule` `novalidate` `open` `readonly` `required` `reversed` `selected`
 component: *app/HomeLink.php*
 ```php
 //...
@@ -233,7 +233,7 @@ template: *app/HomeLink.html*
 <input type="checkbox" value="1" />
 ```
 
-**Conditional attributes**
+##### Conditional attributes
 Conditional attributes help you to simplify using attributes based on conditions.
 For example, instead of using `$condition ? 'one' : 'two'` like here
 ```html
@@ -246,7 +246,7 @@ you can use `class.show="$selected"` like here
 You can have as many attributes as you want, all of it will be merged during render.
 
 
-**Passing inputs into component**
+##### Passing inputs into component
 You can pass any data into component, data will be assigned to component's public properties.
 component: *app/HomeLink.php*
 ```php
@@ -275,7 +275,7 @@ template: *app/home.html*
 <a href="/blog">My awesome application</a>
 ```
 
-**Template**
+##### Template
 You can use tag `<template>` to group elements into one logical entity on one side, and on the other side only `<template>` content will be rendered. Usefull when use in combination with `if` or/and `foreach`.
 template: *app/Links.html*
 ```html
@@ -296,7 +296,7 @@ template: *app/home.html*
     <a href="/blog">Blog</a>
 ```
 
-**DI**
+##### DI
 Dependency injection. Simply you can have constructor in your component, and all required arguments will be resolved automatically during render.
 ```php
 //...
@@ -313,4 +313,4 @@ class HomeLink extends BaseComponent
     ) {
 //...
 ```
-You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctlly and avoiding recursions. All services will be shared between all components during render, all child components will be created every time as new.
+You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctlly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
