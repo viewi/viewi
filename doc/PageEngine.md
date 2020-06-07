@@ -314,3 +314,7 @@ class HomeLink extends BaseComponent
 //...
 ```
 You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctlly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
+
+### Tests
+Got to `tests` folder
+Run `php test.php backend`
