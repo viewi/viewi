@@ -107,6 +107,38 @@ template: *app/home.html*
 <a href="/">Home</a>
 ```
 
+##### Dynamic attributes
+You can use dynamic attributes. Please note: if you have the same attribute already they will not be merged into one.
+```php
+//...
+class HomeComponent extends BaseComponent
+{
+    public string $attribute = 'my-attribute';
+//...
+```
+template: *app/home.html*
+```html
+<h1>$title</h1>
+<div $attribute="some-value"></div>
+```
+
+##### Dynamic components
+You can use component defined in variable, just make sure it exists.
+
+```php
+//...
+class HomeComponent extends BaseComponent
+{
+    public string $currentPage = 'BlogComponent';
+//...
+```
+template: *app/home.html*
+```html
+<h1>$title</h1>
+<!-- will render BlogComponent here -->
+<$currentPage></$currentPage>
+```
+
 ##### Slots
 You can pass content into component which will be rendered instead of `<slot>` tag. Also you can specify default content (optional).
 template: *app/HomeLink.html*
