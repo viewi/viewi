@@ -14,8 +14,8 @@ function RenderUserItem(
     $_content = '';
 
     $_content .= 'USER: ';
-    $slotContents[0] = 'UserItem_Slot17';
-    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot17', $component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'UserItem_Slot19';
+    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot19', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
 ';

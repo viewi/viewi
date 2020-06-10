@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_Slot3(
-    Silly\MyApp\AppComponent $component,
+function RenderHomePage_Slot3(
+    \HomePage $component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -14,9 +14,9 @@ function RenderAppComponent_Slot3(
     $_content = '';
 
     $_content .= '
-            Only title provided
-            <br/>
-        ';
+    
+    
+';
     return $_content;
    
 }

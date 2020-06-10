@@ -7,21 +7,14 @@ function RenderAppComponent_Slot14(
     Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
-    , $uid, $user
+    , ...$scope
 ) {
     $slotContents = [];
     
     $_content = '';
 
-    $_content .= '
-        UserItem Slot: ';
-    $_content .= htmlentities($uid);
-    $_content .= ' ';
-    $_content .= htmlentities($user->Name);
-    $_content .= ' ';
-    $_content .= htmlentities($user->Age);
-    $_content .= '
-    ';
+    $_content .= '';
+    $_content .= htmlentities($component->content);
     return $_content;
    
 }

@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_SlotContent1(
+function RenderAppComponent_SlotContent4(
     Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots

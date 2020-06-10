@@ -18,18 +18,34 @@ function RenderLayout(
 
 <head>
     ';
-    $slotContents[0] = 'Layout_Slot18';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot18', $component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'Layout_Slot20';
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot20', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
+    <style>
+        button {
+            border: none;
+            padding: 6px 12px;
+            background-color: antiquewhite;
+            color: brown;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        button:hover {
+            background-color: rgb(252, 243, 232);
+            cursor: pointer;
+        }
+
+        button:active {
+            background-color: rgb(252, 228, 197);
+        }
+    </style>
 </head>
 
 <body>
     ';
     $_content .= $pageEngine->renderComponent($slots['body'], $component, [], []); 
-    $_content .= '
-    ';
-    $_content .= $pageEngine->renderComponent($slots[0], $component, [], []); 
     $_content .= '
 </body>
 

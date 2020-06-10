@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_Slot4(
+function RenderAppComponent_Slot18(
     Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -13,10 +13,12 @@ function RenderAppComponent_Slot4(
     
     $_content = '';
 
-    $_content .= '
-            Arguments test
-            <br/>
-        ';
+    $_content .= '';
+    $_content .= htmlentities($uid);
+    $_content .= ' ';
+    $_content .= htmlentities($user->Name);
+    $_content .= ' ';
+    $_content .= htmlentities($user->Age);
     return $_content;
    
 }

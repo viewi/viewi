@@ -7,18 +7,17 @@ function RenderAppComponent_Slot15(
     Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
-    , $uid, $user
+    , ...$scope
 ) {
     $slotContents = [];
     
     $_content = '';
 
-    $_content .= '';
-    $_content .= htmlentities($uid);
-    $_content .= ' ';
-    $_content .= htmlentities($user->Name);
-    $_content .= ' ';
-    $_content .= htmlentities($user->Age);
+    $_content .= '
+            <span>render inside ';
+    $_content .= htmlentities($component->model);
+    $_content .= '</span>
+        ';
     return $_content;
    
 }

@@ -1,2 +1,14 @@
-Recursion $title
-<slot>DefaultContent $title </slot>
+<Layout>
+    <slotContent name="head">
+        <title>$count $title</title>
+    </slotContent>
+    <slotContent name="body">
+        <h1>$title</h1>
+        <h4>
+            Count: $count
+        </h4>
+        <div>
+            Another count: $count <button (click)="Increment()">Increment</button>
+        </div>
+    </slotContent>
+</Layout>

@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderLayout_Slot18(
-    \Layout $component,
+function RenderUserItem_Slot19(
+    \UserItem $component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,11 +13,7 @@ function RenderLayout_Slot18(
     
     $_content = '';
 
-    $_content .= '
-        <title>';
-    $_content .= htmlentities($component->title);
-    $_content .= '</title>
-    ';
+    $_content .= 'no user';
     return $_content;
    
 }

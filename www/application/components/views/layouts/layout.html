@@ -5,11 +5,29 @@
     <slot name="head">
         <title>$title</title>
     </slot>
+    <style>
+        button {
+            border: none;
+            padding: 6px 12px;
+            background-color: antiquewhite;
+            color: brown;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        button:hover {
+            background-color: rgb(252, 243, 232);
+            cursor: pointer;
+        }
+
+        button:active {
+            background-color: rgb(252, 228, 197);
+        }
+    </style>
 </head>
 
 <body>
     <slot name="body"></slot>
-    <slot></slot>
 </body>
 
 </html>

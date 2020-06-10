@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_SlotContent2(
+function RenderAppComponent_SlotContent5(
     Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
@@ -15,7 +15,7 @@ function RenderAppComponent_SlotContent2(
 
     $_content .= '
         ';
-    $slotContents[0] = 'AppComponent_Slot3';
+    $slotContents[0] = 'AppComponent_Slot6';
     $_content .= $pageEngine->renderComponent('UserItem', $component, $slotContents, [
 'title' => 'User item title',
 ], ...$scope);
@@ -24,7 +24,7 @@ function RenderAppComponent_SlotContent2(
         ';
     foreach($component->users as $uid => $user){
     
-    $slotContents[0] = 'AppComponent_Slot4';
+    $slotContents[0] = 'AppComponent_Slot7';
     $_content .= $pageEngine->renderComponent('UserItem', $component, $slotContents, [
 'user' => $user,
 'active' => true,
@@ -94,7 +94,7 @@ function RenderAppComponent_SlotContent2(
         ';
     foreach($component->users as $uid => $user){
     
-    $slotContents[0] = 'AppComponent_Slot5';
+    $slotContents[0] = 'AppComponent_Slot8';
     $_content .= $pageEngine->renderComponent('UserItem', $component, $slotContents, [], $uid, $user);
     $slotContents = [];
     }
@@ -105,7 +105,7 @@ function RenderAppComponent_SlotContent2(
     
     $_content .= '<div>
             Div: ';
-    $slotContents[0] = 'AppComponent_Slot6';
+    $slotContents[0] = 'AppComponent_Slot9';
     $_content .= $pageEngine->renderComponent('UserItem', $component, $slotContents, [], $uid, $user);
     $slotContents = [];
     $_content .= '
@@ -180,12 +180,12 @@ function RenderAppComponent_SlotContent2(
             BOOLEAN attributes
         </span>
         ';
-    $slotContents[0] = 'AppComponent_Slot7';
+    $slotContents[0] = 'AppComponent_Slot10';
     $_content .= $pageEngine->renderComponent($component->dynamicTag, $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
         ';
-    $slotContents[0] = 'AppComponent_Slot8';
+    $slotContents[0] = 'AppComponent_Slot11';
     $_content .= $pageEngine->renderComponent('HomePage', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
@@ -262,7 +262,7 @@ function RenderAppComponent_SlotContent2(
     $_content .= '
         <hr/>
         ';
-    $slotContents[0] = 'AppComponent_Slot12';
+    $slotContents[0] = 'AppComponent_Slot15';
     $_content .= $pageEngine->renderComponent('HomePage', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '

@@ -13,12 +13,12 @@ function RenderHomePage(
     
     $_content = '';
 
-    $_content .= 'Recursion ';
-    $_content .= htmlentities($component->title);
-    $_content .= '
-';
-    $slotContents[0] = 'HomePage_Slot16';
-    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'HomePage_Slot16', $component, $slotContents, [], ...$scope);
+    $slotContents['head'] = 'HomePage_SlotContent1';
+
+    $slotContents['body'] = 'HomePage_SlotContent2';
+
+    $slotContents[0] = 'HomePage_Slot3';
+    $_content .= $pageEngine->renderComponent('Layout', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;
    

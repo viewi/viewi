@@ -14,10 +14,12 @@ function RenderAppComponent_Slot12(
     $_content = '';
 
     $_content .= '
-            <span>render inside ';
-    $_content .= htmlentities($component->model);
-    $_content .= '</span>
-        ';
+                ';
+    $slotContents[0] = 'AppComponent_Slot13';
+    $_content .= $pageEngine->renderComponent('HomePage', $component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '
+            ';
     return $_content;
    
 }
