@@ -3,20 +3,17 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_Slot7(
-    Silly\MyApp\AppComponent $component,
+function RenderUserItem_Slot5(
+    \UserItem $component,
     PageEngine $pageEngine,
     array $slots
-    , $uid, $user
+    , ...$scope
 ) {
     $slotContents = [];
     
     $_content = '';
 
-    $_content .= '
-            Arguments test
-            <br/>
-        ';
+    $_content .= 'no user';
     return $_content;
    
 }

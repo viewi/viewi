@@ -18,11 +18,16 @@ function RenderLayout(
 
 <head>
     ';
-    $slotContents[0] = 'Layout_Slot20';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot20', $component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'Layout_Slot6';
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot6', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
     <style>
+        body {
+            background-color: rgb(80, 62, 62);
+            color: rgb(104, 199, 202);
+        }
+
         button {
             border: none;
             padding: 6px 12px;

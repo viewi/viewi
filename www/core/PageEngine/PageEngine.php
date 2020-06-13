@@ -316,10 +316,12 @@ class PageEngine
         foreach ($this->components as $className => &$componentInfo) {
             if ($componentInfo->IsComponent) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
+                // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
                 $this->build($this->templates[$className]);
                 $this->save($this->templates[$className]);
             }
         }
+        // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
         $componentsInfoTemplate = __DIR__ . DIRECTORY_SEPARATOR . 'ComponentsInfoTemplate.php';
@@ -327,6 +329,7 @@ class PageEngine
         $parts = explode("//#content", $templateContent, 2);
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
+
         foreach ($this->templates as &$template) {
             $template->RootTag->cleanParents();
         }
@@ -1087,7 +1090,7 @@ class PageEngine
             //$html .= "<$replaceByTag data-component=\"{$content}\"";
         }
         if ($tagItem->Skip) {
-            $this->previousItem = &$tagItem;
+            $this->previousItem = $tagItem;
             $breakAll = true;
         }
         if (!$breakAll) {
@@ -1126,7 +1129,7 @@ class PageEngine
                     foreach ($children as &$childTag) {
                         if ($childTag->Type->Name === TagItemType::Attribute) {
                             if ($skipTagRender && !$childTag->Skip) { // template can't has attributes
-                                trigger_error("`template` tag can't has attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
+                                trigger_error("`template` tag can't have attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
                                 continue;
                             }
                             $attributeName = $childTag->Content;
@@ -1218,7 +1221,7 @@ class PageEngine
                         $html .= $codeToAppend;
                         $codeToAppend = '';
                         $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
-                        $this->previousItem = &$tagItem;
+                        $this->previousItem = $tagItem;
                     }
                     return;
                 }
@@ -1312,7 +1315,7 @@ class PageEngine
         }
         $this->closeElseIf($elseIfExpression, $html, $codeToAppend, $closeIfTag);
         $this->closeElse($elseExpression, $html, $codeToAppend);
-        $this->previousItem = &$tagItem;
+        $this->previousItem = $tagItem;
     }
 
     function compileTemplate(ComponentInfo $componentInfo): PageTemplate
@@ -1621,7 +1624,7 @@ class PageEngine
             return;
         }
         echo '<pre>';
-        print_r($any);
+        echo htmlentities(print_r($any, true));
         echo '</pre>';
     }
 
