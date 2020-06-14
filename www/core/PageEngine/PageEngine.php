@@ -19,6 +19,7 @@ class PageEngine
 {
     private string $sourcePath;
     private string $buildPath;
+    private string $publicBuildPath;
     private ?PageTemplate $latestPageTemplate = null;
     private int $slotCounter = 0;
 
@@ -75,10 +76,16 @@ class PageEngine
      * @var bool true: return string, false: echo
      */
     private bool $renderReturn;
-    public function __construct(string $sourcePath, string $buildPath, bool $development, bool $return = false)
-    {
+    public function __construct(
+        string $sourcePath,
+        string $buildPath,
+        string $publicBuildPath,
+        bool $development,
+        bool $return = false
+    ) {
         $this->sourcePath = $sourcePath;
         $this->buildPath = $buildPath;
+        $this->publicBuildPath = $publicBuildPath;
         $this->renderReturn = $return;
         $this->components = [];
         $this->tokens = [];
@@ -271,6 +278,7 @@ class PageEngine
         }
         $this->compiled = true;
         $this->removeDirectory($this->buildPath);
+        $this->removeDirectory($this->publicBuildPath);
         $pages = $this->getDirContents($this->sourcePath);
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
@@ -313,12 +321,14 @@ class PageEngine
         }
         //$this->debug($this->sourcePath);
         //$this->debug($this->buildPath);
+        $publicJson = [];
         foreach ($this->components as $className => &$componentInfo) {
             if ($componentInfo->IsComponent) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
                 // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
                 $this->build($this->templates[$className]);
                 $this->save($this->templates[$className]);
+                $publicJson[$className] = $this->templates[$className]->RootTag->getRaw();
             }
         }
         // $this->debug($this->templates);
@@ -329,10 +339,9 @@ class PageEngine
         $parts = explode("//#content", $templateContent, 2);
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
-
-        foreach ($this->templates as &$template) {
-            $template->RootTag->cleanParents();
-        }
+        // save public json
+        $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
+        file_put_contents($publicFilePath, json_encode($publicJson, 0, 1024));
 
         //$this->debug($this->components);
     }
@@ -368,6 +377,7 @@ class PageEngine
         $phpPath = $pathWOext . '.php';
         file_put_contents($phpPath, $pageTemplate->PhpHtmlContent);
         $pageTemplate->ComponentInfo->BuildPath = $this->getRelativeBuildPath($phpPath);
+        $pageTemplate->RootTag->cleanParents();
     }
 
     function build(PageTemplate &$pageTemplate): void

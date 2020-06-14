@@ -18,14 +18,18 @@ function RenderLayout(
 
 <head>
     ';
-    $slotContents[0] = 'Layout_Slot6';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot6', $component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'Layout_Slot7';
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot7', $component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
     <style>
         body {
             background-color: rgb(80, 62, 62);
             color: rgb(104, 199, 202);
+        }
+
+        a {
+            color: antiquewhite;
         }
 
         button {
@@ -46,11 +50,16 @@ function RenderLayout(
             background-color: rgb(252, 228, 197);
         }
     </style>
+
+    <script src="/public/app/app.js"></script>
 </head>
 
 <body>
     ';
     $_content .= $pageEngine->renderComponent($slots['body'], $component, [], []); 
+    $_content .= '
+    ';
+    $_content .= $pageEngine->renderComponent($slots[0], $component, [], []); 
     $_content .= '
 </body>
 

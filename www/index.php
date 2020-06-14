@@ -12,6 +12,7 @@ $renderReturn = true;
 $page = new Vo\PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'build',
+    __DIR__ . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'build',
     $develop,
     $renderReturn
 );
@@ -32,11 +33,3 @@ echo $response;
 // echo '<pre>' . htmlentities($html) . '</pre>';
 // echo $html;
 // 
-?>
-<style>
-    html,
-    body {
-        background-color: #E9E9E9;
-        color: #000;
-    }
-</style>

@@ -11,6 +11,10 @@
             color: rgb(104, 199, 202);
         }
 
+        a {
+            color: antiquewhite;
+        }
+
         button {
             border: none;
             padding: 6px 12px;
@@ -29,10 +33,13 @@
             background-color: rgb(252, 228, 197);
         }
     </style>
+
+    <script src="/public/app/app.js"></script>
 </head>
 
 <body>
     <slot name="body"></slot>
+    <slot></slot>
 </body>
 
 </html>

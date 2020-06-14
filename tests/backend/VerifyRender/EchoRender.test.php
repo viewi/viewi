@@ -15,6 +15,7 @@ class EchoRenderingTest extends BaseRenderingTest
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
+            $T->WorkingDirectory(),
             true
         );
         ob_start();
@@ -24,6 +25,7 @@ class EchoRenderingTest extends BaseRenderingTest
         $startedAt = microtime(true);
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
+            $T->WorkingDirectory(),
             $T->WorkingDirectory(),
             false
         );

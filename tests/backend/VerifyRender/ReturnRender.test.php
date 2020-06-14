@@ -21,6 +21,7 @@ class ReturnRenderingTest extends BaseRenderingTest
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
+            $T->WorkingDirectory(),
             true,
             true
         );
@@ -31,13 +32,14 @@ class ReturnRenderingTest extends BaseRenderingTest
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
+            $T->WorkingDirectory(),
             false,
             true
         );
         $html = '';
         $howMany = 500;
         for ($i = 0; $i < $howMany; $i++) {
-           $html .= $page->render($component);
+            $html .= $page->render($component);
         }
         $T->this($html)->isNotEmpty();
         $time = floor((microtime(true) - $startedAt) * 1000);

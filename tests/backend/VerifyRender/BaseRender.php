@@ -92,6 +92,7 @@ class BaseRenderingTest extends BaseTest
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
+            $T->WorkingDirectory(),
             true,
             $this->returnRendering
         );

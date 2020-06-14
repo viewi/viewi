@@ -1,5 +1,7 @@
 <?php
+
 namespace Vo;
+
 class TagItem
 {
     public ?string $Content = null;
@@ -10,6 +12,31 @@ class TagItem
 
     /** @var TagItem[] */
     private ?array $childs;
+
+    public function getRaw(): array
+    {
+        $node = [];
+
+        $node['content'] = $this->Content;
+        $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
+        $node['expression'] = $this->ItsExpression;
+        if (isset($this->childs)) {
+            foreach ($this->childs as &$child) {
+                if ($child->Type->Name === TagItemType::Attribute) {
+                    if (!isset($node['attributes'])) {
+                        $node['attributes'] = [];
+                    }
+                    $node['attributes'][] = $child->getRaw();
+                } else {
+                    if (!isset($node['childs'])) {
+                        $node['childs'] = [];
+                    }
+                    $node['childs'][] = $child->getRaw();
+                }
+            }
+        }
+        return $node;
+    }
 
     public function &parent(): ?TagItem
     {

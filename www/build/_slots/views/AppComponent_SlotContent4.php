@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderUserItem_Slot5(
-    \UserItem $component,
+function RenderAppComponent_SlotContent4(
+    Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,7 +13,9 @@ function RenderUserItem_Slot5(
     
     $_content = '';
 
-    $_content .= 'no user';
+    $_content .= '
+      <a href="/front.php">Front dev</a>
+   ';
     return $_content;
    
 }

@@ -1,5 +1,7 @@
 <?php
+
 namespace Vo;
+
 class TagItemType
 {
     public string $Name;
@@ -12,4 +14,16 @@ class TagItemType
     const Component = 'Component';
     const Attribute = 'Attribute';
     const AttributeValue = 'AttributeValue';
+
+    public static $shorts = [
+        self::Attribute => 'attr',
+        self::AttributeValue => 'value',
+        self::Component => 'component',
+        self::Tag => 'tag',
+        self::TextContent => 'text'
+    ];
+    public function toShort(): string
+    {
+        return self::$shorts[$this->Name];
+    }
 }

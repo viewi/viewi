@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderLayout_Slot6(
-    \Layout $component,
+function RenderAppComponent_Slot5(
+    Silly\MyApp\AppComponent $component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -14,10 +14,8 @@ function RenderLayout_Slot6(
     $_content = '';
 
     $_content .= '
-        <title>';
-    $_content .= htmlentities($component->title);
-    $_content .= '</title>
-    ';
+   
+';
     return $_content;
    
 }
