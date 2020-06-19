@@ -22,7 +22,9 @@ function RenderHomePage_SlotContent2(
     $_content .= htmlentities($component->count);
     $_content .= '
         </h4>
-        <div>
+        <div class="my-class count-';
+    $_content .= htmlentities($component->count);
+    $_content .= '">
             Another count: ';
     $_content .= htmlentities($component->count);
     $_content .= ' <button (click)="Increment()">Increment</button>
