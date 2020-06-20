@@ -24,7 +24,7 @@ function RenderLayout(
     $_content .= '
     <style>
         body {
-            background-color: rgb(80, 62, 62);
+            background-color: rgb(51, 39, 39);
             color: rgb(104, 199, 202);
         }
 

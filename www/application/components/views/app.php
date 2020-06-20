@@ -13,7 +13,9 @@ class AppComponent extends BaseComponent
     public string $url = '/';
     public array $testsArray = ['My test', 'your test'];
     public array $users = [];
+    public array $booleans = [true, false];
     public Friend $friend;
+    private Friend $friend2;
     public string $dynamicTag = 'HomePage';
     public string $dynamicAttr = 'data-dynamic';
     public string $dynValue = 'Dynamic value';
@@ -36,6 +38,7 @@ class AppComponent extends BaseComponent
         $this->notificationService = $notificationService;
         $this->http = $http;
         $this->friend = new Friend();
+        $this->friend2 = new Friend();
         $this->friend->Name = 'Jhon Doe';
         $this->friend->Age = 30;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
