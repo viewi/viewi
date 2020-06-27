@@ -4,9 +4,10 @@ use Vo\BaseComponent;
 
 class HomePage extends BaseComponent
 {
-    public string $title = 'Wellcome to my awesome application';
+    public string $title = 'Wellcome to my awesome application\'s';
     public int $count = 0;
-    protected $any = 'Any var';
+    public $messages;
+    protected $any = 'Any\\\' var\\';
     private string $priv = 'Secret';
     function __construct()
     {

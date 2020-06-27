@@ -9,7 +9,7 @@ use HttpTools\HttpClientService;
 class AppComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';
-    public string $model = 'Page';
+    public string $model = "Page";
     public string $url = '/';
     public array $testsArray = ['My test', 'your test'];
     public array $users = [];
@@ -23,7 +23,7 @@ class AppComponent extends BaseComponent
     public string $className = 'app-component';
     public bool $true = true;
     public bool $false = false;
-    public string $html = '<b>raw html demo</b>';
+    public string $html = "<b>raw html demo</b>";
     public NotificationService $notificationService;
     private HttpClientService $http;
     function __construct(
@@ -39,14 +39,14 @@ class AppComponent extends BaseComponent
         $this->http = $http;
         $this->friend = new Friend();
         $this->friend2 = new Friend();
-        $this->friend->Name = 'Jhon Doe';
+        $this->friend->Name = "Jhon Doe {$this->model}";
         $this->friend->Age = 30;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 3; $i++) {
             $user = new Friend();
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
-            $this->users['ID-' . $i] = $user;
+            $this->users["ID-$i"] = $user;
         }
     }
 
