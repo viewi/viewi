@@ -24,7 +24,7 @@ class JsTranslator
         $this->MatchPhpTag();
         try {
             while ($this->position < $this->length) {
-                $this->jsCode .= $this->MatchCodeBegin();
+                $this->jsCode .= $this->ReadCodeBlock();
             }
         } catch (Exception $exc) {
             $this->debug($exc->getMessage());
@@ -38,12 +38,16 @@ class JsTranslator
         return $this->jsCode;
     }
 
-    private function MatchCodeBegin(): string
+    private function ReadCodeBlock(): string
     {
         $code = '';
-        $keyword = $this->MatchKeyword();
+        $keyword = $this->MatchKeyword('}');
         $this->debug('Keyword: ' . $keyword);
         switch ($keyword) {
+            case '}': {
+                    $this->position++;
+                    break;
+                }
             case 'use': {
                     $this->ProcessUsing();
                     break;
@@ -57,7 +61,7 @@ class JsTranslator
                     break;
                 }
             default:
-                throw new Exception("Undefined keyword `$keyword` at MatchCodeBegin.");
+                throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
         }
 
         return $code;
@@ -153,12 +157,12 @@ class JsTranslator
         return $functionCode;
     }
 
-    private function ReadCodeBlock(): string
-    {
-        $block = '';
-        
-        return $block;
-    }
+    // private function ReadCodeBlock(): string
+    // {
+    //     $block = '';
+
+    //     return $block;
+    // }
 
     private function ReadArguments(): string
     {

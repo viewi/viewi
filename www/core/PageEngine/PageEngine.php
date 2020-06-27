@@ -107,6 +107,7 @@ class PageEngine
     function render(string $component)
     {
         if ($this->development) {
+            set_time_limit(2);
             $this->Compile();
         } else {
             if ($this->waitingComponents) {
