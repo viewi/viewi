@@ -17,6 +17,11 @@ class HomePage extends BaseComponent
     {
         $this->count++;
     }
+
+    public function Test($argument): string
+    {
+        return 'Test ' . $argument;
+    }
 }
 
 $test = 'Test';

@@ -98,7 +98,10 @@ class JsTranslator
                 case 'public': {
                         $public = $keyword === 'public';
                         $typeOrName = $this->MatchKeyword();
-                        if ($typeOrName[0] === '$') {
+                        if ($typeOrName === 'function') {
+                            $code .= $this->ReadFunction($keyword);
+                            break;
+                        } else if ($typeOrName[0] === '$') {
                             $propertyName = substr($typeOrName, 1);
                             $code .= ($public ? 'this.' : 'var ') . $propertyName;
                         } else {
@@ -119,12 +122,67 @@ class JsTranslator
                         }
                         break;
                     }
+                case 'function':
+                    $code .= $this->ReadFunction('public');
+                    break;
                 default:
                     throw new Exception("Undefined keyword `$keyword` at ReadClass.");
             }
             $this->debug($code);
         }
         return $code;
+    }
+
+    private function ReadFunction(string $modifier): string
+    {
+        $private = $modifier === 'private';
+        $functionCode = $private ? 'var ' : 'this.';
+        $functionName = $this->MatchKeyword();
+        $functionCode .= $functionName . ' = function (';
+
+        // read function arguments
+        $arguments = $this->ReadArguments();
+        $functionCode .= $arguments . ') ';
+
+        // read function body
+        $this->SkipToTheSymbol('{');
+
+        $body = $this->ReadCodeBlock();
+
+        $functionCode .= '{' . PHP_EOL . $body . PHP_EOL . '};';
+        return $functionCode;
+    }
+
+    private function ReadCodeBlock(): string
+    {
+        $block = '';
+        
+        return $block;
+    }
+
+    private function ReadArguments(): string
+    {
+        $arguments = '';
+        $this->SkipToTheSymbol('(');
+        while ($this->position < $this->length) {
+            if (!ctype_space($this->parts[$this->position])) {
+                if ($this->parts[$this->position] === ')') { // close
+                    $this->position++;
+                    break;
+                } else if ($this->parts[$this->position] === ',') { // next item
+                    // $this->position++;
+                } else {
+                    if ($arguments) {
+                        $arguments .= ', ' . $this->ReadExpression();
+                    } else {
+                        $arguments .= $this->ReadExpression();
+                    }
+                    continue;
+                }
+            }
+            $this->position++;
+        }
+        return $arguments;
     }
 
     private function ReadExpression(): string
@@ -326,7 +384,11 @@ class JsTranslator
     {
         $keyword = '';
         while ($this->position < $this->length) {
-            if (ctype_alnum($this->parts[$this->position]) || $this->parts[$this->position] === '$') {
+            if (
+                ctype_alnum($this->parts[$this->position])
+                || $this->parts[$this->position] === '$'
+                || $this->parts[$this->position] === '_'
+            ) {
                 $keyword .= $this->parts[$this->position];
             }
             // else if (
