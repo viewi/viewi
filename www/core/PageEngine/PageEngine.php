@@ -52,13 +52,13 @@ class PageEngine
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
         'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotcontent';
 
-    /** @var string<string,string> */
+    /** @var array<string,string> */
     private array $selfClosingTags;
 
     private string $selfClosingTagsString = 'area,base,br,col,command,embed,hr' .
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
 
-    /** @var string<string,string> */
+    /** @var array<string,string> */
     private array $booleanAttributes;
     private string $booleanAttributesString = 'async,autofocus,autoplay,checked,controls,' .
         'default,defer,disabled,formnovalidate,hidden,ismap,itemscope,loop,' .

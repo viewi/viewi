@@ -12,11 +12,46 @@ class JsTranslator
     /** @var string[] */
     private array $parts;
     private string $jsCode = '';
+    /** @var array<string,array<string,string>> */
+    private array $scope;
+    private ?string $currentClass = null;
+    private array $allowedOperators = [
+        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**'], '/' => ['/', '/='], '%' => ['%', '%='],
+        '=' => ['=', '==', '==='], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
+        'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
+        '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'],
+    ];
+    private array $processors;
+    private array $haltSymbols = ['(' => true, ')' => true, '{' => true, '}' => true, ';'];
+    private array $phpKeywords = [
+        '__halt_compiler', 'abstract', 'and', 'array', 'as', 'break',
+        'callable', 'case', 'catch', 'class', 'clone', 'const', 'continue',
+        'declare', 'default', 'die', 'do', 'echo', 'else', 'elseif', 'empty',
+        'enddeclare', 'endfor', 'endforeach', 'endif', 'endswitch', 'endwhile',
+        'eval', 'exit', 'extends', 'final', 'for', 'foreach', 'function', 'global',
+        'goto', 'if', 'implements', 'include', 'include_once', 'instanceof',
+        'insteadof', 'interface', 'isset', 'list', 'namespace', 'new', 'or',
+        'print', 'private', 'protected', 'public', 'require', 'require_once',
+        'return', 'static', 'switch', 'throw', 'trait', 'try', 'unset', 'use',
+        'var', 'while', 'xor'
+    ];
+
+    private array $phpConstants = [
+        '__CLASS__', '__DIR__', '__FILE__', '__FUNCTION__',
+        '__LINE__', '__METHOD__', '__NAMESPACE__', '__TRAIT__'
+    ];
     public function __construct(string $content)
     {
         $this->phpCode = $content;
         $this->parts = str_split($this->phpCode);
         $this->length = count($this->parts);
+        $this->scope = [];
+        $this->processors = [];
+        foreach ($this->allowedOperators as $key => $operators) {
+            $this->processors = array_merge($this->processors, array_flip($operators));
+        }
+        $this->processors = array_merge($this->processors, array_flip($this->phpKeywords));
+        // $this->debug($this->processors);
     }
 
     public function Convert(): string
@@ -28,6 +63,7 @@ class JsTranslator
             }
         } catch (Exception $exc) {
             $this->debug($exc->getMessage());
+            $this->debug($exc->getMessage());
         }
         while ($this->position < $this->length) {
             $this->jsCode .= $this->parts[$this->position];
@@ -38,32 +74,113 @@ class JsTranslator
         return $this->jsCode;
     }
 
-    private function ReadCodeBlock(): string
+    private function ReadCodeBlock(?string $breakOn = null): string
     {
         $code = '';
-        $keyword = $this->MatchKeyword('}');
-        $this->debug('Keyword: ' . $keyword);
-        switch ($keyword) {
-            case '}': {
-                    $this->position++;
-                    break;
-                }
-            case 'use': {
-                    $this->ProcessUsing();
-                    break;
-                }
-            case 'namespace': {
-                    $this->ProcessNamespace();
-                    break;
-                }
-            case 'class': {
-                    $code .= $this->ProcessClass();
-                    break;
-                }
-            default:
-                throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
-        }
+        while ($this->position < $this->length) {
+            $keyword = $this->MatchKeyword();
+            if ($breakOn && $breakOn === $keyword) {
+                break;
+            }
+            $this->debug('Keyword: ' . $keyword);
 
+            if ($keyword[0] === '$') {
+                if ($keyword === '$this') {
+                    $expression = $this->ReadCodeBlock(';');
+                    $code .= 'this' . $expression . ';' . PHP_EOL;
+                } else {
+                    $varName = substr($keyword, 1);
+                    $expression = $this->ReadCodeBlock();
+                    $code .= $varName . $expression . ';';
+                }
+            } else if (ctype_digit($keyword)) {
+                $code .= $this->MatchKeyword();
+                $this->position++;
+            } else {
+
+                switch ($keyword) {
+                    case '->': {
+                            $code .= '.';
+                            break;
+                        }
+                    case '}': {
+                            $this->position++;
+                            break 2;
+                        }
+                    case ';': {
+                            $this->position++;
+                            $code .= ';' . PHP_EOL;
+                            break;
+                        }
+                    case "'": {
+                            $code .= $this->ReadSingleQuoteString();
+                            break;
+                        }
+                    case '"': {
+                            $code .= $this->ReadDoubleQuoteString();
+                            break;
+                        }
+                    case 'use': {
+                            $this->ProcessUsing();
+                            break;
+                        }
+                    case 'namespace': {
+                            $this->ProcessNamespace();
+                            break;
+                        }
+                    case 'class': {
+                            $code .= $this->ProcessClass();
+                            break;
+                        }
+                    case 'private':
+                    case 'protected':
+                    case 'public': {
+                            $public = $keyword === 'public';
+                            $typeOrName = $this->MatchKeyword();
+                            if ($typeOrName === 'function') {
+                                $code .= $this->ReadFunction($keyword);
+                                break;
+                            } else if ($typeOrName[0] === '$') {
+                                $propertyName = substr($typeOrName, 1);
+                                $code .= ($public ? 'this.' : 'var ') . $propertyName;
+                                $this->scope[$this->currentClass][$propertyName] = $keyword;
+                            } else {
+                                // type
+                                $name = $this->MatchKeyword();
+                                $propertyName = substr($name, 1);
+                                $code .= ($public ? 'this.' : 'var ') . $propertyName;
+                                $this->scope[$this->currentClass][$propertyName] = $keyword;
+                            }
+                            $symbol = $this->MatchKeyword();
+                            if ($symbol === '=') {
+                                // match expression
+                                $expression = $this->ReadCodeBlock();
+                                $code .= " = $expression;" . PHP_EOL;
+                            } else if ($symbol !== ';') {
+                                throw new Exception("Unexpected symbol `$symbol` detected at ReadCodeBlock.");
+                            } else {
+                                $code .= ' = null;' . PHP_EOL;
+                            }
+                            break;
+                        }
+                    case 'function':
+                        $code .= $this->ReadFunction('public');
+                        break;
+                    default:
+                        // $this->debug($code);
+                        // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
+                        if (isset($this->processors[$keyword])) {
+                            $code .= $keyword;
+                        } else if (ctype_alnum($keyword)) {
+                            $code .= $keyword;
+                        } else {
+                            $this->position++;
+                            $code .= "'Undefined keyword `$keyword` at ReadCodeBlock.'";
+                            break 2;
+                        }
+                }
+            }
+        }
         return $code;
     }
 
@@ -80,22 +197,29 @@ class JsTranslator
             }
             $this->SkipToTheSymbol('{');
         }
-        $classCode = $this->ReadClass();
+        $this->scope[$className] = [];
+        $lastClass = $this->currentClass;
+        $this->currentClass = $className;
+        $classCode = $this->ReadCodeBlock();
+        $this->currentClass = $lastClass;
         $arguments = '';
         $classHead .= $arguments . ')' . PHP_EOL . '{' . PHP_EOL . $classCode . PHP_EOL . '};';
         return $classHead;
     }
 
-    private function ReadClass(): string
+    private function ReadClassBody2(): string
     {
         $code = '';
         while ($this->position < $this->length) {
-            $keyword = $this->MatchKeyword('}');
+            $keyword = $this->MatchKeyword();
 
             if ($keyword === '}') {
                 return $code; // end of class
             }
-
+            if ($keyword === ';') {
+                $this->position++;
+                continue;
+            }
             switch ($keyword) {
                 case 'private':
                 case 'protected':
@@ -108,11 +232,13 @@ class JsTranslator
                         } else if ($typeOrName[0] === '$') {
                             $propertyName = substr($typeOrName, 1);
                             $code .= ($public ? 'this.' : 'var ') . $propertyName;
+                            $this->scope[$this->currentClass][$propertyName] = $keyword;
                         } else {
                             // type
                             $name = $this->MatchKeyword();
                             $propertyName = substr($name, 1);
                             $code .= ($public ? 'this.' : 'var ') . $propertyName;
+                            $this->scope[$this->currentClass][$propertyName] = $keyword;
                         }
                         $symbol = $this->MatchOnlyThese(['=', ';']);
                         if ($symbol === '=') {
@@ -120,7 +246,7 @@ class JsTranslator
                             $expression = $this->ReadExpression();
                             $code .= " = $expression;" . PHP_EOL;
                         } else if ($symbol !== ';') {
-                            throw new Exception("Unexpected symbol `$symbol` detected at ReadClass.");
+                            throw new Exception("Unexpected symbol `$symbol` detected at ReadClassBody.");
                         } else {
                             $code .= ' = null;' . PHP_EOL;
                         }
@@ -130,9 +256,9 @@ class JsTranslator
                     $code .= $this->ReadFunction('public');
                     break;
                 default:
-                    throw new Exception("Undefined keyword `$keyword` at ReadClass.");
+                    throw new Exception("Undefined keyword `$keyword` at ReadClassBody.");
             }
-            $this->debug($code);
+            // $this->debug($code);
         }
         return $code;
     }
@@ -153,7 +279,7 @@ class JsTranslator
 
         $body = $this->ReadCodeBlock();
 
-        $functionCode .= '{' . PHP_EOL . $body . PHP_EOL . '};';
+        $functionCode .= '{' . PHP_EOL . $body . '};' . PHP_EOL;
         return $functionCode;
     }
 
@@ -177,9 +303,9 @@ class JsTranslator
                     // $this->position++;
                 } else {
                     if ($arguments) {
-                        $arguments .= ', ' . $this->ReadExpression();
+                        $arguments .= ', ' . $this->ReadCodeBlock();
                     } else {
-                        $arguments .= $this->ReadExpression();
+                        $arguments .= $this->ReadCodeBlock();
                     }
                     continue;
                 }
@@ -189,7 +315,49 @@ class JsTranslator
         return $arguments;
     }
 
-    private function ReadExpression(): string
+
+
+    private function ParseOperator(): string
+    {
+        // + - * / % ** 
+        // = += -= *= /= %=
+        // == === != <> !==
+        // > < >= <= <=> 
+        // ++ --
+        // and or xor  && || !
+        // . .= 
+        // ? : ??
+        $operator = '';
+        $expected = null;
+        while ($this->position < $this->length) {
+            if (!ctype_space($this->parts[$this->position])) {
+                if (!$operator) {
+                    if (isset($this->allowedOperators[$this->parts[$this->position]])) {
+                        $expected = $this->allowedOperators[$this->parts[$this->position]];
+                    } else {
+                    }
+                }
+                $operator .= $this->parts[$this->position];
+            } else {
+                if ($operator) {
+                    break;
+                }
+            }
+            $this->position++;
+        }
+        return $operator;
+    }
+
+    private function ReadThisExpression(): string
+    {
+        $expression = '';
+        $first = $this->ParseOperator();
+        if ($first === '-')
+            return $expression;
+        return '';
+    }
+
+    private function ReadExpression2(): string
     {
         $expression = '';
         while ($this->position < $this->length) {
@@ -384,33 +552,49 @@ class JsTranslator
         return '';
     }
 
-    private function MatchKeyword(?string $symbol = null): string
+    private function MatchKeyword(): string
     {
         $keyword = '';
+        $firstType = false;
+        $operatorKey = false;
         while ($this->position < $this->length) {
             if (
                 ctype_alnum($this->parts[$this->position])
                 || $this->parts[$this->position] === '$'
                 || $this->parts[$this->position] === '_'
             ) {
+                if (!$keyword) {
+                    $firstType = ctype_alpha($this->parts[$this->position]) ? 'alpha' : 'number';
+                }
+                if ($keyword && $firstType === 'operator') {
+                    break;
+                }
                 $keyword .= $this->parts[$this->position];
-            }
-            // else if (
-            //     !ctype_space($this->parts[$this->position])
-            //     && (is_null($symbol) || $symbol !== $this->parts[$this->position])
-            // ) {
-            //     throw new Exception("Unexpected symbol `{$this->parts[$this->position]}` detected at MatchKeyword.");
-            //     break;
-            // } 
-            else {
+            } else if (!ctype_space($this->parts[$this->position])) {
+                if (!$keyword) {
+                    $firstType = 'operator';
+                    if (isset($this->allowedOperators[$this->parts[$this->position]])) {
+                        $operatorKey = $this->parts[$this->position];
+                    }
+                }
+                if ($keyword && $firstType !== 'operator') {
+                    break;
+                }
+                if ($keyword && $operatorKey && !in_array(
+                    $keyword . $this->parts[$this->position],
+                    $this->allowedOperators[$operatorKey]
+                )) {
+                    break;
+                }
+                $keyword .= $this->parts[$this->position];
+            } else {
                 if ($keyword) {
                     break;
                 }
-                if (!is_null($symbol) && $symbol === $this->parts[$this->position]) {
-                    return $symbol;
-                }
             }
-
+            if (isset($this->haltSymbols[$keyword])) {
+                break;
+            }
             $this->position++;
         }
         return $keyword;

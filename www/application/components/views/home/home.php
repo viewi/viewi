@@ -16,6 +16,7 @@ class HomePage extends BaseComponent
     function Increment()
     {
         $this->count++;
+        $this->priv .= "Code";
     }
 
     public function Test($argument): string
