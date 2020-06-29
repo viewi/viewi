@@ -10,7 +10,9 @@ class AppComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';
     public string $model = "Page";
-    public string $url = '/';
+    public string $url = '';
+    public string $url2 = '/';
+    public string $url3 = 'U';
     public array $testsArray = ['My test', 'your test'];
     public array $users = [];
     public array $booleans = [true, false];
@@ -23,7 +25,7 @@ class AppComponent extends BaseComponent
     public string $className = 'app-component';
     public bool $true = true;
     public bool $false = false;
-    public string $html = "<b>raw html demo</b>";
+    public string $html = "<b>raw html - demo</b>";
     public NotificationService $notificationService;
     private HttpClientService $http;
     function __construct(

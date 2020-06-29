@@ -9,6 +9,7 @@ class HomePage extends BaseComponent
     public $messages;
     protected $any = 'Any\\\' var\\';
     private string $priv = 'Secret';
+    
     function __construct()
     {
     }
