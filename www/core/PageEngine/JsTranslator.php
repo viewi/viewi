@@ -17,10 +17,10 @@ class JsTranslator
     private ?string $currentClass = null;
     private array $allowedOperators = [
         '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**'], '/' => ['/', '/='], '%' => ['%', '%='],
-        '=' => ['=', '==', '==='], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
+        '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
-        '[' => ['['], ']' => [']'], ',' => [',']
+        '[' => ['['], ']' => [']'], ',' => [','], '(' => ['(']
     ];
     /** array<string,array<string,string>>
      * [0 => '', 1 => ' ']
@@ -207,7 +207,11 @@ class JsTranslator
                             break;
                         }
                     case '[': {
-                            $code .= $this->ReadArray();
+                            $code .= $this->ReadArray(']');
+                            break;
+                        }
+                    case 'array': {
+                            $code .= $this->ReadArray(')');
                             break;
                         }
                     case 'use': {
@@ -371,26 +375,58 @@ class JsTranslator
         return $arguments;
     }
 
-    private function ReadArray(): string
+    private function ReadArray(string $closing): string
     {
         $elements = '';
+        $object = [];
+        $isObject = false;
+        $index = 0;
+        $key = $index;
         while ($this->position < $this->length) {
-            $item = $this->ReadCodeBlock(',', '=>', ']');
+            $item = $this->ReadCodeBlock(',', '=>', $closing, '(', ';');
+            if ($this->lastBreak === ';') {
+                break;
+            }
             // $this->debug($this->lastBreak . ' ' . $item);
             // break;
             $this->position++;
-            if ($item !== '') {
-                if ($elements !== '') {
-                    $elements .= ', ' . $item;
+            if ($this->lastBreak === '=>') {
+                // associative array, js object
+                $isObject = true;
+                $key = $item;
+            } else if ($item !== '') {
+                $escapedKey = $key;
+                if (ctype_alnum(substr(str_replace('_', '', $key), 1, -1))) {
+                    $escapedKey = substr($key, 1, -1);
+                }
+                $object[$escapedKey] = $item;
+
+                if (is_int($key) || ctype_digit($key)) {
+                    $key++;
+                    $index = max($key, $index);
+                    $key = $index;
+                    // $this->debug($key . ' ' . $index);
                 } else {
-                    $elements .= $item;
+                    $key = $index;
                 }
             }
-            if ($this->lastBreak === ']') {
+            if ($this->lastBreak === $closing) {
                 break;
             }
             continue;
         }
+        // $this->debug($object);
+        if ($isObject) {
+            $elements .= '{ ';
+            $comma = '';
+            foreach ($object as $key => $value) {
+                $elements .= $comma . $key . ': ' . $value;
+                $comma = ', ';
+            }
+            $elements .= ' }';
+            return $elements;
+        }
+        $elements = implode(', ', $object);
         return "[$elements]";
     }
 

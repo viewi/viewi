@@ -13,10 +13,17 @@ class AppComponent extends BaseComponent
     public string $url = '';
     public string $url2 = '/';
     public string $url3 = 'U';
-    public array $testsArray = ['My test','your test'];
+    public array $testsArray = ['My test', 'your test'];
     public array $users = [];
     public array $booleans = [true, false];
     public Friend $friend;
+    private array $MultiTest = array(
+        "fruits"  => array("a" => "orange", "b" => "banana", "c" => "apple"),
+        "numbers" => array(1, 2, 3, 4, 5, 6),
+        [true, false],
+        "holes"   => array("first", 5 => "second", "third"),
+        array(1, 1, 1, 1,  1, 8 => 1,  4 => 1, 19, 3 => 13),
+    );
     private Friend $friend2;
     public string $dynamicTag = 'HomePage';
     public string $dynamicAttr = 'data-dynamic';
@@ -50,6 +57,7 @@ class AppComponent extends BaseComponent
             $user->Age = 30 + $i;
             $this->users["ID-$i"] = $user;
         }
+        count($this->MultiTest);
     }
 
     function getFullName(): string
