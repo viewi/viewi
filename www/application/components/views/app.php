@@ -13,7 +13,7 @@ class AppComponent extends BaseComponent
     public string $url = '';
     public string $url2 = '/';
     public string $url3 = 'U';
-    public array $testsArray = ['My test', 'your test'];
+    public array $testsArray = ['My test','your test'];
     public array $users = [];
     public array $booleans = [true, false];
     public Friend $friend;

@@ -20,7 +20,7 @@ class JsTranslator
         '=' => ['=', '==', '==='], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
-        '[' => ['[']
+        '[' => ['['], ']' => [']'], ',' => [',']
     ];
     /** array<string,array<string,string>>
      * [0 => '', 1 => ' ']
@@ -207,7 +207,6 @@ class JsTranslator
                             break;
                         }
                     case '[': {
-
                             $code .= $this->ReadArray();
                             break;
                         }
@@ -375,25 +374,22 @@ class JsTranslator
     private function ReadArray(): string
     {
         $elements = '';
-
         while ($this->position < $this->length) {
-            if (!ctype_space($this->parts[$this->position])) {
-                if ($this->parts[$this->position] === ']') { // array closed
-                    $this->position++;
-                    break;
-                } else if ($this->parts[$this->position] === ',') { // next item
-                    // $this->position++;
+            $item = $this->ReadCodeBlock(',', '=>', ']');
+            // $this->debug($this->lastBreak . ' ' . $item);
+            // break;
+            $this->position++;
+            if ($item !== '') {
+                if ($elements !== '') {
+                    $elements .= ', ' . $item;
                 } else {
-                    if ($elements) {
-                        $elements .= ', ' . $this->ReadExpression();
-                    } else {
-                        $elements .= $this->ReadExpression();
-                    }
-                    // $this->debug($elements . $this->parts[$this->position]);
-                    continue;
+                    $elements .= $item;
                 }
             }
-            $this->position++;
+            if ($this->lastBreak === ']') {
+                break;
+            }
+            continue;
         }
         return "[$elements]";
     }
