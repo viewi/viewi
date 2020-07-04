@@ -4,7 +4,19 @@ var HomePage = function () {
     this.messages = null;
     var any = 'Any\\\' var\\';
     var priv = 'Secret';
-
+    var obj = {};
+    var obj2 = {
+        t: '',
+        g: '',
+        h: [],
+        j: [1, 2]
+    };
+    this.longPropertyDescription = {
+        t: '',
+        g: '',
+        h: [],
+        j: [1, 2]
+    };
     this.__construct = function () {
     };
 

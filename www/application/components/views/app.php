@@ -19,7 +19,7 @@ class AppComponent extends BaseComponent
     public Friend $friend;
     private array $MultiTest = array(
         "fruits"  => array("a" => "orange", "b" => "banana", "c" => "apple"),
-        "numbers" => array(1, 2, 3, 4, 5, 6),
+        "numbers" => array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
         [true, false],
         "holes"   => array("first", 5 => "second", "third"),
         array(1, 1, 1, 1,  1, 8 => 1,  4 => 1, 19, 3 => 13),

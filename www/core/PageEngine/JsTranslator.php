@@ -382,6 +382,10 @@ class JsTranslator
         $isObject = false;
         $index = 0;
         $key = $index;
+
+        $lastIdentation = $this->currentIdentation;
+        $this->currentIdentation .= $this->identation;
+
         while ($this->position < $this->length) {
             $item = $this->ReadCodeBlock(',', '=>', $closing, '(', ';');
             if ($this->lastBreak === ';') {
@@ -415,18 +419,33 @@ class JsTranslator
             }
             continue;
         }
+
+        $this->currentIdentation = $lastIdentation;
+        $valueIdentation = $lastIdentation . $this->identation;
         // $this->debug($object);
+        $totalLength = 0;
+        foreach ($object as $key => $val) {
+            $totalLength += ($isObject ? strlen($key) : 0) + strlen($val) + 2;
+        }
+        // $this->debug($totalLength);
+        $newLineFormat = $totalLength > 90;
         if ($isObject) {
-            $elements .= '{ ';
-            $comma = '';
+            $elements .= '{';
+            $comma = $newLineFormat ? PHP_EOL . $valueIdentation : ' ';
             foreach ($object as $key => $value) {
                 $elements .= $comma . $key . ': ' . $value;
-                $comma = ', ';
+                $comma = $newLineFormat ? ',' . PHP_EOL . $valueIdentation : ', ';
             }
-            $elements .= ' }';
+            $elements .= count($object) > 0 ? ($newLineFormat ? PHP_EOL . $lastIdentation . '}'  : ' }') :  '}';
             return $elements;
         }
-        $elements = implode(', ', $object);
+        if ($newLineFormat) {
+            $elements = implode(',' . PHP_EOL . $valueIdentation, $object);
+            return '[' . PHP_EOL . $valueIdentation . $elements . PHP_EOL . $lastIdentation . ']';
+        } else {
+            $elements = implode(', ', $object);
+        }
+
         return "[$elements]";
     }
 
