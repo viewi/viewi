@@ -40,16 +40,21 @@ class AppComponent extends BaseComponent
         HttpClientService $http,
         string $name,
         ?int $cost,
-        ?NotificationService $ns,
-        ?float $f = 3,
-        ?array $test = [5, 6]
+        ?NotificationService $notificationService2,
+        ?NotificationService $notificationService3,
+        ?NotificationService $notificationService4,
+        ?float $f = 30,
+        ?array $test = [5, 6],
+        ?array $test2 = [5, 6],
+        ?array $test3 = [5, 6],
+        ?array $test4 = [5, 6]
     ) {
         $this->notificationService = $notificationService;
         $this->http = $http;
         $this->friend = new Friend();
         $this->friend2 = new Friend();
         $this->friend->Name = "Jhon Doe {$this->model}";
-        $this->friend->Age = 30;
+        $this->friend->Age = $f;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 3; $i++) {
             $user = new Friend();

@@ -25,7 +25,9 @@ var HomePage = function () {
         this.priv += "Code";
     };
 
-    this.Test = function (argument) {
+    this.Test = function (
+        argument
+    ) {
         return 'Test ' + argument;
     };
 };

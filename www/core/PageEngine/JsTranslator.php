@@ -63,11 +63,12 @@ class JsTranslator
         '?' => array(0 => ' ', 1 => ' ',),
         '??' => array(0 => ' ', 1 => ' ',),
         ':' => array(0 => ' ', 1 => ' ',),
-        ')' => array(0 => ' ', 1 => ' ',),
+        ')' => array(0 => '', 1 => '',),
         '{' => array(0 => ' ', 1 => ' ',),
         '}' => array(0 => ' ', 1 => ' ',),
-        '(' => array(0 => ' ', 1 => ' ',),
+        '(' => array(0 => '', 1 => '',),
         'return' => array(0 => ' ', 1 => ' ',),
+        'new' => array(0 => '', 1 => ' ',),
     );
     private array $processors;
     private array $allowedSymbols = ['(' => true, ')' => true];
@@ -134,6 +135,8 @@ class JsTranslator
     private function ReadCodeBlock(...$breakOn): string
     {
         $code = '';
+        $blocksLevel = 0;
+        $lastIdentation = $this->currentIdentation;
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
             if (!$keyword && $this->position === $this->length) {
@@ -156,14 +159,14 @@ class JsTranslator
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
                 if ($keyword === '$this') {
-                    $expression = $this->ReadCodeBlock(...$breakOn + [';']);
+                    $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
                     // $this->debug($expression);
                     $closing = $this->lastBreak === ';' ? '' : '';
                     $code .= $identation . 'this' . $expression . $closing;
                     $this->putIdentation = $closing !== '';
                 } else {
                     $varName = substr($keyword, 1);
-                    $expression = $this->ReadCodeBlock(...$breakOn + [';']);
+                    $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
                     $closing = $this->lastBreak === ';' ? '' : '';
                     $code .= $identation . $varName . $expression . $closing;
                     $this->putIdentation = $closing !== '';
@@ -186,9 +189,25 @@ class JsTranslator
                             $code .= ' += ';
                             break;
                         }
+                    case '{': {
+                            $blocksLevel++;
+
+                            $lastIdentation = $this->currentIdentation;
+                            $this->currentIdentation .= $this->identation;
+                            $code .= '{' . PHP_EOL . $this->currentIdentation;
+                            // $this->debug('OPEN BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
+                            break;
+                        }
                     case '}': {
-                            $this->position++;
-                            break 2;
+                            $blocksLevel--;
+                            if ($blocksLevel < 0) {
+                                $this->position++;
+                                // $this->debug('CLOSE BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
+                                break 2;
+                            }
+                            $this->currentIdentation = $lastIdentation;
+                            $code .= $this->currentIdentation . '}' . PHP_EOL . $this->currentIdentation;
+                            break;
                         }
                     case ';': {
                             $this->position++;
@@ -234,6 +253,9 @@ class JsTranslator
                     case 'public': {
                             $public = $keyword === 'public';
                             $typeOrName = $this->MatchKeyword();
+                            if ($typeOrName === '?') {
+                                $typeOrName = $this->MatchKeyword();
+                            }
                             if ($typeOrName === 'function') {
                                 $fn = $this->ReadFunction($keyword);
                                 $code .= $identation . $fn;
@@ -278,7 +300,7 @@ class JsTranslator
                             }
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
-                        } else if (ctype_alnum($keyword)) {
+                        } else if (ctype_alnum(str_replace('_', '', $keyword))) {
                             $code .= $identation . $keyword;
                         } else {
                             $this->position++;
@@ -332,7 +354,7 @@ class JsTranslator
 
         // read function arguments
         $arguments = $this->ReadArguments();
-        $functionCode .= $arguments . ') ';
+        $functionCode .= $arguments['arguments'] . ') ';
 
         // read function body
         $this->SkipToTheSymbol('{');
@@ -341,7 +363,17 @@ class JsTranslator
         $this->currentIdentation .= $this->identation;
         $this->putIdentation = true;
 
-        $body = $this->ReadCodeBlock();
+        $body = '';
+        // default arguments
+        $index = 0;
+        foreach ($arguments['defaults'] as $name => $value) {
+            if ($value !== false) {
+                $body .= "{$this->currentIdentation}var $name = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
+            }
+            $index++;
+        }
+
+        $body .= $this->ReadCodeBlock();
 
         $this->currentIdentation = $lastIdentation;
 
@@ -350,29 +382,63 @@ class JsTranslator
         return $functionCode;
     }
 
-    private function ReadArguments(): string
+    private function ReadArguments(): array
     {
         $arguments = '';
         $this->SkipToTheSymbol('(');
+        $object = [];
+        $matchValue = false;
+        $key = false;
+        $value = false;
+
+        $lastIdentation = $this->currentIdentation;
+        $this->currentIdentation .= $this->identation;
+
         while ($this->position < $this->length) {
-            if (!ctype_space($this->parts[$this->position])) {
-                if ($this->parts[$this->position] === ')') { // close
-                    $this->position++;
-                    break;
-                } else if ($this->parts[$this->position] === ',') { // next item
-                    // $this->position++;
-                } else {
-                    if ($arguments) {
-                        $arguments .= ', ' . $this->ReadCodeBlock(',', ')');
-                    } else {
-                        $arguments .= $this->ReadCodeBlock(',', ')');
-                    }
-                    continue;
+            $keyword = $this->MatchKeyword();
+            if ($keyword === ')') {
+                if ($key !== false) {
+                    $object[$key] = $value;
+                }
+                break;
+            } else if ($keyword === ',') {
+                if ($key !== false) {
+                    $object[$key] = $value;
+                }
+                $key = false;
+                $value = false;
+                $matchValue = false;
+            } else if ($keyword === '?') {
+                continue; // js doesn't have nullable
+            } else if ($keyword === '=') {
+                $value = $this->ReadCodeBlock(',', ')');
+                // $this->debug('arg Val ' . $key . ' = '  . $value);
+            } else {
+                if ($keyword[0] === '$') {
+                    $key = substr($keyword, 1);
                 }
             }
-            $this->position++;
         }
-        return $arguments;
+        $this->currentIdentation = $lastIdentation;
+        $valueIdentation = $lastIdentation . $this->identation;
+        // $this->debug($object);
+        $totalLength = 0;
+        foreach ($object as $key => $val) {
+            $totalLength += $val === false ? strlen($key) + 2 : 0;
+        }
+        // $this->debug($totalLength);
+        $newLineFormat = $totalLength > 90;
+
+        $comma = $newLineFormat ? PHP_EOL . $valueIdentation : '';
+        foreach ($object as $key => $value) {
+            if ($value !== false) {
+                continue;
+            }
+            $arguments .= $comma . $key;
+            $comma = $newLineFormat ? ',' . PHP_EOL . $valueIdentation : ', ';
+        }
+        $arguments .= $newLineFormat ? PHP_EOL . $lastIdentation : '';
+        return ['arguments' => $arguments, 'defaults' => $object];
     }
 
     private function ReadArray(string $closing): string

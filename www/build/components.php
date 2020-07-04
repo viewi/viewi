@@ -70,7 +70,17 @@ function ReadComponentsInfo(PageEngine $pageEngine)
         'builtIn' => 1,
         'null' => 1,
       ),
-      'ns' => 
+      'notificationService2' => 
+      array (
+        'name' => 'NotificationService',
+        'null' => 1,
+      ),
+      'notificationService3' => 
+      array (
+        'name' => 'NotificationService',
+        'null' => 1,
+      ),
+      'notificationService4' => 
       array (
         'name' => 'NotificationService',
         'null' => 1,
@@ -79,11 +89,47 @@ function ReadComponentsInfo(PageEngine $pageEngine)
       array (
         'name' => 'float',
         'optional' => 1,
-        'default' => 3,
+        'default' => 30,
         'builtIn' => 1,
         'null' => 1,
       ),
       'test' => 
+      array (
+        'name' => 'array',
+        'optional' => 1,
+        'default' => 
+        array (
+          0 => 5,
+          1 => 6,
+        ),
+        'builtIn' => 1,
+        'null' => 1,
+      ),
+      'test2' => 
+      array (
+        'name' => 'array',
+        'optional' => 1,
+        'default' => 
+        array (
+          0 => 5,
+          1 => 6,
+        ),
+        'builtIn' => 1,
+        'null' => 1,
+      ),
+      'test3' => 
+      array (
+        'name' => 'array',
+        'optional' => 1,
+        'default' => 
+        array (
+          0 => 5,
+          1 => 6,
+        ),
+        'builtIn' => 1,
+        'null' => 1,
+      ),
+      'test4' => 
       array (
         'name' => 'array',
         'optional' => 1,
