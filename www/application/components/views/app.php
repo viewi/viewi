@@ -14,6 +14,7 @@ class AppComponent extends BaseComponent
     public string $url2 = '/';
     public string $url3 = 'U';
     public array $testsArray = ['My test', 'your test'];
+    /** @var Friend[] */
     public array $users = [];
     public array $booleans = [true, false];
     public Friend $friend;
@@ -61,6 +62,12 @@ class AppComponent extends BaseComponent
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
             $this->users["ID-$i"] = $user;
+        }
+        foreach ($this->users as $user) {
+            $user->Name;
+        }
+        foreach ($this->users as $id => $user) {
+            $id . $user->Name;
         }
         count($this->MultiTest);
     }

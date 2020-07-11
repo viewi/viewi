@@ -16,7 +16,7 @@ class JsTranslator
     private array $scope;
     private ?string $currentClass = null;
     private array $allowedOperators = [
-        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**'], '/' => ['/', '/='], '%' => ['%', '%='],
+        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*'], '%' => ['%', '%='],
         '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
@@ -93,6 +93,11 @@ class JsTranslator
     private ?string $lastBreak = null;
     private string $identation = '    ';
     private string $currentIdentation = '';
+    /**
+     * 
+     * @var array<string,string>
+     */
+    private array $constructors = [];
     public function __construct(string $content)
     {
         $this->phpCode = $content;
@@ -152,7 +157,7 @@ class JsTranslator
             if (count($breakOn) > 0 && in_array($keyword, $breakOn)) {
                 $this->lastBreak = $keyword;
                 // $this->debug('Keyword Break: ' . $keyword);
-                $this->position--;
+                $this->position -= strlen($keyword);
                 break;
             }
             $this->lastBreak = null;
@@ -215,6 +220,11 @@ class JsTranslator
                             $this->putIdentation = true;
                             break;
                         }
+                    case '/*': {
+                            $this->SkipToTheKeyword('*/');
+                            $this->putIdentation = true;
+                            break;
+                        }
                     case "'": {
                             // $this->debug($this->parts[$this->position] . ' ' . $keyword);
                             $code .= $identation . $this->ReadSingleQuoteString();
@@ -243,6 +253,14 @@ class JsTranslator
                         }
                     case 'class': {
                             $code .= $identation . $this->ProcessClass();
+                            break;
+                        }
+                    case 'for': {
+                            $code .= $identation . $this->ReadFor();
+                            break;
+                        }
+                    case 'foreach': {
+                            $code .= $identation . $this->ReadForEach();
                             break;
                         }
                     case 'function':
@@ -313,6 +331,51 @@ class JsTranslator
         return $code;
     }
 
+    private function ReadFor(): string
+    {
+        $loop = 'for ';
+        $separator = '(';
+        $this->SkipToTheSymbol('(');
+        while ($this->lastBreak !== ')') {
+            $part = $this->ReadCodeBlock(';', ')', '(');
+            $this->position++;
+            $loop .= $separator . $part;
+            $separator = '; ';
+        }
+        $loop .= ')';
+        return $loop;
+    }
+
+    private function ReadForEach(): string
+    {
+        $loop = 'for ';
+        $this->SkipToTheSymbol('(');
+        $target = $this->ReadCodeBlock('as');
+        $this->position += 2;
+        $index = '_i';
+        $var = $this->ReadCodeBlock('=>', ')');
+        if ($this->lastBreak === '=>') {
+            $this->position += 2;
+            $index = $var;
+            $var = $this->ReadCodeBlock(')');
+        } else {
+            $this->position += 1;
+        }
+
+        $loop .= "(var $index in $target) {" . PHP_EOL;
+        $this->SkipToTheSymbol('{');
+        $lastIdentation = $this->currentIdentation;
+        $this->currentIdentation .= $this->identation;
+        $loop .= "{$this->currentIdentation}var $var = {$target}[{$index}];";
+        $loop .= PHP_EOL;
+        $this->putIdentation = true;
+        $loop .= $this->ReadCodeBlock();
+        $this->currentIdentation = $lastIdentation;
+        $loop .= $this->currentIdentation . '}' . PHP_EOL;
+        $this->putIdentation = true;
+        return $loop;
+    }
+
     private function ProcessClass(): string
     {
 
@@ -335,8 +398,15 @@ class JsTranslator
         $this->putIdentation = true;
 
         $classCode = $this->ReadCodeBlock();
+
         $this->currentClass = $lastClass;
         $arguments = '';
+        if (isset($this->constructors[$className])) {
+            $classCode .= PHP_EOL . $this->currentIdentation . "this.__construct.apply(this,arguments);"
+                . PHP_EOL;
+            $arguments = $this->constructors[$className]['arguments'];
+        }
+
         $classHead .= $arguments . ') ' . '{' . PHP_EOL . $classCode . '};' . PHP_EOL . PHP_EOL;
 
         $this->currentIdentation = $lastIdentation;
@@ -348,9 +418,13 @@ class JsTranslator
     private function ReadFunction(string $modifier): string
     {
         $private = $modifier === 'private';
-        $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.');
+
         $functionName = $this->MatchKeyword();
-        $functionCode .= $functionName . ' = function (';
+        $constructor = $functionName === '__construct';
+
+        $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
+            . $functionName . ' = function (';
+
 
         // read function arguments
         $arguments = $this->ReadArguments();
@@ -361,6 +435,7 @@ class JsTranslator
 
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
+
         $this->putIdentation = true;
 
         $body = '';
@@ -377,8 +452,11 @@ class JsTranslator
 
         $this->currentIdentation = $lastIdentation;
 
-        $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation . '};' . PHP_EOL;
+        $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation .  '};' . PHP_EOL;
         // $this->debug('==========' . $functionCode . '==========');
+        if ($constructor) {
+            $this->constructors[$this->currentClass] = $arguments;
+        }
         return $functionCode;
     }
 
@@ -459,7 +537,7 @@ class JsTranslator
             }
             // $this->debug($this->lastBreak . ' ' . $item);
             // break;
-            $this->position++;
+            $this->position += strlen($this->lastBreak);
             if ($this->lastBreak === '=>') {
                 // associative array, js object
                 $isObject = true;
@@ -569,6 +647,13 @@ class JsTranslator
     {
         $this->SkipToTheSymbol(';');
         return '';
+    }
+
+    private function SkipToTheKeyword(string $keyword)
+    {
+        while ($this->MatchKeyword() !== $keyword) {
+            continue;
+        }
     }
 
     private function SkipToTheSymbol(string $symbol): string
