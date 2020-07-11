@@ -1,4 +1,5 @@
 <?php
+
 namespace Silly\MyApp;
 
 $h = 7;
@@ -7,7 +8,7 @@ use Vo\BaseComponent;
 use \NotificationService;
 use HttpTools\HttpClientService;
 
-$k= 5;
+$k = 5;
 
 class AppComponent extends BaseComponent
 {
@@ -17,7 +18,9 @@ class AppComponent extends BaseComponent
     public string $url2 = '/';
     public string $url3 = 'U';
     public array $testsArray = ['My test', 'your test'];
-    /** @var Friend[] */
+    /** 
+     * @var Friend[] 
+     * */
     public array $users = [];
     public array $booleans = [true, false];
     public Friend $friend;
@@ -61,7 +64,7 @@ class AppComponent extends BaseComponent
         $this->friend->Age = $f;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 3; $i++) {
-            $user = new Friend();
+            $user = new Friend(); // new user
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
             $this->users["ID-$i"] = $user;

@@ -17,7 +17,7 @@ class JsTranslator
     private int $scopeLevel = 0;
     private ?string $currentClass = null;
     private array $allowedOperators = [
-        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*'], '%' => ['%', '%='],
+        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*', '//'], '%' => ['%', '%='],
         '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
@@ -278,7 +278,12 @@ class JsTranslator
                             break;
                         }
                     case '/*': {
-                            $this->SkipToTheKeyword('*/');
+                            $code .= $identation . $this->ReadMultiLineComment() . PHP_EOL;
+                            $this->putIdentation = true;
+                            break;
+                        }
+                    case '//': {
+                            $code .= $identation . $this->ReadInlineComment() . PHP_EOL;
                             $this->putIdentation = true;
                             break;
                         }
@@ -390,6 +395,39 @@ class JsTranslator
             $this->buffer = null;
         }
         return $code;
+    }
+
+    private function ReadMultiLineComment(): string
+    {
+        $comment = '/*';
+        while ($this->position < $this->length) {
+            if (
+                $this->parts[$this->position]
+                . $this->parts[$this->position + 1] === '*/'
+            ) {
+                $this->position += 2;
+                break;
+            }
+            $comment .= $this->parts[$this->position];
+            $this->position++;
+        }
+        return $comment . '*/';
+    }
+
+    private function ReadInlineComment(): string
+    {
+        $comment = '//';
+        while ($this->position < $this->length) {
+            if (
+                $this->parts[$this->position] === "\n"
+                || $this->parts[$this->position] === "\r"
+            ) {
+                break;
+            }
+            $comment .= $this->parts[$this->position];
+            $this->position++;
+        }
+        return $comment;
     }
 
     private function ReadFor(): string
