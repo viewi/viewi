@@ -14,6 +14,7 @@ class JsTranslator
     private string $jsCode = '';
     /** @var array<string,array<string,string>> */
     private array $scope;
+    private int $scopeLevel = 0;
     private ?string $currentClass = null;
     private array $allowedOperators = [
         '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*'], '%' => ['%', '%='],
@@ -98,12 +99,16 @@ class JsTranslator
      * @var array<string,string>
      */
     private array $constructors = [];
+    private bool $putIdentation = false;
+    private ?string $buffer = null;
+    private string $bufferIdentation = '';
+    private bool $newVar = false;
     public function __construct(string $content)
     {
         $this->phpCode = $content;
         $this->parts = str_split($this->phpCode);
         $this->length = count($this->parts);
-        $this->scope = [];
+        $this->scope = [[]];
         $this->processors = [];
         foreach ($this->allowedOperators as $key => $operators) {
             $this->processors = array_merge($this->processors, array_flip($operators));
@@ -136,7 +141,17 @@ class JsTranslator
         $this->debug($this->jsCode);
         return $this->jsCode;
     }
-    private bool $putIdentation = false;
+
+    private function IsDeclared(string $varName): bool
+    {
+        foreach ($this->scope as $scope) {
+            if (isset($scope[$varName])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function ReadCodeBlock(...$breakOn): string
     {
         $code = '';
@@ -161,27 +176,66 @@ class JsTranslator
                 break;
             }
             $this->lastBreak = null;
+
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
-                if ($keyword === '$this') {
-                    $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
-                    // $this->debug($expression);
-                    $closing = $this->lastBreak === ';' ? '' : '';
-                    $code .= $identation . 'this' . $expression . $closing;
-                    $this->putIdentation = $closing !== '';
-                } else {
-                    $varName = substr($keyword, 1);
-                    $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
-                    $closing = $this->lastBreak === ';' ? '' : '';
-                    $code .= $identation . $varName . $expression . $closing;
-                    $this->putIdentation = $closing !== '';
-                }
+                $varName = substr($keyword, 1);
+                $this->buffer = $varName;
+                $this->bufferIdentation = $identation;
+                // $code .= $identation . $varName;
+                // if ($keyword === '$this') {
+                //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
+                //     // $this->debug($expression);
+                //     $closing = $this->lastBreak === ';' ? '' : '';
+                //     $code .= $identation . 'this' . $expression . $closing;
+                //     $this->putIdentation = $closing !== '';
+                // } else {
+                //     $varName = substr($keyword, 1);
+                //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')', '=']);
+                //     if ($this->lastBreak === '=') {
+                //         $expression .= $this->ReadCodeBlock(...$breakOn + [';', ')']);
+                //         $varName = 'var '.$varName;
+                //     }
+                //     $closing = $this->lastBreak === ';' ? '' : '';
+                //     $code .= $identation . $varName . $expression . $closing;
+                //     $this->putIdentation = $closing !== '';
+                // }
             } else if (ctype_digit($keyword)) {
+                if ($this->buffer !== null) {
+                    $code .= $this->bufferIdentation . $this->buffer;
+                    $this->buffer = null;
+                }
                 $code .= $identation . $keyword;
                 // $this->position++;
             } else {
-
+                if ($keyword !== '=') {
+                    if ($this->buffer !== null) {
+                        $code .= $this->bufferIdentation . $this->buffer;
+                        $this->buffer = null;
+                    }
+                    if ($this->newVar) {
+                        $this->newVar = false;
+                    }
+                }
                 switch ($keyword) {
+                    case '=': {
+                            if ($this->buffer !== null) {
+                                // $this->debug($this->scope);
+                                $isDeclared = $this->IsDeclared($this->buffer);
+                                $varStatement = '';
+                                if (!$isDeclared && $this->newVar) {
+                                    $varStatement = 'var ';
+                                    $this->scope[$this->scopeLevel][$this->buffer] = 'private';
+                                }
+                                $code .= $this->bufferIdentation
+                                    . $varStatement
+                                    . $this->buffer;
+
+                                $this->buffer = null;
+                            }
+                            $code .= ' = ';
+                            break;
+                        }
                     case '->': {
                             $code .= '.';
                             break;
@@ -201,6 +255,7 @@ class JsTranslator
                             $this->currentIdentation .= $this->identation;
                             $code .= '{' . PHP_EOL . $this->currentIdentation;
                             // $this->debug('OPEN BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
+                            $this->newVar = true;
                             break;
                         }
                     case '}': {
@@ -212,12 +267,14 @@ class JsTranslator
                             }
                             $this->currentIdentation = $lastIdentation;
                             $code .= $this->currentIdentation . '}' . PHP_EOL . $this->currentIdentation;
+                            $this->newVar = true;
                             break;
                         }
                     case ';': {
                             $this->position++;
                             $code .= ';' . PHP_EOL;
                             $this->putIdentation = true;
+                            $this->newVar = true;
                             break;
                         }
                     case '/*': {
@@ -281,13 +338,13 @@ class JsTranslator
                             } else if ($typeOrName[0] === '$') {
                                 $propertyName = substr($typeOrName, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
-                                $this->scope[$this->currentClass][$propertyName] = $keyword;
+                                $this->scope[$this->scopeLevel][$propertyName] = $keyword;
                             } else {
                                 // type
                                 $name = $this->MatchKeyword();
                                 $propertyName = substr($name, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
-                                $this->scope[$this->currentClass][$propertyName] = $keyword;
+                                $this->scope[$this->scopeLevel][$propertyName] = $keyword;
                             }
                             $symbol = $this->MatchKeyword();
                             if ($symbol === '=') {
@@ -328,6 +385,10 @@ class JsTranslator
                 }
             }
         }
+        if ($this->buffer !== null) {
+            $code .= $this->bufferIdentation . $this->buffer;
+            $this->buffer = null;
+        }
         return $code;
     }
 
@@ -336,6 +397,7 @@ class JsTranslator
         $loop = 'for ';
         $separator = '(';
         $this->SkipToTheSymbol('(');
+        $this->newVar = true;
         while ($this->lastBreak !== ')') {
             $part = $this->ReadCodeBlock(';', ')', '(');
             $this->position++;
@@ -389,16 +451,21 @@ class JsTranslator
             }
             $this->SkipToTheSymbol('{');
         }
-        $this->scope[$className] = [];
+        $previousScope = $this->scope;
+        $previousScopeLevel = $this->scopeLevel;
+
+        $this->scopeLevel = 0;
+        $this->scope = [[]];
+
         $lastClass = $this->currentClass;
         $this->currentClass = $className;
 
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
         $this->putIdentation = true;
-
+        $this->newVar = true;
         $classCode = $this->ReadCodeBlock();
-
+        $this->newVar = true;
         $this->currentClass = $lastClass;
         $arguments = '';
         if (isset($this->constructors[$className])) {
@@ -408,7 +475,8 @@ class JsTranslator
         }
 
         $classHead .= $arguments . ') ' . '{' . PHP_EOL . $classCode . '};' . PHP_EOL . PHP_EOL;
-
+        $this->scope = $previousScope;
+        $this->scopeLevel = $previousScopeLevel;
         $this->currentIdentation = $lastIdentation;
 
         // $this->debug('==========' . $classHead . '==========');
@@ -425,7 +493,8 @@ class JsTranslator
         $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
             . $functionName . ' = function (';
 
-
+        $this->scopeLevel++;
+        $this->scope[$this->scopeLevel] = [];
         // read function arguments
         $arguments = $this->ReadArguments();
         $functionCode .= $arguments['arguments'] . ') ';
@@ -437,18 +506,22 @@ class JsTranslator
         $this->currentIdentation .= $this->identation;
 
         $this->putIdentation = true;
-
         $body = '';
         // default arguments
         $index = 0;
         foreach ($arguments['defaults'] as $name => $value) {
             if ($value !== false) {
                 $body .= "{$this->currentIdentation}var $name = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
+                $this->scope[$this->scopeLevel][$name] = 'private';
             }
             $index++;
         }
-
+        $this->newVar = true;
         $body .= $this->ReadCodeBlock();
+        $this->newVar = true;
+        $this->scope[$this->scopeLevel] = null;
+        unset($this->scope[$this->scopeLevel]);
+        $this->scopeLevel--;
 
         $this->currentIdentation = $lastIdentation;
 
@@ -514,6 +587,7 @@ class JsTranslator
             }
             $arguments .= $comma . $key;
             $comma = $newLineFormat ? ',' . PHP_EOL . $valueIdentation : ', ';
+            $this->scope[$this->scopeLevel][$key] = 'private';
         }
         $arguments .= $newLineFormat ? PHP_EOL . $lastIdentation : '';
         return ['arguments' => $arguments, 'defaults' => $object];
@@ -640,12 +714,14 @@ class JsTranslator
     private function ProcessNamespace(): string
     {
         $this->SkipToTheSymbol(';');
+        $this->newVar = true;
         return '';
     }
 
     private function ProcessUsing(): string
     {
         $this->SkipToTheSymbol(';');
+        $this->newVar = true;
         return '';
     }
 

@@ -1,10 +1,13 @@
 <?php
-
 namespace Silly\MyApp;
+
+$h = 7;
 
 use Vo\BaseComponent;
 use \NotificationService;
 use HttpTools\HttpClientService;
+
+$k= 5;
 
 class AppComponent extends BaseComponent
 {
@@ -70,6 +73,11 @@ class AppComponent extends BaseComponent
             $id . $user->Name;
         }
         count($this->MultiTest);
+        $letters = 'X';
+        $test = [5, $test];
+        $f = 98;
+        $name = 'My name';
+        $http = new HttpClientService();
     }
 
     function getFullName(): string
@@ -79,10 +87,11 @@ class AppComponent extends BaseComponent
 
     function getOccupation(): string
     {
+        $letters = 'X';
         return 'Web developer';
     }
 }
-
+$letters = 'X';
 class Friend
 {
     public string $Name;
