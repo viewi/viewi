@@ -717,6 +717,21 @@ class JsTranslator
                 } else {
                     $skipNext = false;
                 }
+                if ($this->parts[$this->position] === '$' && $this->parts[$this->position + 1] !== '$') {
+                    // variable: "$var" or "$arr[2]"
+                    $string .= '" + ';
+                    $this->position++;
+                    while (ctype_alnum($this->parts[$this->position]) || $this->parts[$this->position] === '_') {
+                        $string .= $this->parts[$this->position];
+                        $this->position++;
+                    }
+                    if ($this->parts[$this->position] === '[') {
+                        $string .= $this->ReadArray(']');
+                        $this->position--;
+                    }
+                    $string .= ' + "';
+                    continue;
+                }
                 $string .= $this->parts[$this->position];
             } else {
                 $this->position++;

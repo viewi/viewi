@@ -68,6 +68,8 @@ class AppComponent extends BaseComponent
             $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
             $this->users["ID-$i"] = $user;
+            $this->users["ID-$test[1]test"] = $user;
+            $this->users["ID-{$test[1]}test"] = $user;
         }
         foreach ($this->users as $user) {
             $user->Name;
