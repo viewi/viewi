@@ -29,7 +29,8 @@ class PageEngine
 
     /** @var mixed[] */
     private array $tokens;
-
+    /** @var string[] */
+    private array $compiledJs;
     /** @var PageTemplate[] */
     private array $templates;
 
@@ -182,7 +183,8 @@ class PageEngine
                 }
             } else if ($baseClass !== null && is_subclass_of($class, $baseClass)) {
                 $children[$class] = $rf;
-            } else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
+            }
+            else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
                 $children[$class] = $rf;
             }
         }
@@ -261,6 +263,8 @@ class PageEngine
                             }
                             if (!is_null($argumentClass)) {
                                 $this->buildDependencies($argumentClass);
+                                $className = $argumentClass->getShortName();
+                                $this->compiledJs[$className] = $this->CompileToJs($argumentClass);
                             }
                         }
                     } else {
@@ -273,12 +277,12 @@ class PageEngine
         return $dependencies;
     }
 
-    function CompileToJs(ReflectionClass $reflectionClass): void
+    function CompileToJs(ReflectionClass $reflectionClass): string
     {
         $className = $reflectionClass->getShortName();
         $raw = file_get_contents($reflectionClass->getFileName());
         $translator = new JsTranslator($raw);
-        $jsCode = $translator->Convert();
+        return $translator->Convert();
     }
 
     /** */
@@ -287,6 +291,7 @@ class PageEngine
         if ($this->compiled) {
             return;
         }
+        $this->compiledJs = [];
         $this->compiled = true;
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
@@ -323,9 +328,8 @@ class PageEngine
 
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
-                $this->tokens[$className] = $tokens;
             }
-            $this->CompileToJs($reflectionClass);
+            $this->compiledJs[$className] = $this->CompileToJs($reflectionClass);
         }
         $types = $this->getClasses(null, $this->sourcePath);
         foreach ($types as $filename => &$reflectionClass) {
@@ -353,8 +357,9 @@ class PageEngine
         file_put_contents($componentsPath, $content);
         // save public json
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
+        $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
         file_put_contents($publicFilePath, json_encode($publicJson, 0, 1024));
-
+        file_put_contents($publicJsFilePath, implode('', array_values($this->compiledJs)));
         //$this->debug($this->components);
     }
 
@@ -545,7 +550,8 @@ class PageEngine
             include_once $this->sourcePath . $componentInfo->Fullpath;
             include_once $this->buildPath . $componentInfo->BuildPath;
             return $this->resolve($this->components[$componentInfo->ComponentName], true);
-        } else {
+        }
+        else {
             // It's service or any class (It's not component)
             include_once $this->sourcePath . $componentInfo->Fullpath;
         }
@@ -565,7 +571,8 @@ class PageEngine
                     $arguments[] = $type['default'];
                 } else if (isset($type['null'])) {
                     $arguments[] = null;
-                } else if (isset($type['builtIn'])) {
+                }
+                else if (isset($type['builtIn'])) {
                     switch ($type['name']) {
                         case 'string': {
                                 $arguments[] = '';
@@ -576,7 +583,8 @@ class PageEngine
                                 break;
                             }
                     }
-                } else {
+                }
+                else {
                     $arguments[] = $this->resolve($this->components[$type['name']]);
                 }
             }

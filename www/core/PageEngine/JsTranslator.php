@@ -21,7 +21,7 @@ class JsTranslator
         '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
-        '[' => ['['], ']' => [']'], ',' => [','], '(' => ['(']
+        '[' => ['[', '[]'], ']' => [']'], ',' => [','], '(' => ['(']
     ];
     /** array<string,array<string,string>>
      * [0 => '', 1 => ' ']
@@ -103,6 +103,8 @@ class JsTranslator
     private ?string $buffer = null;
     private string $bufferIdentation = '';
     private bool $newVar = false;
+    private $lastKeyword = '';
+    private bool $thisMatched = false;
     public function __construct(string $content)
     {
         $this->phpCode = $content;
@@ -138,18 +140,73 @@ class JsTranslator
             $this->position++;
         }
 
-        $this->debug($this->jsCode);
+        // $this->debug($this->jsCode);
         return $this->jsCode;
     }
 
-    private function IsDeclared(string $varName): bool
+    private function IsDeclared(string $varName): ?string
     {
         foreach ($this->scope as $scope) {
             if (isset($scope[$varName])) {
-                return true;
+                return $scope[$varName];
             }
         }
-        return false;
+        return null;
+    }
+
+    private function GetVariable(bool $thisMatched): string
+    {
+        $code = '';
+        if ($this->buffer !== null) {
+            $declaredProp = $this->IsDeclared($this->buffer);
+            $varStatement = '';
+            if ($thisMatched) {
+                if ($declaredProp === null) {
+                    $this->scope[$this->scopeLevel][$this->buffer] = 'public';
+                    $this->scope[$this->scopeLevel][$this->buffer . '_this'];
+                    $varStatement = 'this.';
+                } else {
+                    $varStatement = $declaredProp === 'private' ? '' : 'this.';
+                }
+                // $this->debug('VAR: ' . $varStatement);
+            } else if ($this->newVar) {
+                if ($declaredProp === null) {
+                    $this->scope[$this->scopeLevel][$this->buffer] = 'private';
+                    $varStatement = 'var ';
+                } else {
+                    $declaredThis = $this->IsDeclared($this->buffer . '_this');
+                    if ($declaredThis !== null) {
+                        // conflict, need to replace var name
+                        $this->scope[$this->scopeLevel][$this->buffer . '_replace'] = 'private';
+                        $i = 0;
+                        $newName = $this->buffer . '_' . $i;
+                        while ($this->IsDeclared($newName . '_this') !== null) {
+                            $i++;
+                            $newName = $this->buffer . '_' . $i;
+                        }
+                        $this->scope[$this->scopeLevel][$this->buffer . '_replace'] = $newName;
+                        $this->scope[$this->scopeLevel][$newName] = 'private';
+                        $this->buffer = $newName;
+                        $varStatement = 'var ';
+                    }
+                }
+                // else {
+                //     $varStatement = $declaredProp === 'private' ? '' : 'this.';
+                // }
+            }
+            else {
+                $replace = $this->IsDeclared($this->buffer . '_replace');
+                if ($replace !== null) {
+                    $this->buffer = $replace;
+                }
+            }
+            $code .= $this->bufferIdentation
+                . $varStatement
+                . $this->buffer;
+            $this->buffer = null;
+        }
+
+        return $code;
     }
 
     private function ReadCodeBlock(...$breakOn): string
@@ -176,9 +233,23 @@ class JsTranslator
                 break;
             }
             $this->lastBreak = null;
-
+            $thisMatched = $this->thisMatched;
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
+                if ($keyword == '$this') {
+                    $this->thisMatched = true;
+                    $nextKeyword = $this->MatchKeyword();
+                    if ($nextKeyword === '->') {
+                        $this->putIdentation = $identation !== '';
+                        // $this->debug($keyword . $nextKeyword);
+                        $this->lastKeyword = '->';
+                        continue;
+                    }
+                    $code .= $identation . 'this';
+                    $this->position -= strlen($nextKeyword);
+                } else {
+                    $this->thisMatched = false;
+                }
                 $varName = substr($keyword, 1);
                 $this->buffer = $varName;
                 $this->bufferIdentation = $identation;
@@ -201,44 +272,37 @@ class JsTranslator
                 //     $this->putIdentation = $closing !== '';
                 // }
             } else if (ctype_digit($keyword)) {
-                if ($this->buffer !== null) {
-                    $code .= $this->bufferIdentation . $this->buffer;
-                    $this->buffer = null;
-                }
+                $code .= $this->GetVariable($thisMatched);
                 $code .= $identation . $keyword;
                 // $this->position++;
             }
             else {
                 if ($keyword !== '=') {
-                    if ($this->buffer !== null) {
-                        $code .= $this->bufferIdentation . $this->buffer;
-                        $this->buffer = null;
-                    }
+                    $code .= $this->GetVariable($thisMatched);
                     if ($this->newVar) {
                         $this->newVar = false;
                     }
                 }
                 switch ($keyword) {
                     case '=': {
-                            if ($this->buffer !== null) {
-                                // $this->debug($this->scope);
-                                $isDeclared = $this->IsDeclared($this->buffer);
-                                $varStatement = '';
-                                if (!$isDeclared && $this->newVar) {
-                                    $varStatement = 'var ';
-                                    $this->scope[$this->scopeLevel][$this->buffer] = 'private';
-                                }
-                                $code .= $this->bufferIdentation
-                                    . $varStatement
-                                    . $this->buffer;
-
-                                $this->buffer = null;
-                            }
+                            $code .= $this->GetVariable($thisMatched);
                             $code .= ' = ';
                             break;
                         }
                     case '->': {
                             $code .= '.';
+                            break;
+                        }
+                    case '[]': {
+                            if (ctype_alnum(str_replace('_', '', str_replace('$', '', $this->lastKeyword)))) {
+                                // $this->debug($this->lastKeyword . $keyword);
+                                $code .= '.push(';
+                                $this->SkipToTheSymbol('=');
+                                $code .= $this->ReadCodeBlock(';');
+                                $code .= ')';
+                            } else {
+                                $code .= '[]';
+                            }
                             break;
                         }
                     case '.': {
@@ -264,6 +328,7 @@ class JsTranslator
                             if ($blocksLevel < 0) {
                                 $this->position++;
                                 // $this->debug('CLOSE BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
+                                $this->lastKeyword = $keyword;
                                 break 2;
                             }
                             $this->currentIdentation = $lastIdentation;
@@ -345,6 +410,7 @@ class JsTranslator
                                 $propertyName = substr($typeOrName, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
                                 $this->scope[$this->scopeLevel][$propertyName] = $keyword;
+                                $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
                             }
                             else {
                                 // type
@@ -352,8 +418,10 @@ class JsTranslator
                                 $propertyName = substr($name, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
                                 $this->scope[$this->scopeLevel][$propertyName] = $keyword;
+                                $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
                             }
                             $symbol = $this->MatchKeyword();
+                            $this->lastKeyword = $symbol;
                             if ($symbol === '=') {
                                 // match expression
                                 $expression = $this->ReadCodeBlock(';');
@@ -384,7 +452,14 @@ class JsTranslator
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
                         } else if (ctype_alnum(str_replace('_', '', $keyword))) {
-                            $code .= $identation . $keyword;
+                            $this->thisMatched = false;
+                            if ($thisMatched) {
+                                $this->buffer = $keyword;
+                                $this->bufferIdentation = $identation;
+                                $code .= $this->GetVariable($thisMatched);
+                            } else {
+                                $code .= $identation . $keyword;
+                            }
                         }
                         else {
                             $this->position++;
@@ -393,6 +468,7 @@ class JsTranslator
                         }
                 }
             }
+            $this->lastKeyword = $keyword;
         }
         if ($this->buffer !== null) {
             $code .= $this->bufferIdentation . $this->buffer;
@@ -489,7 +565,7 @@ class JsTranslator
         if ($option !== '{') {
             if ($option === 'extends') {
                 $extends = $this->MatchKeyword();
-                $this->debug('Extends: ' . $extends);
+                // $this->debug('Extends: ' . $extends);
             }
             $this->SkipToTheSymbol('{');
         }
