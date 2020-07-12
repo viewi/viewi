@@ -207,7 +207,8 @@ class JsTranslator
                 }
                 $code .= $identation . $keyword;
                 // $this->position++;
-            } else {
+            }
+            else {
                 if ($keyword !== '=') {
                     if ($this->buffer !== null) {
                         $code .= $this->bufferIdentation . $this->buffer;
@@ -344,7 +345,8 @@ class JsTranslator
                                 $propertyName = substr($typeOrName, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
                                 $this->scope[$this->scopeLevel][$propertyName] = $keyword;
-                            } else {
+                            }
+                            else {
                                 // type
                                 $name = $this->MatchKeyword();
                                 $propertyName = substr($name, 1);
@@ -358,7 +360,8 @@ class JsTranslator
                                 $code .= " = $expression;" . PHP_EOL;
                             } else if ($symbol !== ';') {
                                 throw new Exception("Unexpected symbol `$symbol` detected at ReadCodeBlock.");
-                            } else {
+                            }
+                            else {
                                 $code .= ' = null;' . PHP_EOL;
                             }
                             $this->putIdentation = true;
@@ -382,7 +385,8 @@ class JsTranslator
                             // $this->position++;
                         } else if (ctype_alnum(str_replace('_', '', $keyword))) {
                             $code .= $identation . $keyword;
-                        } else {
+                        }
+                        else {
                             $this->position++;
                             $code .= $identation . "'Undefined keyword `$keyword` at ReadCodeBlock.'";
                             break 2;
@@ -597,12 +601,15 @@ class JsTranslator
                 $key = false;
                 $value = false;
                 $matchValue = false;
-            } else if ($keyword === '?') {
+            }
+            else if ($keyword === '?') {
                 continue; // js doesn't have nullable
-            } else if ($keyword === '=') {
+            }
+            else if ($keyword === '=') {
                 $value = $this->ReadCodeBlock(',', ')');
                 // $this->debug('arg Val ' . $key . ' = '  . $value);
-            } else {
+            }
+            else {
                 if ($keyword[0] === '$') {
                     $key = substr($keyword, 1);
                 }
@@ -707,6 +714,7 @@ class JsTranslator
 
     private function ReadDoubleQuoteString(): string
     {
+        $parts = [];
         $string = '';
         $skipNext = false;
 
@@ -717,29 +725,49 @@ class JsTranslator
                 } else {
                     $skipNext = false;
                 }
+                if ($this->parts[$this->position] === '{') {
+                    if ($string !== '') {
+                        $parts[] = "\"$string\"";
+                        $string = '';
+                    }
+                    $this->position++;
+                    $string .= $this->ReadCodeBlock('}');
+                    $parts[] = $string;
+                    $string = '';
+                    $this->position++;
+                    continue;
+                }
                 if ($this->parts[$this->position] === '$' && $this->parts[$this->position + 1] !== '$') {
                     // variable: "$var" or "$arr[2]"
-                    $string .= '" + ';
+                    if ($string !== '') {
+                        $parts[] = "\"$string\"";
+                        $string = '';
+                    }
                     $this->position++;
                     while (ctype_alnum($this->parts[$this->position]) || $this->parts[$this->position] === '_') {
                         $string .= $this->parts[$this->position];
                         $this->position++;
                     }
                     if ($this->parts[$this->position] === '[') {
+                        $this->position++;
                         $string .= $this->ReadArray(']');
-                        $this->position--;
                     }
-                    $string .= ' + "';
+                    $parts[] = $string;
+                    $string = '';
                     continue;
                 }
                 $string .= $this->parts[$this->position];
             } else {
                 $this->position++;
+                if ($string !== '') {
+                    $parts[] = "\"$string\"";
+                    $string = '';
+                }
                 break;
             }
             $this->position++;
         }
-        return "\"$string\"";
+        return implode(' + ', $parts);
     }
 
     private function ReadSingleQuoteString(): string
@@ -842,7 +870,8 @@ class JsTranslator
                     break;
                 }
                 $keyword .= $this->parts[$this->position];
-            } else {
+            }
+            else {
                 if ($keyword !== '') {
                     break;
                 }
