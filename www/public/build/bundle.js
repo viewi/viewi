@@ -43,7 +43,8 @@ var NotificationService = function (http) {
         var messages_0 = [];
         messages2 = [];
         var messages2_0 = [];
-        this.unknown = count(messages_0) + count(messages2_0) + count(this.messages) + count(messages2);
+        this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
+        this.count = [].length;
     };
 
     this.Notify = function (message) {
@@ -57,6 +58,7 @@ var NotificationService = function (http) {
     this.__construct.apply(this,arguments);
 };
 
+var messages2 = [];
 var h = 7;
 var k = 5;
 var AppComponent = function (
@@ -139,7 +141,7 @@ var AppComponent = function (
             var user = this.users[id];
             id + user.Name;
         }
-        count(MultiTest);
+        MultiTest.length;
         letters = 'X';
         test = [5, test];
         f = 98;

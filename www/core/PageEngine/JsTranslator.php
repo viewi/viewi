@@ -3,6 +3,10 @@
 namespace Vo;
 
 use Exception;
+use ReflectionClass;
+
+require 'JsFunctions/baseFunction.php';
+require 'JsFunctions/count.php';
 
 class JsTranslator
 {
@@ -105,8 +109,27 @@ class JsTranslator
     private bool $newVar = false;
     private $lastKeyword = '';
     private bool $thisMatched = false;
+    private ?string $callFunction = null;
+
+    private static bool $functionConvertersInited = false;
+    /**
+     * 
+     * @var array<string,BaseFunctionConverter> $functionConverters
+     */
+    private static array $functionConverters = [];
     public function __construct(string $content)
     {
+        if (!self::$functionConvertersInited) {
+            self::$functionConvertersInited = true;
+            $types = get_declared_classes();
+            foreach ($types as $class) {
+                /** @var BaseFunctionConverter $class */
+                if (is_subclass_of($class, BaseFunctionConverter::class)) {
+                    self::$functionConverters[$class::$name] = $class;
+                }
+            }
+            // $this->debug(self::$functionConverters);
+        }
         $this->phpCode = $content;
         $this->parts = str_split($this->phpCode);
         $this->length = count($this->parts);
@@ -209,11 +232,12 @@ class JsTranslator
         return $code;
     }
 
-    private function ReadCodeBlock(...$breakOn): string
+    public function ReadCodeBlock(...$breakOn): string
     {
         $code = '';
         $blocksLevel = 0;
         $lastIdentation = $this->currentIdentation;
+        $thisMatched = false;
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
             if (!$keyword && $this->position === $this->length) {
@@ -234,6 +258,8 @@ class JsTranslator
             }
             $this->lastBreak = null;
             $thisMatched = $this->thisMatched;
+            $callFunction = $this->callFunction;
+            $this->callFunction = null;
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
                 if ($keyword == '$this') {
@@ -302,6 +328,22 @@ class JsTranslator
                                 $code .= ')';
                             } else {
                                 $code .= '[]';
+                            }
+                            break;
+                        }
+                    case '(': {
+                            if (
+                                $callFunction !== null
+                                && isset(self::$functionConverters[$callFunction])
+                            ) {
+                                $this->lastKeyword = $keyword;
+                                $code = self::$functionConverters[$callFunction]::Convert(
+                                    $this,
+                                    $code,
+                                    $identation
+                                );
+                            } else {
+                                $code .= $identation . '(';
                             }
                             break;
                         }
@@ -452,6 +494,7 @@ class JsTranslator
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
                         } else if (ctype_alnum(str_replace('_', '', $keyword))) {
+                            $this->callFunction = $keyword;
                             $this->thisMatched = false;
                             if ($thisMatched) {
                                 $this->buffer = $keyword;
@@ -470,10 +513,7 @@ class JsTranslator
             }
             $this->lastKeyword = $keyword;
         }
-        if ($this->buffer !== null) {
-            $code .= $this->bufferIdentation . $this->buffer;
-            $this->buffer = null;
-        }
+        $code .= $this->GetVariable($thisMatched);
         return $code;
     }
 
@@ -889,7 +929,7 @@ class JsTranslator
         }
     }
 
-    private function SkipToTheSymbol(string $symbol): string
+    public function SkipToTheSymbol(string $symbol): string
     {
         while ($this->position < $this->length) {
             if ($this->parts[$this->position] === $symbol) {

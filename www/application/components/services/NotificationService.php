@@ -25,8 +25,9 @@ class NotificationService
             + count($messages2)
             + count($this->messages)
             + count($this->messages2);
+        $this->count = count([]);
     }
-
+    
     public function Notify(string $message): void
     {
         $this->messages[] = $message;
@@ -37,3 +38,4 @@ class NotificationService
         $this->messages = [];
     }
 }
+$messages2 = [];
