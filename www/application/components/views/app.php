@@ -85,6 +85,26 @@ class AppComponent extends BaseComponent
         $f = 98;
         $name = 'My name';
         $http = new HttpClientService();
+        switch ($f) {
+            case 6: {
+                    $f = 9;
+                    break;
+                }
+            default: {
+                    $f = 5;
+                    break;
+                }
+        }
+        if ($f > 0) {
+            echo $f;
+            print_r($f);
+        } elseif ($f > 5) {
+            echo $f;
+            print_r($f);
+        } else if ($f > 10 && count($this->users) > 3) {
+            echo $f;
+            print_r($f);
+        }
     }
 
     function getFullName(): string

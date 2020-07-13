@@ -67,13 +67,14 @@ class JsTranslator
         '.=' => array(0 => ' ', 1 => ' ',),
         '?' => array(0 => ' ', 1 => ' ',),
         '??' => array(0 => ' ', 1 => ' ',),
-        ':' => array(0 => ' ', 1 => ' ',),
+        ':' => array(0 => '', 1 => ' ',),
         ')' => array(0 => '', 1 => '',),
         '{' => array(0 => ' ', 1 => ' ',),
         '}' => array(0 => ' ', 1 => ' ',),
         '(' => array(0 => '', 1 => '',),
         'return' => array(0 => ' ', 1 => ' ',),
         'new' => array(0 => '', 1 => ' ',),
+
     );
     private array $processors;
     private array $allowedSymbols = ['(' => true, ')' => true];
@@ -216,8 +217,7 @@ class JsTranslator
                 // else {
                 //     $varStatement = $declaredProp === 'private' ? '' : 'this.';
                 // }
-            }
-            else {
+            } else {
                 $replace = $this->IsDeclared($this->buffer . '_replace');
                 if ($replace !== null) {
                     $this->buffer = $replace;
@@ -240,6 +240,7 @@ class JsTranslator
         $thisMatched = false;
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
+            // $this->debug($keyword);
             if (!$keyword && $this->position === $this->length) {
                 break;
             }
@@ -262,6 +263,9 @@ class JsTranslator
             $this->callFunction = null;
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
+                if ($this->IsPhpVariable($this->lastKeyword)) {
+                    $code .= ' ';
+                }
                 if ($keyword == '$this') {
                     $this->thisMatched = true;
                     $nextKeyword = $this->MatchKeyword();
@@ -298,11 +302,13 @@ class JsTranslator
                 //     $this->putIdentation = $closing !== '';
                 // }
             } else if (ctype_digit($keyword)) {
+                if ($this->IsPhpVariable($this->lastKeyword)) {
+                    $code .= ' ';
+                }
                 $code .= $this->GetVariable($thisMatched);
                 $code .= $identation . $keyword;
                 // $this->position++;
-            }
-            else {
+            } else {
                 if ($keyword !== '=') {
                     $code .= $this->GetVariable($thisMatched);
                     if ($this->newVar) {
@@ -320,7 +326,7 @@ class JsTranslator
                             break;
                         }
                     case '[]': {
-                            if (ctype_alnum(str_replace('_', '', str_replace('$', '', $this->lastKeyword)))) {
+                            if ($this->IsPhpVariable($this->lastKeyword)) {
                                 // $this->debug($this->lastKeyword . $keyword);
                                 $code .= '.push(';
                                 $this->SkipToTheSymbol('=');
@@ -373,8 +379,10 @@ class JsTranslator
                                 $this->lastKeyword = $keyword;
                                 break 2;
                             }
-                            $this->currentIdentation = $lastIdentation;
-                            $code .= $this->currentIdentation . '}' . PHP_EOL . $this->currentIdentation;
+                            $this->currentIdentation = // $lastIdentation;
+                                substr($this->currentIdentation, 0, -strlen($this->identation));
+                            $code .= $this->currentIdentation . '}' . PHP_EOL;
+                            $this->putIdentation = true;
                             $this->newVar = true;
                             break;
                         }
@@ -407,6 +415,10 @@ class JsTranslator
                         }
                     case '[': {
                             $code .= $this->ReadArray(']');
+                            break;
+                        }
+                    case 'elseif': {
+                            $code .= $identation . 'else if';
                             break;
                         }
                     case 'array': {
@@ -453,8 +465,7 @@ class JsTranslator
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
                                 $this->scope[$this->scopeLevel][$propertyName] = $keyword;
                                 $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
-                            }
-                            else {
+                            } else {
                                 // type
                                 $name = $this->MatchKeyword();
                                 $propertyName = substr($name, 1);
@@ -470,8 +481,7 @@ class JsTranslator
                                 $code .= " = $expression;" . PHP_EOL;
                             } else if ($symbol !== ';') {
                                 throw new Exception("Unexpected symbol `$symbol` detected at ReadCodeBlock.");
-                            }
-                            else {
+                            } else {
                                 $code .= ' = null;' . PHP_EOL;
                             }
                             $this->putIdentation = true;
@@ -483,12 +493,15 @@ class JsTranslator
                         // $this->debug($code);
                         // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
                         if (isset($this->processors[$keyword])) {
+                            if ($this->IsPhpVariable($this->lastKeyword)) {
+                                $code .= ' ';
+                            }
                             $before = $identation;
                             $after = '';
                             if (isset($this->spaces[$keyword])) {
                                 if ($identation === '') {
                                     $before = $this->spaces[$keyword][0];
-                                }
+                                }                                
                                 $after = $this->spaces[$keyword][1];
                             }
                             $code .=  $before . $keyword . $after;
@@ -501,10 +514,12 @@ class JsTranslator
                                 $this->bufferIdentation = $identation;
                                 $code .= $this->GetVariable($thisMatched);
                             } else {
+                                if ($this->IsPhpVariable($this->lastKeyword)) {
+                                    $code .= ' ';
+                                }
                                 $code .= $identation . $keyword;
                             }
-                        }
-                        else {
+                        } else {
                             $this->position++;
                             $code .= $identation . "'Undefined keyword `$keyword` at ReadCodeBlock.'";
                             break 2;
@@ -515,6 +530,11 @@ class JsTranslator
         }
         $code .= $this->GetVariable($thisMatched);
         return $code;
+    }
+
+    private function IsPhpVariable(string $string): bool
+    {
+        return ctype_alnum(str_replace('_', '', str_replace('$', '', $string)));
     }
 
     private function ReadMultiLineComment(): string
@@ -717,15 +737,12 @@ class JsTranslator
                 $key = false;
                 $value = false;
                 $matchValue = false;
-            }
-            else if ($keyword === '?') {
+            } else if ($keyword === '?') {
                 continue; // js doesn't have nullable
-            }
-            else if ($keyword === '=') {
+            } else if ($keyword === '=') {
                 $value = $this->ReadCodeBlock(',', ')');
                 // $this->debug('arg Val ' . $key . ' = '  . $value);
-            }
-            else {
+            } else {
                 if ($keyword[0] === '$') {
                     $key = substr($keyword, 1);
                 }
@@ -986,8 +1003,7 @@ class JsTranslator
                     break;
                 }
                 $keyword .= $this->parts[$this->position];
-            }
-            else {
+            } else {
                 if ($keyword !== '') {
                     break;
                 }
