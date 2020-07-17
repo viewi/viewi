@@ -62,6 +62,8 @@ class AppComponent extends BaseComponent
         $this->friend2 = new Friend();
         $this->friend->Name = "Jhon Doe {$this->model}";
         $this->friend->Age = $f;
+        $this->friend2->Name = "Jhon Doe {$this->model}";
+        $this->friend2->Age = $f;
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 3; $i++) {
             $user = new Friend(); // new user

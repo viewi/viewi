@@ -261,6 +261,7 @@ class JsTranslator
             $thisMatched = $this->thisMatched;
             $callFunction = $this->callFunction;
             $this->callFunction = null;
+            $skipLastSaving = false;
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
                 if ($this->IsPhpVariable($this->lastKeyword)) {
@@ -439,10 +440,12 @@ class JsTranslator
                         }
                     case 'for': {
                             $code .= $identation . $this->ReadFor();
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'foreach': {
                             $code .= $identation . $this->ReadForEach();
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'function':
@@ -493,7 +496,10 @@ class JsTranslator
                         // $this->debug($code);
                         // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
                         if (isset($this->processors[$keyword])) {
-                            if ($this->IsPhpVariable($this->lastKeyword)) {
+                            if (
+                                $this->IsPhpVariable($this->lastKeyword)
+                                && $this->IsPhpVariable($keyword)
+                            ) {
                                 $code .= ' ';
                             }
                             $before = $identation;
@@ -501,8 +507,12 @@ class JsTranslator
                             if (isset($this->spaces[$keyword])) {
                                 if ($identation === '') {
                                     $before = $this->spaces[$keyword][0];
-                                }                                
+                                }
                                 $after = $this->spaces[$keyword][1];
+                                if ($after !== '') {
+                                    $skipLastSaving = true;
+                                    $this->lastKeyword = ' ';
+                                }
                             }
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
@@ -515,6 +525,7 @@ class JsTranslator
                                 $code .= $this->GetVariable($thisMatched);
                             } else {
                                 if ($this->IsPhpVariable($this->lastKeyword)) {
+                                    // $this->debug($this->lastKeyword . ' ' . $keyword);
                                     $code .= ' ';
                                 }
                                 $code .= $identation . $keyword;
@@ -526,7 +537,9 @@ class JsTranslator
                         }
                 }
             }
-            $this->lastKeyword = $keyword;
+            if (!$skipLastSaving) {
+                $this->lastKeyword = $keyword;
+            }
         }
         $code .= $this->GetVariable($thisMatched);
         return $code;
@@ -578,10 +591,12 @@ class JsTranslator
         $this->newVar = true;
         while ($this->lastBreak !== ')') {
             $part = $this->ReadCodeBlock(';', ')', '(');
+            $this->lastKeyword = ';';
             $this->position++;
             $loop .= $separator . $part;
             $separator = '; ';
         }
+        $this->lastKeyword = ')';
         $loop .= ')';
         return $loop;
     }
@@ -593,10 +608,12 @@ class JsTranslator
         $target = $this->ReadCodeBlock('as');
         $this->position += 2;
         $index = '_i';
+        $this->lastKeyword = ';';
         $var = $this->ReadCodeBlock('=>', ')');
         if ($this->lastBreak === '=>') {
             $this->position += 2;
             $index = $var;
+            $this->lastKeyword = ';';
             $var = $this->ReadCodeBlock(')');
         } else {
             $this->position += 1;
@@ -607,6 +624,7 @@ class JsTranslator
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
         $loop .= "{$this->currentIdentation}var $var = {$target}[{$index}];";
+        $this->lastKeyword = ';';
         $loop .= PHP_EOL;
         $this->putIdentation = true;
         $loop .= $this->ReadCodeBlock();
@@ -781,9 +799,10 @@ class JsTranslator
 
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
-
+        $this->lastKeyword = '[';
         while ($this->position < $this->length) {
             $item = $this->ReadCodeBlock(',', '=>', $closing, '(', ';');
+            $this->lastKeyword = $this->lastBreak;
             if ($this->lastBreak === ';') {
                 break;
             }
@@ -864,6 +883,7 @@ class JsTranslator
                         $string = '';
                     }
                     $this->position++;
+                    $this->lastKeyword = '{';
                     $string .= $this->ReadCodeBlock('}');
                     $parts[] = $string;
                     $string = '';
