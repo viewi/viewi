@@ -266,6 +266,7 @@ class JsTranslator
             if ($keyword[0] === '$') {
                 if ($this->IsPhpVariable($this->lastKeyword)) {
                     $code .= ' ';
+                    // $this->debug($this->lastKeyword . ' ' . $keyword);
                 }
                 if ($keyword == '$this') {
                     $this->thisMatched = true;
@@ -424,18 +425,22 @@ class JsTranslator
                         }
                     case 'array': {
                             $code .= $this->ReadArray(')');
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'use': {
                             $this->ProcessUsing();
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'namespace': {
                             $this->ProcessNamespace();
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'class': {
                             $code .= $identation . $this->ProcessClass();
+                            $skipLastSaving = true;
                             break;
                         }
                     case 'for': {
@@ -671,6 +676,7 @@ class JsTranslator
         }
 
         $classHead .= $arguments . ') ' . '{' . PHP_EOL . $classCode . '};' . PHP_EOL . PHP_EOL;
+        $this->lastKeyword = '}';
         $this->scope = $previousScope;
         $this->scopeLevel = $previousScopeLevel;
         $this->currentIdentation = $lastIdentation;
@@ -722,6 +728,7 @@ class JsTranslator
         $this->currentIdentation = $lastIdentation;
 
         $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation .  '};' . PHP_EOL;
+        $this->lastKeyword = '}';
         // $this->debug('==========' . $functionCode . '==========');
         if ($constructor) {
             $this->constructors[$this->currentClass] = $arguments;

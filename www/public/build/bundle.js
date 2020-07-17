@@ -20,7 +20,7 @@ var HomePage = function () {
     this.__construct.apply(this,arguments);
 };
 
- var test = 'Test';
+var test = 'Test';
 var HttpClientService = function () {
     
     this.get = function (url, data) {
@@ -58,9 +58,9 @@ var NotificationService = function (http) {
     this.__construct.apply(this,arguments);
 };
 
- var messages2 = [];
- var h = 7;
- var k = 5;
+var messages2 = [];
+var h = 7;
+var k = 5;
 var AppComponent = function (
         notificationService,
         http,
@@ -185,7 +185,7 @@ var AppComponent = function (
     this.__construct.apply(this,arguments);
 };
 
- var letters = 'X';
+var letters = 'X';
 var Friend = function () {
     this.Name = null;
     this.Age = null;
