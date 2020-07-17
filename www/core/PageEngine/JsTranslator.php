@@ -975,6 +975,7 @@ class JsTranslator
             }
             $this->position++;
         }
+        $this->lastKeyword = $symbol;
         return '';
     }
 

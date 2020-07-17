@@ -9,12 +9,12 @@ var HomePage = function () {
     };
 
     this.Increment = function () {
-         this.count++;
+        this.count++;
         priv += "Code";
     };
 
     this.Test = function (argument) {
-         return 'Test ' + argument;
+        return 'Test ' + argument;
     };
 
     this.__construct.apply(this,arguments);
@@ -24,7 +24,7 @@ var HomePage = function () {
 var HttpClientService = function () {
     
     this.get = function (url, data) {
-         return { message: 'ok' };
+        return { message: 'ok' };
     };
 };
 
@@ -38,7 +38,7 @@ var NotificationService = function (http) {
     var messages2 = [];
     
     this.__construct = function (http) {
-         http = http;
+        http = http;
         this.messages = [];
         var messages_0 = [];
         messages2 = [];
@@ -48,11 +48,11 @@ var NotificationService = function (http) {
     };
 
     this.Notify = function (message) {
-         this.messages.push( message);
+        this.messages.push(message);
     };
 
     this.Clear = function () {
-         this.messages = [];
+        this.messages = [];
     };
 
     this.__construct.apply(this,arguments);
@@ -110,7 +110,7 @@ var AppComponent = function (
         notificationService3,
         notificationService4
     ) {
-        var f = arguments.length > 7 ? arguments[7] :  30;
+        var f = arguments.length > 7 ? arguments[7] : 30;
         var test = arguments.length > 8 ? arguments[8] : [5, 6];
         var test2 = arguments.length > 9 ? arguments[9] : [5, 6];
         var test3 = arguments.length > 10 ? arguments[10] : [5, 6];
@@ -174,11 +174,11 @@ var AppComponent = function (
     };
 
     this.getFullName = function () {
-         return 'Jhon Doe';
+        return 'Jhon Doe';
     };
 
     this.getOccupation = function () {
-         var letters = 'X';
+        var letters = 'X';
         return 'Web developer';
     };
 
