@@ -14,7 +14,7 @@ var HomePage = function () {
     };
 
     this.Test = function (argument) {
-        return 'Test ' + argument;
+        return'Test ' + argument;
     };
 
     this.__construct.apply(this,arguments);
@@ -24,7 +24,7 @@ var test = 'Test';
 var HttpClientService = function () {
     
     this.get = function (url, data) {
-        return { message: 'ok' };
+        return{ message: 'ok' };
     };
 };
 
@@ -160,26 +160,26 @@ var AppComponent = function (
             }
         }
         if(f > 0){
-            echo f;
-            print_r(f);
+            console.log(f);
+            console.log(f);
         }
         else if(f > 5){
-            echo f;
-            print_r(f);
+            console.log(f);
+            console.log(f);
         }
         else if(f > 10 && this.users.length > 3){
-            echo f;
-            print_r(f);
+            console.log(f);
+            console.log(f);
         }
     };
 
     this.getFullName = function () {
-        return 'Jhon Doe';
+        return'Jhon Doe';
     };
 
     this.getOccupation = function () {
         var letters = 'X';
-        return 'Web developer';
+        return'Web developer';
     };
 
     this.__construct.apply(this,arguments);

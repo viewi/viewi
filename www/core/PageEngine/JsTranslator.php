@@ -5,8 +5,7 @@ namespace Vo;
 use Exception;
 use ReflectionClass;
 
-require 'JsFunctions/baseFunction.php';
-require 'JsFunctions/count.php';
+require 'JsFunctions/export.php';
 
 class JsTranslator
 {
@@ -139,7 +138,7 @@ class JsTranslator
         foreach ($this->allowedOperators as $key => $operators) {
             $this->processors = array_merge($this->processors, array_flip($operators));
         }
-        $this->processors = array_merge($this->processors, array_flip($this->phpKeywords));
+        // $this->processors = array_merge($this->processors, array_flip($this->phpKeywords));
         $this->processors = array_merge($this->processors, $this->allowedSymbols);
         // $spaces = [];
         // foreach ($this->processors as $key => $val) {
@@ -223,6 +222,7 @@ class JsTranslator
                     $this->buffer = $replace;
                 }
             }
+            // $this->debug($this->buffer);
             $code .= $this->bufferIdentation
                 . $varStatement
                 . $this->buffer;
@@ -522,18 +522,31 @@ class JsTranslator
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
                         } else if (ctype_alnum(str_replace('_', '', $keyword))) {
-                            $this->callFunction = $keyword;
-                            $this->thisMatched = false;
-                            if ($thisMatched) {
-                                $this->buffer = $keyword;
-                                $this->bufferIdentation = $identation;
-                                $code .= $this->GetVariable($thisMatched);
+                            // $this->debug($keyword);
+                            if (
+                                isset(self::$functionConverters[$keyword])
+                                && self::$functionConverters[$keyword]::$directive
+                            ) {
+                                $code = self::$functionConverters[$keyword]::Convert(
+                                    $this,
+                                    $code . $keyword,
+                                    $identation
+                                );
+                                $skipLastSaving = true;
                             } else {
-                                if ($this->IsPhpVariable($this->lastKeyword)) {
-                                    // $this->debug($this->lastKeyword . ' ' . $keyword);
-                                    $code .= ' ';
+                                $this->callFunction = $keyword;
+                                $this->thisMatched = false;
+                                if ($thisMatched) {
+                                    $this->buffer = $keyword;
+                                    $this->bufferIdentation = $identation;
+                                    $code .= $this->GetVariable($thisMatched);
+                                } else {
+                                    if ($this->IsPhpVariable($this->lastKeyword)) {
+                                        // $this->debug($this->lastKeyword . ' ' . $keyword);
+                                        $code .= ' ';
+                                    }
+                                    $code .= $identation . $keyword;
                                 }
-                                $code .= $identation . $keyword;
                             }
                         } else {
                             $this->position++;
