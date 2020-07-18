@@ -14,17 +14,17 @@ var HomePage = function () {
     };
 
     this.Test = function (argument) {
-        return'Test ' + argument;
+        return 'Test ' + argument;
     };
 
-    this.__construct.apply(this,arguments);
+    this.__construct.apply(this, arguments);
 };
 
 var test = 'Test';
 var HttpClientService = function () {
     
     this.get = function (url, data) {
-        return{ message: 'ok' };
+        return { message: 'ok' };
     };
 };
 
@@ -43,7 +43,7 @@ var NotificationService = function (http) {
         var messages_0 = [];
         messages2 = [];
         var messages2_0 = [];
-        this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
+        this.unknown = messages_0.length + count(messages2_0) + count(this.messages) + count(messages2);
         this.count = [].length;
     };
 
@@ -55,19 +55,19 @@ var NotificationService = function (http) {
         this.messages = [];
     };
 
-    this.__construct.apply(this,arguments);
+    this.__construct.apply(this, arguments);
 };
 
 var messages2 = [];
 var h = 7;
 var k = 5;
 var AppComponent = function (
-        notificationService,
-        http,
-        name,
-        cost,
-        notificationService2,
-        notificationService3,
+        notificationService, 
+        http, 
+        name, 
+        cost, 
+        notificationService2, 
+        notificationService3, 
         notificationService4
     ) {
     this.about = 'This is php/js page engine';
@@ -102,12 +102,12 @@ var AppComponent = function (
     var http = null;
     
     this.__construct = function (
-        notificationService,
-        http,
-        name,
-        cost,
-        notificationService2,
-        notificationService3,
+        notificationService, 
+        http, 
+        name, 
+        cost, 
+        notificationService2, 
+        notificationService3, 
         notificationService4
     ) {
         var f = arguments.length > 7 ? arguments[7] : 30;
@@ -124,7 +124,7 @@ var AppComponent = function (
         friend2.Name = "Jhon Doe " + this.model;
         friend2.Age = f;
         var letters = 'abcdefghijklmnopqrstuvwxyz';
-        for (var i = 0; i < 3; i++){
+        for (var i = 0; i < 3; i++) {
             var user = new Friend();
             // new user
             user.Name = 'Jhon' + letters[26 - i] + ' Doe' + letters[i];
@@ -149,7 +149,7 @@ var AppComponent = function (
         f = 98;
         name = 'My name';
         var http_0 = new HttpClientService();
-        switch(f){
+        switch (f) {
             case 6: {
                 f = 9;
                 break;
@@ -159,30 +159,32 @@ var AppComponent = function (
                 break;
             }
         }
-        if(f > 0){
+        if (f > 0) {
             console.log(f);
             console.log(f);
         }
-        else if(f > 5){
+        else if (f > 5) {
             console.log(f);
             console.log(f);
         }
-        else if(f > 10 && this.users.length > 3){
+        else if (f > 10 && count(this.users) > 3) {
             console.log(f);
             console.log(f);
         }
+        console.log(console.log('Test',true));
+        console.log('Test',true);
     };
 
     this.getFullName = function () {
-        return'Jhon Doe';
+        return 'Jhon Doe';
     };
 
     this.getOccupation = function () {
         var letters = 'X';
-        return'Web developer';
+        return 'Web developer';
     };
 
-    this.__construct.apply(this,arguments);
+    this.__construct.apply(this, arguments);
 };
 
 var letters = 'X';
@@ -199,7 +201,7 @@ var UserItem = function () {
     this.__construct = function () {
     };
 
-    this.__construct.apply(this,arguments);
+    this.__construct.apply(this, arguments);
 };
 
 var Layout = function () {
@@ -208,6 +210,6 @@ var Layout = function () {
     this.__construct = function () {
     };
 
-    this.__construct.apply(this,arguments);
+    this.__construct.apply(this, arguments);
 };
 

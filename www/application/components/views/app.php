@@ -107,6 +107,8 @@ class AppComponent extends BaseComponent
             echo $f;
             print_r($f);
         }
+        echo print_r('Test', true);
+        print_r('Test', true);
     }
 
     function getFullName(): string

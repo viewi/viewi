@@ -12,7 +12,7 @@ class JsEcho extends BaseFunctionConverter
         string $identation
     ): string {
         $code = substr($code, 0, -4);
-        $code .= 'console.log(';
+        $code .= $identation . 'console.log(';
         $code .= $translator->ReadCodeBlock(';');
         // $translator->SkipToTheSymbol(';');
         $code .= ')';

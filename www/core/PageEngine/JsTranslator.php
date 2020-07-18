@@ -351,7 +351,7 @@ class JsTranslator
                                     $identation
                                 );
                             } else {
-                                $code .= $identation . '(';
+                                $code .= $identation . ($callFunction !== null ? ' ' : '') . '(';
                             }
                             break;
                         }
@@ -368,7 +368,8 @@ class JsTranslator
 
                             $lastIdentation = $this->currentIdentation;
                             $this->currentIdentation .= $this->identation;
-                            $code .= '{' . PHP_EOL . $this->currentIdentation;
+                            $code .=  ($this->lastKeyword === ')' ? ' ' : '') .
+                                '{' . PHP_EOL . $this->currentIdentation;
                             // $this->debug('OPEN BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
                             $this->newVar = true;
                             break;
@@ -420,7 +421,7 @@ class JsTranslator
                             break;
                         }
                     case 'elseif': {
-                            $code .= $identation . 'else if';
+                            $code .= $identation . 'else if ';
                             break;
                         }
                     case 'array': {
@@ -500,7 +501,8 @@ class JsTranslator
                     default:
                         // $this->debug($code);
                         // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
-                        if (isset($this->processors[$keyword])) {
+                        if (isset($this->processors[$keyword]) || isset($this->spaces[$keyword])) {
+                            // $this->debug($this->lastKeyword . ' ' . $keyword);
                             if (
                                 $this->IsPhpVariable($this->lastKeyword)
                                 && $this->IsPhpVariable($keyword)
@@ -534,7 +536,10 @@ class JsTranslator
                                 );
                                 $skipLastSaving = true;
                             } else {
-                                $this->callFunction = $keyword;
+                                if ($this->lastKeyword !== ' ') {
+                                    $this->callFunction = $keyword;
+                                }
+                                // $this->debug($this->lastKeyword . ' ' . $keyword);
                                 $this->thisMatched = false;
                                 if ($thisMatched) {
                                     $this->buffer = $keyword;
@@ -683,7 +688,7 @@ class JsTranslator
         $this->currentClass = $lastClass;
         $arguments = '';
         if (isset($this->constructors[$className])) {
-            $classCode .= PHP_EOL . $this->currentIdentation . "this.__construct.apply(this,arguments);"
+            $classCode .= PHP_EOL . $this->currentIdentation . "this.__construct.apply(this, arguments);"
                 . PHP_EOL;
             $arguments = $this->constructors[$className]['arguments'];
         }
@@ -716,7 +721,7 @@ class JsTranslator
 
         // read function body
         $this->SkipToTheSymbol('{');
-
+        $this->lastKeyword = '{';
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
 
@@ -802,7 +807,7 @@ class JsTranslator
                 continue;
             }
             $arguments .= $comma . $key;
-            $comma = $newLineFormat ? ',' . PHP_EOL . $valueIdentation : ', ';
+            $comma = $newLineFormat ? ', ' . PHP_EOL . $valueIdentation : ', ';
             $this->scope[$this->scopeLevel][$key] = 'private';
         }
         $arguments .= $newLineFormat ? PHP_EOL . $lastIdentation : '';
