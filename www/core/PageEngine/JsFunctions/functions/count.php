@@ -15,7 +15,6 @@ class JsCount extends BaseFunctionConverter
         $code .= $translator->ReadCodeBlock(')');
         $translator->SkipToTheSymbol(')');
         $code .= '.length';
-
         return $code;
     }
 }

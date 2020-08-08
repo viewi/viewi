@@ -43,7 +43,7 @@ var NotificationService = function (http) {
         var messages_0 = [];
         messages2 = [];
         var messages2_0 = [];
-        this.unknown = messages_0.length + count(messages2_0) + count(this.messages) + count(messages2);
+        this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
         this.count = [].length;
     };
 
@@ -117,15 +117,15 @@ var AppComponent = function (
         var test4 = arguments.length > 11 ? arguments[11] : [5, 6];
         this.notificationService = notificationService;
         http = http;
-        this.friend = new Friend();
-        friend2 = new Friend();
+        this.friend = new Friend ();
+        friend2 = new Friend ();
         this.friend.Name = "Jhon Doe " + this.model;
         this.friend.Age = f;
         friend2.Name = "Jhon Doe " + this.model;
         friend2.Age = f;
         var letters = 'abcdefghijklmnopqrstuvwxyz';
         for (var i = 0; i < 3; i++) {
-            var user = new Friend();
+            var user = new Friend ();
             // new user
             user.Name = 'Jhon' + letters[26 - i] + ' Doe' + letters[i];
             user.Age = 30 + i;
@@ -148,7 +148,7 @@ var AppComponent = function (
         test = [5, test];
         f = 98;
         name = 'My name';
-        var http_0 = new HttpClientService();
+        var http_0 = new HttpClientService ();
         switch (f) {
             case 6: {
                 f = 9;
@@ -159,20 +159,22 @@ var AppComponent = function (
                 break;
             }
         }
-        if (f > 0) {
-            console.log(f);
-            console.log(f);
+        if (false) {
+            if (f > 0) {
+                console.log(f);
+                console.log(f);
+            }
+            else if (f > 5) {
+                console.log(f);
+                console.log(f);
+            }
+            else if (f > 10 && this.users.length > 3) {
+                console.log(f);
+                console.log(f);
+            }
+            console.log(console.log('Test',true));
+            console.log('Test',true);
         }
-        else if (f > 5) {
-            console.log(f);
-            console.log(f);
-        }
-        else if (f > 10 && count(this.users) > 3) {
-            console.log(f);
-            console.log(f);
-        }
-        console.log(console.log('Test',true));
-        console.log('Test',true);
     };
 
     this.getFullName = function () {

@@ -73,6 +73,7 @@ class PageEngine
     private array $componentArguments = [];
     private bool $compiled = false;
     private bool $waitingComponents = true;
+    private JsTranslator $expressionsTranslator;
     /**
      * 
      * @var bool true: return string, false: echo
@@ -183,8 +184,7 @@ class PageEngine
                 }
             } else if ($baseClass !== null && is_subclass_of($class, $baseClass)) {
                 $children[$class] = $rf;
-            }
-            else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
+            } else if ($path !== null && strpos($rf->getFileName(), $path) === 0) {
                 $children[$class] = $rf;
             }
         }
@@ -291,6 +291,7 @@ class PageEngine
         if ($this->compiled) {
             return;
         }
+        $this->expressionsTranslator = new JsTranslator('');
         $this->compiledJs = [];
         $this->compiled = true;
         $this->removeDirectory($this->buildPath);
@@ -339,12 +340,26 @@ class PageEngine
         //$this->debug($this->buildPath);
         $publicJson = [];
         foreach ($this->components as $className => &$componentInfo) {
+
+
             if ($componentInfo->IsComponent) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
                 // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
                 $this->build($this->templates[$className]);
                 $this->save($this->templates[$className]);
-                $publicJson[$className] = $this->templates[$className]->RootTag->getRaw();
+            }
+            if (!isset($componentInfo->IsSlot) || !$componentInfo->IsSlot) {
+                // $publicJson[$className] = $componentInfo;
+                $publicJson[$className] = [];
+                if (isset($componentInfo->Dependencies)) {
+                    $publicJson[$className]['dependencies'] = [];
+                    foreach ($componentInfo->Dependencies as $argumentName => $argumentInfo) {
+                        $publicJson[$className]['dependencies'][] = $argumentInfo;
+                    }
+                };
+                if ($componentInfo->IsComponent) {
+                    $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                }
             }
         }
         // $this->debug($this->templates);
@@ -519,17 +534,24 @@ class PageEngine
         return $expression;
     }
 
-    function compileExpression(string $expression, $class = null): string // TODO: validate expression
+    function compileExpression(TagItem $tagItem, $class = null): string // TODO: validate expression
     {
+        $expression = $tagItem->Content;
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
             // raw html
             $code = $this->renderReturn ? '' : '<?=';
-            $code .= $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2));
+            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2));
+            $code .= $phpCode;
             $code .= $this->renderReturn ? '' : '?>';
+            $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
+            $tagItem->RawHtml = true;
         } else {
             $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
-            $code .= $this->convertExpressionToCode($expression);
+            $phpCode = $this->convertExpressionToCode($expression);
+            $code .= $phpCode;
             $code .= ')' . ($this->renderReturn ? '' : '?>');
+            $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
+            // $this->debug($phpCode . $tagItem->JsExpression);
         }
         return $code;
     }
@@ -540,6 +562,8 @@ class PageEngine
     private array $Dependencies = [];
     function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false)
     {
+        // cache service instances or parent components for slots
+        // do not cache component instances
         $cache = true;
         if ($componentInfo->IsComponent) {
             // always new instance
@@ -550,9 +574,8 @@ class PageEngine
             include_once $this->sourcePath . $componentInfo->Fullpath;
             include_once $this->buildPath . $componentInfo->BuildPath;
             return $this->resolve($this->components[$componentInfo->ComponentName], true);
-        }
-        else {
-            // It's service or any class (It's not component)
+        } else {
+            // It's service or any class (It's not template component)
             include_once $this->sourcePath . $componentInfo->Fullpath;
         }
         $class = $componentInfo->Namespace . '\\' . $componentInfo->Name;
@@ -571,8 +594,7 @@ class PageEngine
                     $arguments[] = $type['default'];
                 } else if (isset($type['null'])) {
                     $arguments[] = null;
-                }
-                else if (isset($type['builtIn'])) {
+                } else if (isset($type['builtIn'])) {
                     switch ($type['name']) {
                         case 'string': {
                                 $arguments[] = '';
@@ -583,8 +605,7 @@ class PageEngine
                                 break;
                             }
                     }
-                }
-                else {
+                } else {
                     $arguments[] = $this->resolve($this->components[$type['name']]);
                 }
             }
@@ -1130,7 +1151,7 @@ class PageEngine
             $selfClosing = false;
 
             $content = $tagItem->ItsExpression
-                ? $this->compileExpression($tagItem->Content)
+                ? $this->compileExpression($tagItem)
                 : $tagItem->Content;
             $skipTagRender = false;
             if ($tagItem->Type->Name == TagItemType::Tag) {

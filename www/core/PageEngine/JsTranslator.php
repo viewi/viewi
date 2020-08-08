@@ -131,9 +131,7 @@ class JsTranslator
             // $this->debug(self::$functionConverters);
         }
         $this->phpCode = $content;
-        $this->parts = str_split($this->phpCode);
-        $this->length = count($this->parts);
-        $this->scope = [[]];
+        $this->Reset();
         $this->processors = [];
         foreach ($this->allowedOperators as $key => $operators) {
             $this->processors = array_merge($this->processors, array_flip($operators));
@@ -147,9 +145,26 @@ class JsTranslator
         // $this->debug(var_export($spaces));
     }
 
-    public function Convert(): string
+    private function Reset()
     {
-        $this->MatchPhpTag();
+        $this->lastBreak = null;
+        $this->lastKeyword = '';
+        $this->jsCode = '';
+        $this->position = 0;
+        $this->parts = str_split($this->phpCode);
+        $this->length = count($this->parts);
+        $this->scope = [[]];
+    }
+
+    public function Convert(?string $content = null, bool $skipPhpTag = false): string
+    {
+        if ($content !== null) {
+            $this->phpCode = $content;
+            $this->Reset();
+        }
+        if (!$skipPhpTag) {
+            $this->MatchPhpTag();
+        }
         try {
             while ($this->position < $this->length) {
                 $this->jsCode .= $this->ReadCodeBlock();
@@ -345,6 +360,7 @@ class JsTranslator
                                 && isset(self::$functionConverters[$callFunction])
                             ) {
                                 $this->lastKeyword = $keyword;
+                                // $this->debug($callFunction);                                
                                 $code = self::$functionConverters[$callFunction]::Convert(
                                     $this,
                                     $code,
@@ -536,9 +552,11 @@ class JsTranslator
                                 );
                                 $skipLastSaving = true;
                             } else {
-                                if ($this->lastKeyword !== ' ') {
-                                    $this->callFunction = $keyword;
-                                }
+                                // $this->debug($keyword . ' after "' . $this->lastKeyword . '"');
+                                // if ($this->lastKeyword !== ' ') {
+                                $this->callFunction = $keyword;
+                                // $this->debug($keyword);
+                                //}
                                 // $this->debug($this->lastKeyword . ' ' . $keyword);
                                 $this->thisMatched = false;
                                 if ($thisMatched) {

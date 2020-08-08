@@ -52,6 +52,7 @@ function RenderLayout(
     </style>
 
     <script src="/public/app/app.js"></script>
+    <script src="/public/build/bundle.js"></script>
 </head>
 
 <body>

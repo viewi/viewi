@@ -97,18 +97,20 @@ class AppComponent extends BaseComponent
                     break;
                 }
         }
-        if ($f > 0) {
-            echo $f;
-            print_r($f);
-        } elseif ($f > 5) {
-            echo $f;
-            print_r($f);
-        } else if ($f > 10 && count($this->users) > 3) {
-            echo $f;
-            print_r($f);
+        if (false) {
+            if ($f > 0) {
+                echo $f;
+                print_r($f);
+            } elseif ($f > 5) {
+                echo $f;
+                print_r($f);
+            } else if ($f > 10 && count($this->users) > 3) {
+                echo $f;
+                print_r($f);
+            }
+            echo print_r('Test', true);
+            print_r('Test', true);
         }
-        echo print_r('Test', true);
-        print_r('Test', true);
     }
 
     function getFullName(): string

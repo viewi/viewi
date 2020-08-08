@@ -87,8 +87,23 @@ function Edgeon() {
             });
     };
     var nodes = [];
-    var build = function (parent) {
-        var stack = arguments.length > 1 ? arguments[1] : false;
+    var currentComponent = null;
+
+    var getDataExpression = function (item) {
+        if (item.expression) {
+            var contentExpression = { call: true };
+            if (item.raw) {
+                contentExpression.func = new Function('component', 'app', 'return ' + item.code + ';');
+                return contentExpression;
+            }
+            contentExpression.func = new Function('component', 'app', 'return app.htmlentities(' + item.code + ');');
+            return contentExpression;
+        }
+        return { call: false, content: item.content };
+    }
+
+    var build = function (parent, instance) {
+        var stack = arguments.length > 2 ? arguments[2] : false;
         var childs = parent.childs;
         var currentNodeList = [];
         var skip = false;
@@ -96,11 +111,11 @@ function Edgeon() {
         for (var i in childs) {
             var item = childs[i];
             if (item.type === 'text' && node && node.type === 'text') {
-                node.contents[0].push(item.content);
+                node.contents[0].push(getDataExpression(item));
                 continue;
             }
             var component = false;
-            var values = [item.content]; // text groups
+            var values = [getDataExpression(item)]; // text groups
             node = {
                 type: item.type,
                 childs: [], // TODO: process foreach
@@ -111,7 +126,8 @@ function Edgeon() {
                 take: 1, // 1 - default, > 1 - <template or <component, take next n items
                 skip: false, // if was taken by previous then false
                 data: false, // foreach target here
-                domNodes: [] // DOM node if rendered
+                domNodes: [], // DOM node if rendered
+                instance: instance
             };
             var domNode = {
                 content: false, // final content
@@ -146,13 +162,13 @@ function Edgeon() {
                 if (stack) {
                     if (slotName === 0) {
                         var items = stack.where(function (x) {
-                            return x.contents[0][0] !== 'slotContent';
+                            return x.contents[0][0].content !== 'slotContent';
                         });
                         currentNodeList = currentNodeList.concat(items);
                     } else {
                         var slotContent = stack.first(function (x) {
                             return x.type === 'tag'
-                                && x.contents[0][0] === 'slotContent'
+                                && x.contents[0][0].content === 'slotContent'
                                 && slotNameExpression(x);
                         });
                         if (slotContent) {
@@ -167,17 +183,13 @@ function Edgeon() {
             // childs
             childNodes = false;
             if (item.childs) {
-                childNodes = build(item, stack);
+                childNodes = build(item, instance, stack);
             }
             if (item.attributes) {
                 node.attributes = item.attributes;
             }
             if (component) {
-                if (!(component in $this.components)) {
-                    throw new Error('Component ' + component + ' doesn\'t exist.');
-                }
-                var page = $this.components[component];
-                var componenNodes = build(page, childNodes);
+                var componenNodes = create(component, childNodes); // build(page.nodes, childNodes);
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
@@ -191,7 +203,12 @@ function Edgeon() {
     var createDOM = function (parent, nodes) {
         for (var i in nodes) {
             var node = nodes[i];
-            var val = node.contents[0].join(''); // TODO: process onditions (if,else,elif)
+            var texts = [];
+            for (var i in node.contents[0]) {
+                var contentExpression = node.contents[0][i];
+                texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
+            }
+            var val = texts.join(''); // TODO: process conditions (if,else,elif)
             var elm = false;
             switch (node.type) {
                 case 'text': {
@@ -233,6 +250,39 @@ function Edgeon() {
             elm && createDOM(elm, node.childs);
         }
     }
+
+    var resolve = function (name) {
+        // TODO: check scope and/or cache
+        var dependencies = $this.components[name].dependencies;
+        if (!dependencies) {
+            return new window[name]();
+        }
+        var arguments = [];
+        for (var i in dependencies) {
+            var d = dependencies[i];
+            var a = null; // d.null
+            if (d.default) {
+                a = d.default; // TODO: copy object or array
+            } else if (d.builtIn) {
+                a = d.name === 'string' ? '' : 0;
+            } else {
+                a = resolve(d.name);
+            }
+            arguments.push(a);
+        }
+        return new (window[name].bind.apply(window[name], arguments))();
+    }
+
+    var create = function (name, childNodes) {
+        if (!(name in $this.components)) {
+            throw new Error('Component ' + name + ' doesn\'t exist.');
+        }
+        var page = $this.components[name];
+        var instance = resolve(name);
+        console.log(instance);
+        return build(page.nodes, instance, childNodes);
+    };
+
     this.render = function (name) {
         if (!name) {
             throw new Error('Component name is required.');
@@ -240,13 +290,17 @@ function Edgeon() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
-        var page = this.components[name];
-        nodes = build(page);
+        nodes = create(name);
         // document.childNodes[1].remove();
         console.log(nodes);
         createDOM(document, nodes);
     };
 
+    this.htmlentities = function (html) {
+        return typeof html === 'string' ? html.replace(/[\u00A0-\u9999<>\&]/gim, function (i) {
+            return '&#' + i.charCodeAt(0) + ';';
+        }) : html;
+    }
 }
 var app = new Edgeon();
 app.start();

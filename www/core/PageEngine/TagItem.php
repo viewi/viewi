@@ -9,6 +9,8 @@ class TagItem
     public bool $ItsExpression = false;
     public bool $Skip = false;
     private ?TagItem $Parent;
+    public ?string $JsExpression = null;
+    public bool $RawHtml = false;
 
     /** @var TagItem[] */
     private ?array $childs;
@@ -20,6 +22,12 @@ class TagItem
         $node['content'] = $this->Content;
         $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
         $node['expression'] = $this->ItsExpression;
+        if ($this->ItsExpression) {
+            $node['code'] = $this->JsExpression;
+            if ($this->RawHtml) {
+                $node['raw'] = true;
+            }
+        }
         if (isset($this->childs)) {
             foreach ($this->childs as &$child) {
                 if ($child->Type->Name === TagItemType::Attribute) {
