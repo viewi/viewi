@@ -537,6 +537,7 @@ class PageEngine
     function compileExpression(TagItem $tagItem, $class = null): string // TODO: validate expression
     {
         $expression = $tagItem->Content;
+        $code = '';
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
             // raw html
             $code = $this->renderReturn ? '' : '<?=';
@@ -1187,7 +1188,15 @@ class PageEngine
                             $mergeValues = $childTag->getChildren();
 
                             $valueToReplace = false;
-                            if (strpos($attributeName, '.') !== false) {
+                            if ($attributeName[0] === '(') { // event
+                                $childTag->Skip = true;
+                                $attrValues = $childTag->getChildren();
+                                foreach ($attrValues as $attrValue) {
+                                    $attrValue->ItsExpression = true;
+                                    $this->compileExpression($attrValue);
+                                    // $this->debug($attrValue->JsExpression);
+                                }
+                            } else if (strpos($attributeName, '.') !== false) {
                                 $parts = explode('.', $attributeName, 2);
                                 $attributeName = $parts[0];
                                 $valueToReplace = $parts[1];

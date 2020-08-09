@@ -18,6 +18,7 @@ class HomePage extends BaseComponent
     {
         $this->count++;
         $this->priv .= "Code";
+        echo $this->count;
     }
 
     public function Test($argument): string

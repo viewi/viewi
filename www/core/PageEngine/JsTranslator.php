@@ -154,6 +154,7 @@ class JsTranslator
         $this->parts = str_split($this->phpCode);
         $this->length = count($this->parts);
         $this->scope = [[]];
+        $this->callFunction = null;
     }
 
     public function Convert(?string $content = null, bool $skipPhpTag = false): string

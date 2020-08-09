@@ -72,6 +72,15 @@ Object.defineProperty(Array.prototype, 'select', {
         return result;
     }
 });
+Object.defineProperty(Array.prototype, 'each', {
+    enumerable: false,
+    value: function (x) {
+        for (var k in this) {
+            x(this[k]);
+        }
+        return this;
+    }
+});
 //edgeon
 //quicks
 //
@@ -186,7 +195,16 @@ function Edgeon() {
                 childNodes = build(item, instance, stack);
             }
             if (item.attributes) {
-                node.attributes = item.attributes;
+                node.attributes = item.attributes.each(
+                    function (a) {
+                        a.contentExpression = getDataExpression(a);
+                        a.childs.each(
+                            function (v) {
+                                v.contentExpression = getDataExpression(v);
+                            }
+                        );
+                    }
+                );
             }
             if (component) {
                 var componenNodes = create(component, childNodes); // build(page.nodes, childNodes);
@@ -233,12 +251,26 @@ function Edgeon() {
                     if (node.attributes) { // TODO: watch attribute variables
                         for (var a in node.attributes) {
                             var attr = node.attributes[a]; // TODO: attach events
-                            try {
-                                elm.setAttribute(attr.content, attr.childs.select(
-                                    function (x) { return x.content; }
-                                ).join(''));
-                            } catch (ex) {
 
+                            try {
+                                if (attr.content[0] === '(') {
+                                    var eventName = attr.content.substring(1, attr.content.length - 1);
+                                    var actionContent = attr.childs[0].contentExpression.func;
+                                    console.log(elm, eventName, actionContent);
+                                    elm.addEventListener(eventName, function () {
+                                        actionContent(node.instance, $this);
+                                    });
+                                } else {
+                                    elm.setAttribute(attr.content, attr.childs.select(
+                                        function (x) {
+                                            return x.contentExpression.call
+                                                ? x.contentExpression.func(node.instance, $this)
+                                                : x.contentExpression.content;
+                                        }
+                                    ).join(''));
+                                }
+                            } catch (ex) {
+                                console.error(ex);
                             }
                         }
                     }

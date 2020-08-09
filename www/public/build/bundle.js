@@ -11,6 +11,7 @@ var HomePage = function () {
     this.Increment = function () {
         this.count++;
         priv += "Code";
+        console.log(this.count);
     };
 
     this.Test = function (argument) {
