@@ -118,15 +118,15 @@ var AppComponent = function (
         var test4 = arguments.length > 11 ? arguments[11] : [5, 6];
         this.notificationService = notificationService;
         http = http;
-        this.friend = new Friend ();
-        friend2 = new Friend ();
+        this.friend = new Friend();
+        friend2 = new Friend();
         this.friend.Name = "Jhon Doe " + this.model;
         this.friend.Age = f;
         friend2.Name = "Jhon Doe " + this.model;
         friend2.Age = f;
         var letters = 'abcdefghijklmnopqrstuvwxyz';
         for (var i = 0; i < 3; i++) {
-            var user = new Friend ();
+            var user = new Friend();
             // new user
             user.Name = 'Jhon' + letters[26 - i] + ' Doe' + letters[i];
             user.Age = 30 + i;
@@ -149,8 +149,8 @@ var AppComponent = function (
         test = [5, test];
         f = 98;
         name = 'My name';
-        var http_0 = new HttpClientService ();
-        switch (f) {
+        var http_0 = new HttpClientService();
+        switch(f) {
             case 6: {
                 f = 9;
                 break;
@@ -160,8 +160,8 @@ var AppComponent = function (
                 break;
             }
         }
-        if (false) {
-            if (f > 0) {
+        if(false) {
+            if(f > 0) {
                 console.log(f);
                 console.log(f);
             }
@@ -169,7 +169,7 @@ var AppComponent = function (
                 console.log(f);
                 console.log(f);
             }
-            else if (f > 10 && this.users.length > 3) {
+            else if(f > 10 && this.users.length > 3) {
                 console.log(f);
                 console.log(f);
             }

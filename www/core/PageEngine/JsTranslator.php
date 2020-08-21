@@ -368,7 +368,8 @@ class JsTranslator
                                     $identation
                                 );
                             } else {
-                                $code .= $identation . ($callFunction !== null ? ' ' : '') . '(';
+                                // TODO: put ' ' after if, else, switch, etc.
+                                $code .= $identation . ($callFunction !== null ? '' : '') . '(';
                             }
                             break;
                         }
