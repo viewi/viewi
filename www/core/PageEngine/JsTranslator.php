@@ -117,6 +117,10 @@ class JsTranslator
      * @var array<string,BaseFunctionConverter> $functionConverters
      */
     private static array $functionConverters = [];
+    /** @var array<string,string[]> */
+    private array $variablePathes;
+    private string $currentVariablePath;
+    private bool $collectVariablePath;
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -155,6 +159,14 @@ class JsTranslator
         $this->length = count($this->parts);
         $this->scope = [[]];
         $this->callFunction = null;
+        $this->variablePathes = [];
+        $this->currentVariablePath = '';
+        $this->collectVariablePath = false;
+    }
+
+    public function GetVariablePathes(): array
+    {
+        return $this->variablePathes;
     }
 
     public function Convert(?string $content = null, bool $skipPhpTag = false): string
@@ -242,6 +254,7 @@ class JsTranslator
             $code .= $this->bufferIdentation
                 . $varStatement
                 . $this->buffer;
+            // $this->debug($varStatement . $this->buffer);
             $this->buffer = null;
         }
 
@@ -313,20 +326,27 @@ class JsTranslator
                 if ($keyword == '$this') {
                     $this->thisMatched = true;
                     $nextKeyword = $this->MatchKeyword();
+                    $this->collectVariablePath = true;
+                    $this->currentVariablePath = 'this';
                     if ($nextKeyword === '->') {
                         $this->putIdentation = $identation !== '';
                         // $this->debug($keyword . $nextKeyword);
                         $this->lastKeyword = '->';
+                        $this->currentVariablePath .= '.';
                         continue;
                     }
                     $code .= $identation . 'this';
                     $this->position -= strlen($nextKeyword);
                 } else {
                     $this->thisMatched = false;
+                    if ($this->collectVariablePath) {
+                        $this->currentVariablePath .= $keyword;
+                    }
                 }
                 $varName = substr($keyword, 1);
                 $this->buffer = $varName;
                 $this->bufferIdentation = $identation;
+
                 // $code .= $identation . $varName;
                 // if ($keyword === '$this') {
                 //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
@@ -352,11 +372,27 @@ class JsTranslator
                 $code .= $this->GetVariable($thisMatched);
                 $code .= $identation . $keyword;
                 // $this->position++;
+                if ($this->collectVariablePath) {
+                    $this->currentVariablePath .= $keyword;
+                }
             } else {
                 if ($keyword !== '=') {
                     $code .= $this->GetVariable($thisMatched);
                     if ($this->newVar) {
                         $this->newVar = false;
+                    }
+                }
+                if ($this->collectVariablePath) {
+                    if (ctype_alnum($keyword)) {
+                        $this->currentVariablePath .= $keyword;
+                    } else if ($keyword === '->') {
+                        $this->currentVariablePath .= '.';
+                    } else if ($keyword === '[' || $keyword === ']') {
+                        $this->currentVariablePath .= $keyword;
+                    } else {
+                        $this->collectVariablePath = false;
+                        $this->variablePathes[$this->currentVariablePath] = true;
+                        $this->currentVariablePath = '';
                     }
                 }
                 switch ($keyword) {
@@ -468,6 +504,9 @@ class JsTranslator
                         }
                     case '[': {
                             $code .= $this->ReadArray(']');
+                            if ($this->collectVariablePath) {
+                                $this->currentVariablePath .= ']';
+                            }
                             break;
                         }
                     case 'elseif': {

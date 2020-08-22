@@ -18,6 +18,11 @@ class NotificationService
     {
         $this->http = $http;
         $this->messages = [];
+        $this->messages['test'] = new stdClass();
+        $this->messages[0] = new stdClass();
+        $this->messages[0]->Group[1]->Name = 'Test';
+        $i = 1;
+        $this->messages[$i] = new stdClass();
         $messages = [];
         $this->messages2 = [];
         $messages2 = [];

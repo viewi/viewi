@@ -282,7 +282,10 @@ class PageEngine
         $className = $reflectionClass->getShortName();
         $raw = file_get_contents($reflectionClass->getFileName());
         $translator = new JsTranslator($raw);
-        return $translator->Convert();
+        $jscode = $translator->Convert();
+        $this->debug($className);
+        $this->debug($translator->GetVariablePathes());
+        return $jscode;
     }
 
     /** */
