@@ -248,12 +248,32 @@ class JsTranslator
         return $code;
     }
 
-    public function ReadCodeBlock(...$breakOn): string
+    public function ReadCodeBlock(...$breakOnConditios): string
     {
+        //BreakCondition
+        $breakConditions = [];
+        $breakOn = array_reduce(
+            $breakOnConditios,
+            function ($a, $item) use (&$breakConditions) {
+                if (is_string($item)) {
+                    $a[] = $item;
+                } else if ($item instanceof BreakCondition) {
+                    if ($item->Keyword !== null) {
+                        $a[] = $item->Keyword;
+                        $breakConditions[$item->Keyword] = $item;
+                    }
+                }
+                return $a;
+            },
+            []
+        );
+        // $this->debug($breakOn);
+        // $this->debug($breakConditions);
         $code = '';
         $blocksLevel = 0;
         $lastIdentation = $this->currentIdentation;
         $thisMatched = false;
+        $parenthesisNormal = 0;
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
             // $this->debug($keyword);
@@ -268,10 +288,16 @@ class JsTranslator
             }
 
             if (count($breakOn) > 0 && in_array($keyword, $breakOn)) {
-                $this->lastBreak = $keyword;
-                // $this->debug('Keyword Break: ' . $keyword);
-                $this->position -= strlen($keyword);
-                break;
+                if (
+                    !isset($breakConditions[$keyword])
+                    || $breakConditions[$keyword]->ParenthesisNormal === $parenthesisNormal
+                    || $breakConditions[$keyword]->ParenthesisNormal === null
+                ) {
+                    $this->lastBreak = $keyword;
+                    // $this->debug('Keyword Break: ' . $keyword);
+                    $this->position -= strlen($keyword);
+                    break;
+                }
             }
             $this->lastBreak = null;
             $thisMatched = $this->thisMatched;
@@ -355,6 +381,11 @@ class JsTranslator
                             }
                             break;
                         }
+                    case ')': {
+                            $code .= ')';
+                            $parenthesisNormal--;
+                            break;
+                        }
                     case '(': {
                             if (
                                 $callFunction !== null
@@ -371,6 +402,7 @@ class JsTranslator
                                 // TODO: put ' ' after if, else, switch, etc.
                                 $code .= $identation . ($callFunction !== null ? '' : '') . '(';
                             }
+                            $parenthesisNormal++;
                             break;
                         }
                     case '.': {

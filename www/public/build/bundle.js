@@ -45,7 +45,12 @@ var NotificationService = function (http) {
         messages2 = [];
         var messages2_0 = [];
         this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
-        this.count = [].length;
+        this.count = this.GetArray().length;
+        console.log(this.GetArray().length);
+    };
+
+    this.GetArray = function () {
+        return [1, 2, 3];
     };
 
     this.Notify = function (message) {

@@ -12,7 +12,10 @@ class JsCount extends BaseFunctionConverter
     ): string {
         $code = substr($code, 0, -5);
 
-        $code .= $translator->ReadCodeBlock(')');
+        $breakOn = new BreakCondition();
+        $breakOn->Keyword = ')';
+        $breakOn->ParenthesisNormal = 0;
+        $code .= $translator->ReadCodeBlock($breakOn);
         $translator->SkipToTheSymbol(')');
         $code .= '.length';
         return $code;

@@ -25,9 +25,15 @@ class NotificationService
             + count($messages2)
             + count($this->messages)
             + count($this->messages2);
-        $this->count = count([]);
+        $this->count = count($this->GetArray());
+        echo count($this->GetArray());
     }
-    
+
+    public function GetArray()
+    {
+        return [1, 2, 3];
+    }
+
     public function Notify(string $message): void
     {
         $this->messages[] = $message;
