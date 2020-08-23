@@ -55,7 +55,11 @@ var NotificationService = function (http) {
     };
 
     this.GetArray = function () {
-        return [1, 2, 3];
+        return this.messages;
+    };
+
+    this.GetCount = function () {
+        return this.GetArray().length;
     };
 
     this.Notify = function (message) {

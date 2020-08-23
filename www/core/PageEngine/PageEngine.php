@@ -264,7 +264,7 @@ class PageEngine
                             if (!is_null($argumentClass)) {
                                 $this->buildDependencies($argumentClass);
                                 $className = $argumentClass->getShortName();
-                                $this->compiledJs[$className] = $this->CompileToJs($argumentClass);
+                                $this->CompileToJs($argumentClass);
                             }
                         }
                     } else {
@@ -277,15 +277,17 @@ class PageEngine
         return $dependencies;
     }
 
-    function CompileToJs(ReflectionClass $reflectionClass): string
+    function CompileToJs(ReflectionClass $reflectionClass): void
     {
         $className = $reflectionClass->getShortName();
-        $raw = file_get_contents($reflectionClass->getFileName());
-        $translator = new JsTranslator($raw);
-        $jscode = $translator->Convert();
-        $this->debug($className);
-        $this->debug($translator->GetVariablePathes());
-        return $jscode;
+        if (!isset($this->compiledJs[$className])) {
+            $raw = file_get_contents($reflectionClass->getFileName());
+            $translator = new JsTranslator($raw);
+            $jscode = $translator->Convert();
+            $this->debug($className);
+            $this->debug($translator->GetVariablePathes());
+            $this->compiledJs[$className] = $jscode;
+        }
     }
 
     /** */
@@ -310,6 +312,7 @@ class PageEngine
         // $this->debug($this->sourcePath);
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
+            // $this->debug('Path: '.$filename);
             $componentInfo = new ComponentInfo();
             $className = $reflectionClass->getShortName();
             $filename = $reflectionClass->getFileName();
@@ -333,7 +336,7 @@ class PageEngine
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
             }
-            $this->compiledJs[$className] = $this->CompileToJs($reflectionClass);
+            $this->CompileToJs($reflectionClass);
         }
         $types = $this->getClasses(null, $this->sourcePath);
         foreach ($types as $filename => &$reflectionClass) {

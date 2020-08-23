@@ -36,7 +36,12 @@ class NotificationService
 
     public function GetArray()
     {
-        return [1, 2, 3];
+        return $this->messages;
+    }
+
+    public function GetCount(): int
+    {
+        return count($this->GetArray());
     }
 
     public function Notify(string $message): void

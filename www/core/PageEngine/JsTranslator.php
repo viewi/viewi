@@ -19,6 +19,7 @@ class JsTranslator
     private array $scope;
     private int $scopeLevel = 0;
     private ?string $currentClass = null;
+    private ?string $currentMethod = null;
     private array $allowedOperators = [
         '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*', '//'], '%' => ['%', '%='],
         '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
@@ -121,6 +122,7 @@ class JsTranslator
     private array $variablePathes;
     private string $currentVariablePath;
     private bool $collectVariablePath;
+    private bool $skipVariableKey;
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -162,6 +164,9 @@ class JsTranslator
         $this->variablePathes = [];
         $this->currentVariablePath = '';
         $this->collectVariablePath = false;
+        $this->skipVariableKey = false;
+        $this->currentMethod = null;
+        $this->currentClass = null;
     }
 
     public function GetVariablePathes(): array
@@ -261,6 +266,21 @@ class JsTranslator
         return $code;
     }
 
+    public function StopCollectingVariablePath(): void
+    {
+        $this->collectVariablePath = false;
+        $class = $this->currentClass ?? 'global';
+        $method = $this->currentMethod ?? 'function';
+        if (!isset($this->variablePathes[$class])) {
+            $this->variablePathes[$class] = [];
+        }
+        if (!isset($this->variablePathes[$class][$method])) {
+            $this->variablePathes[$class][$method] = [];
+        }
+        $this->variablePathes[$class][$method][$this->currentVariablePath] = true;
+        $this->currentVariablePath = '';
+    }
+
     public function ReadCodeBlock(...$breakOnConditios): string
     {
         //BreakCondition
@@ -340,7 +360,14 @@ class JsTranslator
                 } else {
                     $this->thisMatched = false;
                     if ($this->collectVariablePath) {
-                        $this->currentVariablePath .= $keyword;
+                        if (
+                            $this->currentVariablePath !== ''
+                            && $this->currentVariablePath[strlen($this->currentVariablePath) - 1] !== '.'
+                        ) {
+                            $this->StopCollectingVariablePath();
+                        } else {
+                            $this->currentVariablePath .= $keyword;
+                        }
                     }
                 }
                 $varName = substr($keyword, 1);
@@ -384,15 +411,25 @@ class JsTranslator
                 }
                 if ($this->collectVariablePath) {
                     if (ctype_alnum($keyword)) {
-                        $this->currentVariablePath .= $keyword;
+                        if (
+                            $this->currentVariablePath !== ''
+                            && $this->currentVariablePath[strlen($this->currentVariablePath) - 1] !== '.'
+                        ) {
+                            $this->StopCollectingVariablePath();
+                        } else {
+                            $this->currentVariablePath .= $keyword;
+                        }
                     } else if ($keyword === '->') {
                         $this->currentVariablePath .= '.';
-                    } else if ($keyword === '[' || $keyword === ']') {
-                        $this->currentVariablePath .= $keyword;
-                    } else {
+                    } else if ($keyword === '[') {
+                        $this->currentVariablePath .= '[key]';
+                        $this->skipVariableKey = true;
                         $this->collectVariablePath = false;
-                        $this->variablePathes[$this->currentVariablePath] = true;
-                        $this->currentVariablePath = '';
+                    } else if ($keyword === '(') {
+                        $this->currentVariablePath .= '()';
+                        $this->StopCollectingVariablePath();
+                    } else {
+                        $this->StopCollectingVariablePath();
                     }
                 }
                 switch ($keyword) {
@@ -504,8 +541,9 @@ class JsTranslator
                         }
                     case '[': {
                             $code .= $this->ReadArray(']');
-                            if ($this->collectVariablePath) {
-                                $this->currentVariablePath .= ']';
+                            if ($this->skipVariableKey) {
+                                $this->collectVariablePath = true;
+                                $this->skipVariableKey = false;
                             }
                             break;
                         }
@@ -804,6 +842,8 @@ class JsTranslator
         $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
             . $functionName . ' = function (';
 
+        $this->currentMethod = $functionName;
+
         $this->scopeLevel++;
         $this->scope[$this->scopeLevel] = [];
         // read function arguments
@@ -842,6 +882,7 @@ class JsTranslator
         if ($constructor) {
             $this->constructors[$this->currentClass] = $arguments;
         }
+        $this->currentMethod = null;
         return $functionCode;
     }
 
