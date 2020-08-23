@@ -33,7 +33,7 @@ var NotificationService = function (http) {
     var http = null;
     /**
      * 
-     * @var string[]
+     * @var mixed[]
      */
     this.messages = [];
     var messages2 = [];

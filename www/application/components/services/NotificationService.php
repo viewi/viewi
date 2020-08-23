@@ -8,7 +8,7 @@ class NotificationService
 
     /**
      * 
-     * @var string[]
+     * @var mixed[]
      */
     public array $messages = [];
 
