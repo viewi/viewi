@@ -284,8 +284,8 @@ class PageEngine
             $raw = file_get_contents($reflectionClass->getFileName());
             $translator = new JsTranslator($raw);
             $jscode = $translator->Convert();
-            $this->debug($className);
-            $this->debug($translator->GetVariablePathes());
+            // $this->debug($className);
+            // $this->debug($translator->GetVariablePathes());
             $this->compiledJs[$className] = $jscode;
         }
     }
@@ -297,6 +297,7 @@ class PageEngine
             return;
         }
         $this->expressionsTranslator = new JsTranslator('');
+        $this->expressionsTranslator->setOuterScope();
         $this->compiledJs = [];
         $this->compiled = true;
         $this->removeDirectory($this->buildPath);
@@ -560,6 +561,9 @@ class PageEngine
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
+        $this->debug($phpCode);
+        $this->debug($tagItem->JsExpression);
+        $this->debug($this->expressionsTranslator->GetVariablePathes());
         return $code;
     }
     /**

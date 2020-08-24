@@ -123,6 +123,7 @@ class JsTranslator
     private string $currentVariablePath;
     private bool $collectVariablePath;
     private bool $skipVariableKey;
+    private bool $expressionScope = false;
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -195,7 +196,7 @@ class JsTranslator
             $this->jsCode .= $this->parts[$this->position];
             $this->position++;
         }
-
+        $this->StopCollectingVariablePath();
         // $this->debug($this->jsCode);
         return $this->jsCode;
     }
@@ -266,19 +267,28 @@ class JsTranslator
         return $code;
     }
 
+    public function setOuterScope()
+    {
+        $this->expressionScope = true;
+    }
+
     public function StopCollectingVariablePath(): void
     {
-        $this->collectVariablePath = false;
-        $class = $this->currentClass ?? 'global';
-        $method = $this->currentMethod ?? 'function';
-        if (!isset($this->variablePathes[$class])) {
-            $this->variablePathes[$class] = [];
+        if ($this->collectVariablePath) {
+            $this->collectVariablePath = false;
+            if ($this->currentVariablePath !== '') {
+                $class = $this->currentClass ?? 'global';
+                $method = $this->currentMethod ?? 'function';
+                if (!isset($this->variablePathes[$class])) {
+                    $this->variablePathes[$class] = [];
+                }
+                if (!isset($this->variablePathes[$class][$method])) {
+                    $this->variablePathes[$class][$method] = [];
+                }
+                $this->variablePathes[$class][$method][$this->currentVariablePath] = true;
+                $this->currentVariablePath = '';
+            }
         }
-        if (!isset($this->variablePathes[$class][$method])) {
-            $this->variablePathes[$class][$method] = [];
-        }
-        $this->variablePathes[$class][$method][$this->currentVariablePath] = true;
-        $this->currentVariablePath = '';
     }
 
     public function ReadCodeBlock(...$breakOnConditios): string
@@ -373,7 +383,10 @@ class JsTranslator
                 $varName = substr($keyword, 1);
                 $this->buffer = $varName;
                 $this->bufferIdentation = $identation;
-
+                if ($this->expressionScope && !$this->collectVariablePath) {
+                    $this->collectVariablePath = true;
+                    $this->currentVariablePath = $varName;
+                }
                 // $code .= $identation . $varName;
                 // if ($keyword === '$this') {
                 //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
