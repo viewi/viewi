@@ -480,65 +480,32 @@ class PageEngine
 
     function convertExpressionToCode(string $expression): string
     {
-        if (!empty($this->componentArguments)) { // exclude variables in scope
-            $parts1 = explode(' ', $expression);
-            foreach ($parts1 as &$item1) {
-                $parts2 = explode('=>', $item1);
-                foreach ($parts2 as &$item2) {
-                    $parts3 = explode('(', $item2);
-                    foreach ($parts3 as &$item3) {
-                        $parts4 = explode('->', $item3, 2);
-                        foreach ($parts4 as &$item4) {
-                            if (strpos($item4, '$') === 0) {
-                                if (!isset($this->componentArguments[$item4])) {
-                                    $item4 = '$component->' . substr($item4, 1);
-                                }
-                            }
-                            break;
-                        }
-                        $item3 = implode('->', $parts4);
+        $keywords = $this->expressionsTranslator->GetKeywords($expression);
+        $newExpression = '';
+        $prefix = '$component->';
+        $count = count($keywords);
+        foreach ($keywords as $i => $keyword) {
+            if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
+                if ($keyword[0] === '$') { // variable
+                    if (isset($this->componentArguments[$keyword])) {
+                        $newExpression .= $keyword;
+                    } else {
+                        $newExpression .= $prefix . substr($keyword, 1);
                     }
-                    $item2 = implode('(', $parts3);
-                }
-                $item1 = implode('=>', $parts2);
-            }
-            //$this->debug($expression);
-            $expression = implode(' ', $parts1);
-            //$this->debug($expression);
-        } else {
-            $expression = implode('$component->', explode('$', $expression));
-        }
-        if (strpos($expression, '(') !== false) {
-            $raw = str_split($expression);
-            $count = count($raw);
-            $methodBegin = false;
-            $beginings = [];
-            for ($i = 0; $i < $count; $i++) {
-                $char = $raw[$i];
-                if ($char === '(') {
-                    if ($methodBegin !== false) {
-                        // validate and add
-                        $beginings[] = $methodBegin;
-                        $methodBegin = false;
+                } else { // method or const or nested property
+                    if ($i > 0 && $keywords[$i - 1] === '->') { // nested property or method
+                        $newExpression .= $keyword;
+                    } else if ($i + 1 < $count && $keywords[$i + 1] === '(') { // method call
+                        $newExpression .= $prefix . $keyword;
+                    } else {
+                        $newExpression .= $keyword;
                     }
                 }
-
-                if (ctype_alnum($char) || $char === '-' || $char === '>') {
-                    if ($methodBegin === false) {
-                        if (ctype_alpha($char)) {
-                            $methodBegin = $i;
-                        }
-                    }
-                } else {
-                    $methodBegin = false;
-                }
-            }
-            $beginings = array_reverse($beginings);
-            foreach ($beginings as $pos) {
-                $expression = substr_replace($expression, '$component->', $pos, 0);
+            } else {
+                $newExpression .= $keyword;
             }
         }
-        return $expression;
+        return $newExpression;
     }
 
     function compileExpression(TagItem $tagItem, $class = null): string // TODO: validate expression
@@ -561,9 +528,9 @@ class PageEngine
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
-        $this->debug($phpCode);
-        $this->debug($tagItem->JsExpression);
-        $this->debug($this->expressionsTranslator->GetVariablePathes());
+        // $this->debug($phpCode);
+        // $this->debug($tagItem->JsExpression);
+        // $this->debug($this->expressionsTranslator->GetVariablePathes());
         return $code;
     }
     /**
@@ -1201,11 +1168,16 @@ class PageEngine
                             if ($attributeName[0] === '(') { // event
                                 $childTag->Skip = true;
                                 $attrValues = $childTag->getChildren();
+                                $newValueContent = '';
                                 foreach ($attrValues as $attrValue) {
-                                    $attrValue->ItsExpression = true;
-                                    $this->compileExpression($attrValue);
-                                    // $this->debug($attrValue->JsExpression);
+                                    $newValueContent .= $attrValue->Content;
                                 }
+                                // replace children with one expression
+                                $newChild = $attrValues[0];
+                                $newChild->Content = $newValueContent;
+                                $childTag->setChildren([$newChild]);
+                                $newChild->ItsExpression = true;
+                                $this->compileExpression($newChild);
                             } else if (strpos($attributeName, '.') !== false) {
                                 $parts = explode('.', $attributeName, 2);
                                 $attributeName = $parts[0];

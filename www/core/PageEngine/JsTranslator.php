@@ -175,6 +175,29 @@ class JsTranslator
         return $this->variablePathes;
     }
 
+    public function GetKeywords(?string $content = null): array
+    {
+        $keywords = [];
+        if ($content !== null) {
+            $this->phpCode = $content;
+            $this->Reset();
+        }
+        while ($keyword = $this->NextKeyword()) {
+            $keywords[] = $keyword;
+        }
+        return $keywords;
+    }
+
+    public function NextKeyword(): ?string
+    {
+        $keyword = $this->MatchKeyword();
+        // $this->debug($keyword);
+        if (!$keyword && $this->position === $this->length) {
+            return null;
+        }
+        return $keyword;
+    }
+
     public function Convert(?string $content = null, bool $skipPhpTag = false): string
     {
         if ($content !== null) {

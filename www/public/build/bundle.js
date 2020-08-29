@@ -1,9 +1,10 @@
 var HomePage = function () {
     this.title = 'Wellcome to my awesome application\'s';
     this.count = 0;
-    this.messages = null;
+    this.messages = [];
     var any = 'Any\\\' var\\';
     var priv = 'Secret';
+    this.json = { Name: 'My App' };
     
     this.__construct = function () {
     };
@@ -16,6 +17,10 @@ var HomePage = function () {
 
     this.Test = function (argument) {
         return 'Test ' + argument;
+    };
+
+    this.GetCount = function () {
+        return this.count;
     };
 
     this.__construct.apply(this, arguments);

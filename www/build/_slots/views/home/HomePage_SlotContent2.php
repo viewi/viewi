@@ -27,7 +27,8 @@ function RenderHomePage_SlotContent2(
     $_content .= '">
             Another count: ';
     $_content .= htmlentities($component->count);
-    $_content .= ' <button>Increment</button>
+    $_content .= ' 
+            <button>Increment</button>
         </div>
     ';
     return $_content;

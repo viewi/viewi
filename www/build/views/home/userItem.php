@@ -22,7 +22,7 @@ function RenderUserItem(
     $_content .= htmlentities($component->title);
     $_content .= '
 ';
-    if($component->user !== null){
+    if($component->user!==null){
     
     $_content .= '
     ';

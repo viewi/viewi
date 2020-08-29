@@ -8,7 +8,8 @@
             Count: $count
         </h4>
         <div class="my-class count-$count">
-            Another count: $count <button (click)="Increment()">Increment</button>
+            Another count: $count 
+            <button (click)="Increment(GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
     </slotContent>
     Just text without slot
