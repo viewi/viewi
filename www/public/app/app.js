@@ -102,10 +102,10 @@ function Edgeon() {
         if (item.expression) {
             var contentExpression = { call: true };
             if (item.raw) {
-                contentExpression.func = new Function('component', 'app', 'return ' + item.code + ';');
+                contentExpression.func = new Function('_component', 'app', 'return ' + item.code + ';');
                 return contentExpression;
             }
-            contentExpression.func = new Function('component', 'app', 'return app.htmlentities(' + item.code + ');');
+            contentExpression.func = new Function('_component', 'app', 'return app.htmlentities(' + item.code + ');');
             return contentExpression;
         }
         return { call: false, content: item.content };
@@ -118,9 +118,14 @@ function Edgeon() {
         var skip = false;
         var node = false;
         for (var i in childs) {
-            var item = childs[i];
+            var item = childs[i];            
             if (item.type === 'text' && node && node.type === 'text') {
                 node.contents[0].push(getDataExpression(item));
+                if (item.subs) {
+                    for (var s in item.subs) {
+                        listenTo(node, item.subs[s]);
+                    }
+                }
                 continue;
             }
             var component = false;
@@ -139,7 +144,7 @@ function Edgeon() {
                 instance: instance
             };
             var domNode = {
-                content: false, // final content
+                ref: null, // final content
                 active: true, // if,else,elseif
                 key: false, // key of foreach iteration
                 item: false, // value of foreach iteration
@@ -148,8 +153,12 @@ function Edgeon() {
             node.domNodes.push(domNode);
             if (item.type === 'component') {
                 component = item.content;
+            }            
+            if (item.subs) {
+                for (var s in item.subs) {
+                    listenTo(node, item.subs[s]);
+                }
             }
-
             if (item.type === 'tag' && item.content === 'slot') {
                 skip = true;
                 var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
@@ -218,76 +227,168 @@ function Edgeon() {
         }
         return currentNodeList;
     };
-    var createDOM = function (parent, nodes) {
-        for (var i in nodes) {
-            var node = nodes[i];
-            var texts = [];
-            for (var i in node.contents[0]) {
-                var contentExpression = node.contents[0][i];
-                texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
-            }
-            var val = texts.join(''); // TODO: process conditions (if,else,elif)
-            var elm = false;
-            switch (node.type) {
-                case 'text': {
-                    if (parent === document) {
-                        elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
-                        break;
-                    }
-                    elm = document.createTextNode(val);
-                    parent.appendChild(elm);
+
+    var createDomNode = function (parent, node) {
+        var texts = [];
+        for (var i in node.contents[0]) {
+            var contentExpression = node.contents[0][i];
+            texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
+        }
+        var val = texts.join(''); // TODO: process conditions (if,else,elif)
+        var elm = false;
+        switch (node.type) {
+            case 'text': {
+                if (parent === document) {
+                    elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
                     break;
                 }
-                case 'tag': {
-                    if (parent === document) {
-                        elm = document.childNodes[1]; // TODO: check for html node
-                        break;
-                    }
-                    if (val === 'script') {
-                        continue; // skip script for now, TODO: process scripts, styles
-                    }
-                    var elm = document.createElement(val);
-                    parent.appendChild(elm);
-                    if (node.attributes) { // TODO: watch attribute variables
-                        for (var a in node.attributes) {
-                            var attr = node.attributes[a]; // TODO: attach events
+                elm = document.createTextNode(val);
+                parent.appendChild(elm);
+                break;
+            }
+            case 'tag': {
+                if (parent === document) {
+                    elm = document.childNodes[1]; // TODO: check for html node
+                    break;
+                }
+                if (val === 'script') {
+                    return; // skip script for now, TODO: process scripts, styles
+                }
+                var elm = document.createElement(val);
+                parent.appendChild(elm);
+                if (node.attributes) { // TODO: watch attribute variables
+                    for (var a in node.attributes) {
+                        var attr = node.attributes[a]; // TODO: attach events
 
-                            try {
-                                if (attr.content[0] === '(') {
-                                    var eventName = attr.content.substring(1, attr.content.length - 1);
-                                    var actionContent = attr.childs[0].contentExpression.func;
-                                    console.log(elm, eventName, actionContent);
-                                    elm.addEventListener(eventName, function () {
-                                        actionContent(node.instance, $this);
-                                    });
-                                } else {
-                                    elm.setAttribute(attr.content, attr.childs.select(
-                                        function (x) {
-                                            return x.contentExpression.call
-                                                ? x.contentExpression.func(node.instance, $this)
-                                                : x.contentExpression.content;
-                                        }
-                                    ).join(''));
-                                }
-                            } catch (ex) {
-                                console.error(ex);
+                        try {
+                            if (attr.content[0] === '(') {
+                                var eventName = attr.content.substring(1, attr.content.length - 1);
+                                var actionContent = attr.childs[0].contentExpression.func;
+                                console.log(elm, eventName, actionContent);
+                                elm.addEventListener(eventName, function () {
+                                    actionContent(node.instance, $this);
+                                });
+                            } else {
+                                elm.setAttribute(attr.content, attr.childs.select(
+                                    function (x) {
+                                        return x.contentExpression.call
+                                            ? x.contentExpression.func(node.instance, $this)
+                                            : x.contentExpression.content;
+                                    }
+                                ).join(''));
                             }
+                        } catch (ex) {
+                            console.error(ex);
                         }
                     }
-                    break;
                 }
-                default:
-                    throw new Error('Node type \'' + item.type + '\' is not implemented.');
+                break;
             }
-            elm && createDOM(elm, node.childs);
+            default:
+                throw new Error('Node type \'' + item.type + '\' is not implemented.');
+        }
+        if (elm) {
+            // clear up
+            if (node.domNodes[0].ref !== null) {
+                //replace node
+                node.domNodes[0].ref.parentNode.replaceChild(elm, node.domNodes[0].ref);
+            }
+            node.domNodes[0].ref = elm;
+        }
+        elm && createDOM(elm, node.childs);
+    }
+
+    var createDOM = function (parent, nodes) {
+        for (var i in nodes) {
+            createDomNode(parent, nodes[i]);
         }
     }
+
+    var nextInstanceId = 0;
+
+    var getInstanceId = function (instance) {
+        if (!('__id' in instance)) {
+            instance.__id = ++nextInstanceId;
+        }
+        return instance.__id;
+    }
+
+    var renderQueue = {};
+    var subscribers = {};
+
+
+    var listenTo = function (node, path) {
+        var iid = getInstanceId(node.instance);
+        if (!(iid in subscribers)) {
+            subscribers[iid] = {};
+        }
+        if (!(path in subscribers[iid])) {
+            subscribers[iid][path] = [];
+        }
+        subscribers[iid][path].push(node);
+    }
+
+    var reRender = function () {
+        for (var path in renderQueue) {
+            for (var i in renderQueue[path]) {
+                var node = renderQueue[path][i];
+                createDomNode(node.domNodes[0].ref.parentNode, node);
+            }
+        }
+        renderQueue = {};
+    }
+
+    var onChange = function (instance, path) {
+        console.log('changed: ', instance, path);
+        var iid = getInstanceId(instance);
+        if (iid in subscribers
+            && path in subscribers[iid]) {
+            renderQueue[iid + '_' + path] = subscribers[iid][path];
+            setTimeout(function () {
+                reRender();
+            }, 0);
+        }
+    };
+
+    var makeReactive = function (obj) {
+        var instance = arguments.length > 1 ? arguments[1] : obj;
+        var path = arguments.length > 2 ? arguments[2] : 'this';
+        if ('__reactive' in obj) {
+            return obj;
+        }
+        obj['__reactive'] = true;
+        var keys = Object.keys(obj);
+        for (var i = 0; i < keys.length; i++) {
+            defineReactive(instance, path + '.' + keys[i], obj, keys[i], obj[keys[i]]);
+        }
+        return obj;
+    };
+
+    var defineReactive = function (instance, path, obj, key, val) {
+        if (val !== null && typeof val === 'object') {
+            makeReactive(val, instance, path);
+        }
+        if (typeof val === 'function') { // reactive methods ???
+            return;
+        }
+        Object.defineProperty(obj, key, {
+            enumerable: true,
+            configurable: true,
+            get: function () {
+                return val;
+            },
+            set: function (newVal) {
+                onChange(instance, path);
+                val = newVal;
+            }
+        });
+    };
 
     var resolve = function (name) {
         // TODO: check scope and/or cache
         var dependencies = $this.components[name].dependencies;
         if (!dependencies) {
-            return new window[name]();
+            return makeReactive(new window[name]());
         }
         var arguments = [];
         for (var i in dependencies) {
@@ -302,7 +403,7 @@ function Edgeon() {
             }
             arguments.push(a);
         }
-        return new (window[name].bind.apply(window[name], arguments))();
+        return makeReactive(new (window[name].bind.apply(window[name], arguments))());
     }
 
     var create = function (name, childNodes) {

@@ -15,18 +15,18 @@ function RenderHomePage_SlotContent2(
 
     $_content .= '
         <h1>';
-    $_content .= htmlentities($component->title);
+    $_content .= htmlentities($_component->title);
     $_content .= '</h1>
         <h4>
             Count: ';
-    $_content .= htmlentities($component->count);
+    $_content .= htmlentities($_component->count);
     $_content .= '
         </h4>
         <div class="my-class count-';
-    $_content .= htmlentities($component->count);
+    $_content .= htmlentities($_component->count);
     $_content .= '">
             Another count: ';
-    $_content .= htmlentities($component->count);
+    $_content .= htmlentities($_component->count);
     $_content .= ' 
             <button>Increment</button>
         </div>

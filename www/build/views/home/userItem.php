@@ -19,14 +19,14 @@ function RenderUserItem(
     $slotContents = [];
     $_content .= '
 ';
-    $_content .= htmlentities($component->title);
+    $_content .= htmlentities($_component->title);
     $_content .= '
 ';
-    if($component->user!==null){
+    if($_component->user!==null){
     
     $_content .= '
     ';
-    $_content .= htmlentities($component->user->Name);
+    $_content .= htmlentities($_component->user->Name);
     $_content .= '
 ';
     } else {

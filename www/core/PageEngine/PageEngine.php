@@ -478,11 +478,12 @@ class PageEngine
         $this->latestPageTemplate = $previousPageTemplate;
     }
 
+    private string $_CompileExpressionPrefix = '$_component->';
     function convertExpressionToCode(string $expression): string
     {
         $keywords = $this->expressionsTranslator->GetKeywords($expression);
         $newExpression = '';
-        $prefix = '$component->';
+
         $count = count($keywords);
         foreach ($keywords as $i => $keyword) {
             if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
@@ -490,13 +491,13 @@ class PageEngine
                     if (isset($this->componentArguments[$keyword])) {
                         $newExpression .= $keyword;
                     } else {
-                        $newExpression .= $prefix . substr($keyword, 1);
+                        $newExpression .= $this->_CompileExpressionPrefix . substr($keyword, 1);
                     }
                 } else { // method or const or nested property
                     if ($i > 0 && $keywords[$i - 1] === '->') { // nested property or method
                         $newExpression .= $keyword;
                     } else if ($i + 1 < $count && $keywords[$i + 1] === '(') { // method call
-                        $newExpression .= $prefix . $keyword;
+                        $newExpression .= $this->_CompileExpressionPrefix . $keyword;
                     } else {
                         $newExpression .= $keyword;
                     }
@@ -528,9 +529,16 @@ class PageEngine
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
+        $subscriptions = array_map(
+            function ($item) {
+                return 'this' . substr($item, strlen($this->_CompileExpressionPrefix) - 3);
+            },
+            array_keys($this->expressionsTranslator->GetVariablePathes()['global']['function'])
+        );
+        $tagItem->Subscriptions = $subscriptions;
         // $this->debug($phpCode);
         // $this->debug($tagItem->JsExpression);
-        // $this->debug($this->expressionsTranslator->GetVariablePathes());
+        // $this->debug($tagItem->Subscriptions);
         return $code;
     }
     /**

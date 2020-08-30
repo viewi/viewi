@@ -15,7 +15,7 @@ function RenderLayout_Slot7(
 
     $_content .= '
         <title>';
-    $_content .= htmlentities($component->title);
+    $_content .= htmlentities($_component->title);
     $_content .= '</title>
     ';
     return $_content;

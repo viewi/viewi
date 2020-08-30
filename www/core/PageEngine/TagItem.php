@@ -10,6 +10,7 @@ class TagItem
     public bool $Skip = false;
     private ?TagItem $Parent;
     public ?string $JsExpression = null;
+    public ?array $Subscriptions = null;
     public bool $RawHtml = false;
 
     /** @var TagItem[] */
@@ -24,6 +25,9 @@ class TagItem
         $node['expression'] = $this->ItsExpression;
         if ($this->ItsExpression) {
             $node['code'] = $this->JsExpression;
+            if ($this->Subscriptions != null) {
+                $node['subs'] = $this->Subscriptions;
+            }
             if ($this->RawHtml) {
                 $node['raw'] = true;
             }

@@ -17,6 +17,8 @@ class HomePage extends BaseComponent
     function Increment()
     {
         $this->count++;
+        $this->json['Name'] = 'New name';
+        $this->count++;
         $this->priv .= "Code";
         echo $this->count;
     }

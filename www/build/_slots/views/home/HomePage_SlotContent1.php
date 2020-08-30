@@ -15,9 +15,9 @@ function RenderHomePage_SlotContent1(
 
     $_content .= '
         <title>';
-    $_content .= htmlentities($component->count);
+    $_content .= htmlentities($_component->count);
     $_content .= ' ';
-    $_content .= htmlentities($component->title);
+    $_content .= htmlentities($_component->title);
     $_content .= '</title>
     ';
     return $_content;
