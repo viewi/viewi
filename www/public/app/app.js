@@ -76,7 +76,7 @@ Object.defineProperty(Array.prototype, 'each', {
     enumerable: false,
     value: function (x) {
         for (var k in this) {
-            x(this[k]);
+            x(this[k], k);
         }
         return this;
     }
@@ -206,6 +206,8 @@ function Edgeon() {
             if (item.attributes) {
                 node.attributes = item.attributes.each(
                     function (a) {
+                        a.isAttribute = true;
+                        a.parent = node;
                         a.contentExpression = getDataExpression(a);
                         a.childs.each(
                             function (v) {
@@ -217,6 +219,11 @@ function Edgeon() {
                                 }
                             }
                         );
+                        if (a.subs) {
+                            for (var s in a.subs) {
+                                listenTo(a, a.subs[s]);
+                            }
+                        }
                     }
                 );
             }
@@ -232,6 +239,29 @@ function Edgeon() {
         }
         return currentNodeList;
     };
+
+    var renderAttribute = function (elm, attr) {
+        try {
+            if (attr.content[0] === '(') { // TODO: attach event only once
+                var eventName = attr.content.substring(1, attr.content.length - 1);
+                var actionContent = attr.childs[0].contentExpression.func;
+                console.log(elm, eventName, actionContent); // TODO: attach event data $event
+                elm.addEventListener(eventName, function () {
+                    actionContent(attr.parent.instance, $this);
+                });
+            } else {
+                elm.setAttribute(attr.content, attr.childs.select(
+                    function (x) {
+                        return x.contentExpression.call
+                            ? x.contentExpression.func(attr.parent.instance, $this)
+                            : x.contentExpression.content;
+                    }
+                ).join(''));
+            }
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
 
     var createDomNode = function (parent, node) {
         var texts = [];
@@ -263,27 +293,7 @@ function Edgeon() {
                 parent.appendChild(elm);
                 if (node.attributes) { // TODO: watch attribute variables
                     for (var a in node.attributes) {
-                        var attr = node.attributes[a];
-                        try {
-                            if (attr.content[0] === '(') {
-                                var eventName = attr.content.substring(1, attr.content.length - 1);
-                                var actionContent = attr.childs[0].contentExpression.func;
-                                console.log(elm, eventName, actionContent); // TODO: attach event data $event
-                                elm.addEventListener(eventName, function () {
-                                    actionContent(node.instance, $this);
-                                });
-                            } else {
-                                elm.setAttribute(attr.content, attr.childs.select(
-                                    function (x) {
-                                        return x.contentExpression.call
-                                            ? x.contentExpression.func(node.instance, $this)
-                                            : x.contentExpression.content;
-                                    }
-                                ).join(''));
-                            }
-                        } catch (ex) {
-                            console.error(ex);
-                        }
+                        renderAttribute(elm, node.attributes[a]);
                     }
                 }
                 break;
@@ -322,7 +332,9 @@ function Edgeon() {
 
 
     var listenTo = function (node, path) {
-        var iid = getInstanceId(node.instance);
+        var isAttribute = node.isAttribute;
+        var instance = isAttribute ? node.parent.instance : node.instance;
+        var iid = getInstanceId(instance);
         if (!(iid in subscribers)) {
             subscribers[iid] = {};
         }
@@ -336,7 +348,11 @@ function Edgeon() {
         for (var path in renderQueue) {
             for (var i in renderQueue[path]) {
                 var node = renderQueue[path][i];
-                createDomNode(node.domNodes[0].ref.parentNode, node);
+                if (node.isAttribute) {
+                    renderAttribute(node.parent.domNodes[0].ref, node);
+                } else {
+                    createDomNode(node.domNodes[0].ref.parentNode, node);
+                }
             }
         }
         renderQueue = {};
