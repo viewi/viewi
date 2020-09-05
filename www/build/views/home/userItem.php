@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderUserItem(
-    \UserItem $component,
+    \UserItem $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -15,14 +15,14 @@ function RenderUserItem(
 
     $_content .= 'USER: ';
     $slotContents[0] = 'UserItem_Slot6';
-    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot6', $component, $slotContents, [], ...$scope);
+    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot6', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
 ';
     $_content .= htmlentities($_component->title);
     $_content .= '
 ';
-    if($_component->user!==null){
+    if($_component->user !== null){
     
     $_content .= '
     ';

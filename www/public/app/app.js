@@ -118,7 +118,7 @@ function Edgeon() {
         var skip = false;
         var node = false;
         for (var i in childs) {
-            var item = childs[i];            
+            var item = childs[i];
             if (item.type === 'text' && node && node.type === 'text') {
                 node.contents[0].push(getDataExpression(item));
                 if (item.subs) {
@@ -153,7 +153,7 @@ function Edgeon() {
             node.domNodes.push(domNode);
             if (item.type === 'component') {
                 component = item.content;
-            }            
+            }
             if (item.subs) {
                 for (var s in item.subs) {
                     listenTo(node, item.subs[s]);
@@ -210,6 +210,11 @@ function Edgeon() {
                         a.childs.each(
                             function (v) {
                                 v.contentExpression = getDataExpression(v);
+                                if (v.subs) {
+                                    for (var s in v.subs) {
+                                        listenTo(a, v.subs[s]);
+                                    }
+                                }
                             }
                         );
                     }
@@ -254,17 +259,16 @@ function Edgeon() {
                 if (val === 'script') {
                     return; // skip script for now, TODO: process scripts, styles
                 }
-                var elm = document.createElement(val);
+                elm = document.createElement(val);
                 parent.appendChild(elm);
                 if (node.attributes) { // TODO: watch attribute variables
                     for (var a in node.attributes) {
-                        var attr = node.attributes[a]; // TODO: attach events
-
+                        var attr = node.attributes[a];
                         try {
                             if (attr.content[0] === '(') {
                                 var eventName = attr.content.substring(1, attr.content.length - 1);
                                 var actionContent = attr.childs[0].contentExpression.func;
-                                console.log(elm, eventName, actionContent);
+                                console.log(elm, eventName, actionContent); // TODO: attach event data $event
                                 elm.addEventListener(eventName, function () {
                                     actionContent(node.instance, $this);
                                 });

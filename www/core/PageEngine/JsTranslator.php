@@ -124,6 +124,7 @@ class JsTranslator
     private bool $collectVariablePath;
     private bool $skipVariableKey;
     private bool $expressionScope = false;
+    private string $latestSpaces;
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -177,13 +178,17 @@ class JsTranslator
 
     public function GetKeywords(?string $content = null): array
     {
-        $keywords = [];
+        $keywords = [
+            [], // keyword
+            [] // space before
+        ];
         if ($content !== null) {
             $this->phpCode = $content;
             $this->Reset();
         }
         while ($keyword = $this->NextKeyword()) {
-            $keywords[] = $keyword;
+            $keywords[0][] = $keyword;
+            $keywords[1][] = $this->latestSpaces;
         }
         return $keywords;
     }
@@ -1177,6 +1182,7 @@ class JsTranslator
         $keyword = '';
         $firstType = false;
         $operatorKey = false;
+        $this->latestSpaces = '';
         while ($this->position < $this->length) {
             if (
                 ctype_alnum($this->parts[$this->position])
@@ -1217,10 +1223,11 @@ class JsTranslator
                     break;
                 }
                 $keyword .= $this->parts[$this->position];
-            } else {
+            } else { // spaces
                 if ($keyword !== '') {
                     break;
                 }
+                $this->latestSpaces .= $this->parts[$this->position];
             }
             // if (isset($this->haltSymbols[$keyword])) {
             //     break;

@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderHomePage(
-    \HomePage $component,
+    \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -18,7 +18,7 @@ function RenderHomePage(
     $slotContents['body'] = 'HomePage_SlotContent2';
 
     $slotContents[0] = 'HomePage_Slot3';
-    $_content .= $pageEngine->renderComponent('Layout', $component, $slotContents, [], ...$scope);
+    $_content .= $pageEngine->renderComponent('Layout', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;
    

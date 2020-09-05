@@ -79,6 +79,8 @@ class PageEngine
      * @var bool true: return string, false: echo
      */
     private bool $renderReturn;
+    private string $_CompileComponentName = '$_component';
+    private string $_CompileExpressionPrefix;
     public function __construct(
         string $sourcePath,
         string $buildPath,
@@ -296,6 +298,7 @@ class PageEngine
         if ($this->compiled) {
             return;
         }
+        $this->_CompileExpressionPrefix = $this->_CompileComponentName . '->';
         $this->expressionsTranslator = new JsTranslator('');
         $this->expressionsTranslator->setOuterScope();
         $this->compiledJs = [];
@@ -478,10 +481,12 @@ class PageEngine
         $this->latestPageTemplate = $previousPageTemplate;
     }
 
-    private string $_CompileExpressionPrefix = '$_component->';
+
     function convertExpressionToCode(string $expression): string
     {
-        $keywords = $this->expressionsTranslator->GetKeywords($expression);
+        $keywordsList = $this->expressionsTranslator->GetKeywords($expression);
+        $keywords = $keywordsList[0];
+        $spaces = $keywordsList[1];
         $newExpression = '';
 
         $count = count($keywords);
@@ -489,9 +494,9 @@ class PageEngine
             if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
                     if (isset($this->componentArguments[$keyword])) {
-                        $newExpression .= $keyword;
+                        $newExpression .= $spaces[$i] . $keyword;
                     } else {
-                        $newExpression .= $this->_CompileExpressionPrefix . substr($keyword, 1);
+                        $newExpression .= $spaces[$i] . $this->_CompileExpressionPrefix . substr($keyword, 1);
                     }
                 } else { // method or const or nested property
                     if ($i > 0 && $keywords[$i - 1] === '->') { // nested property or method
@@ -499,11 +504,11 @@ class PageEngine
                     } else if ($i + 1 < $count && $keywords[$i + 1] === '(') { // method call
                         $newExpression .= $this->_CompileExpressionPrefix . $keyword;
                     } else {
-                        $newExpression .= $keyword;
+                        $newExpression .= $spaces[$i] . $keyword;
                     }
                 }
             } else {
-                $newExpression .= $keyword;
+                $newExpression .= $spaces[$i] . $keyword;
             }
         }
         return $newExpression;
@@ -529,13 +534,16 @@ class PageEngine
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
-        $subscriptions = array_map(
-            function ($item) {
-                return 'this' . substr($item, strlen($this->_CompileExpressionPrefix) - 3);
-            },
-            array_keys($this->expressionsTranslator->GetVariablePathes()['global']['function'])
-        );
-        $tagItem->Subscriptions = $subscriptions;
+        $detectedReferences = $this->expressionsTranslator->GetVariablePathes();
+        if (isset($detectedReferences['global'])) {
+            $subscriptions = array_map(
+                function ($item) {
+                    return 'this' . substr($item, strlen($this->_CompileExpressionPrefix) - 3);
+                },
+                array_keys($detectedReferences['global']['function'])
+            );
+            $tagItem->Subscriptions = $subscriptions;
+        }
         // $this->debug($phpCode);
         // $this->debug($tagItem->JsExpression);
         // $this->debug($tagItem->Subscriptions);
@@ -720,7 +728,7 @@ class PageEngine
                 $this->identation . "\$slotContents[0] = $slotsExpression;" .
                 PHP_EOL . $this->identation . "$codeMiddle\$pageEngine->renderComponent(" .
                 "$componentName, " .
-                "\$component, " .
+                "{$this->_CompileComponentName}, " .
                 "\$slotContents, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
@@ -763,7 +771,7 @@ class PageEngine
         if (!$defaultContent) {
             $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, \$component, [], []); $codeEnd";
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, {$this->_CompileComponentName}, [], []); $codeEnd";
         }
     }
     function flushBuffer(string &$html, string &$codeToAppend)
@@ -1198,6 +1206,8 @@ class PageEngine
                                     if ($valueToReplace !== false) {
                                         $attrValueItem->Content = "{$attrValueItem->Content} ? ' $valueToReplace' : ''";
                                         $newChildren[$attributeName]->addChild($attrValueItem);
+                                        // $this->debug($attrValueItem->Content);
+                                        // $this->debug($attrValueItem->ItsExpression);
                                         break;
                                     } else {
                                         if ($firstTime) {

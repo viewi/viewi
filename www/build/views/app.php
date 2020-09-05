@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderAppComponent(
-    Silly\MyApp\AppComponent $component,
+    Silly\MyApp\AppComponent $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -16,7 +16,7 @@ function RenderAppComponent(
     $slotContents['body'] = 'AppComponent_SlotContent4';
 
     $slotContents[0] = 'AppComponent_Slot5';
-    $_content .= $pageEngine->renderComponent('Layout', $component, $slotContents, [], ...$scope);
+    $_content .= $pageEngine->renderComponent('Layout', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;
    

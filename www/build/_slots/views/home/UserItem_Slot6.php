@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderUserItem_Slot6(
-    \UserItem $component,
+    \UserItem $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope

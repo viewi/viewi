@@ -7,7 +7,7 @@ include 'application/components/views/app.php';
 include 'application/components/views/home/home.php';
 
 $develop = true;
-$renderReturn = true;
+$renderReturn = false;
 
 $page = new Vo\PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',

@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderHomePage_SlotContent2(
-    \HomePage $component,
+    \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -24,6 +24,10 @@ function RenderHomePage_SlotContent2(
         </h4>
         <div class="my-class count-';
     $_content .= htmlentities($_component->count);
+    $_content .= '';
+    $_content .= htmlentities($_component->title ? ' show' : '');
+    $_content .= '';
+    $_content .= htmlentities($_component->title ? ' lg' : '');
     $_content .= '">
             Another count: ';
     $_content .= htmlentities($_component->count);

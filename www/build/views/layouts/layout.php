@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderLayout(
-    \Layout $component,
+    \Layout $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -19,7 +19,7 @@ function RenderLayout(
 <head>
     ';
     $slotContents[0] = 'Layout_Slot7';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot7', $component, $slotContents, [], ...$scope);
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot7', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
     <style>
@@ -57,10 +57,10 @@ function RenderLayout(
 
 <body>
     ';
-    $_content .= $pageEngine->renderComponent($slots['body'], $component, [], []); 
+    $_content .= $pageEngine->renderComponent($slots['body'], $_component, [], []); 
     $_content .= '
     ';
-    $_content .= $pageEngine->renderComponent($slots[0], $component, [], []); 
+    $_content .= $pageEngine->renderComponent($slots[0], $_component, [], []); 
     $_content .= '
 </body>
 

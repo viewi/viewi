@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderHomePage_Slot3(
-    \HomePage $component,
+    \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope

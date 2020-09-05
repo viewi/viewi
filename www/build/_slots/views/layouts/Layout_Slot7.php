@@ -4,7 +4,7 @@ use Vo\PageEngine;
 use Vo\BaseComponent;
 
 function RenderLayout_Slot7(
-    \Layout $component,
+    \Layout $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
