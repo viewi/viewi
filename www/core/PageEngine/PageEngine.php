@@ -482,7 +482,7 @@ class PageEngine
     }
 
 
-    function convertExpressionToCode(string $expression): string
+    function convertExpressionToCode(string $expression, array $reserved = []): string
     {
         $keywordsList = $this->expressionsTranslator->GetKeywords($expression);
         $keywords = $keywordsList[0];
@@ -491,7 +491,9 @@ class PageEngine
 
         $count = count($keywords);
         foreach ($keywords as $i => $keyword) {
-            if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
+            if (isset($reserved[$keyword])) {
+                $newExpression .= $spaces[$i] . $keyword;
+            } else if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
                     if (isset($this->componentArguments[$keyword])) {
                         $newExpression .= $spaces[$i] . $keyword;
@@ -514,21 +516,21 @@ class PageEngine
         return $newExpression;
     }
 
-    function compileExpression(TagItem $tagItem, $class = null): string // TODO: validate expression
+    function compileExpression(TagItem $tagItem, array $reserved = []): string // TODO: validate expression
     {
         $expression = $tagItem->Content;
         $code = '';
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
             // raw html
             $code = $this->renderReturn ? '' : '<?=';
-            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2));
+            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
             $code .= $phpCode;
             $code .= $this->renderReturn ? '' : '?>';
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             $tagItem->RawHtml = true;
         } else {
             $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
-            $phpCode = $this->convertExpressionToCode($expression);
+            $phpCode = $this->convertExpressionToCode($expression, $reserved);
             $code .= $phpCode;
             $code .= ')' . ($this->renderReturn ? '' : '?>');
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
@@ -1193,7 +1195,7 @@ class PageEngine
                                 $newChild->Content = $newValueContent;
                                 $childTag->setChildren([$newChild]);
                                 $newChild->ItsExpression = true;
-                                $this->compileExpression($newChild);
+                                $this->compileExpression($newChild, ['$event' => true]);
                             } else if (strpos($attributeName, '.') !== false) {
                                 $parts = explode('.', $attributeName, 2);
                                 $attributeName = $parts[0];

@@ -14,13 +14,14 @@ class HomePage extends BaseComponent
     {
     }
 
-    function Increment()
+    function Increment($event)
     {
         $this->count++;
         $this->json['Name'] = 'New name';
         $this->count++;
         $this->priv .= "Code";
         echo $this->count;
+        echo $event;
     }
 
     public function Test($argument): string

@@ -9,12 +9,13 @@ var HomePage = function () {
     this.__construct = function () {
     };
 
-    this.Increment = function () {
+    this.Increment = function (event) {
         this.count++;
         this.json['Name'] = 'New name';
         this.count++;
         priv += "Code";
         console.log(this.count);
+        console.log(event);
     };
 
     this.Test = function (argument) {

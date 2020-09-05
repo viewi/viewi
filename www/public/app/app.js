@@ -99,13 +99,22 @@ function Edgeon() {
     var currentComponent = null;
 
     var getDataExpression = function (item) {
+        var itsEvent = arguments.length > 1 && arguments[1];
         if (item.expression) {
             var contentExpression = { call: true };
             if (item.raw) {
-                contentExpression.func = new Function('_component', 'app', 'return ' + item.code + ';');
+                if (itsEvent) {
+                    contentExpression.func = new Function('_component', 'app', 'event', 'return ' + item.code + ';');
+                } else {
+                    contentExpression.func = new Function('_component', 'app', 'return ' + item.code + ';');
+                }
                 return contentExpression;
             }
-            contentExpression.func = new Function('_component', 'app', 'return app.htmlentities(' + item.code + ');');
+            if (itsEvent) {
+                contentExpression.func = new Function('_component', 'app', 'event', 'return app.htmlentities(' + item.code + ');');
+            } else {
+                contentExpression.func = new Function('_component', 'app', 'return app.htmlentities(' + item.code + ');');
+            }
             return contentExpression;
         }
         return { call: false, content: item.content };
@@ -206,20 +215,21 @@ function Edgeon() {
             if (item.attributes) {
                 node.attributes = item.attributes.each(
                     function (a) {
+                        var itsEvent = a.content[0] === '(';
                         a.isAttribute = true;
                         a.parent = node;
                         a.contentExpression = getDataExpression(a);
                         a.childs.each(
                             function (v) {
-                                v.contentExpression = getDataExpression(v);
-                                if (v.subs) {
+                                v.contentExpression = getDataExpression(v, itsEvent);
+                                if (v.subs && !itsEvent) {
                                     for (var s in v.subs) {
                                         listenTo(a, v.subs[s]);
                                     }
                                 }
                             }
                         );
-                        if (a.subs) {
+                        if (a.subs && !itsEvent) {
                             for (var s in a.subs) {
                                 listenTo(a, a.subs[s]);
                             }
@@ -246,8 +256,8 @@ function Edgeon() {
                 var eventName = attr.content.substring(1, attr.content.length - 1);
                 var actionContent = attr.childs[0].contentExpression.func;
                 console.log(elm, eventName, actionContent); // TODO: attach event data $event
-                elm.addEventListener(eventName, function () {
-                    actionContent(attr.parent.instance, $this);
+                elm.addEventListener(eventName, function ($event) {
+                    actionContent(attr.parent.instance, $this, $event);
                 });
             } else {
                 elm.setAttribute(attr.content, attr.childs.select(
