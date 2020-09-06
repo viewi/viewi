@@ -18,7 +18,7 @@ class HomePage extends BaseComponent
     {
         $this->count++;
         $this->json['Name'] = 'New name';
-        $this->count++;
+        // $this->count++;
         $this->priv .= "Code";
         echo $this->count;
         echo $event;

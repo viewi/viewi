@@ -95,7 +95,6 @@ function Edgeon() {
                 $this.render('HomePage');
             });
     };
-    var nodes = [];
     var currentComponent = null;
 
     var getDataExpression = function (item) {
@@ -144,7 +143,7 @@ function Edgeon() {
                 childs: [], // TODO: process foreach
                 contents: [values], // condition groups (if, else, elif)
                 conditions: [true], // collection of expressions (if,else,elseif)
-                parent: parent,
+                parent: parent, // TODO: make imutable
                 count: 1, // 0 - hidden, 1 - show, > 1 - foreach
                 take: 1, // 1 - default, > 1 - <template or <component, take next n items
                 skip: false, // if was taken by previous then false
@@ -157,7 +156,7 @@ function Edgeon() {
                 active: true, // if,else,elseif
                 key: false, // key of foreach iteration
                 item: false, // value of foreach iteration
-                parent: node
+                parent: node // TODO: ??? do we need this reference
             };
             node.domNodes.push(domNode);
             if (item.type === 'component') {
@@ -213,27 +212,33 @@ function Edgeon() {
                 childNodes = build(item, instance, stack);
             }
             if (item.attributes) {
-                node.attributes = item.attributes.each(
+                node.attributes = item.attributes.select(
                     function (a) {
+                        var copy = {};
                         var itsEvent = a.content[0] === '(';
-                        a.isAttribute = true;
-                        a.parent = node;
-                        a.contentExpression = getDataExpression(a);
-                        a.childs.each(
+                        copy.content = a.content;
+                        copy.isAttribute = true;
+                        copy.parent = node;
+                        copy.contentExpression = getDataExpression(a);
+                        copy.childs = a.childs.select(
                             function (v) {
-                                v.contentExpression = getDataExpression(v, itsEvent);
+                                var valCopy = {};
+                                valCopy.contentExpression = getDataExpression(v, itsEvent);
+                                valCopy.content = v.content;
                                 if (v.subs && !itsEvent) {
                                     for (var s in v.subs) {
-                                        listenTo(a, v.subs[s]);
+                                        listenTo(copy, v.subs[s]);
                                     }
                                 }
+                                return valCopy;
                             }
                         );
                         if (a.subs && !itsEvent) {
                             for (var s in a.subs) {
-                                listenTo(a, a.subs[s]);
+                                listenTo(copy, a.subs[s]);
                             }
                         }
+                        return copy;
                     }
                 );
             }
@@ -255,7 +260,7 @@ function Edgeon() {
             if (attr.content[0] === '(') { // TODO: attach event only once
                 var eventName = attr.content.substring(1, attr.content.length - 1);
                 var actionContent = attr.childs[0].contentExpression.func;
-                console.log(elm, eventName, actionContent); // TODO: attach event data $event
+                console.log(elm, eventName, attr.childs); // TODO: attach event data $event
                 elm.addEventListener(eventName, function ($event) {
                     actionContent(attr.parent.instance, $this, $event);
                 });
@@ -270,6 +275,7 @@ function Edgeon() {
             }
         } catch (ex) {
             console.error(ex);
+            console.log(attr.content);
         }
     }
 
@@ -369,7 +375,7 @@ function Edgeon() {
     }
 
     var onChange = function (instance, path) {
-        console.log('changed: ', instance, path);
+        // console.log('changed: ', instance, path);
         var iid = getInstanceId(instance);
         if (iid in subscribers
             && path in subscribers[iid]) {
@@ -453,7 +459,7 @@ function Edgeon() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
-        nodes = create(name);
+        var nodes = create(name);
         // document.childNodes[1].remove();
         console.log(nodes);
         createDOM(document, nodes);

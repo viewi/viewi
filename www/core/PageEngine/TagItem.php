@@ -25,6 +25,7 @@ class TagItem
         $node['expression'] = $this->ItsExpression;
         if ($this->ItsExpression) {
             $node['code'] = $this->JsExpression;
+            unset($node['content']);
             if ($this->Subscriptions != null) {
                 $node['subs'] = $this->Subscriptions;
             }

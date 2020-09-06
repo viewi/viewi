@@ -12,7 +12,7 @@ var HomePage = function () {
     this.Increment = function (event) {
         this.count++;
         this.json['Name'] = 'New name';
-        this.count++;
+        // $this->count++;
         priv += "Code";
         console.log(this.count);
         console.log(event);
