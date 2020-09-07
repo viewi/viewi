@@ -98,22 +98,20 @@ function Edgeon() {
     var currentComponent = null;
 
     var getDataExpression = function (item) {
+        // Function.apply(null, ['a', 'return a;'])
         var itsEvent = arguments.length > 1 && arguments[1];
         if (item.expression) {
             var contentExpression = { call: true };
-            if (item.raw) {
-                if (itsEvent) {
-                    contentExpression.func = new Function('_component', 'app', 'event', 'return ' + item.code + ';');
-                } else {
-                    contentExpression.func = new Function('_component', 'app', 'return ' + item.code + ';');
-                }
-                return contentExpression;
-            }
+            var args = ['_component', 'app'];
             if (itsEvent) {
-                contentExpression.func = new Function('_component', 'app', 'event', 'return app.htmlentities(' + item.code + ');');
-            } else {
-                contentExpression.func = new Function('_component', 'app', 'return app.htmlentities(' + item.code + ');');
+                args.push('event');
             }
+            if (item.raw) {
+                args.push('return ' + item.code + ';');
+            } else {
+                args.push('return app.htmlentities(' + item.code + ');');
+            }
+            contentExpression.func = Function.apply(null, args);
             return contentExpression;
         }
         return { call: false, content: item.content };
@@ -127,8 +125,8 @@ function Edgeon() {
         var node = false;
         for (var i in childs) {
             var item = childs[i];
-            if (item.type === 'text' && node && node.type === 'text') {
-                node.contents[0].push(getDataExpression(item));
+            if (item.type === 'text' && node && node.contents[0].type === 'text') {
+                node.contents[0].values.push(getDataExpression(item));
                 if (item.subs) {
                     for (var s in item.subs) {
                         listenTo(node, item.subs[s]);
@@ -137,28 +135,23 @@ function Edgeon() {
                 continue;
             }
             var component = false;
-            var values = [getDataExpression(item)]; // text groups
-            node = {
+            var content = {
                 type: item.type,
-                childs: [], // TODO: process foreach
-                contents: [values], // condition groups (if, else, elif)
-                conditions: [true], // collection of expressions (if,else,elseif)
+                values: [getDataExpression(item)],
+                domNode: null // DOM node if rendered
+            };
+
+            node = {
+                // TODO: process foreach
+                contents: [content], // condition groups (if, else, elif)
+                // conditions: [true], // collection of expressions (if,else,elseif)
                 parent: parent, // TODO: make imutable
                 count: 1, // 0 - hidden, 1 - show, > 1 - foreach
                 take: 1, // 1 - default, > 1 - <template or <component, take next n items
                 skip: false, // if was taken by previous then false
                 data: false, // foreach target here
-                domNodes: [], // DOM node if rendered
                 instance: instance
             };
-            var domNode = {
-                ref: null, // final content
-                active: true, // if,else,elseif
-                key: false, // key of foreach iteration
-                item: false, // value of foreach iteration
-                parent: node // TODO: ??? do we need this reference
-            };
-            node.domNodes.push(domNode);
             if (item.type === 'component') {
                 component = item.content;
             }
@@ -177,8 +170,8 @@ function Edgeon() {
                 if (slotNameItem) {
                     slotName = slotNameItem.childs[0].content;
                     slotNameExpression = function (x) {
-                        return x.attributes
-                            && x.attributes.first(function (y) {
+                        return x.contents[0].attributes
+                            && x.contents[0].attributes.first(function (y) {
                                 return y.content === 'name'
                                     && y.childs[0].content === slotName;
                             });
@@ -188,17 +181,17 @@ function Edgeon() {
                 if (stack) {
                     if (slotName === 0) {
                         var items = stack.where(function (x) {
-                            return x.contents[0][0].content !== 'slotContent';
+                            return x.contents[0].values[0].content !== 'slotContent';
                         });
                         currentNodeList = currentNodeList.concat(items);
                     } else {
                         var slotContent = stack.first(function (x) {
-                            return x.type === 'tag'
-                                && x.contents[0][0].content === 'slotContent'
+                            return x.contents[0].type === 'tag'
+                                && x.contents[0].values[0].content === 'slotContent'
                                 && slotNameExpression(x);
                         });
                         if (slotContent) {
-                            currentNodeList = currentNodeList.concat(slotContent.childs);
+                            currentNodeList = currentNodeList.concat(slotContent.contents[0].childs);
                         }
                     }
                 }
@@ -212,7 +205,7 @@ function Edgeon() {
                 childNodes = build(item, instance, stack);
             }
             if (item.attributes) {
-                node.attributes = item.attributes.select(
+                node.contents[0].attributes = item.attributes.select(
                     function (a) {
                         var copy = {};
                         var itsEvent = a.content[0] === '(';
@@ -249,7 +242,7 @@ function Edgeon() {
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
-                    node.childs = childNodes;
+                    node.contents[0].childs = childNodes;
                 }
                 currentNodeList.push(node);
             }
@@ -286,57 +279,60 @@ function Edgeon() {
         }
     }
 
-    var createDomNode = function (parent, node) {
+    var createDomNode = function (parent, nodesList) {
         var texts = [];
-        for (var i in node.contents[0]) {
-            var contentExpression = node.contents[0][i];
-            texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
-        }
-        var val = texts.join(''); // TODO: process conditions (if,else,elif)
-        var elm = false;
-        switch (node.type) {
-            case 'text': {
-                if (parent === document) {
-                    elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
-                    break;
-                }
-                if (node.domNodes[0].ref !== null) {
-                    node.domNodes[0].ref.nodeValue = val;
-                    elm = node.domNodes[0].ref;
-                } else {
-                    elm = document.createTextNode(val);
-                    parent.appendChild(elm);
-                    node.domNodes[0].ref = elm;
-                }
-                break;
+        for (var k in nodesList.contents) {
+            var node = nodesList.contents[k];
+            for (var i in node.values) {
+                var contentExpression = node.values[i];
+                texts.push(contentExpression.call ? contentExpression.func(nodesList.instance, $this) : contentExpression.content);
             }
-            case 'tag': {
-                if (parent === document) {
-                    elm = document.childNodes[1]; // TODO: check for html node
-                    node.domNodes[0].ref = elm;
-                    break;
-                }
-                if (val === 'script') {
-                    return; // skip script for now, TODO: process scripts, styles
-                }
-                elm = document.createElement(val);
-                if (node.domNodes[0].ref !== null) {
-                    node.domNodes[0].ref.parentNode.replaceChild(elm, node.domNodes[0].ref);
-                } else {
-                    parent.appendChild(elm);
-                }
-                node.domNodes[0].ref = elm;
-                if (node.attributes) {
-                    for (var a in node.attributes) {
-                        renderAttribute(elm, node.attributes[a]);
+            var val = texts.join(''); // TODO: process conditions (if,else,elif)
+            var elm = false;
+            switch (node.type) {
+                case 'text': {
+                    if (parent === document) {
+                        elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
+                        break;
                     }
+                    if (node.domNode !== null) {
+                        node.domNode.nodeValue = val;
+                        elm = node.domNode;
+                    } else {
+                        elm = document.createTextNode(val);
+                        parent.appendChild(elm);
+                        node.domNode = elm;
+                    }
+                    break;
                 }
-                break;
+                case 'tag': {
+                    if (parent === document) {
+                        elm = document.childNodes[1]; // TODO: check for html node
+                        node.domNode = elm;
+                        break;
+                    }
+                    if (val === 'script') {
+                        return; // skip script for now, TODO: process scripts, styles
+                    }
+                    elm = document.createElement(val);
+                    if (node.domNode !== null) {
+                        node.domNode.parentNode.replaceChild(elm, node.domNode);
+                    } else {
+                        parent.appendChild(elm);
+                    }
+                    node.domNode = elm;
+                    if (node.attributes) {
+                        for (var a in node.attributes) {
+                            renderAttribute(elm, node.attributes[a]);
+                        }
+                    }
+                    break;
+                }
+                default:
+                    throw new Error('Node type \'' + item.type + '\' is not implemented.');
             }
-            default:
-                throw new Error('Node type \'' + item.type + '\' is not implemented.');
+            elm && createDOM(elm, node.childs);
         }
-        elm && createDOM(elm, node.childs);
     }
 
     var createDOM = function (parent, nodes) {
@@ -376,9 +372,9 @@ function Edgeon() {
             for (var i in renderQueue[path]) {
                 var node = renderQueue[path][i];
                 if (node.isAttribute) {
-                    renderAttribute(node.parent.domNodes[0].ref, node);
+                    renderAttribute(node.parent.contents[0].domNode, node);
                 } else {
-                    createDomNode(node.domNodes[0].ref.parentNode, node);
+                    createDomNode(node.contents[0].domNode.parentNode, node);
                 }
             }
         }
