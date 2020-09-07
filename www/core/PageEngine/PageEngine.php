@@ -488,7 +488,8 @@ class PageEngine
         $keywords = $keywordsList[0];
         $spaces = $keywordsList[1];
         $newExpression = '';
-
+        // $this->debug($expression);
+        // $this->debug($keywordsList);
         $count = count($keywords);
         foreach ($keywords as $i => $keyword) {
             if (isset($reserved[$keyword])) {
@@ -918,6 +919,25 @@ class PageEngine
         }
         return $combinedValue;
     }
+
+    function combineChildren(TagItem $childTag, bool $expression = true, array $reserved = []): string
+    {
+        $attrValues = $childTag->getChildren();
+        $newValueContent = '';
+        foreach ($attrValues as $attrValue) {
+            $newValueContent .= $attrValue->Content;
+        }
+        // replace children with one expression
+        $newChild = $attrValues[0];
+        $newChild->Content = $newValueContent;
+        $childTag->setChildren([$newChild]);
+        if ($expression) {
+            $newChild->ItsExpression = true;
+            $this->compileExpression($newChild, $reserved);
+        }
+        return $newValueContent;
+    }
+
     function buildTag(TagItem &$tagItem, string &$html, string &$codeToAppend): void
     {
         $foreach = false;
@@ -955,11 +975,7 @@ class PageEngine
                     && $childTag->Content === 'if'
                 ) { // if detected
                     $childTag->Skip = true;
-                    $ifExpression = '';
-                    $ifItems = $childTag->getChildren();
-                    foreach ($ifItems as &$ifValueItem) {
-                        $ifExpression .= $ifValueItem->Content;
-                    }
+                    $ifExpression = $this->combineChildren($childTag);
                     if (!$firstFound) {
                         $firstFound = 'if';
                     }
@@ -972,11 +988,7 @@ class PageEngine
                     && $childTag->Content === 'else-if'
                 ) { // else if detected
                     $childTag->Skip = true;
-                    $elseIfExpression = '';
-                    $ifItems = $childTag->getChildren();
-                    foreach ($ifItems as &$ifValueItem) {
-                        $elseIfExpression .= $ifValueItem->Content;
-                    }
+                    $elseIfExpression = $this->combineChildren($childTag);
                     // detect if else of else-if towards
                     $closeIfTag = $this->getCloseIfTag($tagItem);
                     continue;

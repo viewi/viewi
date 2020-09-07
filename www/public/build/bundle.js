@@ -14,8 +14,8 @@ var HomePage = function () {
         this.json['Name'] = 'New name';
         // $this->count++;
         priv += "Code";
-        console.log(this.count);
-        console.log(event);
+        // echo $this->count;
+        // echo $event;
     };
 
     this.Test = function (argument) {

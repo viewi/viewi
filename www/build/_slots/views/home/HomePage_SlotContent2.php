@@ -31,9 +31,28 @@ function RenderHomePage_SlotContent2(
     $_content .= '">
             Another count: ';
     $_content .= htmlentities($_component->count);
-    $_content .= ' 
+    $_content .= '
             <button>Increment</button>
         </div>
+        ';
+    if($_component->count % 3 === 0){
+    
+    $_content .= '<div>
+            One
+        </div>';
+    } else if ($_component->count % 3 === 1){
+    
+    $_content .= '<div>
+            Two
+        </div>';
+    } else {
+    
+    $_content .= '<div>
+            Three
+        </div>';
+    }
+    
+    $_content .= '
     ';
     return $_content;
    

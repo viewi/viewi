@@ -20,8 +20,8 @@ class HomePage extends BaseComponent
         $this->json['Name'] = 'New name';
         // $this->count++;
         $this->priv .= "Code";
-        echo $this->count;
-        echo $event;
+        // echo $this->count;
+        // echo $event;
     }
 
     public function Test($argument): string

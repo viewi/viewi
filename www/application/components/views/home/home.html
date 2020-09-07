@@ -8,8 +8,17 @@
             Count: $count
         </h4>
         <div class="my-class count-$count" class.show="$title" class.lg="$title">
-            Another count: $count 
+            Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
+        </div>
+        <div if="$count % 3 === 0">
+            One
+        </div>
+        <div else-if="$count % 3 === 1">
+            Two
+        </div>
+        <div else>
+            Three
         </div>
     </slotContent>
     Just text without slot

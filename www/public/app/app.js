@@ -220,19 +220,21 @@ function Edgeon() {
                         copy.isAttribute = true;
                         copy.parent = node;
                         copy.contentExpression = getDataExpression(a);
-                        copy.childs = a.childs.select(
-                            function (v) {
-                                var valCopy = {};
-                                valCopy.contentExpression = getDataExpression(v, itsEvent);
-                                valCopy.content = v.content;
-                                if (v.subs && !itsEvent) {
-                                    for (var s in v.subs) {
-                                        listenTo(copy, v.subs[s]);
+                        if (a.childs) {
+                            copy.childs = a.childs.select(
+                                function (v) {
+                                    var valCopy = {};
+                                    valCopy.contentExpression = getDataExpression(v, itsEvent);
+                                    valCopy.content = v.content;
+                                    if (v.subs && !itsEvent) {
+                                        for (var s in v.subs) {
+                                            listenTo(copy, v.subs[s]);
+                                        }
                                     }
+                                    return valCopy;
                                 }
-                                return valCopy;
-                            }
-                        );
+                            );
+                        }
                         if (a.subs && !itsEvent) {
                             for (var s in a.subs) {
                                 listenTo(copy, a.subs[s]);
@@ -265,13 +267,18 @@ function Edgeon() {
                     actionContent(attr.parent.instance, $this, $event);
                 });
             } else {
-                elm.setAttribute(attr.content, attr.childs.select(
-                    function (x) {
-                        return x.contentExpression.call
-                            ? x.contentExpression.func(attr.parent.instance, $this)
-                            : x.contentExpression.content;
-                    }
-                ).join(''));
+                // TODO: process if, else-if, else
+                var val =
+                    attr.childs ?
+                        attr.childs.select(
+                            function (x) {
+                                return x.contentExpression.call
+                                    ? x.contentExpression.func(attr.parent.instance, $this)
+                                    : x.contentExpression.content;
+                            }
+                        ).join('')
+                        : '';
+                elm.setAttribute(attr.content, val);
             }
         } catch (ex) {
             console.error(ex);
@@ -293,21 +300,33 @@ function Edgeon() {
                     elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
                     break;
                 }
-                elm = document.createTextNode(val);
-                parent.appendChild(elm);
+                if (node.domNodes[0].ref !== null) {
+                    node.domNodes[0].ref.nodeValue = val;
+                    elm = node.domNodes[0].ref;
+                } else {
+                    elm = document.createTextNode(val);
+                    parent.appendChild(elm);
+                    node.domNodes[0].ref = elm;
+                }
                 break;
             }
             case 'tag': {
                 if (parent === document) {
                     elm = document.childNodes[1]; // TODO: check for html node
+                    node.domNodes[0].ref = elm;
                     break;
                 }
                 if (val === 'script') {
                     return; // skip script for now, TODO: process scripts, styles
                 }
                 elm = document.createElement(val);
-                parent.appendChild(elm);
-                if (node.attributes) { // TODO: watch attribute variables
+                if (node.domNodes[0].ref !== null) {
+                    node.domNodes[0].ref.parentNode.replaceChild(elm, node.domNodes[0].ref);
+                } else {
+                    parent.appendChild(elm);
+                }
+                node.domNodes[0].ref = elm;
+                if (node.attributes) {
                     for (var a in node.attributes) {
                         renderAttribute(elm, node.attributes[a]);
                     }
@@ -316,14 +335,6 @@ function Edgeon() {
             }
             default:
                 throw new Error('Node type \'' + item.type + '\' is not implemented.');
-        }
-        if (elm) {
-            // clear up
-            if (node.domNodes[0].ref !== null) {
-                //replace node
-                node.domNodes[0].ref.parentNode.replaceChild(elm, node.domNodes[0].ref);
-            }
-            node.domNodes[0].ref = elm;
         }
         elm && createDOM(elm, node.childs);
     }

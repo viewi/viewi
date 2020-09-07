@@ -186,9 +186,11 @@ class JsTranslator
             $this->phpCode = $content;
             $this->Reset();
         }
-        while ($keyword = $this->NextKeyword()) {
+        $keyword = $this->NextKeyword();
+        while ($keyword !== null) {
             $keywords[0][] = $keyword;
             $keywords[1][] = $this->latestSpaces;
+            $keyword = $this->NextKeyword();
         }
         return $keywords;
     }
@@ -197,7 +199,7 @@ class JsTranslator
     {
         $keyword = $this->MatchKeyword();
         // $this->debug($keyword);
-        if (!$keyword && $this->position === $this->length) {
+        if ($keyword === '' && $this->position === $this->length) {
             return null;
         }
         return $keyword;
@@ -348,7 +350,7 @@ class JsTranslator
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
             // $this->debug($keyword);
-            if (!$keyword && $this->position === $this->length) {
+            if ($keyword === '' && $this->position === $this->length) {
                 break;
             }
             // $this->debug($code);
