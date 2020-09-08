@@ -43,7 +43,11 @@ Object.defineProperty(Array.prototype, 'first', {
     enumerable: false,
     value: function (x) {
         for (var k in this) {
-            if (x(this[k])) {
+            if (x) {
+                if (x(this[k])) {
+                    return this[k];
+                }
+            } else {
                 return this[k];
             }
         }
@@ -117,6 +121,10 @@ function Edgeon() {
         return { call: false, content: item.content };
     }
 
+    var specialTypes = ['if', 'else-if', 'else', 'foreach'];
+    var conditionalTypes = ['if', 'else-if'];
+    var usedSpecialTypes = [];
+
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
         var childs = parent.childs;
@@ -125,8 +133,8 @@ function Edgeon() {
         var node = false;
         for (var i in childs) {
             var item = childs[i];
-            if (item.type === 'text' && node && node.contents[0].type === 'text') {
-                node.contents[0].values.push(getDataExpression(item));
+            if (item.type === 'text' && node && node.type === 'text') {
+                node.contents.push(getDataExpression(item));
                 if (item.subs) {
                     for (var s in item.subs) {
                         listenTo(node, item.subs[s]);
@@ -134,16 +142,19 @@ function Edgeon() {
                 }
                 continue;
             }
+            var specialType = null;
+            if (item.attributes) {
+                specialType = item.attributes.first(function (a) {
+                    return specialTypes.indexOf(a.content) !== -1 && usedSpecialTypes.indexOf(a.content) === -1;
+                });
+                //.select(function (a) { return a.content; }).first();
+            }
             var component = false;
-            var content = {
-                type: item.type,
-                values: [getDataExpression(item)],
-                domNode: null // DOM node if rendered
-            };
-
             node = {
                 // TODO: process foreach
-                contents: [content], // condition groups (if, else, elif)
+                type: item.type,
+                contents: [getDataExpression(item)],
+                domNode: null, // DOM node if rendered
                 // conditions: [true], // collection of expressions (if,else,elseif)
                 parent: parent, // TODO: make imutable
                 count: 1, // 0 - hidden, 1 - show, > 1 - foreach
@@ -152,6 +163,20 @@ function Edgeon() {
                 data: false, // foreach target here
                 instance: instance
             };
+            if (specialType !== null) {
+                node.type = specialType.content;
+                usedSpecialTypes.push(specialType.content);
+                node.childs = build({ childs: [item] }, instance, stack);
+                if (conditionalTypes.indexOf(node.type) !== -1) {
+                    node.condition = getDataExpression(specialType.childs[0]);
+                }
+                currentNodeList.push(node);
+                // TODO: subscribe
+                // TODO: create check function
+                continue;
+            } else if (usedSpecialTypes.length > 0) {
+                usedSpecialTypes = [];
+            }
             if (item.type === 'component') {
                 component = item.content;
             }
@@ -170,8 +195,8 @@ function Edgeon() {
                 if (slotNameItem) {
                     slotName = slotNameItem.childs[0].content;
                     slotNameExpression = function (x) {
-                        return x.contents[0].attributes
-                            && x.contents[0].attributes.first(function (y) {
+                        return x.attributes
+                            && x.attributes.first(function (y) {
                                 return y.content === 'name'
                                     && y.childs[0].content === slotName;
                             });
@@ -181,17 +206,17 @@ function Edgeon() {
                 if (stack) {
                     if (slotName === 0) {
                         var items = stack.where(function (x) {
-                            return x.contents[0].values[0].content !== 'slotContent';
+                            return x.contents[0].content !== 'slotContent';
                         });
                         currentNodeList = currentNodeList.concat(items);
                     } else {
                         var slotContent = stack.first(function (x) {
-                            return x.contents[0].type === 'tag'
-                                && x.contents[0].values[0].content === 'slotContent'
+                            return x.type === 'tag'
+                                && x.contents[0].content === 'slotContent'
                                 && slotNameExpression(x);
                         });
                         if (slotContent) {
-                            currentNodeList = currentNodeList.concat(slotContent.contents[0].childs);
+                            currentNodeList = currentNodeList.concat(slotContent.childs);
                         }
                     }
                 }
@@ -205,7 +230,7 @@ function Edgeon() {
                 childNodes = build(item, instance, stack);
             }
             if (item.attributes) {
-                node.contents[0].attributes = item.attributes.select(
+                node.attributes = item.attributes.select(
                     function (a) {
                         var copy = {};
                         var itsEvent = a.content[0] === '(';
@@ -242,7 +267,7 @@ function Edgeon() {
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
-                    node.contents[0].childs = childNodes;
+                    node.childs = childNodes;
                 }
                 currentNodeList.push(node);
             }
@@ -279,60 +304,77 @@ function Edgeon() {
         }
     }
 
-    var createDomNode = function (parent, nodesList) {
+    var createDomNode = function (parent, node) {
         var texts = [];
-        for (var k in nodesList.contents) {
-            var node = nodesList.contents[k];
-            for (var i in node.values) {
-                var contentExpression = node.values[i];
-                texts.push(contentExpression.call ? contentExpression.func(nodesList.instance, $this) : contentExpression.content);
-            }
-            var val = texts.join(''); // TODO: process conditions (if,else,elif)
-            var elm = false;
-            switch (node.type) {
-                case 'text': {
-                    if (parent === document) {
-                        elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
-                        break;
-                    }
-                    if (node.domNode !== null) {
-                        node.domNode.nodeValue = val;
-                        elm = node.domNode;
-                    } else {
-                        elm = document.createTextNode(val);
-                        parent.appendChild(elm);
-                        node.domNode = elm;
-                    }
-                    break;
-                }
-                case 'tag': {
-                    if (parent === document) {
-                        elm = document.childNodes[1]; // TODO: check for html node
-                        node.domNode = elm;
-                        break;
-                    }
-                    if (val === 'script') {
-                        return; // skip script for now, TODO: process scripts, styles
-                    }
-                    elm = document.createElement(val);
-                    if (node.domNode !== null) {
-                        node.domNode.parentNode.replaceChild(elm, node.domNode);
-                    } else {
-                        parent.appendChild(elm);
-                    }
-                    node.domNode = elm;
-                    if (node.attributes) {
-                        for (var a in node.attributes) {
-                            renderAttribute(elm, node.attributes[a]);
-                        }
-                    }
-                    break;
-                }
-                default:
-                    throw new Error('Node type \'' + item.type + '\' is not implemented.');
-            }
-            elm && createDOM(elm, node.childs);
+        for (var i in node.contents) {
+            var contentExpression = node.contents[i];
+            texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
         }
+        var val = texts.join(''); // TODO: process conditions (if,else,elif)
+        var elm = false;
+        switch (node.type) {
+            case 'text': {
+                if (parent === document) {
+                    elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
+                    break;
+                }
+                if (node.domNode !== null) {
+                    node.domNode.nodeValue = val;
+                    elm = node.domNode;
+                } else {
+                    elm = document.createTextNode(val);
+                    parent.appendChild(elm);
+                    node.domNode = elm;
+                }
+                break;
+            }
+            case 'tag': {
+                if (parent === document) {
+                    elm = document.childNodes[1]; // TODO: check for html node
+                    node.domNode = elm;
+                    break;
+                }
+                if (val === 'script') {
+                    return; // skip script for now, TODO: process scripts, styles
+                }
+                elm = document.createElement(val);
+                if (node.domNode !== null) {
+                    node.domNode.parentNode.replaceChild(elm, node.domNode);
+                } else {
+                    parent.appendChild(elm);
+                }
+                node.domNode = elm;
+                if (node.attributes) {
+                    for (var a in node.attributes) {
+                        renderAttribute(elm, node.attributes[a]);
+                    }
+                }
+                break;
+            }
+            case 'if': {
+                // TODO: check conditon
+                // TODO: if false remove node if exists
+                // TODO: if true create element
+                if (node.condition.func(node.instance, $this)) {
+                    elm = parent;
+                }
+                break;
+            }
+            case 'else-if': {
+                // TODO: check condition
+                elm = parent;
+                break;
+            }
+            case 'else': {
+                // TODO: check condition
+                elm = parent;
+                break;
+            }
+            default:
+                throw new Error('Node type \'' + node.type + '\' is not implemented.');
+        }
+        elm && createDOM(elm, node.childs);
+
     }
 
     var createDOM = function (parent, nodes) {
@@ -372,9 +414,9 @@ function Edgeon() {
             for (var i in renderQueue[path]) {
                 var node = renderQueue[path][i];
                 if (node.isAttribute) {
-                    renderAttribute(node.parent.contents[0].domNode, node);
+                    renderAttribute(node.parent.domNode, node);
                 } else {
-                    createDomNode(node.contents[0].domNode.parentNode, node);
+                    createDomNode(node.domNode.parentNode, node);
                 }
             }
         }
