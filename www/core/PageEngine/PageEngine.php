@@ -880,7 +880,7 @@ class PageEngine
         $parentChilds = $tagItem->parent()->getChildren();
         $startLookingForElif = false;
         $textsToSkip = [];
-        foreach ($parentChilds as &$parentChildren) {
+        foreach ($parentChilds as $key => &$parentChildren) {
             if ($parentChildren === $tagItem) {
                 $startLookingForElif = true;
                 continue;
@@ -897,17 +897,19 @@ class PageEngine
                             && ($elifChild->Content === 'else-if' || $elifChild->Content === 'else')
                         ) {
                             $closeIfTag = false;
-                            foreach ($textsToSkip as &$textItem) {
+                            foreach ($textsToSkip as $index => &$textItem) {
                                 $textItem->Skip = true;
+                                unset($parentChilds[$index]);
                             }
                         }
                     }
                     break;
                 } elseif ($parentChildren->Type->Name === TagItemType::TextContent) {
-                    $textsToSkip[] = &$parentChildren;
+                    $textsToSkip[$key] = &$parentChildren;
                 }
             }
         }
+        // $tagItem->parent()->setChildren($parentChilds);
         return $closeIfTag;
     }
     function getChildValues(TagItem &$tagItem): string

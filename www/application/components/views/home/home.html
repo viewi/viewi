@@ -11,7 +11,7 @@
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
-        <div if="$count % 3 === 1">
+        <div if="$count % 3 === 0">
             One
         </div>
         <div else-if="$count % 3 === 1">

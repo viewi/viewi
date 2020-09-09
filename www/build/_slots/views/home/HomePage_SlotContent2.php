@@ -35,7 +35,7 @@ function RenderHomePage_SlotContent2(
             <button>Increment</button>
         </div>
         ';
-    if($_component->count % 3 === 1){
+    if($_component->count % 3 === 0){
     
     $_content .= '<div>
             One

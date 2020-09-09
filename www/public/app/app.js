@@ -122,15 +122,18 @@ function Edgeon() {
     }
 
     var specialTypes = ['if', 'else-if', 'else', 'foreach'];
-    var conditionalTypes = ['if', 'else-if'];
+    var conditionalTypes = ['if', 'else-if', 'else'];
+    var requirePreviousIfTypes = ['else-if', 'else'];
     var usedSpecialTypes = [];
 
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
+        var parentNode = arguments.length > 3 ? arguments[3] : null;
         var childs = parent.childs;
         var currentNodeList = [];
         var skip = false;
         var node = false;
+        var previousNode = null;
         for (var i in childs) {
             var item = childs[i];
             if (item.type === 'text' && node && node.type === 'text') {
@@ -156,19 +159,28 @@ function Edgeon() {
                 contents: [getDataExpression(item)],
                 domNode: null, // DOM node if rendered
                 // conditions: [true], // collection of expressions (if,else,elseif)
-                parent: parent, // TODO: make imutable
+                parent: parentNode, // TODO: make imutable
                 count: 1, // 0 - hidden, 1 - show, > 1 - foreach
                 take: 1, // 1 - default, > 1 - <template or <component, take next n items
                 skip: false, // if was taken by previous then false
                 data: false, // foreach target here
-                instance: instance
+                instance: instance,
+                previousNode: previousNode
             };
+            previousNode = node;
             if (specialType !== null) {
                 node.type = specialType.content;
                 usedSpecialTypes.push(specialType.content);
-                node.childs = build({ childs: [item] }, instance, stack);
+                node.childs = build({ childs: [item] }, instance, stack, node);
                 if (conditionalTypes.indexOf(node.type) !== -1) {
-                    node.condition = getDataExpression(specialType.childs[0]);
+                    node.condition = specialType.childs
+                        ? getDataExpression(specialType.childs[0])
+                        : {};
+                    if (specialType.childs && specialType.childs[0].subs) {
+                        for (var s in specialType.childs[0].subs) {
+                            listenTo(node, specialType.childs[0].subs[s]);
+                        }
+                    }
                 }
                 currentNodeList.push(node);
                 // TODO: subscribe
@@ -227,43 +239,47 @@ function Edgeon() {
             // childs
             childNodes = false;
             if (item.childs) {
-                childNodes = build(item, instance, stack);
+                childNodes = build(item, instance, stack, node);
             }
             if (item.attributes) {
-                node.attributes = item.attributes.select(
-                    function (a) {
-                        var copy = {};
-                        var itsEvent = a.content[0] === '(';
-                        copy.content = a.content;
-                        copy.isAttribute = true;
-                        copy.parent = node;
-                        copy.contentExpression = getDataExpression(a);
-                        if (a.childs) {
-                            copy.childs = a.childs.select(
-                                function (v) {
-                                    var valCopy = {};
-                                    valCopy.contentExpression = getDataExpression(v, itsEvent);
-                                    valCopy.content = v.content;
-                                    if (v.subs && !itsEvent) {
-                                        for (var s in v.subs) {
-                                            listenTo(copy, v.subs[s]);
+                node.attributes = item.attributes
+                    .where(function (a) {
+                        return specialTypes.indexOf(a.content) === -1;
+                    })
+                    .select(
+                        function (a) {
+                            var copy = {};
+                            var itsEvent = a.content[0] === '(';
+                            copy.content = a.content;
+                            copy.isAttribute = true;
+                            copy.parent = node;
+                            copy.contentExpression = getDataExpression(a);
+                            if (a.childs) {
+                                copy.childs = a.childs.select(
+                                    function (v) {
+                                        var valCopy = {};
+                                        valCopy.contentExpression = getDataExpression(v, itsEvent);
+                                        valCopy.content = v.content;
+                                        if (v.subs && !itsEvent) {
+                                            for (var s in v.subs) {
+                                                listenTo(copy, v.subs[s]);
+                                            }
                                         }
+                                        return valCopy;
                                     }
-                                    return valCopy;
-                                }
-                            );
-                        }
-                        if (a.subs && !itsEvent) {
-                            for (var s in a.subs) {
-                                listenTo(copy, a.subs[s]);
+                                );
                             }
+                            if (a.subs && !itsEvent) {
+                                for (var s in a.subs) {
+                                    listenTo(copy, a.subs[s]);
+                                }
+                            }
+                            return copy;
                         }
-                        return copy;
-                    }
-                );
+                    );
             }
             if (component) {
-                var componenNodes = create(component, childNodes); // build(page.nodes, childNodes);
+                var componenNodes = create(component, childNodes);
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
@@ -276,6 +292,9 @@ function Edgeon() {
     };
 
     var renderAttribute = function (elm, attr) {
+        if (!elm) {
+            return;
+        }
         try {
             if (attr.content[0] === '(') { // TODO: attach event only once
                 var eventName = attr.content.substring(1, attr.content.length - 1);
@@ -305,6 +324,15 @@ function Edgeon() {
     }
 
     var createDomNode = function (parent, node) {
+        var condition = node.parent && node.parent.condition;
+        var active = condition && condition.value;
+        if (condition && !active) { // remove
+            if (node.domNode !== null) { // TODO: remove childs
+                node.domNode.parentNode.removeChild(node.domNode);
+                node.domNode = null;
+            }
+            return;
+        }
         var texts = [];
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
@@ -355,18 +383,21 @@ function Edgeon() {
                 // TODO: check conditon
                 // TODO: if false remove node if exists
                 // TODO: if true create element
-                if (node.condition.func(node.instance, $this)) {
-                    elm = parent;
-                }
+                node.condition.value = node.condition.func(node.instance, $this);
+                elm = parent;
                 break;
             }
             case 'else-if': {
                 // TODO: check condition
+                node.condition.value = !node.previousNode.condition.value
+                    && node.condition.func(node.instance, $this);
+                node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
                 elm = parent;
                 break;
             }
             case 'else': {
                 // TODO: check condition
+                node.condition.value = !node.previousNode.condition.previousValue;
                 elm = parent;
                 break;
             }
@@ -409,6 +440,7 @@ function Edgeon() {
         subscribers[iid][path].push(node);
     }
 
+    // TODO: on change conditions, insert element if new, remove if not active
     var reRender = function () {
         for (var path in renderQueue) {
             for (var i in renderQueue[path]) {

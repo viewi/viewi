@@ -35,6 +35,12 @@ class TagItem
         }
         if (isset($this->childs)) {
             foreach ($this->childs as &$child) {
+                if (
+                    $child->Type->Name === TagItemType::TextContent
+                    && $child->Skip
+                ) {
+                    continue;
+                }
                 if ($child->Type->Name === TagItemType::Attribute) {
                     if (!isset($node['attributes'])) {
                         $node['attributes'] = [];
