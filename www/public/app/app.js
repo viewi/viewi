@@ -134,6 +134,7 @@ function Edgeon() {
         var skip = false;
         var node = false;
         var previousNode = null;
+        var usedSubscriptions = {};
         for (var i in childs) {
             var item = childs[i];
             if (item.type === 'text' && node && node.type === 'text') {
@@ -170,15 +171,23 @@ function Edgeon() {
             previousNode = node;
             if (specialType !== null) {
                 node.type = specialType.content;
+                if (node.type === 'if') { // reset group
+                    usedSubscriptions = {};
+                }
+                node.isVirtual = true;
                 usedSpecialTypes.push(specialType.content);
                 node.childs = build({ childs: [item] }, instance, stack, node);
                 if (conditionalTypes.indexOf(node.type) !== -1) {
                     node.condition = specialType.childs
                         ? getDataExpression(specialType.childs[0])
                         : {};
-                    if (specialType.childs && specialType.childs[0].subs) {
+                    for (var s in usedSubscriptions) {
+                        listenTo(node, s);
+                    }
+                    if (specialType.childs && specialType.childs[0].subs) { // TOD: subscribe all if-else group to each sub changes
                         for (var s in specialType.childs[0].subs) {
                             listenTo(node, specialType.childs[0].subs[s]);
+                            usedSubscriptions[specialType.childs[0].subs[s]] = true;
                         }
                     }
                 }
@@ -323,15 +332,18 @@ function Edgeon() {
         }
     }
 
-    var createDomNode = function (parent, node) {
-        var condition = node.parent && node.parent.condition;
-        var active = condition && condition.value;
-        if (condition && !active) { // remove
-            if (node.domNode !== null) { // TODO: remove childs
-                node.domNode.parentNode.removeChild(node.domNode);
-                node.domNode = null;
+    var createDomNode = function (parent, node, insert) {
+        if (insert) {
+            // console.log(node.childs[0].contents[0].content, node);
+            var condition = node.parent && node.parent.condition;
+            var active = condition && condition.value;
+            if (condition && !active) { // remove
+                if (node.domNode !== null) { // TODO: remove childs
+                    node.domNode.parentNode.removeChild(node.domNode);
+                    node.domNode = null;
+                }
+                return;
             }
-            return;
         }
         var texts = [];
         for (var i in node.contents) {
@@ -340,13 +352,14 @@ function Edgeon() {
         }
         var val = texts.join(''); // TODO: process conditions (if,else,elif)
         var elm = false;
+        var nextInsert = false;
         switch (node.type) {
-            case 'text': {
+            case 'text': { // TODO: implement text insert
                 if (parent === document) {
                     elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
                     break;
                 }
-                if (node.domNode !== null) {
+                if (node.domNode !== null && node.domNode.parentNode === parent) {
                     node.domNode.nodeValue = val;
                     elm = node.domNode;
                 } else {
@@ -369,7 +382,32 @@ function Edgeon() {
                 if (node.domNode !== null) {
                     node.domNode.parentNode.replaceChild(elm, node.domNode);
                 } else {
-                    parent.appendChild(elm);
+                    if (insert) {
+                        // find first previous not virtual up tree non virtual
+                        var nodeBefore = false;
+                        var operateNode = node;
+                        while (!nodeBefore || nodeBefore.isVirtual) {
+                            if (operateNode.previousNode !== null) {
+                                nodeBefore = operateNode.previousNode;
+                                operateNode = nodeBefore;
+                            } else {
+                                nodeBefore = operateNode.parent;
+                                operateNode = nodeBefore;
+                                if (operateNode.parent === null) {
+                                    return;
+                                    break; // throw error ??
+                                }
+                            }
+                        }
+                        var nextSibiling = nodeBefore.domNode.nextSibling;
+                        if (nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        } else {
+                            nodeBefore.domNode.parentNode.appendChild(elm);
+                        }
+                    } else {
+                        parent.appendChild(elm);
+                    }
                 }
                 node.domNode = elm;
                 if (node.attributes) {
@@ -385,6 +423,9 @@ function Edgeon() {
                 // TODO: if true create element
                 node.condition.value = node.condition.func(node.instance, $this);
                 elm = parent;
+                node.parentDomNode = parent;
+                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                nextInsert = true;
                 break;
             }
             case 'else-if': {
@@ -393,24 +434,30 @@ function Edgeon() {
                     && node.condition.func(node.instance, $this);
                 node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
                 elm = parent;
+                node.parentDomNode = parent;
+                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                nextInsert = true;
                 break;
             }
             case 'else': {
                 // TODO: check condition
                 node.condition.value = !node.previousNode.condition.previousValue;
                 elm = parent;
+                node.parentDomNode = parent;
+                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                nextInsert = true;
                 break;
             }
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
-        elm && createDOM(elm, node.childs);
+        elm && createDOM(elm, node.childs, nextInsert);
 
     }
 
-    var createDOM = function (parent, nodes) {
+    var createDOM = function (parent, nodes, insert) {
         for (var i in nodes) {
-            createDomNode(parent, nodes[i]);
+            createDomNode(parent, nodes[i], insert);
         }
     }
 
@@ -447,6 +494,8 @@ function Edgeon() {
                 var node = renderQueue[path][i];
                 if (node.isAttribute) {
                     renderAttribute(node.parent.domNode, node);
+                } else if (node.isVirtual) {
+                    createDomNode(node.parentDomNode, node);
                 } else {
                     createDomNode(node.domNode.parentNode, node);
                 }
@@ -543,7 +592,7 @@ function Edgeon() {
         var nodes = create(name);
         // document.childNodes[1].remove();
         console.log(nodes);
-        createDOM(document, nodes);
+        createDOM(document, nodes, false);
     };
 
     this.htmlentities = function (html) {
