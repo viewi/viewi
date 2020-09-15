@@ -20,6 +20,15 @@ function RenderHomePage_Slot3(
     Test is: ';
     $_content .= htmlentities($_component->Test($_component->count));
     $_content .= '
+    ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '<span>
+        ONE
+    </span>';
+    }
+    
+    $_content .= '
     Second test is: ';
     $_content .= htmlentities($_component->Test($_component->count));
     $_content .= '

@@ -339,12 +339,27 @@ function Edgeon() {
     }
 
     var getFirstBefore = function (node) {
-        var nodeBefore = node;
-        var first = true;
-        while (first || nodeBefore.isVirtual || !nodeBefore.domNode) {
-            first = false;
+        var nodeBefore = node.previousNode || node.parent;
+        if (nodeBefore.parent === null) {
+            return null;
+        }
+        while (!nodeBefore.domNode) {
             if (nodeBefore.previousNode !== null) {
                 nodeBefore = nodeBefore.previousNode;
+                if (nodeBefore.isVirtual) {
+                    // go down
+                    var potencialNode = nodeBefore;
+                    while (potencialNode !== null && !potencialNode.domNode) {
+                        if (potencialNode.isVirtual && potencialNode.childs) {
+                            potencialNode = potencialNode.childs[potencialNode.childs.length - 1];
+                        } else {
+                            potencialNode = null;
+                        }
+                    }
+                    if (potencialNode) {
+                        nodeBefore = potencialNode;
+                    }
+                }
             } else {
                 nodeBefore = nodeBefore.parent;
                 if (nodeBefore.parent === null) {
