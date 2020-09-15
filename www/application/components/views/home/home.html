@@ -11,6 +11,7 @@
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
+        <template>Title is: $title</template>
         <div if="$count % 3 === 0">
             One
         </div>
@@ -22,4 +23,7 @@
         </div>
     </slotContent>
     Just text without slot
+    <template>Test is: {Test($count)}</template>
+    <template>Second test is: {Test($count)}</template>
+    <template>Simple merge test $title</template>
 </Layout>

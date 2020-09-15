@@ -121,6 +121,7 @@ function Edgeon() {
         return { call: false, content: item.content };
     }
 
+    var specialTags = ['template'];
     var specialTypes = ['if', 'else-if', 'else', 'foreach'];
     var conditionalTypes = ['if', 'else-if', 'else'];
     var requirePreviousIfTypes = ['else-if', 'else'];
@@ -169,6 +170,11 @@ function Edgeon() {
                 previousNode: previousNode
             };
             previousNode = node;
+            if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
+                var specialTag = item.content;
+                node.type = specialTag;
+                node.isVirtual = true;
+            }
             if (specialType !== null) {
                 node.type = specialType.content;
                 if (node.type === 'if') { // reset group
@@ -332,6 +338,25 @@ function Edgeon() {
         }
     }
 
+    var getFirstBefore = function (node) {
+        var nodeBefore = node;
+        var first = true;
+        while (first || nodeBefore.isVirtual || !nodeBefore.domNode) {
+            first = false;
+            if (nodeBefore.previousNode !== null) {
+                nodeBefore = nodeBefore.previousNode;
+            } else {
+                nodeBefore = nodeBefore.parent;
+                if (nodeBefore.parent === null) {
+                    return null;
+                }
+            }
+        }
+        return nodeBefore;
+    }
+
+    var nextNodeId = 0;
+
     var createDomNode = function (parent, node, insert) {
         if (insert) {
             // console.log(node.childs[0].contents[0].content, node);
@@ -359,13 +384,36 @@ function Edgeon() {
                     elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
                     break;
                 }
-                if (node.domNode !== null && node.domNode.parentNode === parent) {
-                    node.domNode.nodeValue = val;
-                    elm = node.domNode;
-                } else {
-                    elm = document.createTextNode(val);
-                    parent.appendChild(elm);
-                    node.domNode = elm;
+                var skip = false;
+                if (insert) {
+                    // look up for previous text to append or insert after first tag
+                    var nodeBefore = getFirstBefore(node);
+                    if (nodeBefore == null) {
+                        return;
+                        break; // throw error ??
+                    }
+                    if (nodeBefore.type === 'text') {
+                        // append
+                        // collect all possible combinations
+                        // if(!nodeBefore.appends)
+                        skip = true;
+                        nodeBefore.domNode.nodeValue += val;
+                    }
+                }
+                if (!skip) {
+                    if (node.domNode !== null && node.domNode.parentNode === parent) {
+                        node.domNode.nodeValue = val;
+                        elm = node.domNode;
+                    } else {
+                        var nodeBefore = getFirstBefore(node);
+                        if (nodeBefore && nodeBefore.type == 'text') {
+                            nodeBefore.domNode.nodeValue += val;
+                        } else {
+                            elm = document.createTextNode(val);
+                            parent.appendChild(elm);
+                            node.domNode = elm;
+                        }
+                    }
                 }
                 break;
             }
@@ -384,20 +432,10 @@ function Edgeon() {
                 } else {
                     if (insert) {
                         // find first previous not virtual up tree non virtual
-                        var nodeBefore = false;
-                        var operateNode = node;
-                        while (!nodeBefore || nodeBefore.isVirtual) {
-                            if (operateNode.previousNode !== null) {
-                                nodeBefore = operateNode.previousNode;
-                                operateNode = nodeBefore;
-                            } else {
-                                nodeBefore = operateNode.parent;
-                                operateNode = nodeBefore;
-                                if (operateNode.parent === null) {
-                                    return;
-                                    break; // throw error ??
-                                }
-                            }
+                        var nodeBefore = getFirstBefore(node);
+                        if (nodeBefore == null) {
+                            return;
+                            break; // throw error ??
                         }
                         var nextSibiling = nodeBefore.domNode.nextSibling;
                         if (nextSibiling !== null) {
@@ -445,6 +483,11 @@ function Edgeon() {
                 elm = parent;
                 node.parentDomNode = parent;
                 node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                nextInsert = true;
+                break;
+            }
+            case 'template': {
+                elm = parent;
                 nextInsert = true;
                 break;
             }
@@ -497,7 +540,7 @@ function Edgeon() {
                 } else if (node.isVirtual) {
                     createDomNode(node.parentDomNode, node);
                 } else {
-                    createDomNode(node.domNode.parentNode, node);
+                    createDomNode(node.domNode && node.domNode.parentNode, node);
                 }
             }
         }
