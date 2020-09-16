@@ -169,6 +169,9 @@ function Edgeon() {
                 instance: instance,
                 previousNode: previousNode
             };
+            if (previousNode) {
+                previousNode.nextNode = node;
+            }
             previousNode = node;
             if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
                 var specialTag = item.content;
@@ -339,11 +342,10 @@ function Edgeon() {
     }
 
     var getFirstBefore = function (node) {
-        var nodeBefore = node.previousNode || node.parent;
-        if (nodeBefore.parent === null) {
-            return null;
-        }
-        while (!nodeBefore.domNode) {
+        var nodeBefore = node;
+        var skipCurrent = true;
+        while (!nodeBefore.domNode || skipCurrent) {
+            skipCurrent = false;
             if (nodeBefore.previousNode !== null) {
                 nodeBefore = nodeBefore.previousNode;
                 if (nodeBefore.isVirtual) {
@@ -372,13 +374,48 @@ function Edgeon() {
 
     var nextNodeId = 0;
 
-    var createDomNode = function (parent, node, insert) {
+    var createDomNode = function (parent, node, insert, skipGroup) {
+        if (!skipGroup) {
+            if (node.isVirtual || node.type === 'text') {
+                // TODO: make property which says if text or virtual node has text or virtual sibilings
+                // TODO: make property which indicates if node is text type (shortness)
+                // TODO: make track property to set render version and render group once
+                // render fresh DOM from first text/virtual to the last text/virtual
+                var fromNode = node;
+                while (
+                    fromNode.previousNode
+                    && (fromNode.previousNode.isVirtual || fromNode.previousNode.type === 'text')
+                ) {
+                    fromNode = fromNode.previousNode;
+                }
+                var toNode = node;
+                while (
+                    toNode.nextNode
+                    && (toNode.nextNode.isVirtual || toNode.nextNode.type === 'text')
+                ) {
+                    toNode = toNode.nextNode;
+                }
+                if (fromNode !== node && toNode !== node) {
+                    // console.log('render from ', fromNode, ' to ', toNode);
+                    var currentNode = fromNode;
+                    var hasNext = true;
+                    while (hasNext) {
+                        createDomNode(parent, currentNode, true, true);
+                        hasNext = currentNode !== toNode;
+                        currentNode = currentNode.nextNode;
+                    }
+                    return;
+                }
+            }
+        }
         if (insert) {
             // console.log(node.childs[0].contents[0].content, node);
             var condition = node.parent && node.parent.condition;
             var active = condition && condition.value;
             if (condition && !active) { // remove
-                if (node.domNode !== null) { // TODO: remove childs
+                if (node.domNode !== null) {
+                    // TODO: remove childs
+                    // TODO: on remove rerender sibilings before and after if text or virtual
                     node.domNode.parentNode.removeChild(node.domNode);
                     node.domNode = null;
                 }
@@ -400,9 +437,9 @@ function Edgeon() {
                     break;
                 }
                 var skip = false;
+                var nodeBefore = getFirstBefore(node);
                 if (insert) {
                     // look up for previous text to append or insert after first tag
-                    var nodeBefore = getFirstBefore(node);
                     if (nodeBefore == null) {
                         return;
                         break; // throw error ??
@@ -416,13 +453,16 @@ function Edgeon() {
                     }
                 }
                 if (!skip) {
-                    if (node.domNode !== null && node.domNode.parentNode === parent) {
-                        node.domNode.nodeValue = val;
-                        elm = node.domNode;
+                    if (nodeBefore && nodeBefore.type == 'text') {
+                        nodeBefore.domNode.nodeValue += val;
+                        if (node.domNode !== null) {
+                            node.domNode.parentNode.removeChild(node.domNode);
+                            node.domNode = null;
+                        }
                     } else {
-                        var nodeBefore = getFirstBefore(node);
-                        if (nodeBefore && nodeBefore.type == 'text') {
-                            nodeBefore.domNode.nodeValue += val;
+                        if (node.domNode !== null && node.domNode.parentNode === parent) {
+                            node.domNode.nodeValue = val;
+                            elm = node.domNode;
                         } else {
                             elm = document.createTextNode(val);
                             parent.appendChild(elm);
