@@ -25,8 +25,13 @@ function RenderHomePage_Slot3(
     if($_component->count % 2 === 0){
     
     $_content .= '<span>
-            ONE
+            ==ODD==
         </span>';
+    } else {
+    
+    $_content .= '
+            ==EVEN==
+        ';
     }
     
     $_content .= '

@@ -363,10 +363,10 @@ function Edgeon() {
                     }
                 }
             } else {
-                nodeBefore = nodeBefore.parent;
                 if (nodeBefore.parent === null) {
                     return null;
                 }
+                nodeBefore = nodeBefore.parent;
             }
         }
         return nodeBefore;
@@ -381,26 +381,37 @@ function Edgeon() {
                 // TODO: make property which indicates if node is text type (shortness)
                 // TODO: make track property to set render version and render group once
                 // render fresh DOM from first text/virtual to the last text/virtual
-                var fromNode = node;
+                // TODO: save rebder version and rerender only once node.v = renderVersion (update renderVersion on changes)
+                // TODO: set if node needs rerender sibiling on build/comlile stage
+                var startNode = node;
+                while (startNode.parent && startNode.parent.isVirtual) {
+                    startNode = startNode.parent;
+                }
+                var firstRealNode = getFirstBefore(node);
+                var startParentDomNode = (firstRealNode
+                    && firstRealNode.domNode
+                    && firstRealNode.domNode.parentNode
+                ) || parent;
+                var fromNode = startNode;
                 while (
                     fromNode.previousNode
                     && (fromNode.previousNode.isVirtual || fromNode.previousNode.type === 'text')
                 ) {
                     fromNode = fromNode.previousNode;
                 }
-                var toNode = node;
+                var toNode = startNode;
                 while (
                     toNode.nextNode
                     && (toNode.nextNode.isVirtual || toNode.nextNode.type === 'text')
                 ) {
                     toNode = toNode.nextNode;
                 }
-                if (fromNode !== node && toNode !== node) {
+                if (fromNode !== startNode || toNode !== startNode) {
                     // console.log('render from ', fromNode, ' to ', toNode);
                     var currentNode = fromNode;
                     var hasNext = true;
                     while (hasNext) {
-                        createDomNode(parent, currentNode, true, true);
+                        createDomNode(startParentDomNode, currentNode, true, true);
                         hasNext = currentNode !== toNode;
                         currentNode = currentNode.nextNode;
                     }
@@ -443,13 +454,6 @@ function Edgeon() {
                     if (nodeBefore == null) {
                         return;
                         break; // throw error ??
-                    }
-                    if (nodeBefore.type === 'text') {
-                        // append
-                        // collect all possible combinations
-                        // if(!nodeBefore.appends)
-                        skip = true;
-                        nodeBefore.domNode.nodeValue += val;
                     }
                 }
                 if (!skip) {
@@ -517,6 +521,7 @@ function Edgeon() {
                 node.condition.value = node.condition.func(node.instance, $this);
                 elm = parent;
                 node.parentDomNode = parent;
+                node.condition.previousValue = node.condition.value;
                 node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
                 nextInsert = true;
                 break;
@@ -549,13 +554,13 @@ function Edgeon() {
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
-        elm && createDOM(elm, node.childs, nextInsert);
+        elm && createDOM(elm, node.childs, nextInsert, skipGroup);
 
     }
 
-    var createDOM = function (parent, nodes, insert) {
+    var createDOM = function (parent, nodes, insert, skipGroup) {
         for (var i in nodes) {
-            createDomNode(parent, nodes[i], insert);
+            createDomNode(parent, nodes[i], insert, skipGroup);
         }
     }
 

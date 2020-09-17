@@ -26,8 +26,11 @@
         Just text without slot
         <template>Test is: {Test($count)}</template>
         <span if="$count % 2 === 0">
-            ONE
+            ==ODD==
         </span>
+        <template else>
+            ==EVEN==
+        </template>
         <template>Second test is: {Test($count)}</template>
         <template>Simple merge test $title</template>
     </div>
