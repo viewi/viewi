@@ -377,6 +377,20 @@ function Edgeon() {
 
     var nextNodeId = 0;
 
+    var removeDomNodes = function (nodes) {
+        for (var i in nodes) {
+            if (nodes[i].domNode !== null) {
+                // TODO: remove childs
+                // TODO: on remove rerender sibilings before and after if text or virtual
+                nodes[i].domNode.parentNode.removeChild(nodes[i].domNode);
+                nodes[i].domNode = null;
+            }
+            if (nodes[i].childs) {
+                removeDomNodes(nodes[i].childs);
+            }
+        }
+    }
+
     var createDomNode = function (parent, node, insert, skipGroup) {
         if (!skipGroup) {
             if (node.isVirtual || node.type === 'text') {
@@ -430,12 +444,7 @@ function Edgeon() {
             var condition = node.parent && node.parent.condition;
             var active = condition && condition.value;
             if (condition && !active) { // remove
-                if (node.domNode !== null) {
-                    // TODO: remove childs
-                    // TODO: on remove rerender sibilings before and after if text or virtual
-                    node.domNode.parentNode.removeChild(node.domNode);
-                    node.domNode = null;
-                }
+                removeDomNodes([node]);
                 return;
             }
         }

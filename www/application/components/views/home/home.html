@@ -22,8 +22,9 @@
             Three
         </div>
     </slotContent>
-    <div><template if="$count % 2 === 0">
-            ==EVEN==
+    <div>
+        <template if="$count % 2 === 0">
+            ==ODD==
         </template>
         Just text without slot
         <template>Test is: {Test($count)}</template>
@@ -36,6 +37,7 @@
         <template>Second test is: {Test($count)}</template>
         <template>Simple merge test $title</template>
         <template if="$count % 2 === 0">
-            ==EVEN==
-        </template></div>
+            ==ODD==
+        </template>
+    </div>
 </Layout>

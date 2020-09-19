@@ -16,11 +16,12 @@ function RenderHomePage_Slot3(
     $_content .= '
     
     
-    <div>';
+    <div>
+        ';
     if($_component->count % 2 === 0){
     
     $_content .= '
-            ==EVEN==
+            ==ODD==
         ';
     }
     
@@ -53,11 +54,12 @@ function RenderHomePage_Slot3(
     if($_component->count % 2 === 0){
     
     $_content .= '
-            ==EVEN==
+            ==ODD==
         ';
     }
     
-    $_content .= '</div>
+    $_content .= '
+    </div>
 ';
     return $_content;
    
