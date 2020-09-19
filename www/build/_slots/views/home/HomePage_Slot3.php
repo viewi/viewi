@@ -16,50 +16,7 @@ function RenderHomePage_Slot3(
     $_content .= '
     
     
-    <div>
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '
-            ==ODD==
-        ';
-    }
-    
-    $_content .= '
-        Just text without slot
-        Test is: ';
-    $_content .= htmlentities($_component->Test($_component->count));
-    $_content .= '
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '<span>
-            ==ODD==
-        </span>';
-    } else {
-    
-    $_content .= '
-            ==EVEN==
-        ';
-    }
-    
-    $_content .= '
-        Second test is: ';
-    $_content .= htmlentities($_component->Test($_component->count));
-    $_content .= '
-        Simple merge test ';
-    $_content .= htmlentities($_component->title);
-    $_content .= '
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '
-            ==ODD==
-        ';
-    }
-    
-    $_content .= '
-    </div>
+    Just text without slot
 ';
     return $_content;
    

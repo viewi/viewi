@@ -21,12 +21,9 @@
         <div else>
             Three
         </div>
-    </slotContent>
-    <div>
         <template if="$count % 2 === 0">
             ==ODD==
         </template>
-        Just text without slot
         <template>Test is: {Test($count)}</template>
         <span if="$count % 2 === 0">
             ==ODD==
@@ -39,5 +36,6 @@
         <template if="$count % 2 === 0">
             ==ODD==
         </template>
-    </div>
+    </slotContent>
+    Just text without slot
 </Layout>

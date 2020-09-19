@@ -56,6 +56,47 @@ function RenderHomePage_SlotContent2(
     }
     
     $_content .= '
+        ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '
+            ==ODD==
+        ';
+    }
+    
+    $_content .= '
+        Test is: ';
+    $_content .= htmlentities($_component->Test($_component->count));
+    $_content .= '
+        ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '<span>
+            ==ODD==
+        </span>';
+    } else {
+    
+    $_content .= '
+            ==EVEN==
+        ';
+    }
+    
+    $_content .= '
+        Second test is: ';
+    $_content .= htmlentities($_component->Test($_component->count));
+    $_content .= '
+        Simple merge test ';
+    $_content .= htmlentities($_component->title);
+    $_content .= '
+        ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '
+            ==ODD==
+        ';
+    }
+    
+    $_content .= '
     ';
     return $_content;
    

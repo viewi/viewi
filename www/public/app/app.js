@@ -138,6 +138,82 @@ function Edgeon() {
         var usedSubscriptions = {};
         for (var i in childs) {
             var item = childs[i];
+
+            if (item.type === 'tag' && item.content === 'slot') {
+                // if (currentNodeList.length > 0) {
+                //     currentNodeList[currentNodeList.length - 1].nextNode = null;
+                //     currentNodeList[currentNodeList.length - 1].previousNode =
+                //         currentNodeList.length > 1
+                //             ? currentNodeList[currentNodeList.length - 2]
+                //             : null;
+                // }
+
+                skip = true;
+                var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
+                var slotName = 0;
+                var slotNameExpression = function (x) {
+                    return !x.attributes;
+                };
+                if (slotNameItem) {
+                    slotName = slotNameItem.childs[0].content;
+                    slotNameExpression = function (x) {
+                        return x.attributes
+                            && x.attributes.first(function (y) {
+                                return y.content === 'name'
+                                    && y.childs[0].content === slotName;
+                            });
+                    }
+                }
+                if (stack) {
+                    if (slotName === 0) {
+                        var items = stack.where(function (x) {
+                            return x.type !== 'tag' && x.contents[0].content !== 'slotContent';
+                        });
+                        // reassign parent
+                        var prevNode = currentNodeList.length > 0
+                            ? currentNodeList[currentNodeList.length - 1]
+                            : null;
+                        items.each(function (x) {
+                            x.nextNode = null;
+                            x.parent = parentNode;
+                            x.previousNode = prevNode;
+                            if (prevNode) {
+                                prevNode.nextNode = x;
+                            }
+                            prevNode = x;
+                        });
+                        currentNodeList = currentNodeList.concat(items);
+                        console.log(currentNodeList);
+                    } else {
+                        var slotContent = stack.first(function (x) {
+                            return x.type === 'tag'
+                                && x.contents[0].content === 'slotContent'
+                                && slotNameExpression(x);
+                        });
+                        if (slotContent) {
+                            // reassign parent
+                            var prevNode = currentNodeList.length > 0
+                                ? currentNodeList[currentNodeList.length - 1]
+                                : null;
+                            slotContent.childs.each(function (x) {
+                                x.nextNode = null;
+                                x.parent = parentNode;
+                                x.previousNode = prevNode;
+                                if (prevNode) {
+                                    prevNode.nextNode = x;
+                                }
+                                prevNode = x;
+                            });
+                            currentNodeList = currentNodeList.concat(slotContent.childs);
+                        }
+                    }
+                    previousNode = currentNodeList.length > 0
+                        ? currentNodeList[currentNodeList.length - 1]
+                        : null;
+                }
+                continue;
+            }
+
             if (item.type === 'text' && node && node.type === 'text') {
                 node.contents.push(getDataExpression(item));
                 if (item.subs) {
@@ -215,45 +291,6 @@ function Edgeon() {
                     listenTo(node, item.subs[s]);
                 }
             }
-            if (item.type === 'tag' && item.content === 'slot') {
-                skip = true;
-                var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
-                var slotName = 0;
-                var slotNameExpression = function (x) {
-                    return !x.attributes;
-                };
-                if (slotNameItem) {
-                    slotName = slotNameItem.childs[0].content;
-                    slotNameExpression = function (x) {
-                        return x.attributes
-                            && x.attributes.first(function (y) {
-                                return y.content === 'name'
-                                    && y.childs[0].content === slotName;
-                            });
-                    }
-                }
-                // TODO: reassign parents
-                if (stack) {
-                    if (slotName === 0) {
-                        var items = stack.where(function (x) {
-                            return x.contents[0].content !== 'slotContent';
-                        });
-                        currentNodeList = currentNodeList.concat(items);
-                    } else {
-                        var slotContent = stack.first(function (x) {
-                            return x.type === 'tag'
-                                && x.contents[0].content === 'slotContent'
-                                && slotNameExpression(x);
-                        });
-                        if (slotContent) {
-                            currentNodeList = currentNodeList.concat(slotContent.childs);
-                        }
-                    }
-                }
-                continue;
-            }
-            // attributes
-
             // childs
             childNodes = false;
             if (item.childs) {
@@ -297,6 +334,7 @@ function Edgeon() {
                     );
             }
             if (component) {
+                // TODO: reassign parent, next, previous ???
                 var componenNodes = create(component, childNodes);
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
@@ -433,6 +471,9 @@ function Edgeon() {
                     while (hasNext) {
                         createDomNode(startParentDomNode, currentNode, true, true);
                         hasNext = currentNode !== toNode;
+                        // if (hasNext && !currentNode.nextNode) {
+                        //     debugger;
+                        // }
                         currentNode = currentNode.nextNode;
                     }
                     return;
