@@ -383,9 +383,45 @@ class PageEngine
         // save public json
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
-        file_put_contents($publicFilePath, json_encode($publicJson, 0, 1024));
-        file_put_contents($publicJsFilePath, implode('', array_values($this->compiledJs)));
+        $publicJsonContent = json_encode($publicJson, 0, 1024);
+        $publicBundleJs = implode('', array_values($this->compiledJs));
+        file_put_contents($publicFilePath, $publicJsonContent);
+        file_put_contents($publicJsFilePath, $publicBundleJs);
+        //minify
+        if ($this->_enableMinificationAndGzipping) {
+            $publicBundleJsMin = $this->minify($publicBundleJs);
+            file_put_contents($publicJsFilePath . '.min.js', $publicBundleJsMin);
+
+            //gzip
+            file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
+            file_put_contents($publicJsFilePath . '.min.js.gz', gzencode($publicBundleJsMin, 5));
+        }
         //$this->debug($this->components);
+    }
+    private bool $_enableMinificationAndGzipping = false;
+    function minify($js): string
+    {
+        $minified = $js;
+        try {
+            // setup the URL and read the JS from a file
+            $url = 'https://javascript-minifier.com/raw';
+
+            // init the request, set various options, and send it
+            $ch = curl_init();
+
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ["Content-Type: application/x-www-form-urlencoded"],
+                CURLOPT_POSTFIELDS => http_build_query(["input" => $js])
+            ]);
+
+            $minified = curl_exec($ch);
+            curl_close($ch);
+        } catch (Exception $exc) {
+        }
+        return $minified;
     }
 
     /**

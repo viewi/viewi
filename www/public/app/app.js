@@ -183,7 +183,6 @@ function Edgeon() {
                             prevNode = x;
                         });
                         currentNodeList = currentNodeList.concat(items);
-                        console.log(currentNodeList);
                     } else {
                         var slotContent = stack.first(function (x) {
                             return x.type === 'tag'
