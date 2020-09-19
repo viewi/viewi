@@ -16,7 +16,15 @@ function RenderHomePage_Slot3(
     $_content .= '
     
     
-    <div>
+    <div>';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '
+            ==EVEN==
+        ';
+    }
+    
+    $_content .= '
         Just text without slot
         Test is: ';
     $_content .= htmlentities($_component->Test($_component->count));
@@ -41,7 +49,15 @@ function RenderHomePage_Slot3(
         Simple merge test ';
     $_content .= htmlentities($_component->title);
     $_content .= '
-    </div>
+        ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '
+            ==EVEN==
+        ';
+    }
+    
+    $_content .= '</div>
 ';
     return $_content;
    

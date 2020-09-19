@@ -344,10 +344,12 @@ function Edgeon() {
     var getFirstBefore = function (node) {
         var nodeBefore = node;
         var skipCurrent = true;
+        var parent = false;
         while (!nodeBefore.domNode || skipCurrent) {
             skipCurrent = false;
             if (nodeBefore.previousNode !== null) {
                 nodeBefore = nodeBefore.previousNode;
+                parent = false;
                 if (nodeBefore.isVirtual) {
                     // go down
                     var potencialNode = nodeBefore;
@@ -367,9 +369,10 @@ function Edgeon() {
                     return null;
                 }
                 nodeBefore = nodeBefore.parent;
+                parent = true;
             }
         }
-        return nodeBefore;
+        return { itsParent: parent, node: nodeBefore };
     }
 
     var nextNodeId = 0;
@@ -388,9 +391,12 @@ function Edgeon() {
                     startNode = startNode.parent;
                 }
                 var firstRealNode = getFirstBefore(node);
-                var startParentDomNode = (firstRealNode
-                    && firstRealNode.domNode
-                    && firstRealNode.domNode.parentNode
+                var startParentDomNode = (
+                    firstRealNode
+                        && firstRealNode.itsParent
+                        ? firstRealNode.node.domNode
+                        : firstRealNode && firstRealNode.node.domNode.parentNode
+                    // && firstRealNode.domNode.parentNode
                 ) || parent;
                 var fromNode = startNode;
                 while (
@@ -457,8 +463,8 @@ function Edgeon() {
                     }
                 }
                 if (!skip) {
-                    if (nodeBefore && nodeBefore.type == 'text') {
-                        nodeBefore.domNode.nodeValue += val;
+                    if (nodeBefore && nodeBefore.node.type == 'text') {
+                        nodeBefore.node.domNode.nodeValue += val;
                         if (node.domNode !== null) {
                             node.domNode.parentNode.removeChild(node.domNode);
                             node.domNode = null;
@@ -496,11 +502,11 @@ function Edgeon() {
                             return;
                             break; // throw error ??
                         }
-                        var nextSibiling = nodeBefore.domNode.nextSibling;
-                        if (nextSibiling !== null) {
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
                             nextSibiling.parentNode.insertBefore(elm, nextSibiling);
                         } else {
-                            nodeBefore.domNode.parentNode.appendChild(elm);
+                            nodeBefore.node.domNode.parentNode.appendChild(elm);
                         }
                     } else {
                         parent.appendChild(elm);

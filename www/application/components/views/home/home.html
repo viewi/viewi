@@ -22,7 +22,9 @@
             Three
         </div>
     </slotContent>
-    <div>
+    <div><template if="$count % 2 === 0">
+            ==EVEN==
+        </template>
         Just text without slot
         <template>Test is: {Test($count)}</template>
         <span if="$count % 2 === 0">
@@ -33,5 +35,7 @@
         </template>
         <template>Second test is: {Test($count)}</template>
         <template>Simple merge test $title</template>
-    </div>
+        <template if="$count % 2 === 0">
+            ==EVEN==
+        </template></div>
 </Layout>
