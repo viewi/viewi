@@ -12,7 +12,7 @@ class TagItem
     public ?string $JsExpression = null;
     public ?array $Subscriptions = null;
     public bool $RawHtml = false;
-
+    public ?DataExpression $DataExpression;
     /** @var TagItem[] */
     private ?array $childs;
 
@@ -31,6 +31,17 @@ class TagItem
             }
             if ($this->RawHtml) {
                 $node['raw'] = true;
+            }
+            if (isset($this->DataExpression)) {
+                if ($this->DataExpression->ForData !== null) {
+                    $node['forData'] = $this->DataExpression->ForData;
+                }
+                if ($this->DataExpression->ForKey !== null) {
+                    $node['forKey'] = $this->DataExpression->ForKey;
+                }
+                if ($this->DataExpression->ForItem !== null) {
+                    $node['forItem'] = $this->DataExpression->ForItem;
+                }
             }
         }
         if (isset($this->childs)) {

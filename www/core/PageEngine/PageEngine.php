@@ -7,6 +7,7 @@ use \ReflectionProperty;
 use \ReflectionNamedType;
 use \Exception;
 
+require 'DataExpression.php';
 require 'TagItemType.php';
 require 'BaseComponent.php';
 require 'BaseService.php';
@@ -527,12 +528,16 @@ class PageEngine
         // $this->debug($expression);
         // $this->debug($keywordsList);
         $count = count($keywords);
+        $newVariables = false;
         foreach ($keywords as $i => $keyword) {
+            if ($keyword === 'as') {
+                $newVariables = true;
+            }
             if (isset($reserved[$keyword])) {
                 $newExpression .= $spaces[$i] . $keyword;
             } else if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
-                    if (isset($this->componentArguments[$keyword])) {
+                    if (isset($this->componentArguments[$keyword]) || $newVariables) {
                         $newExpression .= $spaces[$i] . $keyword;
                     } else {
                         $newExpression .= $spaces[$i] . $this->_CompileExpressionPrefix . substr($keyword, 1);
@@ -958,7 +963,15 @@ class PageEngine
         return $combinedValue;
     }
 
-    function combineChildren(TagItem $childTag, bool $expression = true, array $reserved = []): string
+    private int $forIterationKey = 0;
+
+    function GetNextIterationKey(): string
+    {
+        ++$this->forIterationKey;
+        return "_key{$this->forIterationKey}";
+    }
+
+    function combineChildren(TagItem $childTag, bool $expression = true, array $reserved = [], bool $foreach = false): string
     {
         $attrValues = $childTag->getChildren();
         $newValueContent = '';
@@ -972,6 +985,19 @@ class PageEngine
         if ($expression) {
             $newChild->ItsExpression = true;
             $this->compileExpression($newChild, $reserved);
+            if ($foreach) {
+                $newChild->DataExpression = new DataExpression();
+                $foreachParts = explode(' as ', $newChild->JsExpression, 2);
+                $newChild->DataExpression->ForData = $foreachParts[0];
+                $foreachAsParts = explode('=>', $foreachParts[1]);
+                $newChild->DataExpression->ForItem = $foreachAsParts[0];
+                if (count($foreachAsParts) > 1) {
+                    $newChild->DataExpression->ForKey = $foreachAsParts[0];
+                    $newChild->DataExpression->ForItem = $foreachAsParts[1];
+                } else {
+                    $newChild->DataExpression->ForKey = $this->GetNextIterationKey();
+                }
+            }
         }
         return $newValueContent;
     }
@@ -997,11 +1023,7 @@ class PageEngine
                     && $childTag->Content === 'foreach'
                 ) { //foreach detected
                     $childTag->Skip = true;
-                    $foreach = '';
-                    $ifItems = $childTag->getChildren();
-                    foreach ($ifItems as &$ifValueItem) {
-                        $foreach .= $ifValueItem->Content;
-                    }
+                    $foreach = $this->combineChildren($childTag, true, [], true);
                     if (!$firstFound) {
                         $firstFound = 'foreach';
                     }

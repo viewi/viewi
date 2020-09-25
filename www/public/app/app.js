@@ -99,7 +99,9 @@ function Edgeon() {
                 $this.render('HomePage');
             });
     };
+
     var currentComponent = null;
+    var currentScope = [];
 
     var getDataExpression = function (item) {
         // Function.apply(null, ['a', 'return a;'])
@@ -110,6 +112,7 @@ function Edgeon() {
             if (itsEvent) {
                 args.push('event');
             }
+            args = args.concat(currentScope)
             if (item.raw) {
                 args.push('return ' + item.code + ';');
             } else {
@@ -260,7 +263,6 @@ function Edgeon() {
                 }
                 node.isVirtual = true;
                 usedSpecialTypes.push(specialType.content);
-                node.childs = build({ childs: [item] }, instance, stack, node);
                 if (conditionalTypes.indexOf(node.type) !== -1) {
                     node.condition = specialType.childs
                         ? getDataExpression(specialType.childs[0])
@@ -275,6 +277,34 @@ function Edgeon() {
                         }
                     }
                 }
+                var codeChild = false;
+                if (node.type === 'foreach') {
+                    // compile foreach expression
+                    if (specialType.childs) {
+                        codeChild = specialType.childs[0];
+                        node.forExpression = {};
+                        var arguments = ['_component', 'app'].concat(currentScope);
+                        arguments.push('return ' + codeChild.forData + ';');
+                        node.forExpression.data = Function.apply(null, arguments);
+                        currentScope.push(codeChild.forKey);
+                        currentScope.push(codeChild.forItem);
+                        console.log(node, node.forExpression, currentScope);
+                    }
+                }
+                node.childs = build({ childs: [item] }, instance, stack, node);
+                // reset currentScope
+                if (codeChild) {
+                    // remove from currentScope
+                    var remIn = currentScope.indexOf(codeChild.forKey);
+                    if (remIn > -1) {
+                        currentScope.splice(remIn, 1);
+                    }
+                    remIn = currentScope.indexOf(codeChild.forItem);
+                    if (remIn > -1) {
+                        currentScope.splice(remIn, 1);
+                    }
+                }
+
                 currentNodeList.push(node);
                 // TODO: subscribe
                 // TODO: create check function
@@ -604,6 +634,11 @@ function Edgeon() {
             case 'template': {
                 elm = parent;
                 nextInsert = true;
+                break;
+            }
+            case 'foreach': {
+                // create n nodes (copy of children) and render
+                console.log(node);
                 break;
             }
             default:

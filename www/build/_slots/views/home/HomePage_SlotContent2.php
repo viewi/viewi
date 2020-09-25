@@ -34,69 +34,32 @@ function RenderHomePage_SlotContent2(
     $_content .= '
             <button>Increment</button>
         </div>
-        Title is: ';
-    $_content .= htmlentities($_component->title);
-    $_content .= '
-        ';
-    if($_component->count % 3 === 0){
+        <div>
+            ';
+    foreach($_component->fruits as $fruit){
     
     $_content .= '<div>
-            One
-        </div>';
-    } else if ($_component->count % 3 === 1){
+                ';
+    $_content .= htmlentities($fruit);
+    $_content .= '
+            </div>';
+    }
+    
+    $_content .= '
+            ';
+    foreach($_component->fruits as $code => $fruit){
     
     $_content .= '<div>
-            Two
-        </div>';
-    } else {
-    
-    $_content .= '<div>
-            Three
-        </div>';
+                ';
+    $_content .= htmlentities($code);
+    $_content .= ' ';
+    $_content .= htmlentities($fruit);
+    $_content .= '
+            </div>';
     }
     
     $_content .= '
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '
-            ==ODD==
-        ';
-    }
-    
-    $_content .= '
-        Test is: ';
-    $_content .= htmlentities($_component->Test($_component->count));
-    $_content .= '
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '<span>
-            ==ODD==
-        </span>';
-    } else {
-    
-    $_content .= '
-            ==EVEN==
-        ';
-    }
-    
-    $_content .= '
-        Second test is: ';
-    $_content .= htmlentities($_component->Test($_component->count));
-    $_content .= '
-        Simple merge test ';
-    $_content .= htmlentities($_component->title);
-    $_content .= '
-        ';
-    if($_component->count % 2 === 0){
-    
-    $_content .= '
-            ==ODD==
-        ';
-    }
-    
-    $_content .= '
+        </div>
     ';
     return $_content;
    
