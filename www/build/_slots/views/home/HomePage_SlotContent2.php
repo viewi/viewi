@@ -39,7 +39,7 @@ function RenderHomePage_SlotContent2(
     foreach($_component->fruits as $fruit){
     
     $_content .= '<div>
-                ';
+                Fruit: ';
     $_content .= htmlentities($fruit);
     $_content .= '
             </div>';
@@ -50,7 +50,7 @@ function RenderHomePage_SlotContent2(
     foreach($_component->fruits as $code => $fruit){
     
     $_content .= '<div>
-                ';
+                Fruit code: ';
     $_content .= htmlentities($code);
     $_content .= ' ';
     $_content .= htmlentities($fruit);

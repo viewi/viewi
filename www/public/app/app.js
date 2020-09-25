@@ -288,7 +288,7 @@ function Edgeon() {
                         node.forExpression.data = Function.apply(null, arguments);
                         currentScope.push(codeChild.forKey);
                         currentScope.push(codeChild.forItem);
-                        console.log(node, node.forExpression, currentScope);
+                        // console.log(node, node.forExpression, currentScope);
                     }
                 }
                 node.childs = build({ childs: [item] }, instance, stack, node);
@@ -384,7 +384,7 @@ function Edgeon() {
             if (attr.content[0] === '(') { // TODO: attach event only once
                 var eventName = attr.content.substring(1, attr.content.length - 1);
                 var actionContent = attr.childs[0].contentExpression.func;
-                console.log(elm, eventName, attr.childs); // TODO: attach event data $event
+                // console.log(elm, eventName, attr.childs); // TODO: attach event data $event
                 elm.addEventListener(eventName, function ($event) {
                     actionContent(attr.parent.instance, $this, $event);
                 });
@@ -637,9 +637,23 @@ function Edgeon() {
                 break;
             }
             case 'foreach': {
-                // create n nodes (copy of children) and render
-                console.log(node);
-                break;
+                elm = parent;
+                nextInsert = true;
+                if (elm) {
+                    // create n nodes (copy of children) and render
+                    var args = [node.instance, $this];
+                    // args = args.concat(currentScope); // TODO concat with scope values
+                    var data = node.forExpression.data.apply(null, args);
+                    for (var k in data) {
+                        var newChildren = node.childs.select(function (x) {
+                            return cloneNode(x);
+                        });
+                        var wrapperNode = { type: 'template', isVirtual: true, childs: newChildren };
+                        createDOM(elm, [wrapperNode], nextInsert, skipGroup);
+                    }
+                }
+                console.log(node, data);
+                return;
             }
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
@@ -652,6 +666,24 @@ function Edgeon() {
         for (var i in nodes) {
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
+    }
+
+    var cloneNode = function (node) {
+        var copy = Object.assign({}, node);
+        copy.nextNode = null;
+        copy.previousNode = null;
+        copy.domNode = null;
+        if (copy.childs) {
+            copy.childs = copy.childs.select(function (x) {
+                return cloneNode(x);
+            });
+        }
+        if (copy.attributes) {
+            copy.attributes = copy.attributes.select(function (x) {
+                return cloneNode(x);
+            });
+        }        
+        return copy;
     }
 
     var nextInstanceId = 0;
