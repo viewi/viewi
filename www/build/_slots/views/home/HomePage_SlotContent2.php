@@ -40,6 +40,8 @@ function RenderHomePage_SlotContent2(
     
     $_content .= '<b>Fruit: ';
     $_content .= htmlentities($fruit);
+    $_content .= ' ';
+    $_content .= htmlentities($_component->count);
     $_content .= '</b>';
     }
     

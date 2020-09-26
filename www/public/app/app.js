@@ -240,10 +240,6 @@ function Edgeon() {
                 domNode: null, // DOM node if rendered
                 // conditions: [true], // collection of expressions (if,else,elseif)
                 parent: parentNode, // TODO: make imutable
-                count: 1, // 0 - hidden, 1 - show, > 1 - foreach
-                take: 1, // 1 - default, > 1 - <template or <component, take next n items
-                skip: false, // if was taken by previous then false
-                data: false, // foreach target here
                 instance: instance,
                 previousNode: previousNode
             };
@@ -286,8 +282,11 @@ function Edgeon() {
                         var arguments = ['_component', 'app'].concat(currentScope);
                         arguments.push('return ' + codeChild.forData + ';');
                         node.forExpression.data = Function.apply(null, arguments);
+                        node.forExpression.key = codeChild.forKey;
+                        node.forExpression.value = codeChild.forItem;
                         currentScope.push(codeChild.forKey);
                         currentScope.push(codeChild.forItem);
+                        node.scope = currentScope.slice();
                         // console.log(node, node.forExpression, currentScope);
                     }
                 }
@@ -458,6 +457,8 @@ function Edgeon() {
         }
     }
 
+    var renderScopeStack = [];
+
     var createDomNode = function (parent, node, insert, skipGroup) {
         if (!skipGroup) {
             if (node.isVirtual || node.type === 'text') {
@@ -518,10 +519,22 @@ function Edgeon() {
                 return;
             }
         }
+        // setting scope
+        if (node.data) {
+            // merge with current scope
+            for (var k in node.scope) {
+                renderScopeStack.push(node.data[node.scope[k]]);
+            }
+        }
         var texts = [];
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
-            texts.push(contentExpression.call ? contentExpression.func(node.instance, $this) : contentExpression.content);
+            if (contentExpression.call) {
+                var args = [node.instance, $this].concat(renderScopeStack);
+                texts.push(contentExpression.func.apply(null, args));
+            } else {
+                texts.push(contentExpression.content);
+            }
         }
         var val = texts.join(''); // TODO: process conditions (if,else,elif)
         var elm = false;
@@ -656,8 +669,12 @@ function Edgeon() {
                             type: 'template',
                             isVirtual: true,
                             parent: node,
-                            previousNode: null
+                            previousNode: null,
+                            data: {}
                         };
+                        wrapperNode.data[node.forExpression.key] = k;
+                        wrapperNode.data[node.forExpression.value] = data[k];
+                        wrapperNode.scope = node.scope;
                         copyNodes(wrapperNode, node.itemChilds);
                         node.childs.push(wrapperNode);
                     }
@@ -669,7 +686,13 @@ function Edgeon() {
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
         elm && createDOM(elm, node.childs, nextInsert, skipGroup);
-
+        // resetting scope
+        if (node.data) {
+            // merge with current scope
+            for (var k in node.scope) {
+                renderScopeStack.pop();
+            }
+        }
     }
 
     var createDOM = function (parent, nodes, insert, skipGroup) {
