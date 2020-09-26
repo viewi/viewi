@@ -243,6 +243,9 @@ function Edgeon() {
                 instance: instance,
                 previousNode: previousNode
             };
+            if (parentNode && parentNode.condition) {
+                node.condition = parentNode.condition;
+            }
             if (previousNode) {
                 previousNode.nextNode = node;
             }
@@ -278,6 +281,9 @@ function Edgeon() {
                     // compile foreach expression
                     if (specialType.childs) {
                         codeChild = specialType.childs[0];
+                        for (var s in codeChild.subs) {
+                            listenTo(node, codeChild.subs[s]);
+                        }
                         node.forExpression = {};
                         var arguments = ['_component', 'app'].concat(currentScope);
                         arguments.push('return ' + codeChild.forData + ';');
@@ -522,6 +528,9 @@ function Edgeon() {
                 return;
             }
         }
+        if (!node.isVirtual && node.condition && !node.condition.value) {
+            return;
+        }
         var texts = [];
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
@@ -665,22 +674,29 @@ function Edgeon() {
                     var args = [node.instance, $this];
                     // args = args.concat(currentScope); // TODO concat with scope values
                     var data = node.forExpression.data.apply(null, args);
+                    var prevNode = null;
                     for (var k in data) {
                         var wrapperNode = {
                             type: 'template',
                             isVirtual: true,
                             parent: node,
-                            previousNode: null,
+                            previousNode: prevNode,
                             scope: {
                                 stack: node.scope.stack,
                                 data: Object.assign({}, node.scope.data)
                             }
                         };
+                        if (prevNode) {
+                            prevNode.nextNode = wrapperNode;
+                        }
+                        prevNode = wrapperNode;
                         wrapperNode.scope.data[node.forExpression.key] = k;
                         wrapperNode.scope.data[node.forExpression.value] = data[k];
                         copyNodes(wrapperNode, node.itemChilds);
                         node.childs.push(wrapperNode);
                     }
+                    // TODO: resibscribe for changes, remove subscriptions for itemChilds
+
                 }
                 console.log(node, data);
                 break;
@@ -794,13 +810,19 @@ function Edgeon() {
     var makeReactive = function (obj) {
         var instance = arguments.length > 1 ? arguments[1] : obj;
         var path = arguments.length > 2 ? arguments[2] : 'this';
-        if ('__reactive' in obj) {
-            return obj;
-        }
-        obj['__reactive'] = true;
-        var keys = Object.keys(obj);
-        for (var i = 0; i < keys.length; i++) {
-            defineReactive(instance, path + '.' + keys[i], obj, keys[i], obj[keys[i]]);
+        if (Array.isArray(obj)) {
+            for (var i = 0; i < obj.length; i++) {
+                defineReactive(instance, path + '[key]', obj, i, obj[i]);
+            }
+        } else {
+            if ('__reactive' in obj) {
+                return obj;
+            }
+            obj['__reactive'] = true;
+            var keys = Object.keys(obj);
+            for (var i = 0; i < keys.length; i++) {
+                defineReactive(instance, path + '.' + keys[i], obj, keys[i], obj[keys[i]]);
+            }
         }
         return obj;
     };

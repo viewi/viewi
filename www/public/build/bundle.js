@@ -5,7 +5,7 @@ var HomePage = function () {
     var any = 'Any\\\' var\\';
     var priv = 'Secret';
     this.json = { Name: 'My App' };
-    this.fruits = ["orange"];
+    this.fruits = ["Orange", "Apple"];
     this.fruits2 = ["orange", "banana", "apple"];
     
     this.__construct = function () {
@@ -16,6 +16,7 @@ var HomePage = function () {
         this.json['Name'] = 'New name';
         // $this->count++;
         priv += "Code";
+        this.fruits.push("Banana-" + this.count);
         // echo $this->count;
         // echo $event;
     };

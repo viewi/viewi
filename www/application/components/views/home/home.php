@@ -10,7 +10,7 @@ class HomePage extends BaseComponent
     protected $any = 'Any\\\' var\\';
     private string $priv = 'Secret';
     public $json = ['Name' => 'My App'];
-    public $fruits  = ["orange"];
+    public $fruits  = ["Orange", "Apple"];
     public $fruits2  =    ["orange", "banana", "apple"];
     function __construct()
     {
@@ -22,6 +22,7 @@ class HomePage extends BaseComponent
         $this->json['Name'] = 'New name';
         // $this->count++;
         $this->priv .= "Code";
+        $this->fruits[] = "Banana-{$this->count}";
         // echo $this->count;
         // echo $event;
     }

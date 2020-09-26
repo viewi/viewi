@@ -36,13 +36,25 @@ function RenderHomePage_SlotContent2(
         </div>
         <p>
             ';
+    if($_component->count % 2 === 0){
+    
+    $_content .= '<i>';
+    $_content .= htmlentities($_component->count);
+    $_content .= ' is Odd</i>';
+    } else {
+    
+    $_content .= '<span>';
+    $_content .= htmlentities($_component->count);
+    $_content .= ' is Even</span>';
+    }
+    
+    $_content .= '
+            ';
     foreach($_component->fruits as $fruit){
     
     $_content .= '<b>Fruit: ';
     $_content .= htmlentities($fruit);
-    $_content .= ' ';
-    $_content .= htmlentities($_component->count);
-    $_content .= '</b>';
+    $_content .= ' </b>';
     }
     
     $_content .= '
