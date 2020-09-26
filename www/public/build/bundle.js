@@ -5,7 +5,8 @@ var HomePage = function () {
     var any = 'Any\\\' var\\';
     var priv = 'Secret';
     this.json = { Name: 'My App' };
-    this.fruits = ["orange", "banana", "apple"];
+    this.fruits = ["orange"];
+    this.fruits2 = ["orange", "banana", "apple"];
     
     this.__construct = function () {
     };

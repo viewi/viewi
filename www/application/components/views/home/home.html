@@ -11,14 +11,9 @@
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
-        <div>
-            <div foreach="$fruits as $fruit">
-                Fruit: $fruit
-            </div>
-            <div foreach="$fruits as $code => $fruit">
-                Fruit code: $code $fruit
-            </div>
-        </div>
+        <p>
+            <b foreach="$fruits as $fruit">Fruit: $fruit</b>
+        </p>
     </slotContent>
     Just text without slot
 </Layout>

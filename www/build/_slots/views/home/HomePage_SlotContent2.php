@@ -34,32 +34,17 @@ function RenderHomePage_SlotContent2(
     $_content .= '
             <button>Increment</button>
         </div>
-        <div>
+        <p>
             ';
     foreach($_component->fruits as $fruit){
     
-    $_content .= '<div>
-                Fruit: ';
+    $_content .= '<b>Fruit: ';
     $_content .= htmlentities($fruit);
-    $_content .= '
-            </div>';
+    $_content .= '</b>';
     }
     
     $_content .= '
-            ';
-    foreach($_component->fruits as $code => $fruit){
-    
-    $_content .= '<div>
-                Fruit code: ';
-    $_content .= htmlentities($code);
-    $_content .= ' ';
-    $_content .= htmlentities($fruit);
-    $_content .= '
-            </div>';
-    }
-    
-    $_content .= '
-        </div>
+        </p>
     ';
     return $_content;
    

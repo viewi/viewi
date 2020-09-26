@@ -584,6 +584,8 @@ function Edgeon() {
                         var nextSibiling = nodeBefore.node.domNode.nextSibling;
                         if (!nodeBefore.itsParent && nextSibiling !== null) {
                             nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            nodeBefore.node.domNode.appendChild(elm);
                         } else {
                             nodeBefore.node.domNode.parentNode.appendChild(elm);
                         }
@@ -645,10 +647,13 @@ function Edgeon() {
                     // args = args.concat(currentScope); // TODO concat with scope values
                     var data = node.forExpression.data.apply(null, args);
                     for (var k in data) {
-                        var newChildren = node.childs.select(function (x) {
-                            return cloneNode(x);
-                        });
-                        var wrapperNode = { type: 'template', isVirtual: true, childs: newChildren };
+                        var wrapperNode = {
+                            type: 'template',
+                            isVirtual: true,
+                            parent: node,
+                            previousNode: null
+                        };
+                        copyNodes(wrapperNode, node.childs);
                         createDOM(elm, [wrapperNode], nextInsert, skipGroup);
                     }
                 }
@@ -668,21 +673,29 @@ function Edgeon() {
         }
     }
 
+    var copyNodes = function (parent, nodes) {
+        var prev = null;
+        var newChildren = nodes.select(function (x) {
+            var z = cloneNode(x);
+            z.parent = parent;
+            z.previousNode = prev;
+            prev = z;
+            if (z.previousNode) {
+                z.previousNode.nextNode = z;
+            }
+            return z;
+        });
+        parent.childs = newChildren;
+    }
+
     var cloneNode = function (node) {
         var copy = Object.assign({}, node);
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
-        if (copy.childs) {
-            copy.childs = copy.childs.select(function (x) {
-                return cloneNode(x);
-            });
+        if (node.childs) {
+            copyNodes(copy, node.childs)
         }
-        if (copy.attributes) {
-            copy.attributes = copy.attributes.select(function (x) {
-                return cloneNode(x);
-            });
-        }        
         return copy;
     }
 
