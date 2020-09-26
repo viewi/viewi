@@ -286,7 +286,10 @@ function Edgeon() {
                         node.forExpression.value = codeChild.forItem;
                         currentScope.push(codeChild.forKey);
                         currentScope.push(codeChild.forItem);
-                        node.scope = currentScope.slice();
+                        node.scope = {
+                            stack: currentScope.slice(),
+                            data: {}
+                        }
                         // console.log(node, node.forExpression, currentScope);
                     }
                 }
@@ -519,18 +522,16 @@ function Edgeon() {
                 return;
             }
         }
-        // setting scope
-        if (node.data) {
-            // merge with current scope
-            for (var k in node.scope) {
-                renderScopeStack.push(node.data[node.scope[k]]);
-            }
-        }
         var texts = [];
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
             if (contentExpression.call) {
-                var args = [node.instance, $this].concat(renderScopeStack);
+                var args = [node.instance, $this];
+                if (node.scope) {
+                    for (var k in node.scope.stack) {
+                        args.push(node.scope.data[node.scope.stack[k]]);
+                    }
+                }
                 texts.push(contentExpression.func.apply(null, args));
             } else {
                 texts.push(contentExpression.content);
@@ -670,11 +671,13 @@ function Edgeon() {
                             isVirtual: true,
                             parent: node,
                             previousNode: null,
-                            data: {}
+                            scope: {
+                                stack: node.scope.stack,
+                                data: Object.assign({}, node.scope.data)
+                            }
                         };
-                        wrapperNode.data[node.forExpression.key] = k;
-                        wrapperNode.data[node.forExpression.value] = data[k];
-                        wrapperNode.scope = node.scope;
+                        wrapperNode.scope.data[node.forExpression.key] = k;
+                        wrapperNode.scope.data[node.forExpression.value] = data[k];
                         copyNodes(wrapperNode, node.itemChilds);
                         node.childs.push(wrapperNode);
                     }
@@ -686,13 +689,6 @@ function Edgeon() {
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
         elm && createDOM(elm, node.childs, nextInsert, skipGroup);
-        // resetting scope
-        if (node.data) {
-            // merge with current scope
-            for (var k in node.scope) {
-                renderScopeStack.pop();
-            }
-        }
     }
 
     var createDOM = function (parent, nodes, insert, skipGroup) {
@@ -716,7 +712,7 @@ function Edgeon() {
     var copyNodes = function (parent, nodes) {
         var prev = null;
         var newChildren = nodes.select(function (x) {
-            var z = cloneNode(x);
+            var z = cloneNode(parent, x);
             z.parent = parent;
             z.previousNode = prev;
             prev = z;
@@ -728,8 +724,9 @@ function Edgeon() {
         parent.childs = newChildren;
     }
 
-    var cloneNode = function (node) {
+    var cloneNode = function (parent, node) {
         var copy = Object.assign({}, node);
+        copy.scope = parent.scope;
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
