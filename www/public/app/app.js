@@ -643,6 +643,11 @@ function Edgeon() {
                 nextInsert = true;
                 if (elm) {
                     // create n nodes (copy of children) and render
+                    if (!node.itemChilds) {
+                        node.itemChilds = node.childs;
+                    }
+                    removeDomNodes(node.childs);
+                    node.childs = [];
                     var args = [node.instance, $this];
                     // args = args.concat(currentScope); // TODO concat with scope values
                     var data = node.forExpression.data.apply(null, args);
@@ -653,12 +658,12 @@ function Edgeon() {
                             parent: node,
                             previousNode: null
                         };
-                        copyNodes(wrapperNode, node.childs);
-                        createDOM(elm, [wrapperNode], nextInsert, skipGroup);
+                        copyNodes(wrapperNode, node.itemChilds);
+                        node.childs.push(wrapperNode);
                     }
                 }
                 console.log(node, data);
-                return;
+                break;
             }
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
@@ -670,6 +675,18 @@ function Edgeon() {
     var createDOM = function (parent, nodes, insert, skipGroup) {
         for (var i in nodes) {
             createDomNode(parent, nodes[i], insert, skipGroup);
+        }
+    }
+
+    var removeDomNodes = function (nodes) {
+        for (var k in nodes) {
+            if (nodes[k].domNode) {
+                nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
+                nodes[k].domNode = null;
+            }
+            if (nodes[k].childs) {
+                removeDomNodes(nodes[k].childs);
+            }
         }
     }
 
