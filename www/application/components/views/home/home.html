@@ -12,9 +12,9 @@
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
         <p>
+            <b foreach="$fruits as $fruit">Fruit: $fruit </b>
             <i if="$count % 2 === 0">$count is Odd</i>
             <span else>$count is Even</span>
-            <b foreach="$fruits as $fruit">Fruit: $fruit </b>
         </p>
     </slotContent>
     Just text without slot

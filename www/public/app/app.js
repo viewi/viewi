@@ -670,10 +670,13 @@ function Edgeon() {
                         node.itemChilds = node.childs;
                     }
                     removeDomNodes(node.childs);
-                    node.childs = [];
+                    node.childs = null;
                     var args = [node.instance, $this];
                     // args = args.concat(currentScope); // TODO concat with scope values
                     var data = node.forExpression.data.apply(null, args);
+                    if (data && data.length > 0) {
+                        node.childs = [];
+                    }
                     var prevNode = null;
                     for (var k in data) {
                         var wrapperNode = {
