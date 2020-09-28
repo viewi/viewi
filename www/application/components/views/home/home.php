@@ -10,8 +10,10 @@ class HomePage extends BaseComponent
     protected $any = 'Any\\\' var\\';
     private string $priv = 'Secret';
     public $json = ['Name' => 'My App'];
-    public $fruits  = ["Orange", "Apple"];
-    public $fruits2  =    ["orange", "banana", "apple"];
+    public $fruits = ["Orange", "Apple"];
+    public $fruits2 = ["orange", "banana", "apple"];
+    public $htag = 'h1';
+    
     function __construct()
     {
     }

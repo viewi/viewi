@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_Slot5(
+function RenderAppComponent_SlotContent6(
     Silly\MyApp\AppComponent $_component,
     PageEngine $pageEngine,
     array $slots
@@ -14,8 +14,8 @@ function RenderAppComponent_Slot5(
     $_content = '';
 
     $_content .= '
-   
-';
+      <a href="/front.php">Front dev</a>
+   ';
     return $_content;
    
 }

@@ -7,6 +7,7 @@ var HomePage = function () {
     this.json = { Name: 'My App' };
     this.fruits = ["Orange", "Apple"];
     this.fruits2 = ["orange", "banana", "apple"];
+    this.htag = 'h1';
     
     this.__construct = function () {
     };

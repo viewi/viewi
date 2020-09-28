@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderUserItem_Slot6(
-    \UserItem $_component,
+function RenderHomePage_Slot5(
+    \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,7 +13,11 @@ function RenderUserItem_Slot6(
     
     $_content = '';
 
-    $_content .= 'no user';
+    $_content .= '
+    
+    
+    Just text without slot
+';
     return $_content;
    
 }

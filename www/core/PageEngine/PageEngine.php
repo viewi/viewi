@@ -143,6 +143,11 @@ class PageEngine
         return;
     }
 
+    public function isTag(string $name): bool
+    {
+        return isset($this->reservedTags[$name]);
+    }
+
     /**
      * 
      * @param string $filename 
@@ -562,6 +567,7 @@ class PageEngine
     {
         $expression = $tagItem->Content;
         $code = '';
+        $phpCode = '';
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
             // raw html
             $code = $this->renderReturn ? '' : '<?=';
@@ -578,6 +584,7 @@ class PageEngine
             $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
+        $tagItem->PhpExpression = $phpCode;
         $detectedReferences = $this->expressionsTranslator->GetVariablePathes();
         if (isset($detectedReferences['global'])) {
             $subscriptions = array_map(
@@ -652,6 +659,14 @@ class PageEngine
         // always cache for slots
         $this->Dependencies[$class] = $instance;
         return $instance;
+    }
+
+    function renderDynamicTag($tagName, $slotName, ...$args)
+    {
+        $tagInfo = &$this->components[$slotName];
+        include_once $this->sourcePath . $tagInfo->Fullpath;
+        include_once $this->buildPath . $tagInfo->BuildPath;
+        return ($tagInfo->RenderFunction)(...$args);
     }
 
     function renderComponent(
@@ -768,9 +783,18 @@ class PageEngine
                 $inputArgumentsCode .= ']';
             }
             $slotsExpression = $componentBaseName ? "'$componentBaseName'" : 'false';
+            // dynamic tag
+            $dynamicTagCode = '';
+            if ($componentName[0] === '$') {
+                $dynamicTagCode = "\$pageEngine->isTag($componentName)" .
+                    "{$eol}{$this->identation}? \$pageEngine->RenderDynamicTag($componentName," .
+                    " $slotsExpression, \$_component, \$pageEngine, \$slots, ...\$scope)" .
+                    "{$eol}{$this->identation}: ";
+            }
+
             $html .= $codeBegin .
                 $this->identation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->identation . "$codeMiddle\$pageEngine->renderComponent(" .
+                PHP_EOL . $this->identation . "{$codeMiddle}{$dynamicTagCode}\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "{$this->_CompileComponentName}, " .
                 "\$slotContents, " .
@@ -1081,6 +1105,8 @@ class PageEngine
             $this->startIf($ifExpression, $html, $codeToAppend);
         }
 
+        $dynamicTagDetected = $tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression;
+
         if (
             $tagItem->Type->Name == TagItemType::Component
             || ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression)
@@ -1162,7 +1188,9 @@ class PageEngine
             }
             $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
-            $breakAll = true;
+            if (!$dynamicTagDetected) {
+                $breakAll = true;
+            }
         }
         // $codeToAppend = '';
         if ($tagItem->Type->Name == TagItemType::Tag && !$tagItem->ItsExpression) {
@@ -1213,11 +1241,9 @@ class PageEngine
             $breakAll = true;
         }
         if (!$breakAll) {
-            $replaceByTag = 'div';
             $noChildren = empty($children);
             $noContent = true;
             $selfClosing = false;
-
             $content = $tagItem->ItsExpression
                 ? $this->compileExpression($tagItem)
                 : $tagItem->Content;
@@ -1225,6 +1251,19 @@ class PageEngine
             if ($tagItem->Type->Name == TagItemType::Tag) {
                 $skipTagRender = $tagItem->Content === 'template';
                 if (!$skipTagRender) {
+                    if ($dynamicTagDetected) {
+                        // put if
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                            $codeToAppend = '';
+                            $html .= PHP_EOL . $this->identation .
+                                "if(\$pageEngine->isTag($content)) {";
+                        } else {
+                            $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                                "if(\$pageEngine->isTag({$tagItem->PhpExpression})) {" . PHP_EOL . '?>';
+                        }
+                    }
                     $codeToAppend .= '<';
                     if ($this->renderReturn) {
                         if ($tagItem->ItsExpression) {
@@ -1243,17 +1282,16 @@ class PageEngine
                         $selfClosing = true;
                     }
                 }
-                if (!$noChildren) { // merge attributes
+                if (!$noChildren) { // merge attributes                    
                     $newChildren = [];
                     foreach ($children as &$childTag) {
                         if ($childTag->Type->Name === TagItemType::Attribute) {
-                            if ($skipTagRender && !$childTag->Skip) { // template can't has attributes
+                            if ($skipTagRender && !$childTag->Skip) { // template can't have attributes
                                 trigger_error("`template` tag can't have attributes: attribute '{$childTag->Content}'", E_USER_WARNING);
                                 continue;
                             }
                             $attributeName = $childTag->Content;
                             $mergeValues = $childTag->getChildren();
-
                             $valueToReplace = false;
                             if ($attributeName[0] === '(') { // event
                                 $childTag->Skip = true;
@@ -1400,6 +1438,10 @@ class PageEngine
                             }
                         }
                     }
+                    if ($dynamicTagDetected) {
+                        $childTag->Skip = false;
+                        // $this->debug($childTag);
+                    }
                     // if ($codeToAppend) {
                     //     if ($this->renderReturn) {
                     //         $html .= PHP_EOL . $this->identation . "\$_content .= " .
@@ -1425,8 +1467,34 @@ class PageEngine
                         if ($noContent) {
                             $codeToAppend .= '>';
                         }
-                        $codeToAppend .= '</' . $content . '>';
+
+                        if ($this->renderReturn) {
+                            if ($tagItem->ItsExpression) {
+                                $codeToAppend .= '</';
+                                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                    var_export($codeToAppend, true) . ";";
+                                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                    $content . ";";
+                                $codeToAppend = '>';
+                            } else {
+                                $codeToAppend .= '</' . $content . '>';
+                            }
+                        } else {
+                            $codeToAppend .= '</' . $content . '>';
+                        }
                         $this->extraLine = false;
+                    }
+                    if ($dynamicTagDetected) {
+                        // put if
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                            $codeToAppend = '';
+                            $html .= PHP_EOL . $this->identation . "}";
+                        } else {
+                            $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                                '}' . PHP_EOL . '?>';
+                        }
                     }
                 }
             }

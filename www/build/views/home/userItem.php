@@ -14,8 +14,10 @@ function RenderUserItem(
     $_content = '';
 
     $_content .= 'USER: ';
-    $slotContents[0] = 'UserItem_Slot6';
-    $_content .= $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot6', $_component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'UserItem_Slot8';
+    $_content .= $pageEngine->isTag($slots[0] ? $slots[0] : 'UserItem_Slot8')
+    ? $pageEngine->RenderDynamicTag($slots[0] ? $slots[0] : 'UserItem_Slot8', 'UserItem_Slot8', $_component, $pageEngine, $slots, ...$scope)
+    : $pageEngine->renderComponent($slots[0] ? $slots[0] : 'UserItem_Slot8', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
 ';
