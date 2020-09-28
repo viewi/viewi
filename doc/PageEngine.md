@@ -1,10 +1,10 @@
 ## Page Engine
 
-### Powerfull view engine for your application
+### Powerful view engine for your application
 
 ##### *Requirements: php 7.4+*
 
-**Exmple Code:**
+**Example Code:**
 component: *app/home.php*
 ```php
 <?php
@@ -45,7 +45,7 @@ template: *app/home.html*
 // true if you in developing mode
 $develop = true;
 
-// true if you want render into variable, otherwise - echo output
+// true if you want to render into variable, otherwise - echo output
 $renderReturn = true;
 
 $page = new Vo\PageEngine(
@@ -234,7 +234,7 @@ template: *app/home.html*
 
 ##### If and foreach combinations
 You can have `if` and `foreach` together, but order matters: 
-This will check `if` condition first, and if i'ts true will execute `foreach`
+This will check `if` condition first, and if it's true will execute `foreach`
 ```php
 <div if="$condition" foreach="$array as $item"...`
 ```
@@ -345,7 +345,7 @@ class HomeLink extends BaseComponent
     ) {
 //...
 ```
-You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctlly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
+You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
 
 ### Tests
 Got to `tests` folder
