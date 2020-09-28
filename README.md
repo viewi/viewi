@@ -11,8 +11,10 @@
 - Reactive application
 - Easy to use
 - Template engine, similar to Angular and Vue
-- Common components and templates for backend and frontend render engines. Write only once.
+- Common components and templates for backend and frontend render engines, without need to write javascript.
 - Web, mobile, desktop support
+- Does not require Node js
+
 
 #### Documentation
 
