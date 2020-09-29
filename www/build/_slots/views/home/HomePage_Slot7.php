@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_SlotContent6(
-    Silly\MyApp\AppComponent $_component,
+function RenderHomePage_Slot7(
+    \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,9 +13,7 @@ function RenderAppComponent_SlotContent6(
     
     $_content = '';
 
-    $_content .= '
-      <a href="/front.php">Front dev</a>
-   ';
+    $_content .= 'Dynamic 2';
     return $_content;
    
 }

@@ -44,6 +44,41 @@ function RenderHomePage_SlotContent2(
     $_content .= '';
     }
     $_content .= '
+        ';
+    $slotContents[0] = 'HomePage_Slot5';
+    $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '
+        ';
+    if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
+    $_content .= '<';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '>Dynamic 1</';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '>';
+    } else {
+    $slotContents[0] = 'HomePage_Slot6';
+    $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '';
+    }
+    $_content .= '
+        <div>
+            ';
+    if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
+    $_content .= '<';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '>Dynamic 2</';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '>';
+    } else {
+    $slotContents[0] = 'HomePage_Slot7';
+    $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '';
+    }
+    $_content .= '
+        </div>
         <h4>
             Count: ';
     $_content .= htmlentities($_component->count);

@@ -18,8 +18,8 @@ function RenderLayout(
 
 <head>
     ';
-    $slotContents[0] = 'Layout_Slot9';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot9', $_component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'Layout_Slot12';
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot12', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
     <style>

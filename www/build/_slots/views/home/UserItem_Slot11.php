@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderAppComponent_Slot7(
-    Silly\MyApp\AppComponent $_component,
+function RenderUserItem_Slot11(
+    \UserItem $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,9 +13,7 @@ function RenderAppComponent_Slot7(
     
     $_content = '';
 
-    $_content .= '
-   
-';
+    $_content .= 'no user';
     return $_content;
    
 }

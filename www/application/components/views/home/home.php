@@ -13,7 +13,8 @@ class HomePage extends BaseComponent
     public $fruits = ["Orange", "Apple"];
     public $fruits2 = ["orange", "banana", "apple"];
     public $htag = 'h1';
-    
+    public $dynamicName = 'UserItem';
+
     function __construct()
     {
     }

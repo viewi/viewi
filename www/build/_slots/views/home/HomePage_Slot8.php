@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderHomePage_Slot5(
+function RenderHomePage_Slot8(
     \HomePage $_component,
     PageEngine $pageEngine,
     array $slots
@@ -13,7 +13,11 @@ function RenderHomePage_Slot5(
     
     $_content = '';
 
-    $_content .= 'Not Dynamic';
+    $_content .= '
+    
+    
+    Just text without slot
+';
     return $_content;
    
 }

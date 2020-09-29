@@ -378,6 +378,8 @@ class PageEngine
                 }
             }
         }
+        // mate info
+        $publicJson['_meta'] = ['tags' => $this->reservedTagsString];
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);

@@ -17,7 +17,7 @@ function RenderHomePage(
 
     $slotContents['body'] = 'HomePage_SlotContent2';
 
-    $slotContents[0] = 'HomePage_Slot5';
+    $slotContents[0] = 'HomePage_Slot8';
     $_content .= $pageEngine->renderComponent('Layout', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;

@@ -8,6 +8,7 @@ var HomePage = function () {
     this.fruits = ["Orange", "Apple"];
     this.fruits2 = ["orange", "banana", "apple"];
     this.htag = 'h1';
+    this.dynamicName = 'UserItem';
     
     this.__construct = function () {
     };

@@ -90,12 +90,16 @@ Object.defineProperty(Array.prototype, 'each', {
 //
 function Edgeon() {
     var $this = this;
+    var avaliableTags = {};
     this.componentsUrl = '/public/build/components.json';
     this.components = {};
     this.start = function () {
         ajax.get(this.componentsUrl)
             .then(function (components) {
                 $this.components = components;
+                components._meta.tags.split(',').each(function (x) {
+                    avaliableTags[x] = true;
+                });
                 $this.render('HomePage');
             });
     };
@@ -250,6 +254,11 @@ function Edgeon() {
                 previousNode.nextNode = node;
             }
             previousNode = node;
+            if (item.type === 'tag' && item.expression) {
+                node.type = 'dynamic';
+                node.componentChilds = item.childs;
+                node.isVirtual = true;
+            }
             if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
                 var specialTag = item.content;
                 node.type = specialTag;
@@ -376,7 +385,11 @@ function Edgeon() {
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
-                    node.childs = childNodes;
+                    if (node.type == 'dynamic') {
+                        node.itemChilds = childNodes;
+                    } else {
+                        node.childs = childNodes;
+                    }
                 }
                 currentNodeList.push(node);
             }
@@ -666,7 +679,7 @@ function Edgeon() {
                 nextInsert = true;
                 if (elm) {
                     // create n nodes (copy of children) and render
-                    if (!node.itemChilds) {
+                    if (!node.itemChilds) { // TODO: bug, need to rewrite
                         node.itemChilds = node.childs;
                     }
                     removeDomNodes(node.childs);
@@ -684,6 +697,8 @@ function Edgeon() {
                             isVirtual: true,
                             parent: node,
                             previousNode: prevNode,
+                            instance: node.instance,
+                            domNode: null,
                             scope: {
                                 stack: node.scope.stack,
                                 data: Object.assign({}, node.scope.data)
@@ -702,6 +717,44 @@ function Edgeon() {
 
                 }
                 console.log(node, data);
+                break;
+            }
+            case 'dynamic': { // dynamic tag or component
+                // wrap into template
+                // clone child for tag
+                // or build component
+                // render
+                elm = parent;
+                nextInsert = true;
+                removeDomNodes(node.childs);
+                node.childs = null;
+                var wrapperNode = {
+                    contents: node.contents,
+                    attributes: node.attributes,
+                    parent: node,
+                    previousNode: null,
+                    scope: node.scope,
+                    instance: node.instance,
+                    domNode: null
+                };
+                if (node.itemChilds) {
+                    copyNodes(wrapperNode, node.itemChilds);
+                }
+                if (val in avaliableTags) { // it's a tag
+                    wrapperNode.type = 'tag';
+                } else {
+                    // build component
+                    // componentChilds
+                    wrapperNode.type = 'template';
+                    wrapperNode.isVirtual = true;
+                    wrapperNode.childs = create(val, wrapperNode.childs);
+                    // reassign parent
+                    wrapperNode.childs.each(function (x) {
+                        x.parent = wrapperNode;
+                    });
+                }
+                node.childs = [wrapperNode];
+                console.log(node, val);
                 break;
             }
             default:
@@ -749,6 +802,7 @@ function Edgeon() {
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
+        copy.scope = parent.scope;
         if (node.childs) {
             copyNodes(copy, node.childs)
         }
