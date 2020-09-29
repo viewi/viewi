@@ -15,12 +15,6 @@ function RenderHomePage_SlotContent2(
 
     $_content .= '
         ';
-    $slotContents[0] = 'HomePage_Slot3';
-    $_content .= $pageEngine->isTag($_component->htag)
-    ? $pageEngine->RenderDynamicTag($_component->htag, 'HomePage_Slot3', $_component, $pageEngine, $slots, ...$scope)
-    : $pageEngine->renderComponent($_component->htag, $_component, $slotContents, [], ...$scope);
-    $slotContents = [];
-    $_content .= '';
     if($pageEngine->isTag(htmlentities($_component->htag))) {
     $_content .= '<';
     $_content .= htmlentities($_component->htag);
@@ -29,21 +23,25 @@ function RenderHomePage_SlotContent2(
     $_content .= '</';
     $_content .= htmlentities($_component->htag);
     $_content .= '>';
+    } else {
+    $slotContents[0] = 'HomePage_Slot3';
+    $_content .= $pageEngine->renderComponent($_component->htag, $_component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '';
     }
     $_content .= '
         ';
-    $slotContents[0] = 'HomePage_Slot4';
-    $_content .= $pageEngine->isTag($_component->htag)
-    ? $pageEngine->RenderDynamicTag($_component->htag, 'HomePage_Slot4', $_component, $pageEngine, $slots, ...$scope)
-    : $pageEngine->renderComponent($_component->htag, $_component, $slotContents, [], ...$scope);
-    $slotContents = [];
-    $_content .= '';
     if($pageEngine->isTag(htmlentities($_component->htag))) {
     $_content .= '<';
     $_content .= htmlentities($_component->htag);
     $_content .= ' class="big-title-2"></';
     $_content .= htmlentities($_component->htag);
     $_content .= '>';
+    } else {
+    $slotContents[0] = 'HomePage_Slot4';
+    $_content .= $pageEngine->renderComponent($_component->htag, $_component, $slotContents, [], ...$scope);
+    $slotContents = [];
+    $_content .= '';
     }
     $_content .= '
         <h4>

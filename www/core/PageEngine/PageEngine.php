@@ -784,17 +784,17 @@ class PageEngine
             }
             $slotsExpression = $componentBaseName ? "'$componentBaseName'" : 'false';
             // dynamic tag
-            $dynamicTagCode = '';
-            if ($componentName[0] === '$') {
-                $dynamicTagCode = "\$pageEngine->isTag($componentName)" .
-                    "{$eol}{$this->identation}? \$pageEngine->RenderDynamicTag($componentName," .
-                    " $slotsExpression, \$_component, \$pageEngine, \$slots, ...\$scope)" .
-                    "{$eol}{$this->identation}: ";
-            }
+            // $dynamicTagCode = '';
+            // if ($componentName[0] === '$') {
+            //     $dynamicTagCode = "\$pageEngine->isTag($componentName)" .
+            //         "{$eol}{$this->identation}? \$pageEngine->RenderDynamicTag($componentName," .
+            //         " $slotsExpression, \$_component, \$pageEngine, \$slots, ...\$scope)" .
+            //         "{$eol}{$this->identation}: ";
+            // }
 
             $html .= $codeBegin .
                 $this->identation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->identation . "{$codeMiddle}{$dynamicTagCode}\$pageEngine->renderComponent(" .
+                PHP_EOL . $this->identation . "{$codeMiddle}\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "{$this->_CompileComponentName}, " .
                 "\$slotContents, " .
@@ -1107,90 +1107,8 @@ class PageEngine
 
         $dynamicTagDetected = $tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression;
 
-        if (
-            $tagItem->Type->Name == TagItemType::Component
-            || ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression)
-        ) {
-
-            $inputArguments = [];
-            // extract slotContents and input arguments
-            $children = $tagItem->getChildren();
-            foreach ($children as &$childTag) {
-                if (
-                    $childTag->Type->Name === TagItemType::Tag
-                    && $childTag->Content === 'slotContent'
-                ) { // slot content
-                    if ($codeToAppend) {
-                        if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                                var_export($codeToAppend, true) . ";";
-                        } else {
-                            $html .= $codeToAppend;
-                        }
-                        $codeToAppend = '';
-                    }
-                    $this->compileComponentExpression($childTag, $html);
-                } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
-                    $childTag->Skip = true; // component can't have attributes
-                    // pass arguments
-                    //$this->debug($tagItem->Content);
-                    if (isset($this->components[$tagItem->Content])) {
-                        $className = $this->components[$tagItem->Content]->ComponentName;
-                        include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
-
-                        if (class_exists($className)) {
-                            //$this->debug($className);
-                            if (!isset($this->components[$tagItem->Content]->Inputs)) {
-                                $this->components[$tagItem->Content]->Inputs = [];
-                            }
-                            $reflect = new ReflectionClass($className);
-                            $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
-                            $propsMap = [];
-                            foreach ($props as $propertyInfo) {
-                                $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
-                            }
-                            $inputArgument = $childTag->Content;
-                            if (isset($propsMap[$inputArgument])) {
-                                if (!isset($this->components[$tagItem->Content]->Inputs[$inputArgument])) {
-                                    $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
-                                }
-                                $inputValue = $this->getChildValues($childTag);
-                                if (
-                                    strpos($inputValue, '(') === false
-                                    && $inputValue[0] !== '$'
-                                    && !ctype_digit($inputValue)
-                                    && $inputValue !== 'true'
-                                    && $inputValue !== 'false'
-                                ) { // its a string
-                                    $inputValue = str_replace("'", "\\'", $inputValue);
-                                    $inputValue = "'$inputValue'";
-                                }
-                                $inputValue = $this->convertExpressionToCode($inputValue);
-                                $inputArguments[$inputArgument] = $inputValue;
-                                // $this->debug($inputArgument);
-                                // $this->debug($inputValue);
-                                // $this->debug($propsMap);
-                            }
-                        }
-                    }
-                }
-            }
-            //$this->debug($inputArguments, true);
-            // compile component
-            if ($codeToAppend) {
-                if ($this->renderReturn) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                        var_export($codeToAppend, true) . ";";
-                } else {
-                    $html .= $codeToAppend;
-                }
-                $codeToAppend = '';
-            }
-            $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
-            $this->extraLine = true;
-            if (!$dynamicTagDetected) {
-                $breakAll = true;
-            }
+        if ($tagItem->Type->Name == TagItemType::Component) {
+            $breakAll = true;
         }
         // $codeToAppend = '';
         if ($tagItem->Type->Name == TagItemType::Tag && !$tagItem->ItsExpression) {
@@ -1490,15 +1408,112 @@ class PageEngine
                             $html .= PHP_EOL . $this->identation . "\$_content .= " .
                                 var_export($codeToAppend, true) . ";";
                             $codeToAppend = '';
-                            $html .= PHP_EOL . $this->identation . "}";
+                            $html .= PHP_EOL . $this->identation . "} else {";
                         } else {
                             $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
-                                '}' . PHP_EOL . '?>';
+                                '} else {' . PHP_EOL . '?>';
                         }
                     }
                 }
             }
         }
+        // ======================================================================
+        if (
+            $tagItem->Type->Name == TagItemType::Component
+            || ($tagItem->Type->Name == TagItemType::Tag && $tagItem->ItsExpression)
+        ) {
+
+            $inputArguments = [];
+            // extract slotContents and input arguments
+            $children = $tagItem->getChildren();
+            foreach ($children as &$childTag) {
+                if (
+                    $childTag->Type->Name === TagItemType::Tag
+                    && $childTag->Content === 'slotContent'
+                ) { // slot content
+                    if ($codeToAppend) {
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                var_export($codeToAppend, true) . ";";
+                        } else {
+                            $html .= $codeToAppend;
+                        }
+                        $codeToAppend = '';
+                    }
+                    $this->compileComponentExpression($childTag, $html);
+                } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
+                    $childTag->Skip = true; // component can't have attributes
+                    // pass arguments
+                    //$this->debug($tagItem->Content);
+                    if (isset($this->components[$tagItem->Content])) {
+                        $className = $this->components[$tagItem->Content]->ComponentName;
+                        include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+
+                        if (class_exists($className)) {
+                            //$this->debug($className);
+                            if (!isset($this->components[$tagItem->Content]->Inputs)) {
+                                $this->components[$tagItem->Content]->Inputs = [];
+                            }
+                            $reflect = new ReflectionClass($className);
+                            $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
+                            $propsMap = [];
+                            foreach ($props as $propertyInfo) {
+                                $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
+                            }
+                            $inputArgument = $childTag->Content;
+                            if (isset($propsMap[$inputArgument])) {
+                                if (!isset($this->components[$tagItem->Content]->Inputs[$inputArgument])) {
+                                    $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
+                                }
+                                $inputValue = $this->getChildValues($childTag);
+                                if (
+                                    strpos($inputValue, '(') === false
+                                    && $inputValue[0] !== '$'
+                                    && !ctype_digit($inputValue)
+                                    && $inputValue !== 'true'
+                                    && $inputValue !== 'false'
+                                ) { // its a string
+                                    $inputValue = str_replace("'", "\\'", $inputValue);
+                                    $inputValue = "'$inputValue'";
+                                }
+                                $inputValue = $this->convertExpressionToCode($inputValue);
+                                $inputArguments[$inputArgument] = $inputValue;
+                                // $this->debug($inputArgument);
+                                // $this->debug($inputValue);
+                                // $this->debug($propsMap);
+                            }
+                        }
+                    }
+                }
+            }
+            //$this->debug($inputArguments, true);
+            // compile component
+            if ($codeToAppend) {
+                if ($this->renderReturn) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                } else {
+                    $html .= $codeToAppend;
+                }
+                $codeToAppend = '';
+            }
+            $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
+            $this->extraLine = true;
+
+            if ($dynamicTagDetected) {
+                // put if
+                if ($this->renderReturn) {
+                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        var_export($codeToAppend, true) . ";";
+                    $codeToAppend = '';
+                    $html .= PHP_EOL . $this->identation . "}";
+                } else {
+                    $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                        '}' . PHP_EOL . '?>';
+                }
+            }
+        }
+        // =========================================================================
         // if ($codeToAppend) {
         //     if ($this->renderReturn) {
         //         $html .= PHP_EOL . $this->identation . "\$_content .= " .

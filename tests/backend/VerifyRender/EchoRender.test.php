@@ -35,8 +35,8 @@ class EchoRenderingTest extends BaseRenderingTest
         }
         $html = ob_get_contents();
         ob_end_clean();
-        $T->this($html)->isNotEmpty();
         $time = floor((microtime(true) - $startedAt) * 1000);
+        $T->this($html)->isNotEmpty();
         echo "   Compile time: \033[44;100m{$compileTime}ms\033[0m\n";
         $perOne = round($time / $howMany, 4);
         $perSec = number_format(floor(1000 / $perOne), 2, '.', ' ');
