@@ -81,6 +81,11 @@ class BaseRenderingTest extends BaseTest
             'class' => DependencyInjectionWorksComponent::class,
             'expected' => 'DependencyInjectionWorks.expected.html'
         ];
+        $this->TestCases->HelloWorldExample = [
+            'path' => 'HelloWorld',
+            'class' => HelloWorldComponent::class,
+            'expected' => 'HelloWorld.expected.html'
+        ];
     }
     protected function TestComponent(
         string $component,
@@ -124,9 +129,9 @@ class BaseRenderingTest extends BaseTest
                 }
             }
         }
-        try{
+        try {
             $T->this($html)->equalsToHtml($expectetd);
-        }catch(Throwable $error){
+        } catch (Throwable $error) {
             var_dump($html);
             var_dump($expectetd);
             throw $error;
@@ -207,6 +212,11 @@ class BaseRenderingTest extends BaseTest
     {
         $this->TestAppInFolder($this->TestCases->DependencyInjectionWorks, $T);
     }
+
+    public function HelloWorldTest(UnitTestScope $T)
+    {
+        $this->TestAppInFolder($this->TestCases->HelloWorldExample, $T);
+    }
 }
 
 class RenderTestCases
@@ -225,4 +235,5 @@ class RenderTestCases
     public array $EscapingAndExpressions;
     public array $ComplexTest;
     public array $DependencyInjectionWorks;
+    public array $HelloWorldExample;
 }

@@ -13,10 +13,9 @@ class ReturnRenderingTest extends BaseRenderingTest
         $this->returnRendering = true;
     }
 
-    public function ReturnRenderPerformance(UnitTestScope $T)
+    private function PerfrmanceTest(UnitTestScope $T, $component, $path, $iterations = 500)
     {
-        $component = ComplexTestComponent::class;
-        $path = 'PerformanceTest';
+
         $startedAt = microtime(true);
         $page = new Vo\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
@@ -37,16 +36,30 @@ class ReturnRenderingTest extends BaseRenderingTest
             true
         );
         $html = '';
-        $howMany = 500;
+        $howMany = $iterations;
         for ($i = 0; $i < $howMany; $i++) {
             $html = $page->render($component);
         }
         $time = floor((microtime(true) - $startedAt) * 1000);
         $T->this($html)->isNotEmpty();
         echo "   Compile time: \033[44;100m{$compileTime}ms\033[0m\n";
-        $perOne = round($time / $howMany, 16);
+        $perOne = round($time / $howMany, 6);
         $perSec = number_format(floor(1000 / $perOne), 2, '.', ' ');
         echo "   Run $howMany times: \033[44;100m{$time}ms;\033[0m \033[44;100m{$perOne}ms/render; $perSec rps (renders/sec);\033[0m\n";
         $T->this($time)->lessThan(200);
+    }
+
+    public function ReturnRenderComplexPerformance(UnitTestScope $T)
+    {
+        $component = ComplexTestComponent::class;
+        $path = 'PerformanceTest';
+        $this->PerfrmanceTest($T, $component, $path);
+    }
+
+    public function ReturnRenderHelloWorldPerformance(UnitTestScope $T)
+    {
+        $component = HelloWorldComponent::class;
+        $path = 'HelloWorld';
+        $this->PerfrmanceTest($T, $component, $path, 1000);
     }
 }
