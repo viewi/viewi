@@ -137,14 +137,14 @@ function Edgeon() {
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
         var parentNode = arguments.length > 3 ? arguments[3] : null;
-        var childs = parent.childs;
+        var children = parent.children;
         var currentNodeList = [];
         var skip = false;
         var node = false;
         var previousNode = null;
         var usedSubscriptions = {};
-        for (var i in childs) {
-            var item = childs[i];
+        for (var i in children) {
+            var item = children[i];
 
             if (item.type === 'tag' && item.content === 'slot') {
                 // if (currentNodeList.length > 0) {
@@ -162,12 +162,12 @@ function Edgeon() {
                     return !x.attributes;
                 };
                 if (slotNameItem) {
-                    slotName = slotNameItem.childs[0].content;
+                    slotName = slotNameItem.children[0].content;
                     slotNameExpression = function (x) {
                         return x.attributes
                             && x.attributes.first(function (y) {
                                 return y.content === 'name'
-                                    && y.childs[0].content === slotName;
+                                    && y.children[0].content === slotName;
                             });
                     }
                 }
@@ -201,7 +201,7 @@ function Edgeon() {
                             var prevNode = currentNodeList.length > 0
                                 ? currentNodeList[currentNodeList.length - 1]
                                 : null;
-                            slotContent.childs.each(function (x) {
+                            slotContent.children.each(function (x) {
                                 x.nextNode = null;
                                 x.parent = parentNode;
                                 x.previousNode = prevNode;
@@ -210,7 +210,7 @@ function Edgeon() {
                                 }
                                 prevNode = x;
                             });
-                            currentNodeList = currentNodeList.concat(slotContent.childs);
+                            currentNodeList = currentNodeList.concat(slotContent.children);
                         }
                     }
                     previousNode = currentNodeList.length > 0
@@ -258,7 +258,7 @@ function Edgeon() {
             previousNode = node;
             if (item.type === 'tag' && item.expression) {
                 node.type = 'dynamic';
-                node.componentChilds = item.childs;
+                node.componentChilds = item.children;
                 node.isVirtual = true;
             }
             if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
@@ -274,24 +274,24 @@ function Edgeon() {
                 node.isVirtual = true;
                 usedSpecialTypes.push(specialType.content);
                 if (conditionalTypes.indexOf(node.type) !== -1) {
-                    node.condition = specialType.childs
-                        ? getDataExpression(specialType.childs[0])
+                    node.condition = specialType.children
+                        ? getDataExpression(specialType.children[0])
                         : {};
                     for (var s in usedSubscriptions) {
                         listenTo(node, s);
                     }
-                    if (specialType.childs && specialType.childs[0].subs) { // TOD: subscribe all if-else group to each sub changes
-                        for (var s in specialType.childs[0].subs) {
-                            listenTo(node, specialType.childs[0].subs[s]);
-                            usedSubscriptions[specialType.childs[0].subs[s]] = true;
+                    if (specialType.children && specialType.children[0].subs) { // TOD: subscribe all if-else group to each sub changes
+                        for (var s in specialType.children[0].subs) {
+                            listenTo(node, specialType.children[0].subs[s]);
+                            usedSubscriptions[specialType.children[0].subs[s]] = true;
                         }
                     }
                 }
                 var codeChild = false;
                 if (node.type === 'foreach') {
                     // compile foreach expression
-                    if (specialType.childs) {
-                        codeChild = specialType.childs[0];
+                    if (specialType.children) {
+                        codeChild = specialType.children[0];
                         for (var s in codeChild.subs) {
                             listenTo(node, codeChild.subs[s]);
                         }
@@ -310,7 +310,7 @@ function Edgeon() {
                         // console.log(node, node.forExpression, currentScope);
                     }
                 }
-                node.childs = build({ childs: [item] }, instance, stack, node);
+                node.children = build({ children: [item] }, instance, stack, node);
                 // reset currentScope
                 if (codeChild) {
                     // remove from currentScope
@@ -339,9 +339,9 @@ function Edgeon() {
                     listenTo(node, item.subs[s]);
                 }
             }
-            // childs
+            // children
             childNodes = false;
-            if (item.childs) {
+            if (item.children) {
                 childNodes = build(item, instance, stack, node);
             }
             if (item.attributes) {
@@ -357,8 +357,8 @@ function Edgeon() {
                             copy.isAttribute = true;
                             copy.parent = node;
                             copy.contentExpression = getDataExpression(a);
-                            if (a.childs) {
-                                copy.childs = a.childs.select(
+                            if (a.children) {
+                                copy.children = a.children.select(
                                     function (v) {
                                         var valCopy = {};
                                         valCopy.contentExpression = getDataExpression(v, itsEvent);
@@ -390,7 +390,7 @@ function Edgeon() {
                     if (node.type == 'dynamic') {
                         node.itemChilds = childNodes;
                     } else {
-                        node.childs = childNodes;
+                        node.children = childNodes;
                     }
                 }
                 currentNodeList.push(node);
@@ -406,16 +406,16 @@ function Edgeon() {
         try {
             if (attr.content[0] === '(') { // TODO: attach event only once
                 var eventName = attr.content.substring(1, attr.content.length - 1);
-                var actionContent = attr.childs[0].contentExpression.func;
-                // console.log(elm, eventName, attr.childs); // TODO: attach event data $event
+                var actionContent = attr.children[0].contentExpression.func;
+                // console.log(elm, eventName, attr.children); // TODO: attach event data $event
                 elm.addEventListener(eventName, function ($event) {
                     actionContent(attr.parent.instance, $this, $event);
                 });
             } else {
                 // TODO: process if, else-if, else
                 var val =
-                    attr.childs ?
-                        attr.childs.select(
+                    attr.children ?
+                        attr.children.select(
                             function (x) {
                                 return x.contentExpression.call
                                     ? x.contentExpression.func(attr.parent.instance, $this)
@@ -444,8 +444,8 @@ function Edgeon() {
                     // go down
                     var potencialNode = nodeBefore;
                     while (potencialNode !== null && !potencialNode.domNode) {
-                        if (potencialNode.isVirtual && potencialNode.childs) {
-                            potencialNode = potencialNode.childs[potencialNode.childs.length - 1];
+                        if (potencialNode.isVirtual && potencialNode.children) {
+                            potencialNode = potencialNode.children[potencialNode.children.length - 1];
                         } else {
                             potencialNode = null;
                         }
@@ -470,13 +470,13 @@ function Edgeon() {
     var removeDomNodes = function (nodes) {
         for (var i in nodes) {
             if (nodes[i].domNode !== null) {
-                // TODO: remove childs
+                // TODO: remove children
                 // TODO: on remove rerender sibilings before and after if text or virtual
                 nodes[i].domNode.parentNode.removeChild(nodes[i].domNode);
                 nodes[i].domNode = null;
             }
-            if (nodes[i].childs) {
-                removeDomNodes(nodes[i].childs);
+            if (nodes[i].children) {
+                removeDomNodes(nodes[i].children);
             }
         }
     }
@@ -490,8 +490,8 @@ function Edgeon() {
                 // TODO: make property which indicates if node is text type (shortness)
                 // TODO: make track property to set render version and render group once
                 // render fresh DOM from first text/virtual to the last text/virtual
-                // TODO: save rebder version and rerender only once node.v = renderVersion (update renderVersion on changes)
-                // TODO: set if node needs rerender sibiling on build/comlile stage
+                // TODO: save render version and rerender only once node.v = renderVersion (update renderVersion on changes)
+                // TODO: set if node needs rerender sibling on build/compile stage
                 var startNode = node;
                 while (startNode.parent && startNode.parent.isVirtual) {
                     startNode = startNode.parent;
@@ -535,7 +535,7 @@ function Edgeon() {
             }
         }
         if (insert) {
-            // console.log(node.childs[0].contents[0].content, node);
+            // console.log(node.children[0].contents[0].content, node);
             var condition = node.parent && node.parent.condition;
             var active = condition && condition.value;
             if (condition && !active) { // remove
@@ -709,15 +709,15 @@ function Edgeon() {
                 if (elm) {
                     // create n nodes (copy of children) and render
                     if (!node.itemChilds) { // TODO: bug, need to rewrite
-                        node.itemChilds = node.childs;
+                        node.itemChilds = node.children;
                     }
-                    removeDomNodes(node.childs);
-                    node.childs = null;
+                    removeDomNodes(node.children);
+                    node.children = null;
                     var args = [node.instance, $this];
                     // args = args.concat(currentScope); // TODO concat with scope values
                     var data = node.forExpression.data.apply(null, args);
                     if (data && data.length > 0) {
-                        node.childs = [];
+                        node.children = [];
                     }
                     var prevNode = null;
                     for (var k in data) {
@@ -740,9 +740,9 @@ function Edgeon() {
                         wrapperNode.scope.data[node.forExpression.key] = k;
                         wrapperNode.scope.data[node.forExpression.value] = data[k];
                         copyNodes(wrapperNode, node.itemChilds);
-                        node.childs.push(wrapperNode);
+                        node.children.push(wrapperNode);
                     }
-                    // TODO: resibscribe for changes, remove subscriptions for itemChilds
+                    // TODO: resubscribe for changes, remove subscriptions for itemChilds
 
                 }
                 console.log(node, data);
@@ -755,8 +755,8 @@ function Edgeon() {
                 // render
                 elm = parent;
                 nextInsert = true;
-                removeDomNodes(node.childs);
-                node.childs = null;
+                removeDomNodes(node.children);
+                node.children = null;
                 var wrapperNode = {
                     contents: node.contents,
                     attributes: node.attributes,
@@ -776,20 +776,20 @@ function Edgeon() {
                     // componentChilds
                     wrapperNode.type = 'template';
                     wrapperNode.isVirtual = true;
-                    wrapperNode.childs = create(val, wrapperNode.childs);
+                    wrapperNode.children = create(val, wrapperNode.children);
                     // reassign parent
-                    wrapperNode.childs.each(function (x) {
+                    wrapperNode.children.each(function (x) {
                         x.parent = wrapperNode;
                     });
                 }
-                node.childs = [wrapperNode];
+                node.children = [wrapperNode];
                 console.log(node, val);
                 break;
             }
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
-        elm && createDOM(elm, node.childs, nextInsert, skipGroup);
+        elm && createDOM(elm, node.children, nextInsert, skipGroup);
     }
 
     var createDOM = function (parent, nodes, insert, skipGroup) {
@@ -804,8 +804,8 @@ function Edgeon() {
                 nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
                 nodes[k].domNode = null;
             }
-            if (nodes[k].childs) {
-                removeDomNodes(nodes[k].childs);
+            if (nodes[k].children) {
+                removeDomNodes(nodes[k].children);
             }
         }
     }
@@ -822,7 +822,7 @@ function Edgeon() {
             }
             return z;
         });
-        parent.childs = newChildren;
+        parent.children = newChildren;
     }
 
     var cloneNode = function (parent, node) {
@@ -832,8 +832,8 @@ function Edgeon() {
         copy.previousNode = null;
         copy.domNode = null;
         copy.scope = parent.scope;
-        if (node.childs) {
-            copyNodes(copy, node.childs)
+        if (node.children) {
+            copyNodes(copy, node.children)
         }
         return copy;
     }

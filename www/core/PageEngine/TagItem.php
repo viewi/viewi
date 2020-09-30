@@ -15,7 +15,7 @@ class TagItem
     public bool $RawHtml = false;
     public ?DataExpression $DataExpression;
     /** @var TagItem[] */
-    private ?array $childs;
+    private ?array $children;
 
     public function getRaw(): array
     {
@@ -45,8 +45,8 @@ class TagItem
                 }
             }
         }
-        if (isset($this->childs)) {
-            foreach ($this->childs as &$child) {
+        if (isset($this->children)) {
+            foreach ($this->children as &$child) {
                 if (
                     $child->Type->Name === TagItemType::TextContent
                     && $child->Skip
@@ -59,10 +59,10 @@ class TagItem
                     }
                     $node['attributes'][] = $child->getRaw();
                 } else {
-                    if (!isset($node['childs'])) {
-                        $node['childs'] = [];
+                    if (!isset($node['children'])) {
+                        $node['children'] = [];
                     }
-                    $node['childs'][] = $child->getRaw();
+                    $node['children'][] = $child->getRaw();
                 }
             }
         }
@@ -75,12 +75,12 @@ class TagItem
     }
     public function prependChild(TagItem $item): void
     {
-        array_unshift($this->childs, $item);
+        array_unshift($this->children, $item);
     }
 
     public function setChildren(array $children): void
     {
-        $this->childs = $children;
+        $this->children = $children;
     }
 
     /**
@@ -89,46 +89,46 @@ class TagItem
      */
     public function &getChildren(): ?array
     {
-        if (!isset($this->childs)) {
+        if (!isset($this->children)) {
             return [];
         }
-        return $this->childs;
+        return $this->children;
     }
 
     public function &currentChild(): TagItem
     {
-        return $this->childs[count($this->childs) - 1];
+        return $this->children[count($this->children) - 1];
     }
 
     public function addChild(TagItem $child): void
     {
-        if (!isset($this->childs)) {
-            $this->childs = array();
+        if (!isset($this->children)) {
+            $this->children = array();
         }
-        $this->childs[] = $child;
+        $this->children[] = $child;
     }
 
     public function &newChild(): TagItem
     {
         $child = new TagItem();
         $child->Parent = &$this;
-        if (!isset($this->childs)) {
-            $this->childs = array();
+        if (!isset($this->children)) {
+            $this->children = array();
         }
-        $this->childs[] = $child;
-        return $this->childs[count($this->childs) - 1];
+        $this->children[] = $child;
+        return $this->children[count($this->children) - 1];
     }
 
     public function closeTag(): void
     {
-        array_pop($this->childs);
+        array_pop($this->children);
     }
 
     public function cleanParents(): void
     {
         unset($this->Parent);
-        if (isset($this->childs)) {
-            foreach ($this->childs as &$child) {
+        if (isset($this->children)) {
+            foreach ($this->children as &$child) {
                 $child->cleanParents();
             }
         }

@@ -119,7 +119,7 @@ class JsTranslator
      */
     private static array $functionConverters = [];
     /** @var array<string,string[]> */
-    private array $variablePathes;
+    private array $variablePaths;
     private string $currentVariablePath;
     private bool $collectVariablePath;
     private bool $skipVariableKey;
@@ -163,7 +163,7 @@ class JsTranslator
         $this->length = count($this->parts);
         $this->scope = [[]];
         $this->callFunction = null;
-        $this->variablePathes = [];
+        $this->variablePaths = [];
         $this->currentVariablePath = '';
         $this->collectVariablePath = false;
         $this->skipVariableKey = false;
@@ -171,9 +171,9 @@ class JsTranslator
         $this->currentClass = null;
     }
 
-    public function GetVariablePathes(): array
+    public function GetVariablePaths(): array
     {
-        return $this->variablePathes;
+        return $this->variablePaths;
     }
 
     public function GetKeywords(?string $content = null): array
@@ -309,13 +309,13 @@ class JsTranslator
             if ($this->currentVariablePath !== '') {
                 $class = $this->currentClass ?? 'global';
                 $method = $this->currentMethod ?? 'function';
-                if (!isset($this->variablePathes[$class])) {
-                    $this->variablePathes[$class] = [];
+                if (!isset($this->variablePaths[$class])) {
+                    $this->variablePaths[$class] = [];
                 }
-                if (!isset($this->variablePathes[$class][$method])) {
-                    $this->variablePathes[$class][$method] = [];
+                if (!isset($this->variablePaths[$class][$method])) {
+                    $this->variablePaths[$class][$method] = [];
                 }
-                $this->variablePathes[$class][$method][$this->currentVariablePath] = true;
+                $this->variablePaths[$class][$method][$this->currentVariablePath] = true;
                 $this->currentVariablePath = '';
             }
         }

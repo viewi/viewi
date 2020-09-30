@@ -293,7 +293,7 @@ class PageEngine
             $translator = new JsTranslator($raw);
             $jscode = $translator->Convert();
             // $this->debug($className);
-            // $this->debug($translator->GetVariablePathes());
+            // $this->debug($translator->GetVariablePaths());
             $this->compiledJs[$className] = $jscode;
         }
     }
@@ -587,7 +587,7 @@ class PageEngine
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
         $tagItem->PhpExpression = $phpCode;
-        $detectedReferences = $this->expressionsTranslator->GetVariablePathes();
+        $detectedReferences = $this->expressionsTranslator->GetVariablePaths();
         if (isset($detectedReferences['global'])) {
             $subscriptions = array_map(
                 function ($item) {
@@ -1318,7 +1318,7 @@ class PageEngine
                 if (
                     !$noChildren && count($children) == 1 && $children[0]->ItsExpression
                     && isset($this->booleanAttributes[strtolower($tagItem->Content)])
-                ) { // attribute is boolean, TODO: check argument expression to has boolean type
+                ) { // attribute is boolean, TODO: check argument expression to have boolean type
                     // compile if based on expression
                     $condition = $this->convertExpressionToCode($children[0]->Content);
                     if ($this->renderReturn) {
@@ -1360,7 +1360,7 @@ class PageEngine
                     $codeToAppend .= $tagItem->ItsExpression ? $content : htmlentities($content);
                 }
             }
-            // CHILDRENS scope
+            // CHILDREN scope
             if (!$noChildren) {
                 foreach ($children as &$childTag) {
                     if (
@@ -1390,7 +1390,7 @@ class PageEngine
                     $this->buildTag($childTag, $html, $codeToAppend);
                 }
             }
-            // END CHILDRENS scope
+            // END CHILDREN scope
             if ($tagItem->Type->Name === TagItemType::Attribute) {
                 $codeToAppend .= ($noChildren ? '' : '"');
             }
@@ -1600,7 +1600,7 @@ class PageEngine
                             }
                             if ($currentType->Name === TagItemType::TextContent) {
                                 if (
-                                    $i + 1 < $length // there still some content
+                                    $i + 1 < $length // there is still some content
                                     && (ctype_alpha($raw[$i + 1]) //any letter
                                         || $raw[$i + 1] === '$' // dynamic tag
                                         || $raw[$i + 1] === '/') // self closing tag
@@ -1612,7 +1612,7 @@ class PageEngine
                                     break;
                                 }
                                 if (
-                                    $i + 3 < $length // there still some content
+                                    $i + 3 < $length // there is still some content
                                     && $raw[$i + 1] === '!'
                                     && $raw[$i + 2] === '-' // comment
                                     && $raw[$i + 3] === '-' // comment
@@ -1630,7 +1630,7 @@ class PageEngine
                     case '-': {
                             if (
                                 $currentType->Name === TagItemType::Comment
-                                && $i + 2 < $length // there still some content
+                                && $i + 2 < $length // there is still some content
                                 && $raw[$i + 1] === '-'
                                 && $raw[$i + 2] === '>' // end of comment
                             ) {
@@ -1679,7 +1679,7 @@ class PageEngine
                             if ($currentType->Name === TagItemType::Tag) { // <tag/> or </tag>
                                 $skipCount = 1;
                                 if (empty($content) || ctype_space($content)) { // </tag> closing tag
-                                    // ignore next untill '>'
+                                    // ignore next until '>'
                                     $waitForTagEnd = true;
                                 } else { // <tag/> selfClosingTag
                                     $nextType = new TagItemType(TagItemType::TextContent);
