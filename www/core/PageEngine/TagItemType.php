@@ -14,13 +14,15 @@ class TagItemType
     const Component = 'Component';
     const Attribute = 'Attribute';
     const AttributeValue = 'AttributeValue';
+    const Comment = 'Comment';
 
     public static $shorts = [
         self::Attribute => 'attr',
         self::AttributeValue => 'value',
         self::Component => 'component',
         self::Tag => 'tag',
-        self::TextContent => 'text'
+        self::TextContent => 'text',
+        self::Comment => 'comment'
     ];
     public function toShort(): string
     {

@@ -1269,12 +1269,28 @@ class PageEngine
                 }
             }
 
-            if ($tagItem->Type->Name == TagItemType::TextContent) {
+            if (
+                $this->previousItem->Type->Name === TagItemType::Comment
+                && $tagItem->Type->Name !== TagItemType::Comment
+            ) {
+                $codeToAppend .= '-->';
+            }
+
+            if (
+                $tagItem->Type->Name == TagItemType::TextContent
+                || $tagItem->Type->Name == TagItemType::Comment
+            ) {
                 if ($this->extraLine && !$this->renderReturn) {
                     $this->extraLine = false;
                     if ($tagItem->Content[0] === "\n" || $tagItem->Content[0] === "\r") {
                         $codeToAppend .= PHP_EOL;
                     }
+                }
+                if (
+                    $tagItem->Type->Name === TagItemType::Comment
+                    && $this->previousItem->Type->Name !== TagItemType::Comment
+                ) {
+                    $codeToAppend .= '<!--';
                 }
                 if ($this->renderReturn && $tagItem->ItsExpression) {
                     $html .= PHP_EOL . $this->identation . "\$_content .= " .
@@ -1585,22 +1601,50 @@ class PageEngine
                             if ($currentType->Name === TagItemType::TextContent) {
                                 if (
                                     $i + 1 < $length // there still some content
-                                    && !ctype_alpha($raw[$i + 1]) //any letter
-                                    && $raw[$i + 1] !== '$' // dynamic tag
-                                    && $raw[$i + 1] !== '/' // self closing tag
+                                    && (ctype_alpha($raw[$i + 1]) //any letter
+                                        || $raw[$i + 1] === '$' // dynamic tag
+                                        || $raw[$i + 1] === '/') // self closing tag
                                 ) {
-                                    // it's not a tag
+                                    // it's a tag
+                                    $nextType = new TagItemType(TagItemType::Tag);
+                                    $skipCount = 1;
+                                    $saveContent = true;
                                     break;
                                 }
-                                $nextType = new TagItemType(TagItemType::Tag);
-                                $skipCount = 1;
-                                $saveContent = true;
+                                if (
+                                    $i + 3 < $length // there still some content
+                                    && $raw[$i + 1] === '!'
+                                    && $raw[$i + 2] === '-' // comment
+                                    && $raw[$i + 3] === '-' // comment
+                                ) {
+                                    // it's a tag
+                                    $nextType = new TagItemType(TagItemType::Comment);
+                                    $skipCount = 4;
+                                    $saveContent = true;
+                                    break;
+                                }
                                 break;
                             }
                             break;
                         }
+                    case '-': {
+                            if (
+                                $currentType->Name === TagItemType::Comment
+                                && $i + 2 < $length // there still some content
+                                && $raw[$i + 1] === '-'
+                                && $raw[$i + 2] === '>' // end of comment
+                            ) {
+                                $skipCount = 3;
+                                $nextType = new TagItemType(TagItemType::TextContent);
+                                $saveContent = true;
+                            }
+                            break;
+                        }
                     case '>': {
-                            if ($currentType->Name === TagItemType::AttributeValue) {
+                            if (
+                                $currentType->Name === TagItemType::AttributeValue
+                                || $currentType->Name === TagItemType::Comment
+                            ) {
                                 break;
                             }
                             if ($escapeNextChar) {

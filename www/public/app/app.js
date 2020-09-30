@@ -220,7 +220,9 @@ function Edgeon() {
                 continue;
             }
 
-            if (item.type === 'text' && node && node.type === 'text') {
+            if (node && (item.type === 'text' && node.type === 'text')
+                || (item.type === 'comment' && node.type === 'comment')
+            ) {
                 node.contents.push(getDataExpression(item));
                 if (item.subs) {
                     for (var s in item.subs) {
@@ -635,6 +637,33 @@ function Edgeon() {
                         renderAttribute(elm, node.attributes[a]);
                     }
                 }
+                break;
+            }
+            case 'comment': {
+                elm = document.createComment(val);
+                if (node.domNode !== null) {
+                    node.domNode.parentNode.replaceChild(elm, node.domNode);
+                } else {
+                    if (insert) {
+                        // find first previous not virtual up tree non virtual
+                        var nodeBefore = getFirstBefore(node);
+                        if (nodeBefore == null) {
+                            return;
+                            break; // throw error ??
+                        }
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            nodeBefore.node.domNode.appendChild(elm);
+                        } else {
+                            nodeBefore.node.domNode.parentNode.appendChild(elm);
+                        }
+                    } else {
+                        parent.appendChild(elm);
+                    }
+                }
+                node.domNode = elm;
                 break;
             }
             case 'if': {
