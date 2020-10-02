@@ -5,6 +5,13 @@ use Vo\PageEngine;
 function ReadComponentsInfo(PageEngine $pageEngine)
 {
     $pageEngine->setComponentsInfo(array (
+  'CountState' => 
+  array (
+    'Name' => 'CountState',
+    'Namespace' => '',
+    'Fullpath' => '\\services\\CountState.php',
+    'IsComponent' => false,
+  ),
   'HomePage' => 
   array (
     'Name' => 'HomePage',
@@ -16,6 +23,13 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\home\\home.php',
     'RenderFunction' => 'RenderHomePage',
     'IsComponent' => true,
+    'Dependencies' => 
+    array (
+      'countState' => 
+      array (
+        'name' => 'CountState',
+      ),
+    ),
   ),
   'NotificationService' => 
   array (
@@ -155,6 +169,20 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'RenderFunction' => 'RenderUserItem',
     'IsComponent' => true,
   ),
+  'ObservableService' => 
+  array (
+    'Name' => 'ObservableService',
+    'Namespace' => '',
+    'Fullpath' => '\\services\\ObservableService.php',
+    'IsComponent' => false,
+    'Dependencies' => 
+    array (
+      'countState' => 
+      array (
+        'name' => 'CountState',
+      ),
+    ),
+  ),
   'Layout' => 
   array (
     'Name' => 'Layout',
@@ -166,6 +194,13 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\layouts\\layout.php',
     'RenderFunction' => 'RenderLayout',
     'IsComponent' => true,
+    'Dependencies' => 
+    array (
+      'observableSubject' => 
+      array (
+        'name' => 'ObservableService',
+      ),
+    ),
   ),
   'ErrorInterceptor' => 
   array (

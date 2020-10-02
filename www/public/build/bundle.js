@@ -1,4 +1,13 @@
-var HomePage = function () {
+var CountState = function () {
+    this.count = 0;
+    
+    this.__construct = function () {
+    };
+
+    this.__construct.apply(this, arguments);
+};
+
+var HomePage = function (countState) {
     this.title = 'Wellcome to my awesome application\'s';
     this.count = 0;
     this.messages = [];
@@ -9,12 +18,15 @@ var HomePage = function () {
     this.fruits2 = ["orange", "banana", "apple"];
     this.htag = 'h1';
     this.dynamicName = 'UserItem';
+    this.countState = null;
     
-    this.__construct = function () {
+    this.__construct = function (countState) {
+        this.countState = countState;
     };
 
     this.Increment = function (event) {
         this.count++;
+        this.countState.count++;
         this.json['Name'] = 'New name';
         // $this->count++;
         priv += "Code";
@@ -234,10 +246,22 @@ var UserItem = function () {
     this.__construct.apply(this, arguments);
 };
 
-var Layout = function () {
-    this.title = 'This is layout default title';
+var ObservableService = function (countState) {
+    this.countState = null;
     
-    this.__construct = function () {
+    this.__construct = function (countState) {
+        this.countState = countState;
+    };
+
+    this.__construct.apply(this, arguments);
+};
+
+var Layout = function (observableSubject) {
+    this.title = 'This is layout default title';
+    this.observableSubject = null;
+    
+    this.__construct = function (observableSubject) {
+        this.observableSubject = observableSubject;
     };
 
     this.__construct.apply(this, arguments);

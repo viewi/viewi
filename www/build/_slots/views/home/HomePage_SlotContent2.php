@@ -81,7 +81,7 @@ function RenderHomePage_SlotContent2(
         </div>
         <h4>
             Count: ';
-    $_content .= htmlentities($_component->count);
+    $_content .= htmlentities($_component->countState->count);
     $_content .= '
         </h4>
         <div class="my-class count-';
@@ -106,6 +106,7 @@ function RenderHomePage_SlotContent2(
     }
     
     $_content .= '
+            <i>------</i>
             ';
     if($_component->count % 2 === 0){
     

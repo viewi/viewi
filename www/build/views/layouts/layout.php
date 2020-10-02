@@ -56,6 +56,9 @@ function RenderLayout(
 </head>
 
 <body>
+    <b>Layout ';
+    $_content .= htmlentities($_component->observableSubject->countState->count);
+    $_content .= '</b>
     ';
     $_content .= $pageEngine->renderComponent($slots['body'], $_component, [], []); 
     $_content .= '

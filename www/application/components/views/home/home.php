@@ -14,14 +14,16 @@ class HomePage extends BaseComponent
     public $fruits2 = ["orange", "banana", "apple"];
     public $htag = 'h1';
     public $dynamicName = 'UserItem';
-
-    function __construct()
+    public CountState $countState;
+    function __construct(CountState $countState)
     {
+        $this->countState = $countState;
     }
 
     function Increment($event)
     {
         $this->count++;
+        $this->countState->count++;
         $this->json['Name'] = 'New name';
         // $this->count++;
         $this->priv .= "Code";

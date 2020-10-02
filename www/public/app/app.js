@@ -842,7 +842,11 @@ function Edgeon() {
 
     var getInstanceId = function (instance) {
         if (!('__id' in instance)) {
-            instance.__id = ++nextInstanceId;
+            Object.defineProperty(instance, "__id", {
+                enumerable: false,
+                writable: false,
+                value: ++nextInstanceId
+            });
         }
         return instance.__id;
     }
@@ -881,15 +885,17 @@ function Edgeon() {
         renderQueue = {};
     }
 
-    var onChange = function (instance, path) {
-        // console.log('changed: ', instance, path);
-        var iid = getInstanceId(instance);
-        if (iid in subscribers
-            && path in subscribers[iid]) {
-            renderQueue[iid + '_' + path] = subscribers[iid][path];
-            setTimeout(function () {
-                reRender();
-            }, 0);
+    var onChange = function (deps) {
+        for (var key in deps.subs) {
+            var dep = deps.subs[key];
+            var iid = dep.id;
+            if (iid in subscribers
+                && dep.path in subscribers[iid]) {
+                renderQueue[iid + '_' + dep.path] = subscribers[iid][dep.path];
+                setTimeout(function () {
+                    reRender();
+                }, 0);
+            }
         }
     };
 
@@ -898,48 +904,76 @@ function Edgeon() {
         var path = arguments.length > 2 ? arguments[2] : 'this';
         if (Array.isArray(obj)) {
             for (var i = 0; i < obj.length; i++) {
-                defineReactive(instance, path + '[key]', obj, i, obj[i]);
+                if (obj[i] !== null && typeof obj[i] === 'object') {
+                    makeReactive(obj[i], instance, path + '[key]');
+                }
             }
         } else {
-            if ('__reactive' in obj) {
-                return obj;
-            }
-            obj['__reactive'] = true;
             var keys = Object.keys(obj);
             for (var i = 0; i < keys.length; i++) {
-                defineReactive(instance, path + '.' + keys[i], obj, keys[i], obj[keys[i]]);
+                defineReactive(instance, path + '.' + keys[i], obj, keys[i]);
             }
         }
         return obj;
     };
 
-    var defineReactive = function (instance, path, obj, key, val) {
+    var latestDeps = null;
+
+    var defineReactive = function (instance, path, obj, key) {
+        latestDeps = null;
+        var deps = null;
+        var val = obj[key];
+        var itsNew = false;
+        if (latestDeps) {
+            deps = latestDeps;
+        } else {
+            deps = { subs: {} };
+            itsNew = true;
+        }
         if (val !== null && typeof val === 'object') {
             makeReactive(val, instance, path);
         }
         if (typeof val === 'function') { // reactive methods ???
             return;
         }
-        Object.defineProperty(obj, key, {
-            enumerable: true,
-            configurable: true,
-            get: function () {
-                return val;
-            },
-            set: function (newVal) {
-                onChange(instance, path);
-                val = newVal;
-            }
-        });
+        var iid = getInstanceId(instance);
+        deps.subs[iid + path] = { instance: instance, id: iid, path: path };
+        if (itsNew) {
+            Object.defineProperty(obj, key, {
+                enumerable: true,
+                configurable: true,
+                get: function () {
+                    latestDeps = deps;
+                    return val;
+                },
+                set: function (newVal) {
+                    if (newVal !== val) {
+                        onChange(deps);
+                        val = newVal;
+                    }
+                }
+            });
+        }
     };
+
+    var injectionCache = {};
 
     var resolve = function (name) {
         // TODO: check scope and/or cache
-        var dependencies = $this.components[name].dependencies;
-        if (!dependencies) {
-            return makeReactive(new window[name]());
+        var info = $this.components[name];
+        var dependencies = info.dependencies;
+        var cache = info.service;
+        if (cache && name in injectionCache) {
+            return injectionCache[name];
         }
-        var arguments = [];
+        if (!dependencies) {
+            var instance = makeReactive(new window[name]());
+            if (cache) {
+                injectionCache[name] = instance;
+            }
+            return instance;
+        }
+        var arguments = [null];
         for (var i in dependencies) {
             var d = dependencies[i];
             var a = null; // d.null
@@ -952,7 +986,11 @@ function Edgeon() {
             }
             arguments.push(a);
         }
-        return makeReactive(new (window[name].bind.apply(window[name], arguments))());
+        var instance = makeReactive(new (window[name].bind.apply(window[name], arguments))());
+        if (cache) {
+            injectionCache[name] = instance;
+        }
+        return instance;
     }
 
     var create = function (name, childNodes) {

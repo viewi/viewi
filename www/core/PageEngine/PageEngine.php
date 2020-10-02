@@ -375,6 +375,8 @@ class PageEngine
                 };
                 if ($componentInfo->IsComponent) {
                     $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                } else {
+                    $publicJson[$className]['service'] = true;
                 }
             }
         }

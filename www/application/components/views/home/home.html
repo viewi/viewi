@@ -12,7 +12,7 @@
             <$dynamicName>Dynamic 2</$dynamicName>
         </div>
         <h4>
-            Count: $count
+            Count: $countState->count
         </h4>
         <div class="my-class count-$count" class.show="$title" class.lg="$title">
             Another count: $count
@@ -20,6 +20,7 @@
         </div>
         <p>
             <b foreach="$fruits as $fruit">Fruit: $fruit </b>
+            <i>------</i>
             <i if="$count % 2 === 0">$count is Odd</i>
             <span else>$count is Even</span>
         </p>
