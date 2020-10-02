@@ -1,4 +1,6 @@
-## Powerful tool for building progressive web applications
+## Powerful tool for building fullstack and completely reactive user interfaces using PHP
+
+Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
 
 ### !! Under development !!
 
