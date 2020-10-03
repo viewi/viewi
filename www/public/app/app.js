@@ -220,7 +220,7 @@ function Edgeon() {
                 continue;
             }
 
-            if (node && (item.type === 'text' && node.type === 'text')
+            if (!item.raw && node && (item.type === 'text' && node.type === 'text')
                 || (item.type === 'comment' && node.type === 'comment')
             ) {
                 node.contents.push(getDataExpression(item));
@@ -249,6 +249,10 @@ function Edgeon() {
                 instance: instance,
                 previousNode: previousNode
             };
+            if (item.raw) {
+                node.type = 'raw';
+                node.isVirtual = true;
+            }
             if (parentNode && parentNode.condition) {
                 node.condition = parentNode.condition;
             }
@@ -387,7 +391,7 @@ function Edgeon() {
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
-                    if (node.type == 'dynamic') {
+                    if (node.type === 'dynamic' || node.type === 'raw') {
                         node.itemChilds = childNodes;
                     } else {
                         node.children = childNodes;
@@ -786,6 +790,68 @@ function Edgeon() {
                 console.log(node, val);
                 break;
             }
+            case 'raw': {
+                elm = parent;
+                nextInsert = true;
+                if (node.rawNodes) {
+                    removeDomNodes(node.rawNodes);
+                }
+                node.children = null;
+                node.rawNodes = null;
+                var firstParentNode = getFirstParentWithDom(node);
+                if (firstParentNode) {
+                    // console.log(val);
+                    var vdom = document.createElement(firstParentNode.domNode.nodeName);
+                    vdom.innerHTML = val;
+                    // cases:
+                    // 1: only text node
+                    // 2: only non text node(s)
+                    // 3: text,..any, text
+                    // 4: text,.. any, non text
+                    console.log({ d: vdom });
+                    if (vdom.childNodes.length > 0) {
+                        var startI = 0;
+                        var firstClosest = getFirstBefore(node);
+                        if (!firstClosest.itsParent
+                            && firstClosest.node.type === 'text'
+                            && vdom.childNodes[0].nodeType === 3
+                        ) { // merge text
+                            firstClosest.node.domNode.nodeValue +=
+                                vdom.childNodes[0].nodeValue;
+                            startI = 1;
+                        }
+                        var newNodes = [];
+
+                        // insert after
+                        for (startI; startI < vdom.childNodes.length; startI++) {
+                            newNodes.push({
+                                domNode: vdom.childNodes[startI]
+                            });
+                        }
+                        var nextSibiling = firstClosest.node.domNode.nextSibling;
+                        if (newNodes.length > 0) {
+                            for (var i = 0; i < newNodes.length; i++) {
+                                if (nextSibiling) {
+                                    nextSibiling.parentNode.insertBefore(newNodes[i].domNode, nextSibiling);
+                                } else {
+                                    firstClosest.node.domNode.parentNode.appendChild(newNodes[i].domNode);
+                                }
+                            }
+                            var latestNode = newNodes[newNodes.length - 1];
+                            node.children = [{
+                                type: latestNode.domNode.nodeType === 3 ? 'text' : 'tag', // non text, tag is good
+                                parent: node,
+                                previousNode: null,
+                                scope: node.scope,
+                                instance: node.instance,
+                                domNode: latestNode.domNode
+                            }];
+                            node.rawNodes = newNodes;
+                        }
+                    }
+                }
+                return; // do not run children
+            }
             default:
                 throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
@@ -796,6 +862,16 @@ function Edgeon() {
         for (var i in nodes) {
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
+    }
+
+    var getFirstParentWithDom = function (node) {
+        if (!node.parent) {
+            return null;
+        }
+        if (node.parent.domNode) {
+            return node.parent;
+        }
+        return getFirstParentWithDom(node.parent);
     }
 
     var removeDomNodes = function (nodes) {

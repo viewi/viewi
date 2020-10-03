@@ -15,6 +15,8 @@ class HomePage extends BaseComponent
     public $htag = 'h1';
     public $dynamicName = 'UserItem';
     public CountState $countState;
+    public string $html = '<b>RAW <span>demo</span></b> some textNode';
+    public string $htmlTd = '<td>RAW Html demo 2</td>';
     function __construct(CountState $countState)
     {
         $this->countState = $countState;
@@ -30,7 +32,7 @@ class HomePage extends BaseComponent
         $this->fruits[] = "Banana-{$this->count}";
         $tempArray = $this->fruits2;
         $tempArray[] = "Avokado-{$this->count}";
-
+        $this->htmlTd .= "<td>N {$this->count}</td>";
         // echo $this->count;
         // echo $event;
     }

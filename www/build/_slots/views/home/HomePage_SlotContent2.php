@@ -14,6 +14,24 @@ function RenderHomePage_SlotContent2(
     $_content = '';
 
     $_content .= '
+        <div>
+            Raw demo
+            ';
+    $_content .= $_component->html;
+    $_content .= '
+            ';
+    $_content .= htmlentities($_component->countState->count);
+    $_content .= '
+        </div>
+        <table>
+            <tbody>
+                <tr>
+                    ';
+    $_content .= $_component->htmlTd;
+    $_content .= '
+                </tr>
+            </tbody>
+        </table>
         ';
     if($pageEngine->isTag(htmlentities($_component->htag))) {
     $_content .= '<';
@@ -79,6 +97,8 @@ function RenderHomePage_SlotContent2(
     }
     $_content .= '
         </div>
+
+
         <h4>
             Count: ';
     $_content .= htmlentities($_component->countState->count);

@@ -19,6 +19,8 @@ var HomePage = function (countState) {
     this.htag = 'h1';
     this.dynamicName = 'UserItem';
     this.countState = null;
+    this.html = '<b>RAW <span>demo</span></b> some textNode';
+    this.htmlTd = '<td>RAW Html demo 2</td>';
     
     this.__construct = function (countState) {
         this.countState = countState;
@@ -35,6 +37,7 @@ var HomePage = function (countState) {
         var tempArray = this.fruits2;
         tempArray.push("Avokado-" + this.count);
         notify(tempArray, 'add');
+        this.htmlTd += "<td>N " + this.count + "</td>";
         // echo $this->count;
         // echo $event;
     };
