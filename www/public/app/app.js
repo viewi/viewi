@@ -899,10 +899,37 @@ function Edgeon() {
         }
     };
 
+    this.notify = function (obj, type) {
+        if (Array.isArray(obj)) {
+            var prot = Object.getPrototypeOf(obj);
+            if (prot.deps) {
+                onChange(prot.deps);
+            }
+        }
+    };
+
+    //reactivate array
+    var ra = function (a, deps) {
+        var p = Object.getPrototypeOf(a);
+        var np = {};
+        Object.defineProperty(np, "deps", {
+            enumerable: false,
+            writable: false,
+            value: deps
+        });
+        Object.setPrototypeOf(np, p);
+        Object.setPrototypeOf(a, np);
+        return a;
+    }
+
     var makeReactive = function (obj) {
         var instance = arguments.length > 1 ? arguments[1] : obj;
         var path = arguments.length > 2 ? arguments[2] : 'this';
+        var deps = arguments.length > 3 ? arguments[3] : { subs: {} };
         if (Array.isArray(obj)) {
+            // reactivate array
+            // TODO: make optimization and fire local changes instead of whole array
+            ra(obj, deps);
             for (var i = 0; i < obj.length; i++) {
                 if (obj[i] !== null && typeof obj[i] === 'object') {
                     makeReactive(obj[i], instance, path + '[key]');
@@ -931,7 +958,7 @@ function Edgeon() {
             itsNew = true;
         }
         if (val !== null && typeof val === 'object') {
-            makeReactive(val, instance, path);
+            makeReactive(val, instance, path, deps);
         }
         if (typeof val === 'function') { // reactive methods ???
             return;
@@ -1023,4 +1050,5 @@ function Edgeon() {
     }
 }
 var app = new Edgeon();
+var notify = app.notify;
 app.start();

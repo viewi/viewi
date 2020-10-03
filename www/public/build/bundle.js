@@ -31,6 +31,10 @@ var HomePage = function (countState) {
         // $this->count++;
         priv += "Code";
         this.fruits.push("Banana-" + this.count);
+        notify(this.fruits, 'add');
+        var tempArray = this.fruits2;
+        tempArray.push("Avokado-" + this.count);
+        notify(tempArray, 'add');
         // echo $this->count;
         // echo $event;
     };
@@ -89,6 +93,7 @@ var NotificationService = function (http) {
 
     this.Notify = function (message) {
         this.messages.push(message);
+        notify(this.messages, 'add');
     };
 
     this.Clear = function () {

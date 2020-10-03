@@ -122,6 +122,17 @@ function RenderHomePage_SlotContent2(
     
     $_content .= '
         </p>
+        <p>
+            ';
+    foreach($_component->fruits2 as $fruit){
+    
+    $_content .= '<b>Fruit2: ';
+    $_content .= htmlentities($fruit);
+    $_content .= ' </b>';
+    }
+    
+    $_content .= '
+        </p>
     ';
     return $_content;
    

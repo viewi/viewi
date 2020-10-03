@@ -28,6 +28,9 @@ class HomePage extends BaseComponent
         // $this->count++;
         $this->priv .= "Code";
         $this->fruits[] = "Banana-{$this->count}";
+        $tempArray = $this->fruits2;
+        $tempArray[] = "Avokado-{$this->count}";
+
         // echo $this->count;
         // echo $event;
     }

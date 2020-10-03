@@ -125,6 +125,8 @@ class JsTranslator
     private bool $skipVariableKey;
     private bool $expressionScope = false;
     private string $latestSpaces;
+    private string $latestVariablePath;
+    private $pasteArrayReactivity;
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -169,6 +171,8 @@ class JsTranslator
         $this->skipVariableKey = false;
         $this->currentMethod = null;
         $this->currentClass = null;
+        $this->latestVariablePath = '';
+        $this->pasteArrayReactivity = false;
     }
 
     public function GetVariablePaths(): array
@@ -255,6 +259,7 @@ class JsTranslator
                 } else {
                     $varStatement = $declaredProp === 'private' ? '' : 'this.';
                 }
+                $this->latestVariablePath = $varStatement;
                 // $this->debug('VAR: ' . $varStatement);
             } else if ($this->newVar) {
                 if ($declaredProp === null) {
@@ -277,6 +282,7 @@ class JsTranslator
                         $varStatement = 'var ';
                     }
                 }
+                $this->latestVariablePath = '';
                 // else {
                 //     $varStatement = $declaredProp === 'private' ? '' : 'this.';
                 // }
@@ -290,6 +296,7 @@ class JsTranslator
             $code .= $this->bufferIdentation
                 . $varStatement
                 . $this->buffer;
+            $this->latestVariablePath .= $this->buffer;
             // $this->debug($varStatement . $this->buffer);
             $this->buffer = null;
         }
@@ -388,11 +395,13 @@ class JsTranslator
                     $nextKeyword = $this->MatchKeyword();
                     $this->collectVariablePath = true;
                     $this->currentVariablePath = 'this';
+                    $this->latestVariablePath = 'this';
                     if ($nextKeyword === '->') {
                         $this->putIdentation = $identation !== '';
                         // $this->debug($keyword . $nextKeyword);
                         $this->lastKeyword = '->';
                         $this->currentVariablePath .= '.';
+                        $this->latestVariablePath .= '.';
                         continue;
                     }
                     $code .= $identation . 'this';
@@ -411,6 +420,7 @@ class JsTranslator
                     }
                 }
                 $varName = substr($keyword, 1);
+                $this->latestVariablePath = $varName;
                 $this->buffer = $varName;
                 $this->bufferIdentation = $identation;
                 if ($this->expressionScope && !$this->collectVariablePath) {
@@ -483,11 +493,16 @@ class JsTranslator
                         }
                     case '->': {
                             $code .= '.';
+                            $this->latestVariablePath .= '.';
                             break;
                         }
                     case '[]': {
                             if ($this->IsPhpVariable($this->lastKeyword)) {
-                                // $this->debug($this->lastKeyword . $keyword);
+                                // $this->debug($this->lastKeyword . ' : ' . $keyword);
+                                // $this->debug('Latest: ' . $this->latestVariablePath);
+                                // TODO: improve array reactivity: nested arrays, indexes,array_pop/push, set by index, etc.
+                                $this->pasteArrayReactivity = [$this->latestVariablePath, "'add'"];
+                                // $this->debug($this->pasteArrayReactivity);
                                 $code .= '.push(';
                                 $this->SkipToTheSymbol('=');
                                 $code .= $this->ReadCodeBlock(';');
@@ -560,6 +575,12 @@ class JsTranslator
                             $code .= ';' . PHP_EOL;
                             $this->putIdentation = true;
                             $this->newVar = true;
+                            if ($this->pasteArrayReactivity) {
+                                $code .= $this->currentIdentation .
+                                    'notify(' . implode(', ', $this->pasteArrayReactivity) . ');'
+                                    . PHP_EOL;
+                                $this->pasteArrayReactivity = false;
+                            }
                             break;
                         }
                     case '/*': {
