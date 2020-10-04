@@ -250,11 +250,7 @@ var UserItem = function () {
     this.user = null;
     this.active = false;
     this.title = null;
-    
-    this.__construct = function () {
-    };
-
-    this.__construct.apply(this, arguments);
+    this.order =  - 1;
 };
 
 var ObservableService = function (countState) {

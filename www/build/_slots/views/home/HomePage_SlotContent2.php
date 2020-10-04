@@ -17,6 +17,7 @@ function RenderHomePage_SlotContent2(
         ';
     $slotContents[0] = 'HomePage_Slot3';
     $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [
+'order' => 5,
 'user' => $_component->friend,
 'title' => 'My custom title',
 'active' => false,
@@ -28,7 +29,9 @@ function RenderHomePage_SlotContent2(
     if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
     $_content .= '<';
     $_content .= htmlentities($_component->dynamicName);
-    $_content .= ' user="';
+    $_content .= ' order="';
+    $_content .= htmlentities($_component->count + 10);
+    $_content .= '" user="';
     $_content .= htmlentities($_component->friend);
     $_content .= '" title="';
     $_content .= htmlentities($_component->count);
@@ -36,12 +39,14 @@ function RenderHomePage_SlotContent2(
     $_content .= htmlentities($_component->title);
     $_content .= '" active="';
     $_content .= htmlentities($_component->false);
-    $_content .= '">DYNAMIC TAG</';
+    $_content .= '">DYNAMIC TAG
+        </';
     $_content .= htmlentities($_component->dynamicName);
     $_content .= '>';
     } else {
     $slotContents[0] = 'HomePage_Slot4';
     $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [
+'order' => $_component->count + 10,
 'user' => $_component->friend,
 'title' => $_component->count . ' ' . $_component->title,
 'active' => $_component->false,

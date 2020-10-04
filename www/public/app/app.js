@@ -1149,6 +1149,8 @@ function Edgeon() {
                         propValue = true;
                     } else if (propValue === 'false') {
                         propValue = false;
+                    } else if (typeof propValue === 'string' && !isNaN(propValue)) {
+                        propValue = +propValue;
                     }
                     instance[attr.content] = propValue;
                 }

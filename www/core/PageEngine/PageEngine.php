@@ -1540,6 +1540,8 @@ class PageEngine
                                     $inputValue = 'true';
                                 } else if ($inputValue === "'false'") {
                                     $inputValue = 'false';
+                                } else if (ctype_digit(str_replace("'", "", $inputValue))) {
+                                    $inputValue = (float)str_replace("'", "", $inputValue);
                                 }
                                 $inputArguments[$inputArgument] = $inputValue;
                                 // $this->debug($inputArgument);

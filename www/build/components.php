@@ -170,6 +170,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'IsComponent' => true,
     'Inputs' => 
     array (
+      'order' => 1,
       'user' => 1,
       'title' => 1,
       'active' => 1,

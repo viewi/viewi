@@ -52,6 +52,9 @@ function RenderUserItem(
     }
     
     $_content .= '
+    <b>Order: ';
+    $_content .= htmlentities($_component->order);
+    $_content .= '</b>
 </div>';
     return $_content;
    
