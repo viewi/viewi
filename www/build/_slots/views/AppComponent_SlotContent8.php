@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderHomePage_Slot8(
-    \HomePage $_component,
+function RenderAppComponent_SlotContent8(
+    Silly\MyApp\AppComponent $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -14,10 +14,8 @@ function RenderHomePage_Slot8(
     $_content = '';
 
     $_content .= '
-    
-    
-    Just text without slot
-';
+      <a href="/front.php">Front dev</a>
+   ';
     return $_content;
    
 }

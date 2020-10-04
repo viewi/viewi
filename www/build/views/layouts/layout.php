@@ -18,8 +18,8 @@ function RenderLayout(
 
 <head>
     ';
-    $slotContents[0] = 'Layout_Slot12';
-    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot12', $_component, $slotContents, [], ...$scope);
+    $slotContents[0] = 'Layout_Slot11';
+    $_content .= $pageEngine->renderComponent($slots['head'] ? $slots['head'] : 'Layout_Slot11', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '
     <style>
@@ -56,6 +56,8 @@ function RenderLayout(
 </head>
 
 <body>
+    ====================================================
+    <br/>
     <b>Layout ';
     $_content .= htmlentities($_component->observableSubject->countState->count);
     $_content .= '</b>

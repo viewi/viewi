@@ -1,5 +1,6 @@
 <?php
 
+use Silly\MyApp\Friend;
 use Vo\BaseComponent;
 
 class HomePage extends BaseComponent
@@ -17,6 +18,10 @@ class HomePage extends BaseComponent
     public CountState $countState;
     public string $html = '<b>RAW <span>demo</span></b> some textNode';
     public string $htmlTd = '<td>RAW Html demo 2</td>';
+    public ?Friend $friend = null;
+    public bool $true = true;
+    public bool $false = false;
+    
     function __construct(CountState $countState)
     {
         $this->countState = $countState;

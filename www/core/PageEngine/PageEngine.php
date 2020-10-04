@@ -999,31 +999,49 @@ class PageEngine
         return "_key{$this->forIterationKey}";
     }
 
-    function combineChildren(TagItem $childTag, bool $expression = true, array $reserved = [], bool $foreach = false): string
-    {
+    function combineChildren(
+        TagItem $childTag,
+        bool $expression = true,
+        array $reserved = [],
+        bool $foreach = false,
+        bool $concat = false,
+        bool $mergeChildren = true
+    ): string {
         $attrValues = $childTag->getChildren();
+        $count = count($attrValues);
         $newValueContent = '';
+        $glue = '';
         foreach ($attrValues as $attrValue) {
-            $newValueContent .= $attrValue->Content;
+            $newValueContent .= $glue .
+                (!$concat || $attrValue->ItsExpression
+                    ? $attrValue->Content
+                    : var_export($attrValue->Content, true));
+            if ($concat) {
+                $glue = ' . ';
+            }
         }
         // replace children with one expression
-        $newChild = $attrValues[0];
-        $newChild->Content = $newValueContent;
-        $childTag->setChildren([$newChild]);
-        if ($expression) {
-            $newChild->ItsExpression = true;
-            $this->compileExpression($newChild, $reserved);
-            if ($foreach) {
-                $newChild->DataExpression = new DataExpression();
-                $foreachParts = explode(' as ', $newChild->JsExpression, 2);
-                $newChild->DataExpression->ForData = $foreachParts[0];
-                $foreachAsParts = explode('=>', $foreachParts[1]);
-                $newChild->DataExpression->ForItem = $foreachAsParts[0];
-                if (count($foreachAsParts) > 1) {
-                    $newChild->DataExpression->ForKey = $foreachAsParts[0];
-                    $newChild->DataExpression->ForItem = $foreachAsParts[1];
-                } else {
-                    $newChild->DataExpression->ForKey = $this->GetNextIterationKey();
+        if ($mergeChildren) {
+            $newChild = $attrValues[0];
+            $newChild->Content = $newValueContent;
+            $newChild->ItsExpression = $concat || $newChild->ItsExpression;
+            $childTag->setChildren([$newChild]);
+
+            if ($expression) {
+                $newChild->ItsExpression = true;
+                $this->compileExpression($newChild, $reserved);
+                if ($foreach) {
+                    $newChild->DataExpression = new DataExpression();
+                    $foreachParts = explode(' as ', $newChild->JsExpression, 2);
+                    $newChild->DataExpression->ForData = $foreachParts[0];
+                    $foreachAsParts = explode('=>', $foreachParts[1]);
+                    $newChild->DataExpression->ForItem = $foreachAsParts[0];
+                    if (count($foreachAsParts) > 1) {
+                        $newChild->DataExpression->ForKey = $foreachAsParts[0];
+                        $newChild->DataExpression->ForItem = $foreachAsParts[1];
+                    } else {
+                        $newChild->DataExpression->ForKey = $this->GetNextIterationKey();
+                    }
                 }
             }
         }
@@ -1464,38 +1482,59 @@ class PageEngine
                 } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
                     $childTag->Skip = true; // component can't have attributes
                     // pass arguments
+                    // compile props
+                    $values = $childTag->getChildren();
+                    foreach ($values as $propValue) {
+                        $this->compileExpression($propValue);
+                    }
                     //$this->debug($tagItem->Content);
-                    if (isset($this->components[$tagItem->Content])) {
-                        $className = $this->components[$tagItem->Content]->ComponentName;
-                        include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
-
-                        if (class_exists($className)) {
+                    if ($dynamicTagDetected || isset($this->components[$tagItem->Content])) {
+                        if (!$dynamicTagDetected) {
+                            $className = $this->components[$tagItem->Content]->ComponentName;
+                            include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+                        }
+                        if ($dynamicTagDetected || class_exists($className)) {
                             //$this->debug($className);
-                            if (!isset($this->components[$tagItem->Content]->Inputs)) {
-                                $this->components[$tagItem->Content]->Inputs = [];
-                            }
-                            $reflect = new ReflectionClass($className);
-                            $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
-                            $propsMap = [];
-                            foreach ($props as $propertyInfo) {
-                                $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
+                            if (!$dynamicTagDetected) {
+                                if (!isset($this->components[$tagItem->Content]->Inputs)) {
+                                    $this->components[$tagItem->Content]->Inputs = [];
+                                }
+                                $reflect = new ReflectionClass($className);
+                                $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
+                                $propsMap = [];
+                                foreach ($props as $propertyInfo) {
+                                    $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
+                                }
                             }
                             $inputArgument = $childTag->Content;
-                            if (isset($propsMap[$inputArgument])) {
-                                if (!isset($this->components[$tagItem->Content]->Inputs[$inputArgument])) {
+                            if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
+                                if (
+                                    !$dynamicTagDetected
+                                    && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
+                                ) {
                                     $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
                                 }
-                                $inputValue = $this->getChildValues($childTag);
-                                if (
-                                    strpos($inputValue, '(') === false
-                                    && $inputValue[0] !== '$'
-                                    && !ctype_digit($inputValue)
-                                    && $inputValue !== 'true'
-                                    && $inputValue !== 'false'
-                                ) { // its a string
-                                    $inputValue = str_replace("'", "\\'", $inputValue);
-                                    $inputValue = "'$inputValue'";
-                                }
+                                //$inputValue = $this->getChildValues($childTag);
+
+                                $inputValue = $this->combineChildren(
+                                    $childTag,
+                                    $values[0]->ItsExpression || count($values) > 1,
+                                    [],
+                                    false,
+                                    true,
+                                    false
+                                );
+
+                                // if (
+                                //     strpos($inputValue, '(') === false
+                                //     && $inputValue[0] !== '$'
+                                //     && !ctype_digit($inputValue)
+                                //     && $inputValue !== 'true'
+                                //     && $inputValue !== 'false'
+                                // ) { // its a string
+                                //     $inputValue = str_replace("'", "\\'", $inputValue);
+                                //     $inputValue = "'$inputValue'";
+                                // }
                                 $inputValue = $this->convertExpressionToCode($inputValue);
                                 $inputArguments[$inputArgument] = $inputValue;
                                 // $this->debug($inputArgument);

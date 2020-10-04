@@ -110,6 +110,7 @@ function Edgeon() {
     var getDataExpression = function (item) {
         // Function.apply(null, ['a', 'return a;'])
         var itsEvent = arguments.length > 1 && arguments[1];
+        var forceRaw = arguments.length > 2 && arguments[2];
         if (item.expression) {
             var contentExpression = { call: true };
             var args = ['_component', 'app'];
@@ -117,7 +118,7 @@ function Edgeon() {
                 args.push('event');
             }
             args = args.concat(currentScope)
-            if (item.raw) {
+            if (item.raw || forceRaw) {
                 args.push('return ' + item.code + ';');
             } else {
                 args.push('return app.htmlentities(' + item.code + ');');
@@ -357,16 +358,26 @@ function Edgeon() {
                         function (a) {
                             var copy = {};
                             var itsEvent = a.content[0] === '(';
-                            copy.content = a.content;
+                            copy.content = a.content; // keep it for slots
                             copy.isAttribute = true;
                             copy.parent = node;
                             copy.contentExpression = getDataExpression(a);
+                            copy.instance = node.instance;
+                            if (node.scope) {
+                                copy.scope = node.scope;
+                            }
                             if (a.children) {
                                 copy.children = a.children.select(
                                     function (v) {
                                         var valCopy = {};
                                         valCopy.contentExpression = getDataExpression(v, itsEvent);
-                                        valCopy.content = v.content;
+                                        if (node.type === 'dynamic'
+                                            || node.type === 'component'
+                                        ) { // we need props
+                                            valCopy.propExpression = getDataExpression(v, null, true);
+                                        }
+
+                                        valCopy.content = v.content; // keep it for slots
                                         if (v.subs && !itsEvent) {
                                             for (var s in v.subs) {
                                                 listenTo(copy, v.subs[s]);
@@ -387,7 +398,7 @@ function Edgeon() {
             }
             if (component) {
                 // TODO: reassign parent, next, previous ???
-                var componenNodes = create(component, childNodes);
+                var componenNodes = create(component, childNodes, node.attributes);
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
@@ -416,17 +427,23 @@ function Edgeon() {
                     actionContent(attr.parent.instance, $this, $event);
                 });
             } else {
-                // TODO: process if, else-if, else
-                var val =
-                    attr.children ?
-                        attr.children.select(
-                            function (x) {
-                                return x.contentExpression.call
-                                    ? x.contentExpression.func(attr.parent.instance, $this)
-                                    : x.contentExpression.content;
+                // TODO: dynamic attribute name
+                var texts = [];
+                for (var i in attr.children) {
+                    var contentExpression = attr.children[i].contentExpression;
+                    if (contentExpression.call) {
+                        var args = [attr.instance, $this];
+                        if (attr.scope) {
+                            for (var k in attr.scope.stack) {
+                                args.push(attr.scope.data[attr.scope.stack[k]]);
                             }
-                        ).join('')
-                        : '';
+                        }
+                        texts.push(contentExpression.func.apply(null, args));
+                    } else {
+                        texts.push(contentExpression.content);
+                    }
+                }
+                var val = texts.join('');
                 elm.setAttribute(attr.content, val);
             }
         } catch (ex) {
@@ -780,7 +797,7 @@ function Edgeon() {
                     // componentChilds
                     wrapperNode.type = 'template';
                     wrapperNode.isVirtual = true;
-                    wrapperNode.children = create(val, wrapperNode.children);
+                    wrapperNode.children = create(val, wrapperNode.children, node.attributes);
                     // reassign parent
                     wrapperNode.children.each(function (x) {
                         x.parent = wrapperNode;
@@ -1096,13 +1113,44 @@ function Edgeon() {
         return instance;
     }
 
-    var create = function (name, childNodes) {
+    var create = function (name, childNodes, attributes) {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
         var page = $this.components[name];
         var instance = resolve(name);
-        console.log(instance);
+        // pass props
+        if (attributes) {
+            for (var ai in attributes) {
+                var attr = attributes[ai];
+                if (attr.content in instance) {
+                    var propValue = null;
+                    var currentValue = null;
+                    for (var i in attr.children) {
+                        var propExpression = attr.children[i].propExpression;
+                        if (propExpression.call) {
+                            var args = [attr.instance, $this];
+                            if (attr.scope) {
+                                for (var k in attr.scope.stack) {
+                                    args.push(attr.scope.data[attr.scope.stack[k]]);
+                                }
+                            }
+                            currentValue = propExpression.func.apply(null, args);
+                        } else {
+                            currentValue = propExpression.content;
+                        }
+                        if (i > 0) {
+                            propValue += currentValue;
+                        } else {
+                            propValue = currentValue;
+                        }
+                    }
+
+                    instance[attr.content] = propValue;
+                }
+            }
+        }
+        console.log(instance, childNodes, attributes);
         return build(page.nodes, instance, childNodes);
     };
 

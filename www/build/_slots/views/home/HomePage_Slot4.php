@@ -13,6 +13,7 @@ function RenderHomePage_Slot4(
     
     $_content = '';
 
+    $_content .= 'DYNAMIC TAG';
     return $_content;
    
 }

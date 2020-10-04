@@ -4,27 +4,18 @@
         <title>$count $title</title>
     </slotContent>
     <slotContent name="body">
-        <div>
-            Raw demo
-            {{$html}}
-            $countState->count
+        <UserItem user="$friend" title="My custom title" active="$false">SOME TEXT</UserItem>
+        <br />
+        <$dynamicName user="$friend" title="$count $title" active="$false">DYNAMIC TAG</$dynamicName>
+
+        <div class="passing-data-$count">
         </div>
-        <table>
-            <tbody>
-                <tr>
-                    {{$htmlTd}}
-                </tr>
-            </tbody>
-        </table>
-        <$htag class="big-title">$title</$htag>
-        <$htag class="big-title-2" />
-        <UserItem>Not Dynamic</UserItem>
+
+        <UserItem></UserItem>
         <$dynamicName>Dynamic 1</$dynamicName>
         <div>
             <$dynamicName>Dynamic 2</$dynamicName>
         </div>
-
-
         <h4>
             Count: $countState->count
         </h4>
@@ -32,15 +23,6 @@
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
-        <p>
-            <b foreach="$fruits as $fruit">Fruit: $fruit </b>
-            <i>------</i>
-            <i if="$count % 2 === 0">$count is Odd</i>
-            <span else>$count is Even</span>
-        </p>
-        <p>
-            <b foreach="$fruits2 as $fruit">Fruit2: $fruit </b>
-        </p>
     </slotContent>
     Just text without slot
 </Layout>

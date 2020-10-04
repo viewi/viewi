@@ -13,7 +13,11 @@ function RenderHomePage_Slot7(
     
     $_content = '';
 
-    $_content .= 'Dynamic 2';
+    $_content .= '
+    
+    
+    Just text without slot
+';
     return $_content;
    
 }

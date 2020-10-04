@@ -21,6 +21,9 @@ var HomePage = function (countState) {
     this.countState = null;
     this.html = '<b>RAW <span>demo</span></b> some textNode';
     this.htmlTd = '<td>RAW Html demo 2</td>';
+    this.friend = null;
+    this.true = true;
+    this.false = false;
     
     this.__construct = function (countState) {
         this.countState = countState;

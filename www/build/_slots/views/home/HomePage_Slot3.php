@@ -13,8 +13,7 @@ function RenderHomePage_Slot3(
     
     $_content = '';
 
-    $_content .= '';
-    $_content .= htmlentities($_component->title);
+    $_content .= 'SOME TEXT';
     return $_content;
    
 }
