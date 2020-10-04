@@ -38,6 +38,20 @@ function RenderUserItem(
     }
     
     $_content .= '
+    ';
+    if($_component->active){
+    
+    $_content .= '<span>
+        Active
+    </span>';
+    } else {
+    
+    $_content .= '<span>
+        NOT Active
+    </span>';
+    }
+    
+    $_content .= '
 </div>';
     return $_content;
    

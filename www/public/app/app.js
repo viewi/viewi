@@ -1145,7 +1145,11 @@ function Edgeon() {
                             propValue = currentValue;
                         }
                     }
-
+                    if (propValue === 'true') {
+                        propValue = true;
+                    } else if (propValue === 'false') {
+                        propValue = false;
+                    }
                     instance[attr.content] = propValue;
                 }
             }

@@ -19,7 +19,7 @@ function RenderHomePage_SlotContent2(
     $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [
 'user' => $_component->friend,
 'title' => 'My custom title',
-'active' => $_component->false,
+'active' => false,
 ], ...$scope);
     $slotContents = [];
     $_content .= '

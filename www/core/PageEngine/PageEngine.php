@@ -1536,6 +1536,11 @@ class PageEngine
                                 //     $inputValue = "'$inputValue'";
                                 // }
                                 $inputValue = $this->convertExpressionToCode($inputValue);
+                                if ($inputValue === "'true'") {
+                                    $inputValue = 'true';
+                                } else if ($inputValue === "'false'") {
+                                    $inputValue = 'false';
+                                }
                                 $inputArguments[$inputArgument] = $inputValue;
                                 // $this->debug($inputArgument);
                                 // $this->debug($inputValue);
