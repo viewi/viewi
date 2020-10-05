@@ -181,16 +181,27 @@ function Edgeon() {
                         var prevNode = currentNodeList.length > 0
                             ? currentNodeList[currentNodeList.length - 1]
                             : null;
+                        var toConcat = [];
                         items.each(function (x) {
-                            x.nextNode = null;
-                            x.parent = parentNode;
-                            x.previousNode = prevNode;
-                            if (prevNode) {
-                                prevNode.nextNode = x;
+                            if (prevNode
+                                && prevNode.type === 'text'
+                                && x.type === 'text'
+                                && !x.raw
+                                && !prevNode.raw
+                            ) {
+                                prevNode.contents = prevNode.contents.concat(x.contents);
+                            } else {
+                                x.nextNode = null;
+                                x.parent = parentNode;
+                                x.previousNode = prevNode;
+                                if (prevNode) {
+                                    prevNode.nextNode = x;
+                                }
+                                prevNode = x;
+                                toConcat.push(x);
                             }
-                            prevNode = x;
                         });
-                        currentNodeList = currentNodeList.concat(items);
+                        currentNodeList = currentNodeList.concat(toConcat);
                     } else {
                         var slotContent = stack.first(function (x) {
                             return x.type === 'tag'
@@ -202,16 +213,27 @@ function Edgeon() {
                             var prevNode = currentNodeList.length > 0
                                 ? currentNodeList[currentNodeList.length - 1]
                                 : null;
+                            var toConcat = [];
                             slotContent.children.each(function (x) {
-                                x.nextNode = null;
-                                x.parent = parentNode;
-                                x.previousNode = prevNode;
-                                if (prevNode) {
-                                    prevNode.nextNode = x;
+                                if (prevNode
+                                    && prevNode.type === 'text'
+                                    && x.type === 'text'
+                                    && !x.raw
+                                    && !prevNode.raw
+                                ) {
+                                    prevNode.contents = prevNode.contents.concat(x.contents);
+                                } else {
+                                    x.nextNode = null;
+                                    x.parent = parentNode;
+                                    x.previousNode = prevNode;
+                                    if (prevNode) {
+                                        prevNode.nextNode = x;
+                                    }
+                                    prevNode = x;
+                                    toConcat.push(x);
                                 }
-                                prevNode = x;
                             });
-                            currentNodeList = currentNodeList.concat(slotContent.children);
+                            currentNodeList = currentNodeList.concat(toConcat);
                         }
                     }
                     previousNode = currentNodeList.length > 0
@@ -399,6 +421,14 @@ function Edgeon() {
             if (component) {
                 // TODO: reassign parent, next, previous ???
                 var componenNodes = create(component, childNodes, node.attributes);
+                componenNodes.each(function (x) {
+                    x.parent = node;
+                });
+                if (currentNodeList.length > 0
+                    && componenNodes.length > 0) {
+                    componenNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
+                    currentNodeList[currentNodeList.length - 1].nextNode = componenNodes[0];
+                }
                 currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {

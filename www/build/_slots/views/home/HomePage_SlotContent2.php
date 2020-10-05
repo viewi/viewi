@@ -59,14 +59,19 @@ function RenderHomePage_SlotContent2(
         <div class="passing-data-';
     $_content .= htmlentities($_component->count);
     $_content .= '">
-        </div>
-
-        ';
-    $slotContents[0] = false;
-    $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [], ...$scope);
+            ';
+    $slotContents[0] = 'HomePage_Slot5';
+    $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [
+'order' => 5,
+'user' => $_component->friend,
+'title' => 'My custom title',
+'active' => false,
+], ...$scope);
     $slotContents = [];
     $_content .= '
-        ';
+        </div>
+        <div>
+            ';
     if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
     $_content .= '<';
     $_content .= htmlentities($_component->dynamicName);
@@ -74,12 +79,13 @@ function RenderHomePage_SlotContent2(
     $_content .= htmlentities($_component->dynamicName);
     $_content .= '>';
     } else {
-    $slotContents[0] = 'HomePage_Slot5';
+    $slotContents[0] = 'HomePage_Slot6';
     $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '';
     }
     $_content .= '
+        </div>
         <div>
             ';
     if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
@@ -89,7 +95,7 @@ function RenderHomePage_SlotContent2(
     $_content .= htmlentities($_component->dynamicName);
     $_content .= '>';
     } else {
-    $slotContents[0] = 'HomePage_Slot6';
+    $slotContents[0] = 'HomePage_Slot7';
     $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     $_content .= '';

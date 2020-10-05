@@ -13,7 +13,7 @@ function RenderHomePage_Slot5(
     
     $_content = '';
 
-    $_content .= 'Dynamic 1';
+    $_content .= 'SOME TEXT';
     return $_content;
    
 }
