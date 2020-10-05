@@ -13,9 +13,9 @@ function RenderAppComponent(
     
     $_content = '';
 
-    $slotContents['body'] = 'AppComponent_SlotContent9';
+    $slotContents['body'] = 'AppComponent_SlotContent4';
 
-    $slotContents[0] = 'AppComponent_Slot10';
+    $slotContents[0] = 'AppComponent_Slot5';
     $_content .= $pageEngine->renderComponent('Layout', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;

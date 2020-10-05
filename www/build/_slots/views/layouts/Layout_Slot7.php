@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderHomePage_Slot4(
-    \HomePage $_component,
+function RenderLayout_Slot7(
+    \Layout $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,8 +13,11 @@ function RenderHomePage_Slot4(
     
     $_content = '';
 
-    $_content .= 'DYNAMIC TAG
-        ';
+    $_content .= '
+        <title>';
+    $_content .= htmlentities($_component->title);
+    $_content .= '</title>
+    ';
     return $_content;
    
 }

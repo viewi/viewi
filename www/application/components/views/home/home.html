@@ -4,19 +4,9 @@
         <title>$count $title</title>
     </slotContent>
     <slotContent name="body">
-        <UserItem order="5" user="$friend" title="My custom title" active="false">SOME TEXT</UserItem>
-        <br />
-        <$dynamicName order="{$count + 10}" user="$friend" title="$count $title" active="$false">DYNAMIC TAG
-        </$dynamicName>
-
-        <div class="passing-data-$count">
-            <UserItem order="5" user="$friend" title="My custom title" active="false">SOME TEXT</UserItem>
-        </div>
         <div>
-            <$dynamicName>Dynamic 1</$dynamicName>
-        </div>
-        <div>
-            <$dynamicName>Dynamic 2</$dynamicName>
+            <UserItem></UserItem>
+            <UserItem></UserItem>
         </div>
         <h4>
             Count: $countState->count

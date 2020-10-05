@@ -13,7 +13,11 @@ function RenderHomePage_Slot3(
     
     $_content = '';
 
-    $_content .= 'SOME TEXT';
+    $_content .= '
+    
+    
+    Just text without slot
+';
     return $_content;
    
 }

@@ -107,12 +107,15 @@ function Edgeon() {
     var currentComponent = null;
     var currentScope = [];
 
-    var getDataExpression = function (item) {
+    var getDataExpression = function (item, instance) {
         // Function.apply(null, ['a', 'return a;'])
-        var itsEvent = arguments.length > 1 && arguments[1];
-        var forceRaw = arguments.length > 2 && arguments[2];
+        var itsEvent = arguments.length > 2 && arguments[2];
+        var forceRaw = arguments.length > 3 && arguments[3];
         if (item.expression) {
-            var contentExpression = { call: true };
+            var contentExpression = {
+                call: true,
+                instance: instance
+            };
             var args = ['_component', 'app'];
             if (itsEvent) {
                 args.push('event');
@@ -239,6 +242,34 @@ function Edgeon() {
                     previousNode = currentNodeList.length > 0
                         ? currentNodeList[currentNodeList.length - 1]
                         : null;
+                } else {
+                    // unnamed slot
+                    var defaultContent = build(item, instance, false, parentNode);
+                    // reassign parent
+                    var prevNode = currentNodeList.length > 0
+                        ? currentNodeList[currentNodeList.length - 1]
+                        : null;
+                    var toConcat = [];
+                    defaultContent.each(function (x) {
+                        if (prevNode
+                            && prevNode.type === 'text'
+                            && x.type === 'text'
+                            && !x.raw
+                            && !prevNode.raw
+                        ) {
+                            prevNode.contents = prevNode.contents.concat(x.contents);
+                        } else {
+                            x.nextNode = null;
+                            x.parent = parentNode;
+                            x.previousNode = prevNode;
+                            if (prevNode) {
+                                prevNode.nextNode = x;
+                            }
+                            prevNode = x;
+                            toConcat.push(x);
+                        }
+                    });
+                    currentNodeList = currentNodeList.concat(toConcat);
                 }
                 continue;
             }
@@ -246,7 +277,7 @@ function Edgeon() {
             if (!item.raw && node && (item.type === 'text' && node.type === 'text')
                 || (item.type === 'comment' && node.type === 'comment')
             ) {
-                node.contents.push(getDataExpression(item));
+                node.contents.push(getDataExpression(item, instance));
                 if (item.subs) {
                     for (var s in item.subs) {
                         listenTo(node, item.subs[s]);
@@ -265,7 +296,7 @@ function Edgeon() {
             node = {
                 // TODO: process foreach
                 type: item.type,
-                contents: [getDataExpression(item)],
+                contents: [getDataExpression(item, instance)],
                 domNode: null, // DOM node if rendered
                 // conditions: [true], // collection of expressions (if,else,elseif)
                 parent: parentNode, // TODO: make imutable
@@ -302,7 +333,7 @@ function Edgeon() {
                 usedSpecialTypes.push(specialType.content);
                 if (conditionalTypes.indexOf(node.type) !== -1) {
                     node.condition = specialType.children
-                        ? getDataExpression(specialType.children[0])
+                        ? getDataExpression(specialType.children[0], instance)
                         : {};
                     for (var s in usedSubscriptions) {
                         listenTo(node, s);
@@ -383,7 +414,7 @@ function Edgeon() {
                             copy.content = a.content; // keep it for slots
                             copy.isAttribute = true;
                             copy.parent = node;
-                            copy.contentExpression = getDataExpression(a);
+                            copy.contentExpression = getDataExpression(a, instance);
                             copy.instance = node.instance;
                             if (node.scope) {
                                 copy.scope = node.scope;
@@ -392,11 +423,11 @@ function Edgeon() {
                                 copy.children = a.children.select(
                                     function (v) {
                                         var valCopy = {};
-                                        valCopy.contentExpression = getDataExpression(v, itsEvent);
+                                        valCopy.contentExpression = getDataExpression(v, instance, itsEvent);
                                         if (node.type === 'dynamic'
                                             || node.type === 'component'
                                         ) { // we need props
-                                            valCopy.propExpression = getDataExpression(v, null, true);
+                                            valCopy.propExpression = getDataExpression(v, instance, null, true);
                                         }
 
                                         valCopy.content = v.content; // keep it for slots
@@ -421,15 +452,41 @@ function Edgeon() {
             if (component) {
                 // TODO: reassign parent, next, previous ???
                 var componenNodes = create(component, childNodes, node.attributes);
+                // componenNodes.each(function (x) {
+                //     x.parent = node;
+                // });
+
+                var prevNode = currentNodeList.length > 0
+                    ? currentNodeList[currentNodeList.length - 1]
+                    : null;
+                var toConcat = [];
                 componenNodes.each(function (x) {
-                    x.parent = node;
+                    if (prevNode
+                        && prevNode.type === 'text'
+                        && x.type === 'text'
+                        && !x.raw
+                        && !prevNode.raw
+                    ) {
+                        prevNode.contents = prevNode.contents.concat(x.contents);
+                    } else {
+                        x.nextNode = null;
+                        x.parent = node;
+                        x.previousNode = prevNode;
+                        if (prevNode) {
+                            prevNode.nextNode = x;
+                        }
+                        prevNode = x;
+                        toConcat.push(x);
+                    }
                 });
-                if (currentNodeList.length > 0
-                    && componenNodes.length > 0) {
-                    componenNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
-                    currentNodeList[currentNodeList.length - 1].nextNode = componenNodes[0];
-                }
-                currentNodeList = currentNodeList.concat(componenNodes);
+                currentNodeList = currentNodeList.concat(toConcat);
+
+                // if (currentNodeList.length > 0
+                //     && componenNodes.length > 0) {
+                //     componenNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
+                //     currentNodeList[currentNodeList.length - 1].nextNode = componenNodes[0];
+                // }
+                // currentNodeList = currentNodeList.concat(componenNodes);
             } else {
                 if (childNodes) {
                     if (node.type === 'dynamic' || node.type === 'raw') {
@@ -601,7 +658,7 @@ function Edgeon() {
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
             if (contentExpression.call) {
-                var args = [node.instance, $this];
+                var args = [contentExpression.instance, $this];
                 if (node.scope) {
                     for (var k in node.scope.stack) {
                         args.push(node.scope.data[node.scope.stack[k]]);

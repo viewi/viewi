@@ -3,8 +3,8 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderHomePage_Slot7(
-    \HomePage $_component,
+function RenderUserItem_Slot6(
+    \UserItem $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,7 +13,7 @@ function RenderHomePage_Slot7(
     
     $_content = '';
 
-    $_content .= 'Dynamic 2';
+    $_content .= '===no user===';
     return $_content;
    
 }
