@@ -1925,7 +1925,24 @@ class PageEngine
             // end of while
             $i++;
         }
+        if (!empty($content)) {
+            $child = $currentParent->newChild();
+            $child->Type = $currentType;
+            $child->Content = $content;
+            $child->ItsExpression = $itsExpression;
+            if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
+                if (
+                    !strpos($content, ':')
+                    && !isset($this->reservedTags[strtolower($content)])
+                ) {
+                    if (!isset($this->components[$content])) {
+                        throw new Exception("Component `$content` not found.");
+                    }
 
+                    $child->Type = new TagItemType(TagItemType::Component);
+                }
+            }
+        }
         return $template;
     }
 
