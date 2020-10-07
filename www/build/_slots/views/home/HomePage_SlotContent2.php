@@ -14,7 +14,12 @@ function RenderHomePage_SlotContent2(
     $_content = '';
 
     $_content .= '
-        <div>
+        <div ';
+    if ($_component->attrName[0] !== '(') {
+    $_content .= htmlentities($_component->attrName);
+    $_content .= '="My title"';
+    }
+    $_content .= '>
             ';
     if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
     $_content .= '<';
@@ -52,6 +57,14 @@ function RenderHomePage_SlotContent2(
     $_content .= '
             <button>Increment</button>
         </div>
+        <b ';
+    if ($_component->dynamicEvent[0] !== '(') {
+    $_content .= htmlentities($_component->dynamicEvent);
+    $_content .= '="Increment()"';
+    }
+    $_content .= '>Dynamic event ';
+    $_content .= htmlentities($_component->dynamicEvent);
+    $_content .= '</b>
     ';
     return $_content;
    

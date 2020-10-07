@@ -24,6 +24,8 @@ var HomePage = function (countState) {
     this.friend = null;
     this.true = true;
     this.false = false;
+    this.attrName = 'title';
+    this.dynamicEvent = '(click)';
     
     this.__construct = function (countState) {
         this.countState = countState;
@@ -41,6 +43,8 @@ var HomePage = function (countState) {
         tempArray.push("Avokado-" + this.count);
         notify(tempArray, 'add');
         this.htmlTd += "<td>N " + this.count + "</td>";
+        this.attrName = 'area';
+        this.dynamicEvent = '(mouseover)';
         // echo $this->count;
         // echo $event;
     };

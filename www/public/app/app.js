@@ -413,12 +413,15 @@ function Edgeon() {
                     .select(
                         function (a) {
                             var copy = {};
-                            var itsEvent = a.content[0] === '(';
+                            var itsEvent = a.expression ? false : a.content[0] === '(';
                             copy.content = a.content; // keep it for slots
                             copy.isAttribute = true;
                             copy.parent = node;
                             copy.contentExpression = getDataExpression(a, instance);
                             copy.instance = node.instance;
+                            if (a.dynamic) {
+                                copy.dynamic = a.dynamic;
+                            }
                             if (node.scope) {
                                 copy.scope = node.scope;
                             }
@@ -511,15 +514,45 @@ function Edgeon() {
             return;
         }
         try {
-            if (attr.content[0] === '(') { // TODO: attach event only once
-                var eventName = attr.content.substring(1, attr.content.length - 1);
-                var actionContent = attr.children[0].contentExpression.func;
-                // console.log(elm, eventName, attr.children); // TODO: attach event data $event
-                elm.addEventListener(eventName, function ($event) {
+            var attrName = attr.content;
+            if (attr.contentExpression.call) {
+                var args = [attr.instance, $this];
+                if (attr.scope) {
+                    for (var k in attr.scope.stack) {
+                        args.push(attr.scope.data[attr.scope.stack[k]]);
+                    }
+                }
+                attrName = attr.contentExpression.func.apply(null, args);
+                if (attr.latestValue && attr.latestValue !== attrName) {
+                    elm.removeAttribute(attr.latestValue);
+                    if (attr.listeners && attr.latestValue in attr.listeners) {
+                        var eventName = attr.latestValue.substring(1, attr.latestValue.length - 1);
+                        elm.removeEventListener(eventName, attr.listeners[attr.latestValue]);
+                    }
+
+                }
+                attr.latestValue = attrName;
+            }
+            if (attrName[0] === '(') { // TODO: attach event only once
+                var eventName = attrName.substring(1, attrName.length - 1);
+                var actionContent = null;
+                if (attr.dynamic) {
+                    if (!attr.eventExpression) {
+                        attr.eventExpression = getDataExpression(attr.dynamic, attr.instance, true);
+                        console.log(attr.eventExpression);
+                    }
+                    actionContent = attr.eventExpression.func;
+                } else {
+                    actionContent = attr.children[0].contentExpression.func;
+                }
+                if (!attr.listeners) {
+                    attr.listeners = {};
+                }
+                attr.listeners[attrName] = function ($event) {
                     actionContent(attr.parent.instance, $this, $event);
-                });
+                };
+                elm.addEventListener(eventName, attr.listeners[attrName]);
             } else {
-                // TODO: dynamic attribute name
                 var texts = [];
                 for (var i in attr.children) {
                     var contentExpression = attr.children[i].contentExpression;
@@ -536,7 +569,7 @@ function Edgeon() {
                     }
                 }
                 var val = texts.join('');
-                elm.setAttribute(attr.content, val);
+                elm.setAttribute(attrName, val);
             }
         } catch (ex) {
             console.error(ex);

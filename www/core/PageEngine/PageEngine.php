@@ -1233,20 +1233,31 @@ class PageEngine
                             $attributeName = $childTag->Content;
                             $mergeValues = $childTag->getChildren();
                             $valueToReplace = false;
-                            if ($attributeName[0] === '(') { // event
-                                $childTag->Skip = true;
+                            if ($attributeName[0] === '(' || $childTag->ItsExpression) { // event
+                                $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $childTag->getChildren();
                                 $newValueContent = '';
                                 foreach ($attrValues as $attrValue) {
                                     $newValueContent .= $attrValue->Content;
                                 }
-                                // replace children with one expression
-                                $newChild = $attrValues[0];
-                                $newChild->Content = $newValueContent;
-                                $childTag->setChildren([$newChild]);
-                                $newChild->ItsExpression = true;
-                                $this->compileExpression($newChild, ['$event' => true]);
-                            } else if (strpos($attributeName, '.') !== false) {
+
+                                if ($childTag->ItsExpression) {
+                                    $dynamicEventTag = new TagItem();
+                                    $dynamicEventTag->ItsExpression = true;
+                                    $dynamicEventTag->Content = $newValueContent;
+                                    $this->compileExpression($dynamicEventTag, ['$event' => true]);
+                                    $childTag->dynamicChild = $dynamicEventTag;
+                                } else {
+                                    // replace children with one expression
+                                    $newChild = $attrValues[0];
+                                    $newChild->Content = $newValueContent;
+                                    $childTag->setChildren([$newChild]);
+                                    $newChild->ItsExpression = true;
+                                    $this->compileExpression($newChild, ['$event' => true]);
+                                }
+                            }
+
+                            if (strpos($attributeName, '.') !== false) {
                                 $parts = explode('.', $attributeName, 2);
                                 $attributeName = $parts[0];
                                 $valueToReplace = $parts[1];
@@ -1354,12 +1365,20 @@ class PageEngine
                     return;
                 }
                 $codeToAppend .= ' ';
-                if ($tagItem->ItsExpression && $this->renderReturn) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                        var_export($codeToAppend, true) . ";";
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
-                        $content . ";";
-                    $codeToAppend = '';
+                if ($tagItem->ItsExpression) {
+                    if ($this->renderReturn) {
+                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            var_export($codeToAppend, true) . ";";
+                        $html .=  PHP_EOL . $this->identation . "if ({$tagItem->PhpExpression}[0] !== '(') {";
+                        // TODO: fix identation
+                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $content . ";";
+                        $codeToAppend = '';
+                    } else {
+                        $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                            "if ({$tagItem->PhpExpression}[0] !== '(') {" . PHP_EOL . '?>';
+                        $codeToAppend .= $content;
+                    }
                 } else {
                     $codeToAppend .= $content;
                 }
@@ -1412,7 +1431,19 @@ class PageEngine
             }
             // END CHILDREN scope
             if ($tagItem->Type->Name === TagItemType::Attribute) {
+
                 $codeToAppend .= ($noChildren ? '' : '"');
+                if ($tagItem->ItsExpression) {
+                    if ($this->renderReturn) {
+                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            var_export($codeToAppend, true) . ";";
+                        $html .=  PHP_EOL . $this->identation . '}';
+                        $codeToAppend = '';
+                    } else {
+                        $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                            '}' . PHP_EOL . '?>';
+                    }
+                }
             }
 
             if ($tagItem->Type->Name === TagItemType::Tag) {

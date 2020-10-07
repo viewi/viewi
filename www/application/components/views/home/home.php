@@ -21,7 +21,9 @@ class HomePage extends BaseComponent
     public ?Friend $friend = null;
     public bool $true = true;
     public bool $false = false;
-    
+    public string $attrName = 'title';
+    public string $dynamicEvent = '(click)';
+
     function __construct(CountState $countState)
     {
         $this->countState = $countState;
@@ -38,6 +40,8 @@ class HomePage extends BaseComponent
         $tempArray = $this->fruits2;
         $tempArray[] = "Avokado-{$this->count}";
         $this->htmlTd .= "<td>N {$this->count}</td>";
+        $this->attrName = 'area';
+        $this->dynamicEvent = '(mouseover)';
         // echo $this->count;
         // echo $event;
     }

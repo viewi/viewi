@@ -4,7 +4,7 @@
         <title>$count $title</title>
     </slotContent>
     <slotContent name="body">
-        <div>
+        <div $attrName="My title">
             <$dynamicName></$dynamicName>
             <UserItem></UserItem>
         </div>
@@ -15,6 +15,7 @@
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
         </div>
+        <b $dynamicEvent="Increment()">Dynamic event $dynamicEvent</b>
     </slotContent>
     Just text without slot
 </Layout>

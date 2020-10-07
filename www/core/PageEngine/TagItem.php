@@ -9,6 +9,7 @@ class TagItem
     public bool $ItsExpression = false;
     public bool $Skip = false;
     private ?TagItem $Parent;
+    public ?TagItem $dynamicChild;
     public ?string $JsExpression = null;
     public ?string $PhpExpression = null;
     public ?array $Subscriptions = null;
@@ -44,6 +45,9 @@ class TagItem
                     $node['forItem'] = $this->DataExpression->ForItem;
                 }
             }
+        }
+        if (isset($this->dynamicChild)) {
+            $node['dynamic'] = $this->dynamicChild->getRaw();
         }
         if (isset($this->children)) {
             foreach ($this->children as &$child) {
