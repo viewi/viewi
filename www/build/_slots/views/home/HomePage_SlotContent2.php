@@ -16,9 +16,18 @@ function RenderHomePage_SlotContent2(
     $_content .= '
         <div>
             ';
+    if($pageEngine->isTag(htmlentities($_component->dynamicName))) {
+    $_content .= '<';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '></';
+    $_content .= htmlentities($_component->dynamicName);
+    $_content .= '>';
+    } else {
     $slotContents[0] = false;
-    $_content .= $pageEngine->renderComponent('UserItem', $_component, $slotContents, [], ...$scope);
+    $_content .= $pageEngine->renderComponent($_component->dynamicName, $_component, $slotContents, [], ...$scope);
     $slotContents = [];
+    $_content .= '';
+    }
     $_content .= '
             ';
     $slotContents[0] = false;

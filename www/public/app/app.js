@@ -270,6 +270,9 @@ function Edgeon() {
                         }
                     });
                     currentNodeList = currentNodeList.concat(toConcat);
+                    previousNode = currentNodeList.length > 0
+                        ? currentNodeList[currentNodeList.length - 1]
+                        : null;
                 }
                 continue;
             }
@@ -470,7 +473,7 @@ function Edgeon() {
                         prevNode.contents = prevNode.contents.concat(x.contents);
                     } else {
                         x.nextNode = null;
-                        x.parent = node;
+                        x.parent = parentNode;
                         x.previousNode = prevNode;
                         if (prevNode) {
                             prevNode.nextNode = x;
@@ -480,7 +483,9 @@ function Edgeon() {
                     }
                 });
                 currentNodeList = currentNodeList.concat(toConcat);
-
+                previousNode = currentNodeList.length > 0
+                    ? currentNodeList[currentNodeList.length - 1]
+                    : null;
                 // if (currentNodeList.length > 0
                 //     && componenNodes.length > 0) {
                 //     componenNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
@@ -700,7 +705,14 @@ function Edgeon() {
                             elm = node.domNode;
                         } else {
                             elm = document.createTextNode(val);
-                            parent.appendChild(elm);
+                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                            if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                            } else if (nodeBefore.itsParent) {
+                                nodeBefore.node.domNode.appendChild(elm);
+                            } else {
+                                nodeBefore.node.domNode.parentNode.appendChild(elm);
+                            }
                             node.domNode = elm;
                         }
                     }
@@ -980,12 +992,12 @@ function Edgeon() {
 
     var removeDomNodes = function (nodes) {
         for (var k in nodes) {
+            if (nodes[k].children) {
+                removeDomNodes(nodes[k].children);
+            }
             if (nodes[k].domNode) {
                 nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
                 nodes[k].domNode = null;
-            }
-            if (nodes[k].children) {
-                removeDomNodes(nodes[k].children);
             }
         }
     }

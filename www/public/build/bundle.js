@@ -266,6 +266,7 @@ var ObservableService = function (countState) {
 var Layout = function (observableSubject) {
     this.title = 'This is layout default title';
     this.observableSubject = null;
+    this.dynamicName = 'UserItem';
     
     this.__construct = function (observableSubject) {
         this.observableSubject = observableSubject;

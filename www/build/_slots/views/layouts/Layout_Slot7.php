@@ -3,7 +3,7 @@
 use Vo\PageEngine;
 use Vo\BaseComponent;
 
-function RenderLayout_Slot6(
+function RenderLayout_Slot7(
     \Layout $_component,
     PageEngine $pageEngine,
     array $slots
