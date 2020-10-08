@@ -110,7 +110,7 @@ class JsTranslator
     private ?string $buffer = null;
     private string $bufferIdentation = '';
     private bool $newVar = false;
-    private $lastKeyword = '';
+    public $lastKeyword = '';
     private bool $thisMatched = false;
     private ?string $callFunction = null;
 
@@ -127,7 +127,7 @@ class JsTranslator
     private bool $skipVariableKey;
     private bool $expressionScope = false;
     private string $latestSpaces;
-    private string $latestVariablePath;
+    public string $latestVariablePath;
     private $pasteArrayReactivity;
     public function __construct(string $content)
     {
@@ -175,6 +175,11 @@ class JsTranslator
         $this->currentClass = null;
         $this->latestVariablePath = '';
         $this->pasteArrayReactivity = false;
+    }
+
+    public function ActivateReactivity(array $info)
+    {
+        $this->pasteArrayReactivity = $info;
     }
 
     public function GetVariablePaths(): array
@@ -503,7 +508,7 @@ class JsTranslator
                                 // $this->debug($this->lastKeyword . ' : ' . $keyword);
                                 // $this->debug('Latest: ' . $this->latestVariablePath);
                                 // TODO: improve array reactivity: nested arrays, indexes,array_pop/push, set by index, etc.
-                                $this->pasteArrayReactivity = [$this->latestVariablePath, "'add'"];
+                                $this->pasteArrayReactivity = [$this->latestVariablePath, "'push'"];
                                 // $this->debug($this->pasteArrayReactivity);
                                 $code .= '.push(';
                                 $this->SkipToTheSymbol('=');
@@ -593,6 +598,7 @@ class JsTranslator
                     case '//': {
                             $code .= $identation . $this->ReadInlineComment() . PHP_EOL;
                             $this->putIdentation = true;
+                            $this->newVar = true;
                             break;
                         }
                     case "'": {
@@ -767,7 +773,7 @@ class JsTranslator
         return $code;
     }
 
-    private function IsPhpVariable(string $string): bool
+    public function IsPhpVariable(string $string): bool
     {
         return ctype_alnum(str_replace('_', '', str_replace('$', '', $string)));
     }

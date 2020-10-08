@@ -15,8 +15,8 @@ function RenderHomePage_SlotContent2(
 
     $_content .= '
         <div id="customJsTestId">
-            
-        </div>             
+
+        </div>
         <div ';
     if ($_component->attrName[0] !== '(') {
     $_content .= htmlentities($_component->attrName);
@@ -59,6 +59,19 @@ function RenderHomePage_SlotContent2(
     $_content .= htmlentities($_component->count);
     $_content .= '
             <button>Increment</button>
+        </div>
+        <div>
+            ';
+    foreach($_component->fruits as $fruit){
+    
+    $_content .= '<b>
+                ';
+    $_content .= htmlentities($fruit);
+    $_content .= '
+            </b>';
+    }
+    
+    $_content .= '
         </div>
         <b ';
     if ($_component->dynamicEvent[0] !== '(') {

@@ -40,11 +40,12 @@ var HomePage = function (countState) {
         this.json['Name'] = 'New name';
         // $this->count++;
         priv += "Code";
-        this.fruits.push("Banana-" + this.count);
-        notify(this.fruits, 'add');
+        // $this->fruits[] = "Banana-{$this->count}";
+        priv = this.fruits.pop();
+        notify(this.fruits, 'pop');
         var tempArray = this.fruits2;
         tempArray.push("Avokado-" + this.count);
-        notify(tempArray, 'add');
+        notify(tempArray, 'push');
         this.htmlTd += "<td>N " + this.count + "</td>";
         this.attrName = 'area';
         this.dynamicEvent = '(mouseover)';
@@ -110,7 +111,7 @@ var NotificationService = function (http) {
 
     this.Notify = function (message) {
         this.messages.push(message);
-        notify(this.messages, 'add');
+        notify(this.messages, 'push');
     };
 
     this.Clear = function () {

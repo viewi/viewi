@@ -5,8 +5,8 @@
     </slotContent>
     <slotContent name="body">
         <div id="customJsTestId">
-            
-        </div>             
+
+        </div>
         <div $attrName="My title">
             <$dynamicName></$dynamicName>
             <UserItem></UserItem>
@@ -17,6 +17,11 @@
         <div class="my-class count-$count" class.show="$title" class.lg="$title">
             Another count: $count
             <button (click)="Increment($event, GetCount(), $json->Name, $messages['Test'], $count)">Increment</button>
+        </div>
+        <div>
+            <b foreach="$fruits as $fruit">
+                $fruit
+            </b>
         </div>
         <b $dynamicEvent="Increment()">Dynamic event $dynamicEvent</b>
     </slotContent>

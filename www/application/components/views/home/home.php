@@ -39,7 +39,8 @@ class HomePage extends BaseComponent
         $this->json['Name'] = 'New name';
         // $this->count++;
         $this->priv .= "Code";
-        $this->fruits[] = "Banana-{$this->count}";
+        // $this->fruits[] = "Banana-{$this->count}";
+        $this->priv = array_pop($this->fruits);
         $tempArray = $this->fruits2;
         $tempArray[] = "Avokado-{$this->count}";
         $this->htmlTd .= "<td>N {$this->count}</td>";
