@@ -117,15 +117,19 @@ function Edgeon() {
                 instance: instance
             };
             var args = ['_component', 'app'];
-            if (itsEvent) {
+            if (itsEvent || item.setter) {
                 args.push('event');
             }
-            args = args.concat(currentScope)
-            if (item.raw || forceRaw) {
+            args = args.concat(currentScope);
+            if (item.setter) {
+                args.push(item.code + ' = event.target.value;');
+            }
+            else if (item.raw || forceRaw) {
                 args.push('return ' + item.code + ';');
             } else {
                 args.push('return app.htmlentities(' + item.code + ');');
             }
+            contentExpression.code = item.code;
             contentExpression.func = Function.apply(null, args);
             return contentExpression;
         }
@@ -570,6 +574,25 @@ function Edgeon() {
                 }
                 var val = texts.join('');
                 elm.setAttribute(attrName, val);
+                if (attrName === 'value') {
+                    elm.value = val;
+                    var eventName = 'input';
+                    if (!attr.listeners) {
+                        attr.listeners = {};
+                    }
+                    if (!attr.valueExpression && attr.children.length > 0) {
+                        attr.valueExpression = getDataExpression({
+                            code: attr.children[0].contentExpression.code,
+                            expression: true,
+                            setter: true
+                        }, attr.instance);
+                        var actionContent = attr.valueExpression.func;
+                        attr.listeners[eventName] = function ($event) {
+                            actionContent(attr.parent.instance, $this, $event);
+                        };
+                        elm.addEventListener(eventName, attr.listeners[eventName]);
+                    }
+                }
             }
         } catch (ex) {
             console.error(ex);

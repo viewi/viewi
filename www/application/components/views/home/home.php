@@ -23,10 +23,13 @@ class HomePage extends BaseComponent
     public bool $false = false;
     public string $attrName = 'title';
     public string $dynamicEvent = '(click)';
+    public string $fullName = 'Default Name';
 
     function __construct(CountState $countState)
     {
         $this->countState = $countState;
+        $this->friend = new Friend();
+        $this->friend->Name = 'Frien name';
     }
 
     function Increment($event)

@@ -4,6 +4,16 @@
         <title>$count $title</title>
     </slotContent>
     <slotContent name="body">
+        <div>
+            <input type="text" value="$fullName" name="FullName" />
+            <p>Full Name: $fullName</p>
+            <p><textarea value="$fullName"></textarea></p>
+        </div>
+        <div>
+            <input type="text" value="$friend->Name" name="FriendName" />
+            <p>Friend Name: $friend->Name</p>
+            <p><textarea value="$friend->Name"></textarea></p>
+        </div>        
         <div $attrName="My title">
             <$dynamicName></$dynamicName>
             <UserItem></UserItem>

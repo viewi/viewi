@@ -26,9 +26,12 @@ var HomePage = function (countState) {
     this.false = false;
     this.attrName = 'title';
     this.dynamicEvent = '(click)';
+    this.fullName = 'Default Name';
     
     this.__construct = function (countState) {
         this.countState = countState;
+        this.friend = new Friend();
+        this.friend.Name = 'Frien name';
     };
 
     this.Increment = function (event) {
