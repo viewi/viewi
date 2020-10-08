@@ -40,7 +40,9 @@ class HomePage extends BaseComponent
         // $this->count++;
         $this->priv .= "Code";
         // $this->fruits[] = "Banana-{$this->count}";
-        $this->priv = array_pop($this->fruits);
+        if (in_array('Apple', $this->fruits)) {
+            $this->priv = array_pop($this->fruits);
+        }
         $tempArray = $this->fruits2;
         $tempArray[] = "Avokado-{$this->count}";
         $this->htmlTd .= "<td>N {$this->count}</td>";

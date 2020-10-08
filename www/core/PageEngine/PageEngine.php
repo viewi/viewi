@@ -75,6 +75,7 @@ class PageEngine
     private bool $compiled = false;
     private bool $waitingComponents = true;
     private JsTranslator $expressionsTranslator;
+    private array $requestedIncludes = [];
     /**
      * 
      * @var bool true: return string, false: echo
@@ -295,6 +296,7 @@ class PageEngine
             // $this->debug($className);
             // $this->debug($translator->GetVariablePaths());
             $this->compiledJs[$className] = $jscode;
+            $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->GetRequestedIncludes());
         }
     }
 
@@ -394,7 +396,11 @@ class PageEngine
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
         $publicJsonContent = json_encode($publicJson, 0, 1024);
-        $publicBundleJs = implode('', array_values($this->compiledJs));
+        $jsContentToInclude = '';
+        foreach ($this->requestedIncludes as $path) {
+            $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
+        }
+        $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
         file_put_contents($publicFilePath, $publicJsonContent);
         file_put_contents($publicJsFilePath, $publicBundleJs);
         //minify
@@ -590,6 +596,10 @@ class PageEngine
         }
         $tagItem->PhpExpression = $phpCode;
         $detectedReferences = $this->expressionsTranslator->GetVariablePaths();
+        $this->requestedIncludes = array_merge(
+            $this->requestedIncludes,
+            $this->expressionsTranslator->GetRequestedIncludes()
+        );
         if (isset($detectedReferences['global'])) {
             $subscriptions = array_map(
                 function ($item) {

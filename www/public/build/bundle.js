@@ -1,3 +1,16 @@
+function in_array(needle, haystack, strict) {
+    var nonStrict = !strict;
+    for (var i in haystack) {
+        if (
+            haystack[i] === needle
+            || (nonStrict && haystack[i] == needle)
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 var CountState = function () {
     this.count = 0;
     
@@ -41,8 +54,10 @@ var HomePage = function (countState) {
         // $this->count++;
         priv += "Code";
         // $this->fruits[] = "Banana-{$this->count}";
-        priv = this.fruits.pop();
-        notify(this.fruits, 'pop');
+        if(in_array('Apple',this.fruits)) {
+            priv = this.fruits.pop();
+            notify(this.fruits, 'pop');
+        }
         var tempArray = this.fruits2;
         tempArray.push("Avokado-" + this.count);
         notify(tempArray, 'push');

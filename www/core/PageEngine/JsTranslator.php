@@ -129,6 +129,8 @@ class JsTranslator
     private string $latestSpaces;
     public string $latestVariablePath;
     private $pasteArrayReactivity;
+    private array $requestedIncludes = [];
+
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -175,6 +177,16 @@ class JsTranslator
         $this->currentClass = null;
         $this->latestVariablePath = '';
         $this->pasteArrayReactivity = false;
+    }
+
+    public function IncludeJsFile(string $name, string $filePath)
+    {
+        $this->requestedIncludes[$name] = $filePath;
+    }
+
+    public function GetRequestedIncludes(): array
+    {
+        return $this->requestedIncludes;
     }
 
     public function ActivateReactivity(array $info)
