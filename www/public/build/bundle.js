@@ -50,6 +50,10 @@ var HomePage = function (countState) {
         this.dynamicEvent = '(mouseover)';
         // echo $this->count;
         // echo $event;
+        
+        var div = document.getElementById('customJsTestId');
+        div.innerHTML = "Custom js code " 
+            + this.count;
     };
 
     this.Test = function (argument) {

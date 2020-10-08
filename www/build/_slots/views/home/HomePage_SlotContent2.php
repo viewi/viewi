@@ -14,28 +14,9 @@ function RenderHomePage_SlotContent2(
     $_content = '';
 
     $_content .= '
-        <div>
-            <input type="text" value="';
-    $_content .= htmlentities($_component->fullName);
-    $_content .= '" name="FullName"/>
-            <p>Full Name: ';
-    $_content .= htmlentities($_component->fullName);
-    $_content .= '</p>
-            <p><textarea value="';
-    $_content .= htmlentities($_component->fullName);
-    $_content .= '"></textarea></p>
-        </div>
-        <div>
-            <input type="text" value="';
-    $_content .= htmlentities($_component->friend->Name);
-    $_content .= '" name="FriendName"/>
-            <p>Friend Name: ';
-    $_content .= htmlentities($_component->friend->Name);
-    $_content .= '</p>
-            <p><textarea value="';
-    $_content .= htmlentities($_component->friend->Name);
-    $_content .= '"></textarea></p>
-        </div>        
+        <div id="customJsTestId">
+            
+        </div>             
         <div ';
     if ($_component->attrName[0] !== '(') {
     $_content .= htmlentities($_component->attrName);

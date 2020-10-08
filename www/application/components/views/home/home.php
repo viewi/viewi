@@ -47,6 +47,12 @@ class HomePage extends BaseComponent
         $this->dynamicEvent = '(mouseover)';
         // echo $this->count;
         // echo $event;
+
+        <<<javascript
+        var div = document.getElementById('customJsTestId');
+        div.innerHTML = "Custom js code " 
+            + this.count;
+        javascript;
     }
 
     public function Test($argument): string

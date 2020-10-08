@@ -21,8 +21,9 @@ class JsTranslator
     private ?string $currentClass = null;
     private ?string $currentMethod = null;
     private array $allowedOperators = [
-        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*', '//'], '%' => ['%', '%='],
-        '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='], '<' => ['<', '<=', '<=>', '<>'], '>' => ['>', '>='],
+        '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*', '//'],
+        '%' => ['%', '%='], '=' => ['=', '==', '===', '=>'], '!' => ['!', '!=', '!=='],
+        '<' => ['<', '<=', '<=>', '<>', '<<<'], '>' => ['>', '>='],
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??'], ':' => [':'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
         '[' => ['[', '[]'], ']' => [']'], ',' => [','], '(' => ['(']
@@ -57,6 +58,7 @@ class JsTranslator
         '<=>' => array(0 => ' ', 1 => ' ',),
         '<>' => array(0 => ' ', 1 => ' ',),
         '>' => array(0 => ' ', 1 => ' ',),
+        '<<<' => array(0 => '', 1 => '',),
         '>=' => array(0 => ' ', 1 => ' ',),
         'and' => array(0 => ' ', 1 => ' ',),
         'or' => array(0 => ' ', 1 => ' ',),
@@ -599,8 +601,12 @@ class JsTranslator
                             break;
                         }
                     case '"': {
-
                             $code .= $identation . $this->ReadDoubleQuoteString();
+                            break;
+                        }
+                    case '<<<': {
+                            // $this->debug('<<< detected');
+                            $code .= $identation . $this->ReadHereDocString() . PHP_EOL;
                             break;
                         }
                     case '[': {
@@ -1085,6 +1091,57 @@ class JsTranslator
         return "[$elements]";
     }
 
+    private function ReadHereDocString(): string
+    {
+        $stopWord = '';
+        $code = '';
+        // get stopword
+        while ($this->position < $this->length) {
+            if (ctype_space($this->parts[$this->position])) {
+                break;
+            }
+            $stopWord .= $this->parts[$this->position];
+            $this->position++;
+        }
+        // $this->debug($stopWord);
+        while ($this->position < $this->length) {
+            if (
+                $this->parts[$this->position] === "\n"
+                || $this->parts[$this->position] === "\r"
+            ) {
+                // check stopword
+                $buffer = '';
+                $word = '';
+                $break = false;
+
+                while ($this->position < $this->length) {
+                    $buffer .= $this->parts[$this->position];
+                    if (ctype_alpha($this->parts[$this->position])) {
+                        $word .= $this->parts[$this->position];
+                    } else if ($word !== '') {
+                        if ($word === $stopWord) {
+                            $break = true;
+                            // $this->debug($word);
+                            // $this->debug($buffer);
+                            // $this->debug($code);
+                        } else {
+                            $code .= $buffer;
+                        }
+                        $this->position++;
+                        break;
+                    }
+                    $this->position++;
+                }
+                if ($break) {
+                    break;
+                }
+            }
+            $code .= $this->parts[$this->position];
+            $this->position++;
+        }
+        return $code;
+    }
+
     private function ReadDoubleQuoteString(): string
     {
         $parts = [];
@@ -1237,10 +1294,23 @@ class JsTranslator
                 if ($keyword !== '' && $firstType !== 'operator') {
                     break;
                 }
+                // 
                 if ($keyword !== '' && $operatorKey && !in_array(
                     $keyword . $this->parts[$this->position],
                     $this->allowedOperators[$operatorKey]
-                )) {
+                ) && ($this->position + 1 >= $this->length || !in_array(
+                    $keyword . $this->parts[$this->position] . $this->parts[$this->position + 1],
+                    $this->allowedOperators[$operatorKey]
+                ))) {
+                    // if ($operatorKey[0] === '<') {
+                    //     $this->debug($operatorKey . ' = ' . $keyword);
+                    //     $this->debug(
+                    //         $this->parts[$this->position] .
+                    //             $this->parts[$this->position + 1] .
+                    //             $this->parts[$this->position + 2] .
+                    //             $this->parts[$this->position + 3]
+                    //     );
+                    // }
                     // $this->position--;
                     // $this->debug('Move BACK' . $this->parts[$this->position - 1] . $this->parts[$this->position]);
                     break;
