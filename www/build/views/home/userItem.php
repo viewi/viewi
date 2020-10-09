@@ -1,7 +1,7 @@
 <?php
 
-use Vo\PageEngine;
-use Vo\BaseComponent;
+use Viewi\PageEngine;
+use Viewi\BaseComponent;
 
 function RenderUserItem(
     \UserItem $_component,

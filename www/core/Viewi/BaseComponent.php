@@ -1,5 +1,5 @@
 <?php
-namespace Vo;
+namespace Viewi;
 abstract class BaseComponent
 {
 }

@@ -1,8 +1,8 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
-include_once '../www/core/PageEngine/PageEngine.php';
+include_once '../www/core/Viewi/PageEngine.php';
 
 class BaseRenderingTest extends BaseTest
 {
@@ -94,7 +94,7 @@ class BaseRenderingTest extends BaseTest
         UnitTestScope $T,
         bool $echoRendered = false
     ) {
-        $page = new Vo\PageEngine(
+        $page = new Viewi\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             $T->WorkingDirectory(),

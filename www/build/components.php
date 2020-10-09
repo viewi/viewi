@@ -1,6 +1,6 @@
 <?php
 
-use Vo\PageEngine;
+use Viewi\PageEngine;
 
 function ReadComponentsInfo(PageEngine $pageEngine)
 {

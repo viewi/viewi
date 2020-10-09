@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-include 'core/PageEngine/PageEngine.php';
+// print_r($_SERVER['REDIRECT_URL']);
+
+include 'core/Viewi/PageEngine.php';
 include 'application/components/views/app.php';
 include 'application/components/views/home/home.php';
 
 $develop = true;
 $renderReturn = false;
 
-$page = new Vo\PageEngine(
+$page = new Viewi\PageEngine(
     __DIR__ . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'components',
     __DIR__ . DIRECTORY_SEPARATOR . 'build',
     __DIR__ . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'build',

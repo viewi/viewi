@@ -1,7 +1,7 @@
 <?php
 
-use Vo\PageEngine;
-use Vo\BaseComponent;
+use Viewi\PageEngine;
+use Viewi\BaseComponent;
 
 function RenderAppComponent_Slot5(
     Silly\MyApp\AppComponent $_component,

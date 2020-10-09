@@ -20,7 +20,9 @@ class NotificationService
         $this->messages = [];
         $this->messages['test'] = new stdClass();
         $this->messages[0] = new stdClass();
-        $this->messages[0]->Group[1]->Name = 'Test';
+        if ($this->exists) {
+            $this->messages[0]->Group[1]->Name = 'Test';
+        }
         $i = 1;
         $this->messages[$i] = new stdClass();
         $messages = [];
@@ -31,7 +33,9 @@ class NotificationService
             + count($this->messages)
             + count($this->messages2);
         $this->count = count($this->GetArray());
-        echo count($this->GetArray());
+        if ($this->exists) {
+            echo count($this->GetArray());
+        }
     }
 
     public function GetArray()

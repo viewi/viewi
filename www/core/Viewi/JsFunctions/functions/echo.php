@@ -1,6 +1,6 @@
 <?php
 
-namespace Vo;
+namespace Viewi;
 
 class JsEcho extends BaseFunctionConverter
 {

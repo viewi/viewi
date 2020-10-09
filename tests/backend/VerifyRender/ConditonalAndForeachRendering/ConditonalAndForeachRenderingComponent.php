@@ -1,6 +1,6 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 class ConditonalAndForeachRenderingComponent extends BaseComponent
 {
     public string $title = "Passing attributes into component";

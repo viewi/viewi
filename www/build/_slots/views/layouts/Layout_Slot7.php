@@ -1,7 +1,7 @@
 <?php
 
-use Vo\PageEngine;
-use Vo\BaseComponent;
+use Viewi\PageEngine;
+use Viewi\BaseComponent;
 
 function RenderLayout_Slot7(
     \Layout $_component,

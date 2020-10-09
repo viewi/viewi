@@ -1,6 +1,6 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
 class RawHtmlComponent extends BaseComponent
 {

@@ -1,9 +1,9 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
 include_once 'BaseRender.php';
-include_once '../www/core/PageEngine/PageEngine.php';
+include_once '../www/core/Viewi/PageEngine.php';
 
 class ReturnRenderingTest extends BaseRenderingTest
 {
@@ -17,7 +17,7 @@ class ReturnRenderingTest extends BaseRenderingTest
     {
 
         $startedAt = microtime(true);
-        $page = new Vo\PageEngine(
+        $page = new Viewi\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             $T->WorkingDirectory(),
@@ -28,7 +28,7 @@ class ReturnRenderingTest extends BaseRenderingTest
         $compileTime = floor((microtime(true) - $startedAt) * 1000);
 
         $startedAt = microtime(true);
-        $page = new Vo\PageEngine(
+        $page = new Viewi\PageEngine(
             __DIR__ . DIRECTORY_SEPARATOR . $path,
             $T->WorkingDirectory(),
             $T->WorkingDirectory(),

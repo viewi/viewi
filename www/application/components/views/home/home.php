@@ -1,7 +1,7 @@
 <?php
 
 use Silly\MyApp\Friend;
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
 class HomePage extends BaseComponent
 {

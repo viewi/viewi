@@ -9,7 +9,7 @@ component: *app/home.php*
 ```php
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
 class HomeComponent extends BaseComponent
 {
@@ -48,7 +48,7 @@ $develop = true;
 // true if you want to render into variable, otherwise - echo output
 $renderReturn = true;
 
-$page = new Vo\PageEngine(
+$page = new Viewi\PageEngine(
     'path/to/your/components',
     'build/path',
     $develop,
@@ -78,7 +78,7 @@ component: *app/HomeLink.php*
 ```php
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 
 class HomeLink extends BaseComponent
 {

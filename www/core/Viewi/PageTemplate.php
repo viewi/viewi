@@ -1,5 +1,7 @@
 <?php
-namespace Vo;
+
+namespace Viewi;
+
 class PageTemplate
 {
     public ComponentInfo $ComponentInfo;

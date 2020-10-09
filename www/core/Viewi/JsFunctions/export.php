@@ -1,6 +1,6 @@
 <?php
 
-namespace Vo;
+namespace Viewi;
 
 require 'breakCondition.php';
 require 'baseFunction.php';

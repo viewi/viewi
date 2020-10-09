@@ -1,6 +1,6 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 class ComplexTestComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';

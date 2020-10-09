@@ -105,7 +105,9 @@ var NotificationService = function (http) {
         this.messages = [];
         this.messages['test'] = new stdClass();
         this.messages[0] = new stdClass();
-        this.messages[0].Group[1].Name = 'Test';
+        if(this.exists) {
+            this.messages[0].Group[1].Name = 'Test';
+        }
         var i = 1;
         this.messages[i] = new stdClass();
         var messages_0 = [];
@@ -113,7 +115,9 @@ var NotificationService = function (http) {
         var messages2_0 = [];
         this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
         this.count = this.GetArray().length;
-        console.log(this.GetArray().length);
+        if(this.exists) {
+            console.log(this.GetArray().length);
+        }
     };
 
     this.GetArray = function () {

@@ -1,6 +1,6 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 use Silly\MyApp\Friend;
 
 class UserItem extends BaseComponent

@@ -1,6 +1,6 @@
 <?php
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 class DynTestAppComponent extends BaseComponent
 {
     public string $title = 'Testing dynamic tag';

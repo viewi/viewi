@@ -4,7 +4,7 @@ namespace Silly\MyApp;
 
 $h = 7;
 
-use Vo\BaseComponent;
+use Viewi\BaseComponent;
 use \NotificationService;
 use HttpTools\HttpClientService;
 
