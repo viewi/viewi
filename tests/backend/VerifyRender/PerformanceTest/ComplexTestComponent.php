@@ -13,7 +13,7 @@ class ComplexTestComponent extends BaseComponent
     public bool $false = false;
     public string $html = '<b>raw html demo</b>';
 
-    function __construct()
+    function __init()
     {
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 5; $i++) {

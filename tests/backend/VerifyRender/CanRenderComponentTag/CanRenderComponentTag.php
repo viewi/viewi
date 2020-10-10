@@ -5,7 +5,7 @@ use Viewi\BaseComponent;
 class CanRenderComponentTagComponent extends BaseComponent
 {
     public string $title = 'Testing child component';
-    function __construct()
+    function __init()
     {
     }
 }

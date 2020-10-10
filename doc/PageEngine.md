@@ -329,12 +329,12 @@ template: *app/home.html*
 ```
 
 ##### DI
-Dependency injection. Simply you can have constructor in your component, and all required arguments will be resolved automatically during render.
+Dependency injection. To make DI work in your component you must to declare `__init` method, and all required arguments will be resolved automatically during the render. If it's a service you can use `__construct` as well. `__init` has higher priority than `__construct`.
 ```php
 //...
 class HomeLink extends BaseComponent
 {
-    function __construct(
+    function __init(
         NotificationService $notificationService,
         HttpClientService $http,
         string $name,

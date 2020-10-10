@@ -10,7 +10,7 @@ class DependencyInjectionWorksComponent extends BaseComponent
     public ?float $f;
     public string $name;
     public ?int $cost;
-    function __construct(
+    function __init(
         NotificationDemoService $notificationService,
         HttpClientService $http,
         string $name,

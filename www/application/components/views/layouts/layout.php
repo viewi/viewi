@@ -8,7 +8,7 @@ class Layout extends BaseComponent
     public ObservableService $observableSubject;
     public $dynamicName = 'UserItem';
     
-    function __construct(ObservableService $observableSubject)
+    function __init(ObservableService $observableSubject)
     {
         $this->observableSubject = $observableSubject;
     }

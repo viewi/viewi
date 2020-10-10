@@ -25,7 +25,7 @@ class HomePage extends BaseComponent
     public string $dynamicEvent = '(click)';
     public string $fullName = 'Default Name';
 
-    function __construct(CountState $countState)
+    function __init(CountState $countState)
     {
         $this->countState = $countState;
         $this->friend = new Friend();

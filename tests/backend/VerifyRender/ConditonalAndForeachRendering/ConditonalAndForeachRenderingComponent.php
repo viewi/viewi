@@ -11,7 +11,7 @@ class ConditonalAndForeachRenderingComponent extends BaseComponent
     public array $memos = [];
     public bool $active = true;
     public int $status = 2;
-    public function __construct()
+    public function __init()
     {
         $memo = new Memo();
         $memo->Notes = 'My notes';

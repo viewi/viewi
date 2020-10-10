@@ -6,7 +6,7 @@ class CanPassAttributesAsComponentInputsComponent extends BaseComponent
     public string $title = "Passing attributes into component";
     public Memo $memo1;
     public Memo $memo2;
-    public function __construct()
+    public function __init()
     {
         $this->memo1 = new Memo();
         $this->memo1->Notes = 'My notes';

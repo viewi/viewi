@@ -27,6 +27,8 @@ class ComponentInfo
 
         if ($item['IsSlot'])
             $this->IsSlot = $item['IsSlot'];
+
+        $this->hasInit = $item['hasInit'] ?? false;
     }
     public string $Name;
     public string $Namespace;
@@ -38,6 +40,7 @@ class ComponentInfo
     public string $RenderFunction;
     public bool $IsComponent;
     public bool $IsSlot;
+    public bool $hasInit;
     /**
      * 
      * @var array<string,int>

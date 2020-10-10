@@ -20,7 +20,7 @@ var CountState = function () {
     this.__construct.apply(this, arguments);
 };
 
-var HomePage = function (countState) {
+var HomePage = function () {
     this.title = 'Wellcome to my awesome application\'s';
     this.count = 0;
     this.messages = [];
@@ -41,7 +41,7 @@ var HomePage = function (countState) {
     this.dynamicEvent = '(click)';
     this.fullName = 'Default Name';
     
-    this.__construct = function (countState) {
+    this.__init = function (countState) {
         this.countState = countState;
         this.friend = new Friend();
         this.friend.Name = 'Frien name';
@@ -79,8 +79,6 @@ var HomePage = function (countState) {
     this.GetCount = function () {
         return this.count;
     };
-
-    this.__construct.apply(this, arguments);
 };
 
 var test = 'Test';
@@ -151,15 +149,7 @@ var NotificationService = function (http) {
 var messages2 = [];
 var h = 7;
 var k = 5;
-var AppComponent = function (
-        notificationService, 
-        http, 
-        name, 
-        cost, 
-        notificationService2, 
-        notificationService3, 
-        notificationService4
-    ) {
+var AppComponent = function () {
     this.about = 'This is php/js page engine';
     this.model = "Page";
     this.url = '';
@@ -191,7 +181,7 @@ var AppComponent = function (
     this.notificationService = null;
     var http = null;
     
-    this.__construct = function (
+    this.__init = function (
         notificationService, 
         http, 
         name, 
@@ -275,8 +265,6 @@ var AppComponent = function (
         var letters = 'X';
         return 'Web developer';
     };
-
-    this.__construct.apply(this, arguments);
 };
 
 var letters = 'X';
@@ -302,15 +290,13 @@ var ObservableService = function (countState) {
     this.__construct.apply(this, arguments);
 };
 
-var Layout = function (observableSubject) {
+var Layout = function () {
     this.title = 'This is layout default title';
     this.observableSubject = null;
     this.dynamicName = 'UserItem';
     
-    this.__construct = function (observableSubject) {
+    this.__init = function (observableSubject) {
         this.observableSubject = observableSubject;
     };
-
-    this.__construct.apply(this, arguments);
 };
 

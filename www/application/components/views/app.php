@@ -42,7 +42,7 @@ class AppComponent extends BaseComponent
     public string $html = "<b>raw html - demo</b>";
     public NotificationService $notificationService;
     private HttpClientService $http;
-    function __construct(
+    function __init(
         NotificationService $notificationService,
         HttpClientService $http,
         string $name,

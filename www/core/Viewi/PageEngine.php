@@ -223,9 +223,10 @@ class PageEngine
             $componentInfo->Name = $name;
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->IsComponent = false;
+            $componentInfo->hasInit = $reflectionClass->hasMethod('__init');
             $componentInfo->Fullpath = $this->getRelativeSourcePath($reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
-            $dependencies = $this->getDependencies($reflectionClass);
+            $dependencies = $this->getDependencies($reflectionClass, $componentInfo->hasInit);
             if (!empty($dependencies)) {
                 $componentInfo->Dependencies = $dependencies;
             }
@@ -240,7 +241,9 @@ class PageEngine
     function getDependencies(ReflectionClass $reflectionClass): array
     {
         $dependencies = [];
-        $constructor = $reflectionClass->getConstructor();
+        $constructor = $reflectionClass->hasMethod('__init')
+            ? $reflectionClass->getMethod('__init')
+            : $reflectionClass->getConstructor();
         if ($constructor !== null) {
             $construcorArgs = $constructor->getParameters();
             if (!empty($construcorArgs)) {
@@ -345,7 +348,7 @@ class PageEngine
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->ComponentName = $className;
             $componentInfo->Tag = $className;
-
+            $componentInfo->hasInit = $reflectionClass->hasMethod('__init');
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
             }
@@ -381,6 +384,8 @@ class PageEngine
                 } else {
                     $publicJson[$className]['service'] = true;
                 }
+                if ($componentInfo->hasInit)
+                    $publicJson[$className]['init'] = true;
             }
         }
         // mate info
@@ -647,6 +652,9 @@ class PageEngine
         $instance = false;
         if (empty($componentInfo->Dependencies)) {
             $instance = new $class();
+            if ($componentInfo->hasInit) {
+                $instance->__init();
+            }
         } else {
             $arguments = [];
             foreach ($componentInfo->Dependencies as $type) {
@@ -669,7 +677,12 @@ class PageEngine
                     $arguments[] = $this->resolve($this->components[$type['name']]);
                 }
             }
-            $instance = new $class(...$arguments);
+            if ($componentInfo->hasInit) {
+                $instance = new $class();
+                $instance->__init(...$arguments);
+            } else {
+                $instance = new $class(...$arguments);
+            }
         }
         // always cache for slots
         $this->Dependencies[$class] = $instance;

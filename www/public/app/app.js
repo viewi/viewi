@@ -1242,7 +1242,11 @@ function Edgeon() {
             return injectionCache[name];
         }
         if (!dependencies) {
-            var instance = makeReactive(new window[name]());
+            var instance = new window[name]();
+            if (info.init) {
+                instance.__init();
+            }
+            makeReactive(instance);
             if (cache) {
                 injectionCache[name] = instance;
             }
@@ -1261,7 +1265,14 @@ function Edgeon() {
             }
             arguments.push(a);
         }
-        var instance = makeReactive(new (window[name].bind.apply(window[name], arguments))());
+        var instance = info.init
+            ? new window[name]()
+            : new (window[name].bind.apply(window[name], arguments))();
+        if (info.init) {
+            arguments.shift();
+            instance.__init.apply(instance, arguments);
+        }
+        makeReactive(instance);
         if (cache) {
             injectionCache[name] = instance;
         }

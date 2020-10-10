@@ -11,6 +11,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => '',
     'Fullpath' => '\\services\\CountState.php',
     'IsComponent' => false,
+    'hasInit' => false,
   ),
   'HomePage' => 
   array (
@@ -23,6 +24,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\home\\home.php',
     'RenderFunction' => 'RenderHomePage',
     'IsComponent' => true,
+    'hasInit' => true,
     'Dependencies' => 
     array (
       'countState' => 
@@ -42,6 +44,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\posts\\post.php',
     'RenderFunction' => 'RenderPostPage',
     'IsComponent' => true,
+    'hasInit' => false,
   ),
   'NotFoundComponent' => 
   array (
@@ -54,6 +57,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\notfound\\notfound.php',
     'RenderFunction' => 'RenderNotFoundComponent',
     'IsComponent' => true,
+    'hasInit' => false,
   ),
   'NotificationService' => 
   array (
@@ -61,6 +65,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => '',
     'Fullpath' => '\\services\\NotificationService.php',
     'IsComponent' => false,
+    'hasInit' => false,
     'Dependencies' => 
     array (
       'http' => 
@@ -75,6 +80,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => 'HttpTools',
     'Fullpath' => '\\services\\HttpClientService.php',
     'IsComponent' => false,
+    'hasInit' => false,
   ),
   'AppComponent' => 
   array (
@@ -87,6 +93,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\app.php',
     'RenderFunction' => 'RenderAppComponent',
     'IsComponent' => true,
+    'hasInit' => true,
     'Dependencies' => 
     array (
       'notificationService' => 
@@ -192,6 +199,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\home\\userItem.php',
     'RenderFunction' => 'RenderUserItem',
     'IsComponent' => true,
+    'hasInit' => false,
   ),
   'ObservableService' => 
   array (
@@ -199,6 +207,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => '',
     'Fullpath' => '\\services\\ObservableService.php',
     'IsComponent' => false,
+    'hasInit' => false,
     'Dependencies' => 
     array (
       'countState' => 
@@ -218,6 +227,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'BuildPath' => '\\views\\layouts\\layout.php',
     'RenderFunction' => 'RenderLayout',
     'IsComponent' => true,
+    'hasInit' => true,
     'Dependencies' => 
     array (
       'observableSubject' => 
@@ -232,6 +242,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => '',
     'Fullpath' => '\\services\\ErrorInterceptor.php',
     'IsComponent' => false,
+    'hasInit' => false,
     'Dependencies' => 
     array (
       'http' => 
@@ -246,6 +257,7 @@ function ReadComponentsInfo(PageEngine $pageEngine)
     'Namespace' => 'Silly\\MyApp',
     'Fullpath' => '\\views\\app.php',
     'IsComponent' => false,
+    'hasInit' => false,
   ),
   'HomePage_SlotContent1' => 
   array (

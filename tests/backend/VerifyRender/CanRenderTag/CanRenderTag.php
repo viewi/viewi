@@ -11,7 +11,7 @@ class CanRenderTagComponent extends BaseComponent
         return 'Jhon Doe';
     }
 
-    function __construct()
+    function __init()
     {
     }
 }
