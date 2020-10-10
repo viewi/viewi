@@ -3,8 +3,8 @@
 use Viewi\PageEngine;
 use Viewi\BaseComponent;
 
-function RenderAppComponent_Slot5(
-    Silly\MyApp\AppComponent $_component,
+function RenderNotFoundComponent_SlotContent7(
+    \NotFoundComponent $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -14,8 +14,10 @@ function RenderAppComponent_Slot5(
     $_content = '';
 
     $_content .= '
-   
-';
+        <title>';
+    $_content .= htmlentities($_component->title);
+    $_content .= '</title>
+    ';
     return $_content;
    
 }

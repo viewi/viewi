@@ -2,6 +2,9 @@
 
 namespace Viewi\Routing;
 
+include 'RouteItem.php';
+include 'RouteAdapterBase.php';
+
 class Route
 {
 
@@ -16,6 +19,11 @@ class Route
      * @var array<RouteAdapterBase>
      */
     public static array $adapters = [];
+
+    public static function addAdapter(RouteAdapterBase $adapter)
+    {
+        self::$adapters[] = $adapter;
+    }
 
     public static function add(string $method, string $url, string $component, ?array $defaults = null)
     {

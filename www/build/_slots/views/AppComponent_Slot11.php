@@ -3,8 +3,8 @@
 use Viewi\PageEngine;
 use Viewi\BaseComponent;
 
-function RenderUserItem_Slot6(
-    \UserItem $_component,
+function RenderAppComponent_Slot11(
+    Silly\MyApp\AppComponent $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,7 +13,9 @@ function RenderUserItem_Slot6(
     
     $_content = '';
 
-    $_content .= '===no user===';
+    $_content .= '
+   
+';
     return $_content;
    
 }

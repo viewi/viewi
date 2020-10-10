@@ -11,6 +11,7 @@ class RouteItem
         $this->component = $component;
         $this->defaults = $defaults;
     }
+
     public string $url;
     public string $method;
     public string $component;

@@ -16,6 +16,7 @@ require 'ComponentRenderer.php';
 require 'PageTemplate.php';
 require 'TagItem.php';
 require 'JsTranslator.php';
+require 'Routing/Route.php';
 
 class PageEngine
 {

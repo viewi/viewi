@@ -3,8 +3,8 @@
 use Viewi\PageEngine;
 use Viewi\BaseComponent;
 
-function RenderLayout_Slot7(
-    \Layout $_component,
+function RenderPostPage_Slot6(
+    \PostPage $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -14,10 +14,9 @@ function RenderLayout_Slot7(
     $_content = '';
 
     $_content .= '
-        <title>';
-    $_content .= htmlentities($_component->title);
-    $_content .= '</title>
-    ';
+    
+    
+';
     return $_content;
    
 }

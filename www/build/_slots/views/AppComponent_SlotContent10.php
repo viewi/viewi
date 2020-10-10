@@ -3,7 +3,7 @@
 use Viewi\PageEngine;
 use Viewi\BaseComponent;
 
-function RenderAppComponent_SlotContent4(
+function RenderAppComponent_SlotContent10(
     Silly\MyApp\AppComponent $_component,
     PageEngine $pageEngine,
     array $slots

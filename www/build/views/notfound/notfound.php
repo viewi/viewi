@@ -3,8 +3,8 @@
 use Viewi\PageEngine;
 use Viewi\BaseComponent;
 
-function RenderAppComponent(
-    Silly\MyApp\AppComponent $_component,
+function RenderNotFoundComponent(
+    \NotFoundComponent $_component,
     PageEngine $pageEngine,
     array $slots
     , ...$scope
@@ -13,9 +13,11 @@ function RenderAppComponent(
     
     $_content = '';
 
-    $slotContents['body'] = 'AppComponent_SlotContent10';
+    $slotContents['head'] = 'NotFoundComponent_SlotContent7';
 
-    $slotContents[0] = 'AppComponent_Slot11';
+    $slotContents['body'] = 'NotFoundComponent_SlotContent8';
+
+    $slotContents[0] = 'NotFoundComponent_Slot9';
     $_content .= $pageEngine->renderComponent('Layout', $_component, $slotContents, [], ...$scope);
     $slotContents = [];
     return $_content;

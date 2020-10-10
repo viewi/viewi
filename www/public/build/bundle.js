@@ -84,6 +84,14 @@ var HomePage = function (countState) {
 };
 
 var test = 'Test';
+var PostPage = function () {
+    this.title = 'Post';
+};
+
+var NotFoundComponent = function () {
+    this.title = 'Page not found';
+};
+
 var HttpClientService = function () {
     
     this.get = function (url, data) {
