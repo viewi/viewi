@@ -29,12 +29,14 @@ class ComponentInfo
             $this->IsSlot = $item['IsSlot'];
 
         $this->hasInit = $item['hasInit'] ?? false;
+        $this->relative = $item['relative'] ?? false;
     }
     public string $Name;
     public string $Namespace;
     public string $ComponentName;
     public string $Tag;
     public string $Fullpath;
+    public bool $relative;
     public string $TemplatePath;
     public string $BuildPath;
     public string $RenderFunction;

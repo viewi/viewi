@@ -82,8 +82,29 @@ var HomePage = function () {
 };
 
 var test = 'Test';
+var HttpClient = function () {
+    
+    this.get = function (url) {
+        var resolver = new PromiseResolver(
+        this.( = function (url) {
+            // call router internally and get result
+        };
+;
+        return resolver;
+    };
+};
+
 var PostPage = function () {
+    this.post = null;
     this.title = 'Post';
+    
+    this.__init = function (http) {
+        http.get('/api/posts/45').then(
+        this.( = function (this) {
+            console.log(error);
+        };
+);
+    };
 };
 
 var NotFoundComponent = function () {

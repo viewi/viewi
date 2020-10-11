@@ -7,6 +7,7 @@ use Viewi\Routing\Route as ViewiRoute;
 use ViewiRouteAdapter;
 
 include 'DevRouter.php';
+include 'PostModel.php';
 include 'core/Viewi/App.php';
 include 'ViewiRouterAdapter.php';
 
@@ -46,12 +47,12 @@ $app = new DevApp();
 ViewiRoute::addAdapter(new ViewiRouteAdapter());
 
 DevRouter::register('get', '/api/posts/{postId}', function ($postId) {
-    return [
-        'id' => $postId,
-        'name' => 'Amazing Viewi',
-        'content' => 'Get ready for a new development experience!',
-        'date' => date("Y-m-d H:i:s")
-    ];
+    $post = new PostModel();
+    $post->id = $postId;
+    $post->name = 'Amazing Viewi';
+    $post->content = 'Get ready for a new development experience!';
+    $post->date = date("Y-m-d H:i:s");
+    return $post;
 });
 
 include 'application/components/start.php';

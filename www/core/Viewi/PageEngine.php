@@ -17,6 +17,8 @@ require 'PageTemplate.php';
 require 'TagItem.php';
 require 'JsTranslator.php';
 require 'Routing/Route.php';
+require 'Common/HttpClient.php';
+require 'Common/PromiseResolver.php';
 
 class PageEngine
 {
@@ -210,6 +212,12 @@ class PageEngine
     {
         return str_replace($this->sourcePath, '', $fullPath);
     }
+
+    function updateComponentPath(ComponentInfo $componentInfo, string $fullPath): void
+    {
+        $componentInfo->Fullpath = $this->getRelativeSourcePath($fullPath);
+        $componentInfo->relative = $componentInfo->Fullpath !== $fullPath;
+    }
     /**
      * 
      * @param ReflectionClass $reflectionClass 
@@ -224,7 +232,7 @@ class PageEngine
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->IsComponent = false;
             $componentInfo->hasInit = $reflectionClass->hasMethod('__init');
-            $componentInfo->Fullpath = $this->getRelativeSourcePath($reflectionClass->getFileName());
+            $this->updateComponentPath($componentInfo, $reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
             $dependencies = $this->getDependencies($reflectionClass, $componentInfo->hasInit);
             if (!empty($dependencies)) {
@@ -340,7 +348,7 @@ class PageEngine
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $templatePath = $pathWOext . '.html';
             $componentInfo->IsComponent = true;
-            $componentInfo->Fullpath = $this->getRelativeSourcePath($filename);
+            $this->updateComponentPath($componentInfo, $filename);
             if (isset($pages[$templatePath])) {
                 $componentInfo->TemplatePath = $this->getRelativeSourcePath($templatePath);
             }
@@ -630,18 +638,21 @@ class PageEngine
         // cache service instances or parent components for slots
         // do not cache component instances
         $cache = true;
+        $relative = $componentInfo->relative;
+        if ($relative) {
+            include_once $this->sourcePath . $componentInfo->Fullpath;
+        } else {
+            include_once $componentInfo->Fullpath;
+        }
         if ($componentInfo->IsComponent) {
             // always new instance
             $cache = $defaultCache;
-            include_once $this->sourcePath . $componentInfo->Fullpath;
             include_once $this->buildPath . $componentInfo->BuildPath;
         } elseif (isset($componentInfo->IsSlot)) {
-            include_once $this->sourcePath . $componentInfo->Fullpath;
             include_once $this->buildPath . $componentInfo->BuildPath;
             return $this->resolve($this->components[$componentInfo->ComponentName], true);
         } else {
             // It's service or any class (It's not template component)
-            include_once $this->sourcePath . $componentInfo->Fullpath;
         }
         $class = $componentInfo->Namespace . '\\' . $componentInfo->Name;
         if ($cache && isset($this->Dependencies[$class])) {
@@ -774,6 +785,7 @@ class PageEngine
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $this->getRelativeSourcePath($htmlPath);
             $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
+            $slotPageTemplate->ComponentInfo->relative = $this->latestPageTemplate->ComponentInfo->relative;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
             $this->components[$componentBaseName] = $slotPageTemplate->ComponentInfo;
