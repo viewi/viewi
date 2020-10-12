@@ -19,19 +19,7 @@ class DevApp
 {
     public function run()
     {
-        $match = DevRouter::resolve($_SERVER['REDIRECT_URL']);
-        if ($match === null) {
-            throw new Exception('No route was matched!');
-        }
-        // print_r($match);
-        $action = $match['route']['action'];
-        $response = '';
-        if (is_callable($action)) {
-            $response = $action(...array_values($match['params']));
-        } else {
-            $instance = new $action();
-            $response = $instance();
-        }
+        $response = DevRouter::handle($_SERVER['REDIRECT_URL'], $_SERVER['REQUEST_METHOD']);
         if (is_string($response)) { // text/html
             header("Content-type: text/html; charset=utf-8");
             echo $response;
@@ -44,7 +32,7 @@ class DevApp
 
 $app = new DevApp();
 
-ViewiRoute::addAdapter(new ViewiRouteAdapter());
+ViewiRoute::setAdapter(new ViewiRouteAdapter());
 
 DevRouter::register('get', '/api/posts/{postId}', function ($postId) {
     $post = new PostModel();

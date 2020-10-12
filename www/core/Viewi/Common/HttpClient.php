@@ -2,14 +2,14 @@
 
 namespace Viewi\Common;
 
-use DevApp\PostModel;
+use Viewi\Routing\Route;
 
 class HttpClient
 {
     public function get($url)
     {
         $resolver = new PromiseResolver(function () use ($url) {
-            // call router internally and get result
+            return Route::handle('get', $url);
         });
 
         return $resolver;

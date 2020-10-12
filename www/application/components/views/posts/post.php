@@ -14,10 +14,10 @@ class PostPage extends BaseComponent
         $http->get('/api/posts/45')->then(
             function (PostModel $post) {
                 $this->post = $post;
-                print_r($this);
+                // print_r($this);
             },
             function ($error) {
-                print_r($error);
+                // print_r($error);
             }
         );
     }

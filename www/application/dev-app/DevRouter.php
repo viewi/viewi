@@ -2,6 +2,8 @@
 
 namespace DevApp;
 
+use Exception;
+
 class DevRouter
 {
     // $_SERVER['REQUEST_METHOD']
@@ -15,13 +17,32 @@ class DevRouter
             'action' => $actionOrController
         ];
     }
-    public static function resolve($url): ?array
+
+    public static function handle($url, $method = 'get')
+    {
+        $match = DevRouter::resolve($url, $method);
+        if ($match === null) {
+            throw new Exception('No route was matched!');
+        }
+        // print_r($match);
+        $action = $match['route']['action'];
+        $response = '';
+        if (is_callable($action)) {
+            $response = $action(...array_values($match['params']));
+        } else {
+            $instance = new $action();
+            $response = $instance();
+        }
+        return $response;
+    }
+
+    public static function resolve($url, $method = 'get'): ?array
     {
         if (!$url) {
             $url = '/';
         }
         $parts = explode('/', $url);
-        $method = strtolower($_SERVER['REQUEST_METHOD']);
+        $method = strtolower($method);
         foreach (self::$routes as $route) {
             if ($method === $route['method']) {
                 if ($route['url'] === '*') {

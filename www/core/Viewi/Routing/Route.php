@@ -16,13 +16,18 @@ class Route
 
     /**
      * 
-     * @var array<RouteAdapterBase>
+     * @var RouteAdapterBase
      */
-    public static array $adapters = [];
+    public static RouteAdapterBase $adapter;
 
-    public static function addAdapter(RouteAdapterBase $adapter)
+    public static function setAdapter(RouteAdapterBase $adapter)
     {
-        self::$adapters[] = $adapter;
+        self::$adapter = $adapter;
+    }
+
+    public static function handle(string $method, string $url)
+    {
+        return self::$adapter->handle($method, $url);
     }
 
     public static function add(string $method, string $url, string $component, ?array $defaults = null)
@@ -33,9 +38,7 @@ class Route
             $component,
             $defaults
         );
-        foreach (self::$adapters as $adapter) {
-            $adapter->register($method, $url, $component, $defaults);
-        }
+        self::$adapter->register($method, $url, $component, $defaults);
     }
 
     public static function get(string $url, string $component, ?array $defaults = null)

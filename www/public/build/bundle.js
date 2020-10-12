@@ -86,7 +86,7 @@ var HttpClient = function () {
     
     this.get = function (url) {
         var resolver = new PromiseResolver(function () {
-            // call router internally and get result
+            return Route.handle('get',url);
         });
         return resolver;
     };
@@ -99,9 +99,9 @@ var PostPage = function () {
     this.__init = function (http) {
         http.get('/api/posts/45').then(function (post) {
             this.post = post;
-            console.log(this);
+            // print_r($this);
         },function (error) {
-            this.console.log(error);
+            // print_r($error);
         });
     };
 };
