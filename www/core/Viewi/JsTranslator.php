@@ -274,9 +274,9 @@ class JsTranslator
                 if ($declaredProp === null) {
                     $this->scope[$this->scopeLevel][$this->buffer] = 'public';
                     $this->scope[$this->scopeLevel][$this->buffer . '_this'];
-                    $varStatement = 'this.';
+                    $varStatement = '$this.';
                 } else {
-                    $varStatement = $declaredProp === 'private' ? '' : 'this.';
+                    $varStatement = $declaredProp === 'private' ? '' : '$this.';
                 }
                 $this->latestVariablePath = $varStatement;
                 // $this->debug('VAR: ' . $varStatement);
@@ -427,7 +427,7 @@ class JsTranslator
                         $this->latestVariablePath .= '.';
                         continue;
                     }
-                    $code .= $identation . 'this';
+                    $code .= $identation . '$this';
                     $this->position -= strlen($nextKeyword);
                 } else {
                     $this->thisMatched = false;
@@ -910,7 +910,9 @@ class JsTranslator
         $this->currentIdentation .= $this->identation;
         $this->putIdentation = true;
         $this->newVar = true;
-        $classCode = $this->ReadCodeBlock();
+        $classCode = $this->currentIdentation . 'var $this = this;'
+            . PHP_EOL;
+        $classCode .= $this->ReadCodeBlock();
         $this->newVar = true;
         $this->currentClass = $lastClass;
         $arguments = '';

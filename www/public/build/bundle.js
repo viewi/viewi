@@ -12,6 +12,7 @@ function in_array(needle, haystack, strict) {
 }
 
 var CountState = function () {
+    var $this = this;
     this.count = 0;
     
     this.__construct = function () {
@@ -21,6 +22,7 @@ var CountState = function () {
 };
 
 var HomePage = function () {
+    var $this = this;
     this.title = 'Wellcome to my awesome application\'s';
     this.count = 0;
     this.messages = [];
@@ -42,28 +44,28 @@ var HomePage = function () {
     this.fullName = 'Default Name';
     
     this.__init = function (countState) {
-        this.countState = countState;
-        this.friend = new Friend();
-        this.friend.Name = 'Frien name';
+        $this.countState = countState;
+        $this.friend = new Friend();
+        $this.friend.Name = 'Frien name';
     };
 
     this.Increment = function (event) {
-        this.count++;
-        this.countState.count++;
-        this.json['Name'] = 'New name';
+        $this.count++;
+        $this.countState.count++;
+        $this.json['Name'] = 'New name';
         // $this->count++;
         priv += "Code";
         // $this->fruits[] = "Banana-{$this->count}";
-        if(in_array('Apple',this.fruits)) {
-            priv = this.fruits.pop();
-            notify(this.fruits, 'pop');
+        if(in_array('Apple',$this.fruits)) {
+            priv = $this.fruits.pop();
+            notify($this.fruits, 'pop');
         }
-        var tempArray = this.fruits2;
-        tempArray.push("Avokado-" + this.count);
+        var tempArray = $this.fruits2;
+        tempArray.push("Avokado-" + $this.count);
         notify(tempArray, 'push');
-        this.htmlTd += "<td>N " + this.count + "</td>";
-        this.attrName = 'area';
-        this.dynamicEvent = '(mouseover)';
+        $this.htmlTd += "<td>N " + $this.count + "</td>";
+        $this.attrName = 'area';
+        $this.dynamicEvent = '(mouseover)';
         // echo $this->count;
         // echo $event;
         
@@ -77,28 +79,26 @@ var HomePage = function () {
     };
 
     this.GetCount = function () {
-        return this.count;
+        return $this.count;
     };
 };
 
 var test = 'Test';
 var HttpClient = function () {
-    
+
     this.get = function (url) {
-        var resolver = new PromiseResolver(function () {
-            return Route.handle('get',url);
-        });
+        var resolver = ajax.get(url);
         return resolver;
     };
 };
-
 var PostPage = function () {
+    var $this = this;
     this.post = null;
     this.title = 'Post';
     
     this.__init = function (http) {
         http.get('/api/posts/45').then(function (post) {
-            this.post = post;
+            $this.post = post;
             // print_r($this);
         },function (error) {
             // print_r($error);
@@ -107,10 +107,12 @@ var PostPage = function () {
 };
 
 var NotFoundComponent = function () {
+    var $this = this;
     this.title = 'Page not found';
 };
 
 var HttpClientService = function () {
+    var $this = this;
     
     this.get = function (url, data) {
         return { message: 'ok' };
@@ -118,6 +120,7 @@ var HttpClientService = function () {
 };
 
 var NotificationService = function (http) {
+    var $this = this;
     var http = null;
     /**
      * 
@@ -128,39 +131,39 @@ var NotificationService = function (http) {
     
     this.__construct = function (http) {
         http = http;
-        this.messages = [];
-        this.messages['test'] = new stdClass();
-        this.messages[0] = new stdClass();
-        if(this.exists) {
-            this.messages[0].Group[1].Name = 'Test';
+        $this.messages = [];
+        $this.messages['test'] = new stdClass();
+        $this.messages[0] = new stdClass();
+        if($this.exists) {
+            $this.messages[0].Group[1].Name = 'Test';
         }
         var i = 1;
-        this.messages[i] = new stdClass();
+        $this.messages[i] = new stdClass();
         var messages_0 = [];
         messages2 = [];
         var messages2_0 = [];
-        this.unknown = messages_0.length + messages2_0.length + this.messages.length + messages2.length;
-        this.count = this.GetArray().length;
-        if(this.exists) {
-            console.log(this.GetArray().length);
+        $this.unknown = messages_0.length + messages2_0.length + $this.messages.length + messages2.length;
+        $this.count = $this.GetArray().length;
+        if($this.exists) {
+            console.log($this.GetArray().length);
         }
     };
 
     this.GetArray = function () {
-        return this.messages;
+        return $this.messages;
     };
 
     this.GetCount = function () {
-        return this.GetArray().length;
+        return $this.GetArray().length;
     };
 
     this.Notify = function (message) {
-        this.messages.push(message);
-        notify(this.messages, 'push');
+        $this.messages.push(message);
+        notify($this.messages, 'push');
     };
 
     this.Clear = function () {
-        this.messages = [];
+        $this.messages = [];
     };
 
     this.__construct.apply(this, arguments);
@@ -170,6 +173,7 @@ var messages2 = [];
 var h = 7;
 var k = 5;
 var AppComponent = function () {
+    var $this = this;
     this.about = 'This is php/js page engine';
     this.model = "Page";
     this.url = '';
@@ -215,13 +219,13 @@ var AppComponent = function () {
         var test2 = arguments.length > 9 ? arguments[9] : [5, 6];
         var test3 = arguments.length > 10 ? arguments[10] : [5, 6];
         var test4 = arguments.length > 11 ? arguments[11] : [5, 6];
-        this.notificationService = notificationService;
+        $this.notificationService = notificationService;
         http = http;
-        this.friend = new Friend();
+        $this.friend = new Friend();
         friend2 = new Friend();
-        this.friend.Name = "Jhon Doe " + this.model;
-        this.friend.Age = f;
-        friend2.Name = "Jhon Doe " + this.model;
+        $this.friend.Name = "Jhon Doe " + $this.model;
+        $this.friend.Age = f;
+        friend2.Name = "Jhon Doe " + $this.model;
         friend2.Age = f;
         var letters = 'abcdefghijklmnopqrstuvwxyz';
         for (var i = 0; i < 3; i++) {
@@ -229,18 +233,18 @@ var AppComponent = function () {
             // new user
             user.Name = 'Jhon' + letters[26 - i] + ' Doe' + letters[i];
             user.Age = 30 + i;
-            this.users[i] = user;
-            this.users[friend2.Name] = user;
-            this.users["ID-" + i] = user;
-            this.users["ID-" + test[1] + "test"] = user;
-            this.users["ID-" + friend2.Name + "test"] = user;
+            $this.users[i] = user;
+            $this.users[friend2.Name] = user;
+            $this.users["ID-" + i] = user;
+            $this.users["ID-" + test[1] + "test"] = user;
+            $this.users["ID-" + friend2.Name + "test"] = user;
         }
-        for (var _i in this.users) {
-            var user = this.users[_i];
+        for (var _i in $this.users) {
+            var user = $this.users[_i];
             user.Name;
         }
-        for (var id in this.users) {
-            var user = this.users[id];
+        for (var id in $this.users) {
+            var user = $this.users[id];
             id + user.Name;
         }
         MultiTest.length;
@@ -268,7 +272,7 @@ var AppComponent = function () {
                 console.log(f);
                 console.log(f);
             }
-            else if(f > 10 && this.users.length > 3) {
+            else if(f > 10 && $this.users.length > 3) {
                 console.log(f);
                 console.log(f);
             }
@@ -289,11 +293,13 @@ var AppComponent = function () {
 
 var letters = 'X';
 var Friend = function () {
+    var $this = this;
     this.Name = null;
     this.Age = null;
 };
 
 var UserItem = function () {
+    var $this = this;
     this.user = null;
     this.active = false;
     this.title = null;
@@ -301,22 +307,24 @@ var UserItem = function () {
 };
 
 var ObservableService = function (countState) {
+    var $this = this;
     this.countState = null;
     
     this.__construct = function (countState) {
-        this.countState = countState;
+        $this.countState = countState;
     };
 
     this.__construct.apply(this, arguments);
 };
 
 var Layout = function () {
+    var $this = this;
     this.title = 'This is layout default title';
     this.observableSubject = null;
     this.dynamicName = 'UserItem';
     
     this.__init = function (observableSubject) {
-        this.observableSubject = observableSubject;
+        $this.observableSubject = observableSubject;
     };
 };
 

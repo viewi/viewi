@@ -2,8 +2,9 @@ console.log('app.js included');
 // load /public/app/build/components.json
 function OnReady(func) {
     var $this = this;
-    this.then = function (onOk) {
+    this.then = function (onOk, onError) {
         this.onOk = onOk;
+        this.onError = onError;
     };
     this.catch = function (onError) {
         this.onError = onError;
@@ -24,7 +25,7 @@ var ajax = {
                     var status = req.status;
                     if (status === 0 || (status >= 200 && status < 400)) {
                         var contentType = req.getResponseHeader("Content-Type");
-                        if (contentType === 'application/json') {
+                        if (contentType.indexOf('application/json') === 0) {
                             onOk(JSON.parse(req.responseText));
                         } else {
                             onOk(req.responseText);
@@ -100,7 +101,7 @@ function Edgeon() {
                 components._meta.tags.split(',').each(function (x) {
                     avaliableTags[x] = true;
                 });
-                $this.render('HomePage');
+                $this.render('PostPage');
             });
     };
 

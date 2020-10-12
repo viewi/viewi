@@ -302,13 +302,22 @@ class PageEngine
     {
         $className = $reflectionClass->getShortName();
         if (!isset($this->compiledJs[$className])) {
-            $raw = file_get_contents($reflectionClass->getFileName());
-            $translator = new JsTranslator($raw);
-            $jscode = $translator->Convert();
+            $phpSourceFileName = $reflectionClass->getFileName();
+            $pathinfo = pathinfo($phpSourceFileName);
+            $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
+            $jsSourceFileName = $pathWOext . '.js';
+            $jscode = '';
+            if (file_exists($jsSourceFileName)) {
+                $jscode = file_get_contents($jsSourceFileName);
+            } else {
+                $raw = file_get_contents($phpSourceFileName);
+                $translator = new JsTranslator($raw);
+                $jscode = $translator->Convert();
+                $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->GetRequestedIncludes());
+            }
             // $this->debug($className);
             // $this->debug($translator->GetVariablePaths());
             $this->compiledJs[$className] = $jscode;
-            $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->GetRequestedIncludes());
         }
     }
 
