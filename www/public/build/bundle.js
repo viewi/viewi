@@ -85,11 +85,9 @@ var test = 'Test';
 var HttpClient = function () {
     
     this.get = function (url) {
-        var resolver = new PromiseResolver(
-        this.( = function (url) {
+        var resolver = new PromiseResolver(function () {
             // call router internally and get result
-        };
-;
+        });
         return resolver;
     };
 };
@@ -99,11 +97,12 @@ var PostPage = function () {
     this.title = 'Post';
     
     this.__init = function (http) {
-        http.get('/api/posts/45').then(
-        this.( = function (this) {
-            console.log(error);
-        };
-);
+        http.get('/api/posts/45').then(function (post) {
+            this.post = post;
+            console.log(this);
+        },function (error) {
+            this.console.log(error);
+        });
     };
 };
 

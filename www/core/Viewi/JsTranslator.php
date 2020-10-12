@@ -319,7 +319,7 @@ class JsTranslator
             // $this->debug($varStatement . $this->buffer);
             $this->buffer = null;
         }
-
+        // echo 'GetVariable:  ' . $code . PHP_EOL;
         return $code;
     }
 
@@ -376,6 +376,9 @@ class JsTranslator
         while ($this->position < $this->length) {
             $keyword = $this->MatchKeyword();
             // $this->debug($keyword);
+            // echo 'LK:  ' . $this->lastKeyword . ' K:  ' . $keyword . PHP_EOL;
+            // echo 'Code: ' . $code . PHP_EOL;
+
             if ($keyword === '' && $this->position === $this->length) {
                 break;
             }
@@ -409,6 +412,7 @@ class JsTranslator
                     $code .= ' ';
                     // $this->debug($this->lastKeyword . ' ' . $keyword);
                 }
+                $varName = substr($keyword, 1);
                 if ($keyword == '$this') {
                     $this->thisMatched = true;
                     $nextKeyword = $this->MatchKeyword();
@@ -437,11 +441,11 @@ class JsTranslator
                             $this->currentVariablePath .= $keyword;
                         }
                     }
+                    $this->buffer = $varName;
+                    $this->bufferIdentation = $identation;
                 }
-                $varName = substr($keyword, 1);
+
                 $this->latestVariablePath = $varName;
-                $this->buffer = $varName;
-                $this->bufferIdentation = $identation;
                 if ($this->expressionScope && !$this->collectVariablePath) {
                     $this->collectVariablePath = true;
                     $this->currentVariablePath = $varName;
@@ -476,7 +480,9 @@ class JsTranslator
                 }
             } else {
                 if ($keyword !== '=') {
+                    // echo 'Code before GetVariable:  ' . $code . PHP_EOL;
                     $code .= $this->GetVariable($thisMatched);
+                    // echo 'Code after GetVariable:  ' . $code . PHP_EOL;
                     if ($this->newVar) {
                         $this->newVar = false;
                     }
@@ -577,7 +583,7 @@ class JsTranslator
                     case '}': {
                             $blocksLevel--;
                             if ($blocksLevel < 0) {
-                                $this->position++;
+                                // $this->position++;
                                 // $this->debug('CLOSE BLOCK ' . $keyword . $blocksLevel . '<<<====' . $code . '====>>>');
                                 $this->lastKeyword = $keyword;
                                 break 2;
@@ -670,7 +676,10 @@ class JsTranslator
                             break;
                         }
                     case 'function':
+                        // echo 'Code before function:  ' . $code . PHP_EOL;
                         $code .= $identation . $this->ReadFunction('public');
+                        // echo 'Code after function:  ' . $code . PHP_EOL;
+                        $skipLastSaving = true;
                         break;
                     case 'private':
                     case 'protected':
@@ -920,22 +929,31 @@ class JsTranslator
         return $classHead;
     }
 
+    private int $anonymousCounter = 0;
+
     private function ReadFunction(string $modifier): string
     {
         $private = $modifier === 'private';
 
         $functionName = $this->MatchKeyword();
         $constructor = $functionName === '__construct';
-
-        $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
-            . $functionName . ' = function (';
-
+        $anonymous = $functionName === '(';
+        $functionCode = '';
+        if ($anonymous) { // anonymous function
+            $functionCode .= 'function (';
+            $functionName = 'anonymousFn' . (++$this->anonymousCounter);
+            $private = true;
+        } else {
+            $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
+                . $functionName . ' = function (';
+        }
         $this->currentMethod = $functionName;
 
         $this->scopeLevel++;
         $this->scope[$this->scopeLevel] = [];
         // read function arguments
-        $arguments = $this->ReadArguments();
+        $arguments = $this->ReadArguments($anonymous);
+        // echo 'F arguments:  "' . print_r($arguments, true) . '"' . PHP_EOL;
         $functionCode .= $arguments['arguments'] . ') ';
 
         // read function body
@@ -957,6 +975,7 @@ class JsTranslator
         }
         $this->newVar = true;
         $body .= $this->ReadCodeBlock();
+        // echo 'F body:  "' . $body . '"' . PHP_EOL;
         $this->newVar = true;
         $this->scope[$this->scopeLevel] = null;
         unset($this->scope[$this->scopeLevel]);
@@ -964,7 +983,9 @@ class JsTranslator
 
         $this->currentIdentation = $lastIdentation;
 
-        $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation .  '};' . PHP_EOL;
+        $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation .
+            ($anonymous ? '}' :   '};' . PHP_EOL);
+        // echo 'F lastKeyword:  "' . $this->lastKeyword . '"' . PHP_EOL;
         $this->lastKeyword = '}';
         // $this->debug('==========' . $functionCode . '==========');
         if ($constructor) {
@@ -974,10 +995,12 @@ class JsTranslator
         return $functionCode;
     }
 
-    private function ReadArguments(): array
+    private function ReadArguments(bool $anonymous): array
     {
         $arguments = '';
-        $this->SkipToTheSymbol('(');
+        if (!$anonymous) {
+            $this->SkipToTheSymbol('(');
+        }
         $object = [];
         $matchValue = false;
         $key = false;
@@ -1011,6 +1034,7 @@ class JsTranslator
                 }
             }
         }
+        // echo 'F arguments:  "' . print_r($object, true) . '"' . PHP_EOL;
         $this->currentIdentation = $lastIdentation;
         $valueIdentation = $lastIdentation . $this->identation;
         // $this->debug($object);
