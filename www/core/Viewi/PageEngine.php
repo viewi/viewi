@@ -6,6 +6,7 @@ use \ReflectionClass;
 use \ReflectionProperty;
 use \ReflectionNamedType;
 use \Exception;
+use \Viewi\Routing\Route;
 
 require 'DataExpression.php';
 require 'TagItemType.php';
@@ -116,7 +117,7 @@ class PageEngine
     function render(string $component)
     {
         if ($this->development) {
-            set_time_limit(2);
+            set_time_limit(5);
             $this->Compile();
         } else {
             if ($this->waitingComponents) {
@@ -405,12 +406,16 @@ class PageEngine
                     $publicJson[$className]['init'] = true;
             }
         }
+
+        $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
+
         // mate info
         $publicJson['_meta'] = ['tags' => $this->reservedTagsString];
+        $publicJson['_routes'] = Route::getRoutes();
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
-        $componentsInfoTemplate = __DIR__ . DIRECTORY_SEPARATOR . 'ComponentsInfoTemplate.php';
+        $componentsInfoTemplate = $thisRoot . 'ComponentsInfoTemplate.php';
         $templateContent = file_get_contents($componentsInfoTemplate);
         $parts = explode("//#content", $templateContent, 2);
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
@@ -418,12 +423,19 @@ class PageEngine
         // save public json
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
+
+        $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.js';
+        $appJsContent = file_get_contents($thisRoot . 'js/router.js')
+            . file_get_contents($thisRoot . 'js/app.js');
+
+
         $publicJsonContent = json_encode($publicJson, 0, 1024);
         $jsContentToInclude = '';
         foreach ($this->requestedIncludes as $path) {
             $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
         }
         $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
+        file_put_contents($publicAppJsFilePath, $appJsContent);
         file_put_contents($publicFilePath, $publicJsonContent);
         file_put_contents($publicJsFilePath, $publicBundleJs);
         //minify
@@ -431,7 +443,11 @@ class PageEngine
             $publicBundleJsMin = $this->minify($publicBundleJs);
             file_put_contents($publicJsFilePath . '.min.js', $publicBundleJsMin);
 
+            $appJsContentMin = $this->minify($appJsContent);
+            file_put_contents($publicAppJsFilePath . '.min.js', $appJsContentMin);
+
             //gzip
+            file_put_contents($publicAppJsFilePath . '.min.js.gz', gzencode($appJsContentMin, 5));
             file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
             file_put_contents($publicJsFilePath . '.min.js.gz', gzencode($publicBundleJsMin, 5));
         }

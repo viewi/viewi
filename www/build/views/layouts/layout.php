@@ -51,13 +51,18 @@ function RenderLayout(
         }
     </style>
 
-    <script src="/public/app/app.js"></script>
+    <script src="/public/build/app.js"></script>
     <script src="/public/build/bundle.js"></script>
 </head>
 
 <body>
     ====================================================
     <br/>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/post/2020">Post 2020</a></li>
+        <li><a href="/notfound">Not found</a></li>
+    </ul>
     <b>Layout ';
     $_content .= htmlentities($_component->observableSubject->countState->count);
     $_content .= '</b>

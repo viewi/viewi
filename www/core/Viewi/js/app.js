@@ -92,8 +92,16 @@ Object.defineProperty(Array.prototype, 'each', {
 function Edgeon() {
     var $this = this;
     var avaliableTags = {};
+    var router = new Router();
     this.componentsUrl = '/public/build/components.json';
     this.components = {};
+    var htmlElementA = document.createElement('a');
+
+    var getPathName = function(href){
+        htmlElementA.href = href;
+        return htmlElementA.pathname;
+    };
+
     this.start = function () {
         ajax.get(this.componentsUrl)
             .then(function (components) {
@@ -101,8 +109,42 @@ function Edgeon() {
                 components._meta.tags.split(',').each(function (x) {
                     avaliableTags[x] = true;
                 });
-                $this.render('PostPage');
+                components._routes.each(function (x) {
+                    router.register(x.method, x.url, x.component);
+                });
+                $this.go(location.href, true);
             });
+        // catch all locl A tags click
+        document.addEventListener('click', function (e) {
+            e = e || window.event;
+            var target = e.target || e.srcElement;
+
+            if (target.tagName === 'A' && target.href && target.href.indexOf(location.origin) === 0) {
+                e.preventDefault(); // Cancel the native event
+                // e.stopPropagation(); // Don't bubble/capture the event
+                $this.go(target.href, true);
+            }
+        }, false);
+
+        // handle back button
+        window.addEventListener('popstate', function (e) {
+            if (e.state)
+                $this.go(e.state.href, false);
+            else
+                $this.go(location.href, false);
+        });
+    };
+
+    this.go = function (href, isForward) {
+        var url = getPathName(href);
+        var routeItem = router.resolve(url);
+        if (routeItem == null) {
+            throw 'Can\'t resolve route for uri: ' + url;
+        }
+        if (isForward) {
+            window.history.pushState({ href: href }, '', href);
+        }
+        $this.render(routeItem.item.action);
     };
 
     var currentComponent = null;

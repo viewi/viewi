@@ -12,13 +12,18 @@ class Route
      * 
      * @var array<RouteItem>
      */
-    public static array $routes = [];
+    protected static array $routes = [];
 
     /**
      * 
      * @var RouteAdapterBase
      */
-    public static RouteAdapterBase $adapter;
+    protected static RouteAdapterBase $adapter;
+
+    public static function getRoutes(): array
+    {
+        return self::$routes;
+    }
 
     public static function setAdapter(RouteAdapterBase $adapter)
     {
