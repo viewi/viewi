@@ -236,7 +236,7 @@ function Edgeon() {
                 components._routes.each(function (x) {
                     router.register(x.method, x.url, x.component);
                 });
-                $this.go(location.href, true);
+                $this.go(location.href, false);
             });
         // catch all locl A tags click
         document.addEventListener('click', function (e) {
