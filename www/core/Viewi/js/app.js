@@ -828,10 +828,24 @@ function Edgeon() {
                 if (parent === document) {
                     elm = document.children[0];
                     node.domNode = elm;
+                    takenDomArray[0] = true;
+                    takenDomArray[1] = true;
                     break;
                 }
                 if (val === 'script') {
-                    return; // skip script for now, TODO: process scripts, styles
+                    break; // skip script for now, TODO: process scripts, styles
+                }
+                if (val === 'head') {
+                    var firstMatch = currentLevelDomArray.first(
+                        function (x) {
+                            return x.nodeName.toLowerCase() === val;
+                        },
+                        true
+                    );
+                    elm = firstMatch[0];
+                    takenDomArray[firstMatch[1]] = true;
+                    node.domNode = elm;
+                    break;
                 }
                 var existenElm = cleanRender ? currentLevelDomArray.first(
                     /**
@@ -1104,12 +1118,19 @@ function Edgeon() {
         var previousLevelDomArray = currentLevelDomArray;
         var previousTakenDomArray = takenDomArray;
         currentParent = parent;
-        if (parent !== previousParent) {
+        if (cleanRender && parent !== previousParent) {
             currentLevelDomArray = Array.prototype.slice.call(currentParent.childNodes);
             takenDomArray = {};
         }
         for (var i in nodes) {
             createDomNode(parent, nodes[i], insert, skipGroup);
+        }
+        if (cleanRender) {
+            currentLevelDomArray.each(function (x, k) {
+                if (!(k in takenDomArray) && x.parentNode && x.nodeName.toLowerCase() !== 'script') {
+                    x.parentNode.removeChild(x);
+                }
+            });
         }
         currentParent = previousParent;
         currentLevelDomArray = previousLevelDomArray;
