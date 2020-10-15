@@ -22,8 +22,8 @@ class App
         );
     }
 
-    public static function run(string $component)
+    public static function run(string $component, array $params)
     {
-        return self::$engine->render($component);
+        return self::$engine->render($component, $params);
     }
 }

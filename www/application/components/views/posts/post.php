@@ -9,9 +9,9 @@ class PostPage extends BaseComponent
     public ?PostModel $post = null;
     public string $title = 'Post';
 
-    function __init(HttpClient $http)
+    function __init(int $postId, HttpClient $http)
     {
-        $http->get('/api/posts/45')->then(
+        $http->get("/api/posts/$postId")->then(
             function (PostModel $post) {
                 $this->post = $post;
                 // print_r($this);

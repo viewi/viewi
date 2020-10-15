@@ -114,7 +114,7 @@ class PageEngine
      * @throws ReflectionException 
      * @throws Exception Component is missing
      */
-    function render(string $component)
+    function render(string $component, array $params = [])
     {
         if ($this->development) {
             set_time_limit(5);
@@ -132,7 +132,7 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
-        $content = $this->renderComponent($component, null, [], []);
+        $content = $this->renderComponent($component, $params, null, [], []);
         return $content;
     }
 
@@ -394,7 +394,7 @@ class PageEngine
                 if (isset($componentInfo->Dependencies)) {
                     $publicJson[$className]['dependencies'] = [];
                     foreach ($componentInfo->Dependencies as $argumentName => $argumentInfo) {
-                        $publicJson[$className]['dependencies'][] = $argumentInfo;
+                        $publicJson[$className]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
                     }
                 };
                 if ($componentInfo->IsComponent) {
@@ -658,7 +658,7 @@ class PageEngine
      * @var array<string,object>
      */
     private array $Dependencies = [];
-    function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false)
+    function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false, array $params = [])
     {
         // cache service instances or parent components for slots
         // do not cache component instances
@@ -693,15 +693,24 @@ class PageEngine
             }
         } else {
             $arguments = [];
-            foreach ($componentInfo->Dependencies as $type) {
-                if (isset($type['default'])) {
+            foreach ($componentInfo->Dependencies as $argName => $type) {
+                // resolve router param
+                if (isset($params[$argName])) {
+                    $arguments[] = in_array($type['name'], ['int', 'float'])
+                        ? (float)$params[$argName]
+                        : $params[$argName];
+                } else if (isset($type['default'])) {
                     $arguments[] = $type['default'];
                 } else if (isset($type['null'])) {
                     $arguments[] = null;
                 } else if (isset($type['builtIn'])) {
-                    switch ($type['name']) {
+                    switch ($type['name']) { // TODO: more types
                         case 'string': {
                                 $arguments[] = '';
+                                break;
+                            }
+                        case 'int': {
+                                $arguments[] = 0;
                                 break;
                             }
                         default: {
@@ -735,6 +744,7 @@ class PageEngine
 
     function renderComponent(
         ?string $componentName,
+        array $params,
         ?BaseComponent $parentComponent,
         array $slots,
         array $componentArguments,
@@ -743,7 +753,7 @@ class PageEngine
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
             $compInfo = &$this->components[$componentName];
-            $classInstance = $this->resolve($compInfo);
+            $classInstance = $this->resolve($compInfo, false, $params);
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
@@ -861,6 +871,7 @@ class PageEngine
                 $this->identation . "\$slotContents[0] = $slotsExpression;" .
                 PHP_EOL . $this->identation . "{$codeMiddle}\$pageEngine->renderComponent(" .
                 "$componentName, " .
+                "[], " .
                 "{$this->_CompileComponentName}, " .
                 "\$slotContents, " .
                 "$inputArgumentsCode" .
@@ -904,7 +915,7 @@ class PageEngine
         if (!$defaultContent) {
             $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, {$this->_CompileComponentName}, [], []); $codeEnd";
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, [], []); $codeEnd";
         }
     }
     function flushBuffer(string &$html, string &$codeToAppend)

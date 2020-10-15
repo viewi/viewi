@@ -96,8 +96,8 @@ var PostPage = function () {
     this.post = null;
     this.title = 'Post';
     
-    this.__init = function (http) {
-        http.get('/api/posts/45').then(function (post) {
+    this.__init = function (postId, http) {
+        http.get("/api/posts/" + postId).then(function (post) {
             $this.post = post;
             // print_r($this);
         },function (error) {

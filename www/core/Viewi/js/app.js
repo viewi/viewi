@@ -150,7 +150,7 @@ function Edgeon() {
         if (isForward) {
             window.history.pushState({ href: href }, '', href);
         }
-        $this.render(routeItem.item.action);
+        $this.render(routeItem.item.action, routeItem.params);
     };
 
     var currentComponent = null;
@@ -1334,7 +1334,7 @@ function Edgeon() {
 
     var injectionCache = {};
 
-    var resolve = function (name) {
+    var resolve = function (name, params) {
         // TODO: check scope and/or cache
         var info = $this.components[name];
         var dependencies = info.dependencies;
@@ -1357,7 +1357,10 @@ function Edgeon() {
         for (var i in dependencies) {
             var d = dependencies[i];
             var a = null; // d.null
-            if (d.default) {
+            if (params && (d.argName in params)) {
+                a = params[d.argName];
+            }
+            else if (d.default) {
                 a = d.default; // TODO: copy object or array
             } else if (d.builtIn) {
                 a = d.name === 'string' ? '' : 0;
@@ -1380,12 +1383,12 @@ function Edgeon() {
         return instance;
     }
 
-    var create = function (name, childNodes, attributes) {
+    var create = function (name, childNodes, attributes, params) {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
         var page = $this.components[name];
-        var instance = resolve(name);
+        var instance = resolve(name, params);
         // pass props
         if (attributes) {
             for (var ai in attributes) {
@@ -1427,14 +1430,14 @@ function Edgeon() {
         return build(page.nodes, instance, childNodes);
     };
 
-    this.render = function (name) {
+    this.render = function (name, params) {
         if (!name) {
             throw new Error('Component name is required.');
         }
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
-        var nodes = create(name);
+        var nodes = create(name, null, null, params);
         // document.childNodes[1].remove();
         console.log(nodes);
         cleanRender = true;

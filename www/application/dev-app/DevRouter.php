@@ -31,7 +31,7 @@ class DevRouter
             $response = $action(...array_values($match['params']));
         } else {
             $instance = new $action();
-            $response = $instance();
+            $response = $instance($match['params']);
         }
         return $response;
     }
