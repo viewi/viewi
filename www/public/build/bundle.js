@@ -322,9 +322,14 @@ var Layout = function () {
     this.title = 'This is layout default title';
     this.observableSubject = null;
     this.dynamicName = 'UserItem';
+    this.layoutCount = 0;
     
     this.__init = function (observableSubject) {
         $this.observableSubject = observableSubject;
+    };
+
+    this.change = function () {
+        $this.layoutCount++;
     };
 };
 

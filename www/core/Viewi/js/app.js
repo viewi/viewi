@@ -42,10 +42,16 @@ var ajax = {
 };
 Object.defineProperty(Array.prototype, 'first', {
     enumerable: false,
-    value: function (x) {
+    value: function (x, g) {
         for (var k in this) {
             if (x) {
-                if (x(this[k])) {
+                if (x(this[k], k)) {
+                    if (g) {
+                        return [
+                            this[k],
+                            k
+                        ];
+                    }
                     return this[k];
                 }
             } else {
@@ -60,7 +66,7 @@ Object.defineProperty(Array.prototype, 'where', {
     value: function (x) {
         var result = [];
         for (var k in this) {
-            if (x(this[k])) {
+            if (x(this[k], k)) {
                 result.push(this[k]);
             }
         }
@@ -72,7 +78,7 @@ Object.defineProperty(Array.prototype, 'select', {
     value: function (x) {
         var result = [];
         for (var k in this) {
-            result.push(x(this[k]));
+            result.push(x(this[k], k));
         }
         return result;
     }
@@ -97,7 +103,7 @@ function Edgeon() {
     this.components = {};
     var htmlElementA = document.createElement('a');
 
-    var getPathName = function(href){
+    var getPathName = function (href) {
         htmlElementA.href = href;
         return htmlElementA.pathname;
     };
@@ -820,12 +826,26 @@ function Edgeon() {
             }
             case 'tag': {
                 if (parent === document) {
-                    elm = document.childNodes[1]; // TODO: check for html node
+                    elm = document.children[0];
                     node.domNode = elm;
                     break;
                 }
                 if (val === 'script') {
                     return; // skip script for now, TODO: process scripts, styles
+                }
+                var existenElm = cleanRender ? currentLevelDomArray.first(
+                    /**
+                     * 
+                     * @param {Node} x 
+                     * @param {int} index 
+                     */
+                    function (x, index) {
+                        return x.nodeName.toLowerCase() === val && !(index in takenDomArray);
+                    },
+                    true
+                ) : null;
+                if (existenElm) {
+                    existenElm[0].parentNode.removeChild(existenElm[0]);
                 }
                 elm = document.createElement(val);
                 if (node.domNode !== null) {
@@ -849,6 +869,7 @@ function Edgeon() {
                     } else {
                         parent.appendChild(elm);
                     }
+
                 }
                 node.domNode = elm;
                 if (node.attributes) {
@@ -1073,10 +1094,26 @@ function Edgeon() {
         elm && createDOM(elm, node.children, nextInsert, skipGroup);
     }
 
+    var currentParent = null;
+    var currentLevelDomArray = [];
+    var takenDomArray = {};
+    var cleanRender = false;
+
     var createDOM = function (parent, nodes, insert, skipGroup) {
+        var previousParent = currentParent;
+        var previousLevelDomArray = currentLevelDomArray;
+        var previousTakenDomArray = takenDomArray;
+        currentParent = parent;
+        if (parent !== previousParent) {
+            currentLevelDomArray = Array.prototype.slice.call(currentParent.childNodes);
+            takenDomArray = {};
+        }
         for (var i in nodes) {
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
+        currentParent = previousParent;
+        currentLevelDomArray = previousLevelDomArray;
+        takenDomArray = previousTakenDomArray;
     }
 
     var getFirstParentWithDom = function (node) {
@@ -1379,7 +1416,9 @@ function Edgeon() {
         var nodes = create(name);
         // document.childNodes[1].remove();
         console.log(nodes);
+        cleanRender = true;
         createDOM(document, nodes, false);
+        cleanRender = false;
     };
 
     this.htmlentities = function (html) {
