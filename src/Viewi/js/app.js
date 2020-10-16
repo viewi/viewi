@@ -92,10 +92,8 @@ Object.defineProperty(Array.prototype, 'each', {
         return this;
     }
 });
-//edgeon
-//quicks
-//
-function Edgeon() {
+
+function Viewi() {
     var $this = this;
     var avaliableTags = {};
     var router = new Router();
@@ -1451,6 +1449,6 @@ function Edgeon() {
         }) : html;
     }
 }
-var app = new Edgeon();
+var app = new Viewi();
 var notify = app.notify;
 app.start();
