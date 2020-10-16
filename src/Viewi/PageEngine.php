@@ -412,7 +412,9 @@ class PageEngine
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
 
         $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.js';
-        $appJsContent = file_get_contents($thisRoot . 'js/router.js')
+        $copyright = file_get_contents($thisRoot . 'js/copyright.js');
+        $appJsContent = $copyright
+            . file_get_contents($thisRoot . 'js/router.js')
             . file_get_contents($thisRoot . 'js/app.js');
 
 
@@ -421,7 +423,7 @@ class PageEngine
         foreach ($this->requestedIncludes as $path) {
             $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
         }
-        $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
+        $publicBundleJs = $copyright . $jsContentToInclude . implode('', array_values($this->compiledJs));
         file_put_contents($publicAppJsFilePath, $appJsContent);
         file_put_contents($publicFilePath, $publicJsonContent);
         file_put_contents($publicJsFilePath, $publicBundleJs);
