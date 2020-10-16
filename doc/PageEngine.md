@@ -42,7 +42,7 @@ template: *app/home.html*
 
 ### How to use
 ```php
-// true if you in developing mode
+// true if you are in developing mode
 $develop = true;
 
 // true if you want to render into variable, otherwise - echo output
@@ -123,7 +123,7 @@ template: *app/home.html*
 ```
 
 ##### Dynamic components
-You can use component defined in variable, just make sure it exists.
+You can use a component defined in variable, just make sure it exists.
 
 ```php
 //...
@@ -159,7 +159,7 @@ template: *app/home.html*
 ```
 
 ##### Named slots
-You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without name attribute bacames slot by default and any content outside `<slotContent..` tag becames content for default slot `<slot>` (without name attribute).
+You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without name attribute bacomes slot by default and any content outside `<slotContent..` tag becomes content for default slot `<slot>` (without name attribute).
 template: *app/HomeLink.html*
 ```html
 <slot name="top"></slot>
@@ -275,7 +275,7 @@ you can use `class.show="$selected"` like here
 ```html
 <div class="panel" class.show="$selected"></div>
 ```
-You can have as many attributes as you want, all of it will be merged during render.
+You can have as many attributes as you want, all of them will be merged during render.
 
 
 ##### Passing inputs into component
@@ -308,7 +308,7 @@ template: *app/home.html*
 ```
 
 ##### Template
-You can use tag `<template>` to group elements into one logical entity on one side, and on the other side only `<template>` content will be rendered. Usefull when use in combination with `if` or/and `foreach`.
+You can use tag `<template>` to group elements into one logical entity on one side, and on the other side only `<template>` content will be rendered. Useful when used in combination with `if` or/and `foreach`.
 template: *app/Links.html*
 ```html
 <template>
@@ -345,7 +345,7 @@ class HomeLink extends BaseComponent
     ) {
 //...
 ```
-You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
+You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. It is required from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
 
 ### Tests
 Got to `tests` folder
