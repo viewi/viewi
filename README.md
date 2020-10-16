@@ -8,7 +8,7 @@ Not production ready yet, as it's in development and still needs a lot of work
 
 ##### *Requirements: php 7.4+*
 
-Will expand versions support in the future
+ Support versions will be expanded  in the future
 
 ### Features
 - Server side rendering
@@ -17,13 +17,13 @@ Will expand versions support in the future
 - Reactive application
 - Easy to use
 - Simple templates syntax, mix of HTML and PHP
-- The same code for backend and frontend, without need to duplicate logic in javascript.
-- Web, mobile, desktop support (in plans)
+- The same code for backend and frontend, without need to duplicate the logic in javascript.
+- Web, mobile, desktop support (planned)
 - Does not require Node js
 
 #### How does it work
 
-Under the hood Viewi translates your entiry view components into the javascript, and use it for front end reactive application.
+Under the hood Viewi translates your entiry view components into the javascript, and uses it for front end reactive application.
 
 #### Short documentation
 
