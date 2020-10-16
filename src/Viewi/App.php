@@ -2,8 +2,6 @@
 
 namespace Viewi;
 
-include 'PageEngine.php';
-
 class App
 {
     private static PageEngine $engine;

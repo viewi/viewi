@@ -2,9 +2,6 @@
 
 namespace Viewi\Routing;
 
-include 'RouteItem.php';
-include 'RouteAdapterBase.php';
-
 class Route
 {
 

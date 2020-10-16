@@ -8,19 +8,6 @@ use \ReflectionNamedType;
 use \Exception;
 use \Viewi\Routing\Route;
 
-require 'DataExpression.php';
-require 'TagItemType.php';
-require 'BaseComponent.php';
-require 'BaseService.php';
-require 'ComponentInfo.php';
-require 'ComponentRenderer.php';
-require 'PageTemplate.php';
-require 'TagItem.php';
-require 'JsTranslator.php';
-require 'Routing/Route.php';
-require 'Common/HttpClient.php';
-require 'Common/PromiseResolver.php';
-
 class PageEngine
 {
     private string $sourcePath;
