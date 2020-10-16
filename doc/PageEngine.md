@@ -1,6 +1,6 @@
-## Page Engine
+# Viewi Page Engine
 
-### Powerful view engine for your application
+This is shortened version of how to use and avaliable features. More detailed documentation is in progress.
 
 ##### *Requirements: php 7.4+*
 
@@ -50,9 +50,10 @@ $renderReturn = true;
 
 $page = new Viewi\PageEngine(
     'path/to/your/components',
-    'build/path',
-    $develop,
-    $renderReturn
+    'server/build/path', // for compiled php files
+    'public/build/path', // for compiled js files
+    $develop, // if true will rebuild app on request
+    $renderReturn // if true will return string, otherwise echo output
 );
 
 // render selected component, for example HomeComponent
@@ -60,20 +61,21 @@ $html = $page->render(HomeComponent::class);
 
 ```
 
-### Supported features
+# Supported features
 
-##### Render variable
+## Render variable
 `<div>$myVar</div>` or `<div>{$myVar}</div>`. In case of class or array use `{}` `<div>{$user->Name}</div>`. All values are automatically escaped.
 
-##### Render method\`s call result
+## Render method\`s call result
 `<div>{method()}</div>`. All values are automatically escaped.
 
-##### Render raw html
+## Render raw html
 `<div>{{$raw}}</div>`
 
-##### Render component
-Put component class name (without namespace) as a tag in your template.
+## Render component
+Put component class name `<ComponentName></ComponentName>` (without namespace) as a tag in your template.
 For example:
+
 component: *app/HomeLink.php*
 ```php
 <?php
@@ -107,7 +109,7 @@ template: *app/home.html*
 <a href="/">Home</a>
 ```
 
-##### Dynamic attributes
+## Dynamic attributes
 You can use dynamic attributes. Please note: if you have the same attribute already they will not be merged into one.
 ```php
 //...
@@ -122,7 +124,7 @@ template: *app/home.html*
 <div $attribute="some-value"></div>
 ```
 
-##### Dynamic components
+## Dynamic components
 You can use component defined in variable, just make sure it exists.
 
 ```php
@@ -139,7 +141,7 @@ template: *app/home.html*
 <$currentPage></$currentPage>
 ```
 
-##### Slots
+## Slots
 You can pass content into component which will be rendered instead of `<slot>` tag. Also you can specify default content (optional).
 template: *app/HomeLink.html*
 ```html
@@ -158,7 +160,7 @@ template: *app/home.html*
 <a href="/">Home</a>
 ```
 
-##### Named slots
+## Named slots
 You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without name attribute bacames slot by default and any content outside `<slotContent..` tag becames content for default slot `<slot>` (without name attribute).
 template: *app/HomeLink.html*
 ```html
@@ -186,7 +188,7 @@ template: *app/home.html*
     <a href="/">slot by default</a>
 ```
 
-##### If statement
+## If statement
 `<tag if="$condition"...`
 ```php
 //...
@@ -206,7 +208,7 @@ template: *app/home.html*
 <div>Will be rendered if active is true</div>
 ```
 
-##### Foreach
+## Foreach
 ```php
 <tag foreach="$array as $item"..
 //or
@@ -232,7 +234,7 @@ template: *app/home.html*
 <div>Banana</div>
 ```
 
-##### If and foreach combinations
+## If and foreach combinations
 You can have `if` and `foreach` together, but order matters: 
 This will check `if` condition first, and if it's true will execute `foreach`
 ```php
@@ -243,7 +245,7 @@ And this will run `foreach` first and then check `if` condition for each item
 <div foreach="$array as $item" if="$item->active"...`
 ```
 
-##### Boolean attributes
+## Boolean attributes
 If html attribute is boolean you can pass condition into attribute value, and it will render attribute based on  that condition. List of boolean attributes: `async` `autofocus` `autoplay` `checked` `controls` `default` `defer` `disabled` `formnovalidate` `hidden` `ismap` `itemscope` `loop` `multiple` `muted` `nomodule` `novalidate` `open` `readonly` `required` `reversed` `selected`
 component: *app/HomeLink.php*
 ```php
@@ -265,7 +267,7 @@ template: *app/HomeLink.html*
 <input type="checkbox" value="1" />
 ```
 
-##### Conditional attributes
+## Conditional attributes
 Conditional attributes help you to simplify using attributes based on conditions.
 For example, instead of using `$condition ? 'one' : 'two'` like here
 ```html
@@ -278,7 +280,7 @@ you can use `class.show="$selected"` like here
 You can have as many attributes as you want, all of it will be merged during render.
 
 
-##### Passing inputs into component
+## Passing inputs into component
 You can pass any data into component, data will be assigned to component's public properties.
 component: *app/HomeLink.php*
 ```php
@@ -307,7 +309,7 @@ template: *app/home.html*
 <a href="/blog">My awesome application</a>
 ```
 
-##### Template
+## Template
 You can use tag `<template>` to group elements into one logical entity on one side, and on the other side only `<template>` content will be rendered. Usefull when use in combination with `if` or/and `foreach`.
 template: *app/Links.html*
 ```html
@@ -328,7 +330,32 @@ template: *app/home.html*
     <a href="/blog">Blog</a>
 ```
 
-##### DI
+## Event Handling
+
+You can use `(evenyName)` directive in order to listen to DOM events and run some code when they are accured. The usage is simple:
+1. Write `(event)="Method()"` in your html template, for example:
+    template: *app/home.html*
+    ```html
+    <h2>Counter value: $count</h2>
+    <button (click)="Increment()">Increment</button>
+    ```
+2. Define method `Increment` in your component and make sure it's public, for example:
+    ```php
+    //...
+    class HomeComponent extends BaseComponent
+    {
+        public int $count = 0;
+
+        function Increment($event)
+        {
+            $this->count++;
+        }
+    //...
+    ```
+3. And now component will update html accordingly each time you click on the button
+
+
+## DI
 Dependency injection. To make DI work in your component you must to declare `__init` method, and all required arguments will be resolved automatically during the render. If it's a service you can use `__construct` as well. `__init` has higher priority than `__construct`.
 ```php
 //...
@@ -347,6 +374,36 @@ class HomeLink extends BaseComponent
 ```
 You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. Requires from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
 
-### Tests
-Got to `tests` folder
-Run `php test.php backend`
+# Advanced
+
+## Data fetching
+
+You have `HttpClient` in your command which allows you to fetch data from certain url. If component is rendering on server side it will invoke Router and Controller internally in order to retrieve data (Adapters for Laravel and Symfony are in progress) and if it's a front end it will make ajax request to the same url. As a result you will get the same data no matter which side it is.
+
+```php
+use DevApp\PostModel;
+use Viewi\BaseComponent;
+use Viewi\Common\HttpClient;
+
+class PostPage extends BaseComponent
+{
+    public ?PostModel $post = null;
+
+    function __init(int $postId, HttpClient $http)
+    {
+        $http->get("/api/posts/$postId")->then(
+            function (PostModel $post) {
+                $this->post = $post;
+            },
+            function ($error) {
+                // display error
+            }
+        );
+    }
+}
+```
+
+## Routing params
+
+Imagine you have route like this `'/post/{postId}'` that registered to PostPage component. And you need to get `{postId}`. Well, likely for you, Viewi engine will inject this as a input argument into your component (see code snippet above).
+

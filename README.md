@@ -6,7 +6,7 @@ Imagine Vue js or Angular but in PHP world with the similar user-friendly html t
 
 Not production ready yet, as it's in development and still needs a lot of work
 
-##### *Requirements: php 7.4+*
+#### *Requirements: php 7.4+*
 
 Will expand versions support in the future
 
@@ -21,13 +21,19 @@ Will expand versions support in the future
 - Web, mobile, desktop support (in plans)
 - Does not require Node js
 
-#### How does it work
+## How does it work ?
 
 Under the hood Viewi translates your entiry view components into the javascript, and use it for front end reactive application.
 
-#### Short documentation
+## Short documentation
 
 ##### [PageEngine](/doc/PageEngine.md)
+
+## Tests
+
+Got to `tests` folder
+Run `php test.php backend`
+
 
 License
 --------
