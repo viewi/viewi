@@ -5,7 +5,8 @@ namespace Viewi;
 class JsArrayPop extends BaseFunctionConverter
 {
     public static string $name = 'array_pop';
-    public static function Convert(
+
+    public static function convert(
         JsTranslator $translator,
         string $code,
         string $identation
@@ -15,10 +16,10 @@ class JsArrayPop extends BaseFunctionConverter
         $breakOn = new BreakCondition();
         $breakOn->Keyword = ')';
         $breakOn->ParenthesisNormal = 0;
-        $code .= $translator->ReadCodeBlock($breakOn);
-        $translator->SkipToTheSymbol(')');
+        $code .= $translator->readCodeBlock($breakOn);
+        $translator->skipToTheSymbol(')');
         $code .= '.pop()';
-        $translator->ActivateReactivity([$translator->latestVariablePath, "'pop'"]);
+        $translator->activateReactivity([$translator->latestVariablePath, "'pop'"]);
 
         return $code;
     }

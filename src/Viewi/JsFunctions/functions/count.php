@@ -5,7 +5,8 @@ namespace Viewi;
 class JsCount extends BaseFunctionConverter
 {
     public static string $name = 'count';
-    public static function Convert(
+
+    public static function convert(
         JsTranslator $translator,
         string $code,
         string $identation
@@ -15,8 +16,8 @@ class JsCount extends BaseFunctionConverter
         $breakOn = new BreakCondition();
         $breakOn->Keyword = ')';
         $breakOn->ParenthesisNormal = 0;
-        $code .= $translator->ReadCodeBlock($breakOn);
-        $translator->SkipToTheSymbol(')');
+        $code .= $translator->readCodeBlock($breakOn);
+        $translator->skipToTheSymbol(')');
         $code .= '.length';
         return $code;
     }

@@ -49,11 +49,11 @@ $develop = true;
 $renderReturn = true;
 
 $page = new Viewi\PageEngine(
-    'path/to/your/components',
-    'server/build/path', // for compiled php files
-    'public/build/path', // for compiled js files
-    $develop, // if true will rebuild app on request
-    $renderReturn // if true will return string, otherwise echo output
+    'path/to/your/components', // Location of components source code
+    'server/build/path', // Target directory of compiled php components
+    'public/build/path', // Target directory of compiled public assets (javascripts, etc.)
+    $develop, // true if you are in developing mode. All components will be compiled as soon as request occures
+    $renderReturn // true if you want to render into variable, otherwise - echo output
 );
 
 // render selected component, for example HomeComponent

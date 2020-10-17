@@ -3,7 +3,6 @@
 use Viewi\BaseComponent;
 
 include_once 'BaseRender.php';
-include_once '../www/core/Viewi/PageEngine.php';
 
 class ReturnRenderingTest extends BaseRenderingTest
 {
@@ -24,7 +23,7 @@ class ReturnRenderingTest extends BaseRenderingTest
             true,
             true
         );
-        $page->Compile();
+        $page->compile();
         $compileTime = floor((microtime(true) - $startedAt) * 1000);
 
         $startedAt = microtime(true);

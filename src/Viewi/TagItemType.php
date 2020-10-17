@@ -4,11 +4,6 @@ namespace Viewi;
 
 class TagItemType
 {
-    public string $Name;
-    public function __construct(string $type)
-    {
-        $this->Name = $type;
-    }
     const Tag = 'Tag';
     const TextContent = 'TextContent';
     const Component = 'Component';
@@ -24,6 +19,14 @@ class TagItemType
         self::TextContent => 'text',
         self::Comment => 'comment'
     ];
+
+    public string $Name;
+
+    public function __construct(string $type)
+    {
+        $this->Name = $type;
+    }
+
     public function toShort(): string
     {
         return self::$shorts[$this->Name];

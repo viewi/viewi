@@ -10,6 +10,33 @@ use \Viewi\Routing\Route;
 
 class PageEngine
 {
+
+    /**
+     * Location of components source code
+     */
+    const SOURCE_DIR = 'SOURCE_DIR';
+
+    /**
+     * Target directory of compiled php components
+     */
+    const SERVER_BUILD_DIR = 'SERVER_BUILD_DIR';
+
+    /**
+     * Target directory of compiled public assets (javascripts, etc.)
+     */
+    const PUBLIC_BUILD_DIR = 'PUBLIC_BUILD_DIR';
+
+    /**
+     * true if you are in developing mode.
+     * All components will be compiled as soon as request occures. 
+     */
+    const DEV_MODE = 'DEV_MODE';
+
+    /**
+     * true if you want to render into variable, otherwise - echo output
+     */
+    const RETURN_OUTPUT = 'RETURN_OUTPUT';
+
     private string $sourcePath;
     private string $buildPath;
     private string $publicBuildPath;
@@ -74,6 +101,14 @@ class PageEngine
     private bool $renderReturn;
     private string $_CompileComponentName = '$_component';
     private string $_CompileExpressionPrefix;
+    private bool $_enableMinificationAndGzipping = false;
+    /**
+     * 
+     * @var array<string,object>
+     */
+    private array $Dependencies = [];
+    private int $forIterationKey = 0;
+
     public function __construct(
         string $sourcePath,
         string $buildPath,
@@ -105,7 +140,7 @@ class PageEngine
     {
         if ($this->development) {
             set_time_limit(5);
-            $this->Compile();
+            $this->compile();
         } else {
             if ($this->waitingComponents) {
                 $this->waitingComponents = false;
@@ -204,8 +239,9 @@ class PageEngine
     function updateComponentPath(ComponentInfo $componentInfo, string $fullPath): void
     {
         $componentInfo->Fullpath = $this->getRelativeSourcePath($fullPath);
-        $componentInfo->relative = $componentInfo->Fullpath !== $fullPath;
+        $componentInfo->Relative = $componentInfo->Fullpath !== $fullPath;
     }
+
     /**
      * 
      * @param ReflectionClass $reflectionClass 
@@ -219,10 +255,10 @@ class PageEngine
             $componentInfo->Name = $name;
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->IsComponent = false;
-            $componentInfo->hasInit = $reflectionClass->hasMethod('__init');
+            $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
             $this->updateComponentPath($componentInfo, $reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
-            $dependencies = $this->getDependencies($reflectionClass, $componentInfo->hasInit);
+            $dependencies = $this->getDependencies($reflectionClass, $componentInfo->HasInit);
             if (!empty($dependencies)) {
                 $componentInfo->Dependencies = $dependencies;
             }
@@ -273,7 +309,7 @@ class PageEngine
                             if (!is_null($argumentClass)) {
                                 $this->buildDependencies($argumentClass);
                                 $className = $argumentClass->getShortName();
-                                $this->CompileToJs($argumentClass);
+                                $this->compileToJs($argumentClass);
                             }
                         }
                     } else {
@@ -286,7 +322,7 @@ class PageEngine
         return $dependencies;
     }
 
-    function CompileToJs(ReflectionClass $reflectionClass): void
+    function compileToJs(ReflectionClass $reflectionClass): void
     {
         $className = $reflectionClass->getShortName();
         if (!isset($this->compiledJs[$className])) {
@@ -300,8 +336,8 @@ class PageEngine
             } else {
                 $raw = file_get_contents($phpSourceFileName);
                 $translator = new JsTranslator($raw);
-                $jscode = $translator->Convert();
-                $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->GetRequestedIncludes());
+                $jscode = $translator->convert();
+                $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->getRequestedIncludes());
             }
             // $this->debug($className);
             // $this->debug($translator->GetVariablePaths());
@@ -310,7 +346,7 @@ class PageEngine
     }
 
     /** */
-    function Compile(): void
+    function compile(): void
     {
         if ($this->compiled) {
             return;
@@ -353,11 +389,11 @@ class PageEngine
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->ComponentName = $className;
             $componentInfo->Tag = $className;
-            $componentInfo->hasInit = $reflectionClass->hasMethod('__init');
+            $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
             }
-            $this->CompileToJs($reflectionClass);
+            $this->compileToJs($reflectionClass);
         }
         $types = $this->getClasses(null, $this->sourcePath);
         foreach ($types as $filename => &$reflectionClass) {
@@ -389,7 +425,7 @@ class PageEngine
                 } else {
                     $publicJson[$className]['service'] = true;
                 }
-                if ($componentInfo->hasInit)
+                if ($componentInfo->HasInit)
                     $publicJson[$className]['init'] = true;
             }
         }
@@ -442,7 +478,7 @@ class PageEngine
         }
         //$this->debug($this->components);
     }
-    private bool $_enableMinificationAndGzipping = false;
+
     function minify($js): string
     {
         $minified = $js;
@@ -542,6 +578,7 @@ class PageEngine
         //$this->debug(htmlentities($html));
         //$this->debug(json_encode($pageTemplate, JSON_PRETTY_PRINT));
     }
+
     private function buildInternal(PageTemplate &$pageTemplate, string &$html): void
     {
         $previousPageTemplate = $this->latestPageTemplate;
@@ -561,10 +598,9 @@ class PageEngine
         $this->latestPageTemplate = $previousPageTemplate;
     }
 
-
     function convertExpressionToCode(string $expression, array $reserved = []): string
     {
-        $keywordsList = $this->expressionsTranslator->GetKeywords($expression);
+        $keywordsList = $this->expressionsTranslator->getKeywords($expression);
         $keywords = $keywordsList[0];
         $spaces = $keywordsList[1];
         $newExpression = '';
@@ -612,21 +648,21 @@ class PageEngine
             $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
             $code .= $phpCode;
             $code .= $this->renderReturn ? '' : '?>';
-            $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
+            $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
             $tagItem->RawHtml = true;
         } else {
             $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
             $phpCode = $this->convertExpressionToCode($expression, $reserved);
             $code .= $phpCode;
             $code .= ')' . ($this->renderReturn ? '' : '?>');
-            $tagItem->JsExpression = $this->expressionsTranslator->Convert($phpCode, true);
+            $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
         $tagItem->PhpExpression = $phpCode;
-        $detectedReferences = $this->expressionsTranslator->GetVariablePaths();
+        $detectedReferences = $this->expressionsTranslator->getVariablePaths();
         $this->requestedIncludes = array_merge(
             $this->requestedIncludes,
-            $this->expressionsTranslator->GetRequestedIncludes()
+            $this->expressionsTranslator->getRequestedIncludes()
         );
         if (isset($detectedReferences['global'])) {
             $subscriptions = array_map(
@@ -642,17 +678,13 @@ class PageEngine
         // $this->debug($tagItem->Subscriptions);
         return $code;
     }
-    /**
-     * 
-     * @var array<string,object>
-     */
-    private array $Dependencies = [];
+
     function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false, array $params = [])
     {
         // cache service instances or parent components for slots
         // do not cache component instances
         $cache = true;
-        $relative = $componentInfo->relative;
+        $relative = $componentInfo->Relative;
         if ($relative) {
             include_once $this->sourcePath . $componentInfo->Fullpath;
         } else {
@@ -677,7 +709,7 @@ class PageEngine
         $instance = false;
         if (empty($componentInfo->Dependencies)) {
             $instance = new $class();
-            if ($componentInfo->hasInit) {
+            if ($componentInfo->HasInit) {
                 $instance->__init();
             }
         } else {
@@ -711,7 +743,7 @@ class PageEngine
                     $arguments[] = $this->resolve($this->components[$type['name']]);
                 }
             }
-            if ($componentInfo->hasInit) {
+            if ($componentInfo->HasInit) {
                 $instance = new $class();
                 $instance->__init(...$arguments);
             } else {
@@ -809,7 +841,7 @@ class PageEngine
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $this->getRelativeSourcePath($htmlPath);
             $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
-            $slotPageTemplate->ComponentInfo->relative = $this->latestPageTemplate->ComponentInfo->relative;
+            $slotPageTemplate->ComponentInfo->Relative = $this->latestPageTemplate->ComponentInfo->Relative;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
             $this->components[$componentBaseName] = $slotPageTemplate->ComponentInfo;
@@ -869,6 +901,7 @@ class PageEngine
                 $codeEnd;
         }
     }
+
     function compileSlotExpression(TagItem $tagItem, string &$html): void
     {
         $slotName = false;
@@ -907,6 +940,7 @@ class PageEngine
             $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, [], []); $codeEnd";
         }
     }
+
     function flushBuffer(string &$html, string &$codeToAppend)
     {
         if ($codeToAppend) {
@@ -919,6 +953,7 @@ class PageEngine
             $codeToAppend = '';
         }
     }
+
     function startForeach(string $foreach, string &$html, string &$codeToAppend, array &$foreachArguments)
     {
         $this->flushBuffer($html, $codeToAppend);
@@ -937,6 +972,7 @@ class PageEngine
             "foreach($foreachSource as {$foreachParts[1]}){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
+
     function endForeach($foreach, $foreachArguments, &$html, string &$codeToAppend)
     {
         if ($foreach) {
@@ -953,6 +989,7 @@ class PageEngine
             $this->extraLine = true;
         }
     }
+
     function startIf(string $ifExpression, string &$html, string &$codeToAppend)
     {
         $this->flushBuffer($html, $codeToAppend);
@@ -961,6 +998,7 @@ class PageEngine
             "if($ifCode){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
+
     function closeIf(string $ifExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($ifExpression) {
@@ -971,6 +1009,7 @@ class PageEngine
             $this->extraLine = true;
         }
     }
+
     function startElseIf(string $elseIfExpression, string &$html, string &$codeToAppend)
     {
         $this->flushBuffer($html, $codeToAppend);
@@ -978,6 +1017,7 @@ class PageEngine
         $html .= " else if ($ifCode){" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
+
     function closeElseIf(string $elseIfExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($elseIfExpression) {
@@ -988,12 +1028,14 @@ class PageEngine
             $this->extraLine = true;
         }
     }
+
     function startElse(string &$html, string &$codeToAppend)
     {
         $this->flushBuffer($html, $codeToAppend);
         $html .= " else {" .
             PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
     }
+
     function closeElse(string $elseExpression, string &$html, string &$codeToAppend)
     {
         if ($elseExpression) {
@@ -1004,6 +1046,7 @@ class PageEngine
             $this->extraLine = true;
         }
     }
+
     function getCloseIfTag(TagItem &$tagItem): bool
     {
         $closeIfTag = true;
@@ -1042,6 +1085,7 @@ class PageEngine
         // $tagItem->parent()->setChildren($parentChilds);
         return $closeIfTag;
     }
+
     function getChildValues(TagItem &$tagItem): string
     {
         $combinedValue = '';
@@ -1052,9 +1096,7 @@ class PageEngine
         return $combinedValue;
     }
 
-    private int $forIterationKey = 0;
-
-    function GetNextIterationKey(): string
+    function getNextIterationKey(): string
     {
         ++$this->forIterationKey;
         return "_key{$this->forIterationKey}";
@@ -1101,7 +1143,7 @@ class PageEngine
                         $newChild->DataExpression->ForKey = $foreachAsParts[0];
                         $newChild->DataExpression->ForItem = $foreachAsParts[1];
                     } else {
-                        $newChild->DataExpression->ForKey = $this->GetNextIterationKey();
+                        $newChild->DataExpression->ForKey = $this->getNextIterationKey();
                     }
                 }
             }
@@ -1307,7 +1349,7 @@ class PageEngine
                                     $dynamicEventTag->ItsExpression = true;
                                     $dynamicEventTag->Content = $newValueContent;
                                     $this->compileExpression($dynamicEventTag, ['$event' => true]);
-                                    $childTag->dynamicChild = $dynamicEventTag;
+                                    $childTag->DynamicChild = $dynamicEventTag;
                                 } else {
                                     // replace children with one expression
                                     $newChild = $attrValues[0];

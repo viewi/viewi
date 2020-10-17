@@ -2,7 +2,7 @@
 
 use Viewi\BaseComponent;
 
-include_once '../www/core/Viewi/PageEngine.php';
+include_once '../src/Viewi/autoload.php';
 
 class BaseRenderingTest extends BaseTest
 {

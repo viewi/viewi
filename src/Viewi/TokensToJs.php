@@ -1,7 +1,7 @@
 <?php
 class TokensToJS
 {
-    function CompileToJs(ReflectionClass $reflectionClass): void
+    function compileToJs(ReflectionClass $reflectionClass): void
     {
         $className = $reflectionClass->getShortName();
         $tokens = token_get_all(file_get_contents($reflectionClass->getFileName()), TOKEN_PARSE);

@@ -5,13 +5,14 @@ namespace Viewi;
 class JsInArray extends BaseFunctionConverter
 {
     public static string $name = 'in_array';
-    public static function Convert(
+
+    public static function convert(
         JsTranslator $translator,
         string $code,
         string $identation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'in_array.js';
-        $translator->IncludeJsFile(self::$name, $jsToInclue);
+        $translator->includeJsFile(self::$name, $jsToInclue);
         return $code . '(';
     }
 }

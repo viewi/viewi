@@ -130,7 +130,8 @@ class JsTranslator
     public string $latestVariablePath;
     private $pasteArrayReactivity;
     private array $requestedIncludes = [];
-
+    private int $anonymousCounter = 0;
+    
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -145,7 +146,7 @@ class JsTranslator
             // $this->debug(self::$functionConverters);
         }
         $this->phpCode = $content;
-        $this->Reset();
+        $this->reset();
         $this->processors = [];
         foreach ($this->allowedOperators as $key => $operators) {
             $this->processors = array_merge($this->processors, array_flip($operators));
@@ -159,7 +160,7 @@ class JsTranslator
         // $this->debug(var_export($spaces));
     }
 
-    private function Reset()
+    private function reset()
     {
         $this->lastBreak = null;
         $this->lastKeyword = '';
@@ -179,27 +180,27 @@ class JsTranslator
         $this->pasteArrayReactivity = false;
     }
 
-    public function IncludeJsFile(string $name, string $filePath)
+    public function includeJsFile(string $name, string $filePath)
     {
         $this->requestedIncludes[$name] = $filePath;
     }
 
-    public function GetRequestedIncludes(): array
+    public function getRequestedIncludes(): array
     {
         return $this->requestedIncludes;
     }
 
-    public function ActivateReactivity(array $info)
+    public function activateReactivity(array $info)
     {
         $this->pasteArrayReactivity = $info;
     }
 
-    public function GetVariablePaths(): array
+    public function getVariablePaths(): array
     {
         return $this->variablePaths;
     }
 
-    public function GetKeywords(?string $content = null): array
+    public function getKeywords(?string $content = null): array
     {
         $keywords = [
             [], // keyword
@@ -207,20 +208,20 @@ class JsTranslator
         ];
         if ($content !== null) {
             $this->phpCode = $content;
-            $this->Reset();
+            $this->reset();
         }
-        $keyword = $this->NextKeyword();
+        $keyword = $this->nextKeyword();
         while ($keyword !== null) {
             $keywords[0][] = $keyword;
             $keywords[1][] = $this->latestSpaces;
-            $keyword = $this->NextKeyword();
+            $keyword = $this->nextKeyword();
         }
         return $keywords;
     }
 
-    public function NextKeyword(): ?string
+    public function nextKeyword(): ?string
     {
-        $keyword = $this->MatchKeyword();
+        $keyword = $this->matchKeyword();
         // $this->debug($keyword);
         if ($keyword === '' && $this->position === $this->length) {
             return null;
@@ -228,18 +229,18 @@ class JsTranslator
         return $keyword;
     }
 
-    public function Convert(?string $content = null, bool $skipPhpTag = false): string
+    public function convert(?string $content = null, bool $skipPhpTag = false): string
     {
         if ($content !== null) {
             $this->phpCode = $content;
-            $this->Reset();
+            $this->reset();
         }
         if (!$skipPhpTag) {
-            $this->MatchPhpTag();
+            $this->matchPhpTag();
         }
         try {
             while ($this->position < $this->length) {
-                $this->jsCode .= $this->ReadCodeBlock();
+                $this->jsCode .= $this->readCodeBlock();
             }
         } catch (Exception $exc) {
             $this->debug($exc->getMessage());
@@ -249,12 +250,12 @@ class JsTranslator
             $this->jsCode .= $this->parts[$this->position];
             $this->position++;
         }
-        $this->StopCollectingVariablePath();
+        $this->stopCollectingVariablePath();
         // $this->debug($this->jsCode);
         return $this->jsCode;
     }
 
-    private function IsDeclared(string $varName): ?string
+    private function isDeclared(string $varName): ?string
     {
         foreach ($this->scope as $scope) {
             if (isset($scope[$varName])) {
@@ -264,11 +265,11 @@ class JsTranslator
         return null;
     }
 
-    private function GetVariable(bool $thisMatched): string
+    private function getVariable(bool $thisMatched): string
     {
         $code = '';
         if ($this->buffer !== null) {
-            $declaredProp = $this->IsDeclared($this->buffer);
+            $declaredProp = $this->isDeclared($this->buffer);
             $varStatement = '';
             if ($thisMatched) {
                 if ($declaredProp === null) {
@@ -285,13 +286,13 @@ class JsTranslator
                     $this->scope[$this->scopeLevel][$this->buffer] = 'private';
                     $varStatement = 'var ';
                 } else {
-                    $declaredThis = $this->IsDeclared($this->buffer . '_this');
+                    $declaredThis = $this->isDeclared($this->buffer . '_this');
                     if ($declaredThis !== null) {
                         // conflict, need to replace var name
                         $this->scope[$this->scopeLevel][$this->buffer . '_replace'] = 'private';
                         $i = 0;
                         $newName = $this->buffer . '_' . $i;
-                        while ($this->IsDeclared($newName . '_this') !== null) {
+                        while ($this->isDeclared($newName . '_this') !== null) {
                             $i++;
                             $newName = $this->buffer . '_' . $i;
                         }
@@ -306,7 +307,7 @@ class JsTranslator
                 //     $varStatement = $declaredProp === 'private' ? '' : 'this.';
                 // }
             } else {
-                $replace = $this->IsDeclared($this->buffer . '_replace');
+                $replace = $this->isDeclared($this->buffer . '_replace');
                 if ($replace !== null) {
                     $this->buffer = $replace;
                 }
@@ -328,7 +329,7 @@ class JsTranslator
         $this->expressionScope = true;
     }
 
-    public function StopCollectingVariablePath(): void
+    public function stopCollectingVariablePath(): void
     {
         if ($this->collectVariablePath) {
             $this->collectVariablePath = false;
@@ -347,7 +348,7 @@ class JsTranslator
         }
     }
 
-    public function ReadCodeBlock(...$breakOnConditios): string
+    public function readCodeBlock(...$breakOnConditios): string
     {
         //BreakCondition
         $breakConditions = [];
@@ -374,7 +375,7 @@ class JsTranslator
         $thisMatched = false;
         $parenthesisNormal = 0;
         while ($this->position < $this->length) {
-            $keyword = $this->MatchKeyword();
+            $keyword = $this->matchKeyword();
             // $this->debug($keyword);
             // echo 'LK:  ' . $this->lastKeyword . ' K:  ' . $keyword . PHP_EOL;
             // echo 'Code: ' . $code . PHP_EOL;
@@ -408,14 +409,14 @@ class JsTranslator
             $skipLastSaving = false;
             // $this->debug('Keyword: ' . $keyword);
             if ($keyword[0] === '$') {
-                if ($this->IsPhpVariable($this->lastKeyword)) {
+                if ($this->isPhpVariable($this->lastKeyword)) {
                     $code .= ' ';
                     // $this->debug($this->lastKeyword . ' ' . $keyword);
                 }
                 $varName = substr($keyword, 1);
                 if ($keyword == '$this') {
                     $this->thisMatched = true;
-                    $nextKeyword = $this->MatchKeyword();
+                    $nextKeyword = $this->matchKeyword();
                     $this->collectVariablePath = true;
                     $this->currentVariablePath = 'this';
                     $this->latestVariablePath = 'this';
@@ -436,7 +437,7 @@ class JsTranslator
                             $this->currentVariablePath !== ''
                             && $this->currentVariablePath[strlen($this->currentVariablePath) - 1] !== '.'
                         ) {
-                            $this->StopCollectingVariablePath();
+                            $this->stopCollectingVariablePath();
                         } else {
                             $this->currentVariablePath .= $keyword;
                         }
@@ -469,10 +470,10 @@ class JsTranslator
                 //     $this->putIdentation = $closing !== '';
                 // }
             } else if (ctype_digit($keyword)) {
-                if ($this->IsPhpVariable($this->lastKeyword)) {
+                if ($this->isPhpVariable($this->lastKeyword)) {
                     $code .= ' ';
                 }
-                $code .= $this->GetVariable($thisMatched);
+                $code .= $this->getVariable($thisMatched);
                 $code .= $identation . $keyword;
                 // $this->position++;
                 if ($this->collectVariablePath) {
@@ -481,7 +482,7 @@ class JsTranslator
             } else {
                 if ($keyword !== '=') {
                     // echo 'Code before GetVariable:  ' . $code . PHP_EOL;
-                    $code .= $this->GetVariable($thisMatched);
+                    $code .= $this->getVariable($thisMatched);
                     // echo 'Code after GetVariable:  ' . $code . PHP_EOL;
                     if ($this->newVar) {
                         $this->newVar = false;
@@ -493,7 +494,7 @@ class JsTranslator
                             $this->currentVariablePath !== ''
                             && $this->currentVariablePath[strlen($this->currentVariablePath) - 1] !== '.'
                         ) {
-                            $this->StopCollectingVariablePath();
+                            $this->stopCollectingVariablePath();
                         } else {
                             $this->currentVariablePath .= $keyword;
                         }
@@ -505,14 +506,14 @@ class JsTranslator
                         $this->collectVariablePath = false;
                     } else if ($keyword === '(') {
                         $this->currentVariablePath .= '()';
-                        $this->StopCollectingVariablePath();
+                        $this->stopCollectingVariablePath();
                     } else {
-                        $this->StopCollectingVariablePath();
+                        $this->stopCollectingVariablePath();
                     }
                 }
                 switch ($keyword) {
                     case '=': {
-                            $code .= $this->GetVariable($thisMatched);
+                            $code .= $this->getVariable($thisMatched);
                             $code .= ' = ';
                             break;
                         }
@@ -523,15 +524,15 @@ class JsTranslator
                             break;
                         }
                     case '[]': {
-                            if ($this->IsPhpVariable($this->lastKeyword)) {
+                            if ($this->isPhpVariable($this->lastKeyword)) {
                                 // $this->debug($this->lastKeyword . ' : ' . $keyword);
                                 // $this->debug('Latest: ' . $this->latestVariablePath);
                                 // TODO: improve array reactivity: nested arrays, indexes,array_pop/push, set by index, etc.
                                 $this->pasteArrayReactivity = [$this->latestVariablePath, "'push'"];
                                 // $this->debug($this->pasteArrayReactivity);
                                 $code .= '.push(';
-                                $this->SkipToTheSymbol('=');
-                                $code .= $this->ReadCodeBlock(';');
+                                $this->skipToTheSymbol('=');
+                                $code .= $this->readCodeBlock(';');
                                 $code .= ')';
                             } else {
                                 $code .= '[]';
@@ -550,7 +551,7 @@ class JsTranslator
                             ) {
                                 $this->lastKeyword = $keyword;
                                 // $this->debug($callFunction);                                
-                                $code = self::$functionConverters[$callFunction]::Convert(
+                                $code = self::$functionConverters[$callFunction]::convert(
                                     $this,
                                     $code,
                                     $identation
@@ -610,32 +611,32 @@ class JsTranslator
                             break;
                         }
                     case '/*': {
-                            $code .= $identation . $this->ReadMultiLineComment() . PHP_EOL;
+                            $code .= $identation . $this->readMultiLineComment() . PHP_EOL;
                             $this->putIdentation = true;
                             break;
                         }
                     case '//': {
-                            $code .= $identation . $this->ReadInlineComment() . PHP_EOL;
+                            $code .= $identation . $this->readInlineComment() . PHP_EOL;
                             $this->putIdentation = true;
                             $this->newVar = true;
                             break;
                         }
                     case "'": {
                             // $this->debug($this->parts[$this->position] . ' ' . $keyword);
-                            $code .= $identation . $this->ReadSingleQuoteString();
+                            $code .= $identation . $this->readSingleQuoteString();
                             break;
                         }
                     case '"': {
-                            $code .= $identation . $this->ReadDoubleQuoteString();
+                            $code .= $identation . $this->readDoubleQuoteString();
                             break;
                         }
                     case '<<<': {
                             // $this->debug('<<< detected');
-                            $code .= $identation . $this->ReadHereDocString() . PHP_EOL;
+                            $code .= $identation . $this->readHereDocString() . PHP_EOL;
                             break;
                         }
                     case '[': {
-                            $code .= $this->ReadArray(']');
+                            $code .= $this->readArray(']');
                             if ($this->skipVariableKey) {
                                 $this->collectVariablePath = true;
                                 $this->skipVariableKey = false;
@@ -647,38 +648,38 @@ class JsTranslator
                             break;
                         }
                     case 'array': {
-                            $code .= $this->ReadArray(')');
+                            $code .= $this->readArray(')');
                             $skipLastSaving = true;
                             break;
                         }
                     case 'use': {
-                            $this->ProcessUsing();
+                            $this->processUsing();
                             $skipLastSaving = true;
                             break;
                         }
                     case 'namespace': {
-                            $this->ProcessNamespace();
+                            $this->processNamespace();
                             $skipLastSaving = true;
                             break;
                         }
                     case 'class': {
-                            $code .= $identation . $this->ProcessClass();
+                            $code .= $identation . $this->processClass();
                             $skipLastSaving = true;
                             break;
                         }
                     case 'for': {
-                            $code .= $identation . $this->ReadFor();
+                            $code .= $identation . $this->readFor();
                             $skipLastSaving = true;
                             break;
                         }
                     case 'foreach': {
-                            $code .= $identation . $this->ReadForEach();
+                            $code .= $identation . $this->readForEach();
                             $skipLastSaving = true;
                             break;
                         }
                     case 'function':
                         // echo 'Code before function:  ' . $code . PHP_EOL;
-                        $code .= $identation . $this->ReadFunction('public');
+                        $code .= $identation . $this->readFunction('public');
                         // echo 'Code after function:  ' . $code . PHP_EOL;
                         $skipLastSaving = true;
                         break;
@@ -686,12 +687,12 @@ class JsTranslator
                     case 'protected':
                     case 'public': {
                             $public = $keyword === 'public';
-                            $typeOrName = $this->MatchKeyword();
+                            $typeOrName = $this->matchKeyword();
                             if ($typeOrName === '?') {
-                                $typeOrName = $this->MatchKeyword();
+                                $typeOrName = $this->matchKeyword();
                             }
                             if ($typeOrName === 'function') {
-                                $fn = $this->ReadFunction($keyword);
+                                $fn = $this->readFunction($keyword);
                                 $code .= $identation . $fn;
                                 break;
                             } else if ($typeOrName[0] === '$') {
@@ -701,17 +702,17 @@ class JsTranslator
                                 $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
                             } else {
                                 // type
-                                $name = $this->MatchKeyword();
+                                $name = $this->matchKeyword();
                                 $propertyName = substr($name, 1);
                                 $code .= $identation . ($public ? 'this.' : 'var ') . $propertyName;
                                 $this->scope[$this->scopeLevel][$propertyName] = $keyword;
                                 $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
                             }
-                            $symbol = $this->MatchKeyword();
+                            $symbol = $this->matchKeyword();
                             $this->lastKeyword = $symbol;
                             if ($symbol === '=') {
                                 // match expression
-                                $expression = $this->ReadCodeBlock(';');
+                                $expression = $this->readCodeBlock(';');
                                 $code .= " = $expression;" . PHP_EOL;
                             } else if ($symbol !== ';') {
                                 throw new Exception("Unexpected symbol `$symbol` detected at ReadCodeBlock.");
@@ -729,8 +730,8 @@ class JsTranslator
                         if (isset($this->processors[$keyword]) || isset($this->spaces[$keyword])) {
                             // $this->debug($this->lastKeyword . ' ' . $keyword);
                             if (
-                                $this->IsPhpVariable($this->lastKeyword)
-                                && $this->IsPhpVariable($keyword)
+                                $this->isPhpVariable($this->lastKeyword)
+                                && $this->isPhpVariable($keyword)
                             ) {
                                 $code .= ' ';
                             }
@@ -754,7 +755,7 @@ class JsTranslator
                                 isset(self::$functionConverters[$keyword])
                                 && self::$functionConverters[$keyword]::$directive
                             ) {
-                                $code = self::$functionConverters[$keyword]::Convert(
+                                $code = self::$functionConverters[$keyword]::convert(
                                     $this,
                                     $code . $keyword,
                                     $identation
@@ -771,9 +772,9 @@ class JsTranslator
                                 if ($thisMatched) {
                                     $this->buffer = $keyword;
                                     $this->bufferIdentation = $identation;
-                                    $code .= $this->GetVariable($thisMatched);
+                                    $code .= $this->getVariable($thisMatched);
                                 } else {
-                                    if ($this->IsPhpVariable($this->lastKeyword)) {
+                                    if ($this->isPhpVariable($this->lastKeyword)) {
                                         // $this->debug($this->lastKeyword . ' ' . $keyword);
                                         $code .= ' ';
                                     }
@@ -791,16 +792,16 @@ class JsTranslator
                 $this->lastKeyword = $keyword;
             }
         }
-        $code .= $this->GetVariable($thisMatched);
+        $code .= $this->getVariable($thisMatched);
         return $code;
     }
 
-    public function IsPhpVariable(string $string): bool
+    public function isPhpVariable(string $string): bool
     {
         return ctype_alnum(str_replace('_', '', str_replace('$', '', $string)));
     }
 
-    private function ReadMultiLineComment(): string
+    private function readMultiLineComment(): string
     {
         $comment = '/*';
         while ($this->position < $this->length) {
@@ -817,7 +818,7 @@ class JsTranslator
         return $comment . '*/';
     }
 
-    private function ReadInlineComment(): string
+    private function readInlineComment(): string
     {
         $comment = '//';
         while ($this->position < $this->length) {
@@ -833,14 +834,14 @@ class JsTranslator
         return $comment;
     }
 
-    private function ReadFor(): string
+    private function readFor(): string
     {
         $loop = 'for ';
         $separator = '(';
-        $this->SkipToTheSymbol('(');
+        $this->skipToTheSymbol('(');
         $this->newVar = true;
         while ($this->lastBreak !== ')') {
-            $part = $this->ReadCodeBlock(';', ')', '(');
+            $part = $this->readCodeBlock(';', ')', '(');
             $this->lastKeyword = ';';
             $this->position++;
             $loop .= $separator . $part;
@@ -851,51 +852,51 @@ class JsTranslator
         return $loop;
     }
 
-    private function ReadForEach(): string
+    private function readForEach(): string
     {
         $loop = 'for ';
-        $this->SkipToTheSymbol('(');
-        $target = $this->ReadCodeBlock('as');
+        $this->skipToTheSymbol('(');
+        $target = $this->readCodeBlock('as');
         $this->position += 2;
         $index = '_i';
         $this->lastKeyword = ';';
-        $var = $this->ReadCodeBlock('=>', ')');
+        $var = $this->readCodeBlock('=>', ')');
         if ($this->lastBreak === '=>') {
             $this->position += 2;
             $index = $var;
             $this->lastKeyword = ';';
-            $var = $this->ReadCodeBlock(')');
+            $var = $this->readCodeBlock(')');
         } else {
             $this->position += 1;
         }
 
         $loop .= "(var $index in $target) {" . PHP_EOL;
-        $this->SkipToTheSymbol('{');
+        $this->skipToTheSymbol('{');
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
         $loop .= "{$this->currentIdentation}var $var = {$target}[{$index}];";
         $this->lastKeyword = ';';
         $loop .= PHP_EOL;
         $this->putIdentation = true;
-        $loop .= $this->ReadCodeBlock();
+        $loop .= $this->readCodeBlock();
         $this->currentIdentation = $lastIdentation;
         $loop .= $this->currentIdentation . '}' . PHP_EOL;
         $this->putIdentation = true;
         return $loop;
     }
 
-    private function ProcessClass(): string
+    private function processClass(): string
     {
 
-        $className = $this->MatchKeyword();
+        $className = $this->matchKeyword();
         $classHead = "var $className = function (";
-        $option = $this->MatchKeyword();
+        $option = $this->matchKeyword();
         if ($option !== '{') {
             if ($option === 'extends') {
-                $extends = $this->MatchKeyword();
+                $extends = $this->matchKeyword();
                 // $this->debug('Extends: ' . $extends);
             }
-            $this->SkipToTheSymbol('{');
+            $this->skipToTheSymbol('{');
         }
         $previousScope = $this->scope;
         $previousScopeLevel = $this->scopeLevel;
@@ -912,7 +913,7 @@ class JsTranslator
         $this->newVar = true;
         $classCode = $this->currentIdentation . 'var $this = this;'
             . PHP_EOL;
-        $classCode .= $this->ReadCodeBlock();
+        $classCode .= $this->readCodeBlock();
         $this->newVar = true;
         $this->currentClass = $lastClass;
         $arguments = '';
@@ -931,14 +932,12 @@ class JsTranslator
         // $this->debug('==========' . $classHead . '==========');
         return $classHead;
     }
-
-    private int $anonymousCounter = 0;
-
-    private function ReadFunction(string $modifier): string
+  
+    private function readFunction(string $modifier): string
     {
         $private = $modifier === 'private';
 
-        $functionName = $this->MatchKeyword();
+        $functionName = $this->matchKeyword();
         $constructor = $functionName === '__construct';
         $anonymous = $functionName === '(';
         $functionCode = '';
@@ -955,12 +954,12 @@ class JsTranslator
         $this->scopeLevel++;
         $this->scope[$this->scopeLevel] = [];
         // read function arguments
-        $arguments = $this->ReadArguments($anonymous);
+        $arguments = $this->readArguments($anonymous);
         // echo 'F arguments:  "' . print_r($arguments, true) . '"' . PHP_EOL;
         $functionCode .= $arguments['arguments'] . ') ';
 
         // read function body
-        $this->SkipToTheSymbol('{');
+        $this->skipToTheSymbol('{');
         $this->lastKeyword = '{';
         $lastIdentation = $this->currentIdentation;
         $this->currentIdentation .= $this->identation;
@@ -977,7 +976,7 @@ class JsTranslator
             $index++;
         }
         $this->newVar = true;
-        $body .= $this->ReadCodeBlock();
+        $body .= $this->readCodeBlock();
         // echo 'F body:  "' . $body . '"' . PHP_EOL;
         $this->newVar = true;
         $this->scope[$this->scopeLevel] = null;
@@ -998,11 +997,11 @@ class JsTranslator
         return $functionCode;
     }
 
-    private function ReadArguments(bool $anonymous): array
+    private function readArguments(bool $anonymous): array
     {
         $arguments = '';
         if (!$anonymous) {
-            $this->SkipToTheSymbol('(');
+            $this->skipToTheSymbol('(');
         }
         $object = [];
         $matchValue = false;
@@ -1013,7 +1012,7 @@ class JsTranslator
         $this->currentIdentation .= $this->identation;
 
         while ($this->position < $this->length) {
-            $keyword = $this->MatchKeyword();
+            $keyword = $this->matchKeyword();
             if ($keyword === ')') {
                 if ($key !== false) {
                     $object[$key] = $value;
@@ -1029,7 +1028,7 @@ class JsTranslator
             } else if ($keyword === '?') {
                 continue; // js doesn't have nullable
             } else if ($keyword === '=') {
-                $value = $this->ReadCodeBlock(',', ')');
+                $value = $this->readCodeBlock(',', ')');
                 // $this->debug('arg Val ' . $key . ' = '  . $value);
             } else {
                 if ($keyword[0] === '$') {
@@ -1061,7 +1060,7 @@ class JsTranslator
         return ['arguments' => $arguments, 'defaults' => $object];
     }
 
-    private function ReadArray(string $closing): string
+    private function readArray(string $closing): string
     {
         $elements = '';
         $object = [];
@@ -1073,7 +1072,7 @@ class JsTranslator
         $this->currentIdentation .= $this->identation;
         $this->lastKeyword = '[';
         while ($this->position < $this->length) {
-            $item = $this->ReadCodeBlock(',', '=>', $closing, '(', ';');
+            $item = $this->readCodeBlock(',', '=>', $closing, '(', ';');
             $this->lastKeyword = $this->lastBreak;
             if ($this->lastBreak === ';') {
                 break;
@@ -1136,7 +1135,7 @@ class JsTranslator
         return "[$elements]";
     }
 
-    private function ReadHereDocString(): string
+    private function readHereDocString(): string
     {
         $stopWord = '';
         $code = '';
@@ -1187,7 +1186,7 @@ class JsTranslator
         return $code;
     }
 
-    private function ReadDoubleQuoteString(): string
+    private function readDoubleQuoteString(): string
     {
         $parts = [];
         $string = '';
@@ -1207,7 +1206,7 @@ class JsTranslator
                     }
                     $this->position++;
                     $this->lastKeyword = '{';
-                    $string .= $this->ReadCodeBlock('}');
+                    $string .= $this->readCodeBlock('}');
                     $parts[] = $string;
                     $string = '';
                     $this->position++;
@@ -1226,7 +1225,7 @@ class JsTranslator
                     }
                     if ($this->parts[$this->position] === '[') {
                         $this->position++;
-                        $string .= $this->ReadArray(']');
+                        $string .= $this->readArray(']');
                     }
                     $parts[] = $string;
                     $string = '';
@@ -1246,7 +1245,7 @@ class JsTranslator
         return implode(' + ', $parts);
     }
 
-    private function ReadSingleQuoteString(): string
+    private function readSingleQuoteString(): string
     {
         $string = '';
         $skipNext = false;
@@ -1268,28 +1267,28 @@ class JsTranslator
         return "'$string'";
     }
 
-    private function ProcessNamespace(): string
+    private function processNamespace(): string
     {
-        $this->SkipToTheSymbol(';');
+        $this->skipToTheSymbol(';');
         $this->newVar = true;
         return '';
     }
 
-    private function ProcessUsing(): string
+    private function processUsing(): string
     {
-        $this->SkipToTheSymbol(';');
+        $this->skipToTheSymbol(';');
         $this->newVar = true;
         return '';
     }
 
-    private function SkipToTheKeyword(string $keyword)
+    private function skipToTheKeyword(string $keyword)
     {
-        while ($this->MatchKeyword() !== $keyword) {
+        while ($this->matchKeyword() !== $keyword) {
             continue;
         }
     }
 
-    public function SkipToTheSymbol(string $symbol): string
+    public function skipToTheSymbol(string $symbol): string
     {
         while ($this->position < $this->length) {
             if ($this->parts[$this->position] === $symbol) {
@@ -1302,7 +1301,7 @@ class JsTranslator
         return '';
     }
 
-    private function MatchKeyword(): string
+    private function matchKeyword(): string
     {
         $keyword = '';
         $firstType = false;
@@ -1376,7 +1375,7 @@ class JsTranslator
         return $keyword;
     }
 
-    private function MatchPhpTag(): string
+    private function matchPhpTag(): string
     {
         $openTagDetected = false;
         $questionMarkDetected = false;

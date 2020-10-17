@@ -28,26 +28,29 @@ class ComponentInfo
         if ($item['IsSlot'])
             $this->IsSlot = $item['IsSlot'];
 
-        $this->hasInit = $item['hasInit'] ?? false;
-        $this->relative = $item['relative'] ?? false;
+        $this->HasInit = $item['HasInit'] ?? false;
+        $this->Relative = $item['Relative'] ?? false;
     }
+    
     public string $Name;
     public string $Namespace;
     public string $ComponentName;
     public string $Tag;
     public string $Fullpath;
-    public bool $relative;
     public string $TemplatePath;
     public string $BuildPath;
     public string $RenderFunction;
     public bool $IsComponent;
     public bool $IsSlot;
-    public bool $hasInit;
+    public bool $HasInit;
+    public bool $Relative;
+
     /**
      * 
      * @var array<string,int>
      */
     public array $Inputs;
+
     /**
      * 
      * @var array<string,array>

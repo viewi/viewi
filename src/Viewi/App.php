@@ -12,11 +12,11 @@ class App
     {
         self::$config = $config;
         self::$engine = new PageEngine(
-            $config['SOURCE_DIR'],
-            $config['SERVER_BUILD_DIR'],
-            $config['PUBLIC_BUILD_DIR'],
-            $config['DEV_MODE'],
-            $config['RETURN_OUTPUT']
+            $config[PageEngine::SOURCE_DIR],
+            $config[PageEngine::SERVER_BUILD_DIR],
+            $config[PageEngine::PUBLIC_BUILD_DIR],
+            $config[PageEngine::DEV_MODE],
+            $config[PageEngine::RETURN_OUTPUT]
         );
     }
 
