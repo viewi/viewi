@@ -1,4 +1,5 @@
 **/temp/**/*
 composer.lock
 **/build/**/*
+!**/build/.gitkeep 
 **/vendor
