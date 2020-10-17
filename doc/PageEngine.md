@@ -4,6 +4,10 @@ This is shortened version of how to use and avaliable features. More detailed do
 
 ##### *Requirements: php 7.4+*
 
+## Install
+
+`composer require viewi/viewi`
+
 **Example Code:**
 component: *app/home.php*
 ```php
@@ -14,7 +18,7 @@ use Viewi\BaseComponent;
 class HomeComponent extends BaseComponent
 {
     public string $title = 'My awesome application';
-    public User $user;
+    
     function getFullName(): string
     {
         return 'Jhon Doe';
