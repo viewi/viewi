@@ -6,7 +6,7 @@ use App\Components\Views\GetStartedComponent;
 use Viewi\PageEngine;
 
 require __DIR__ . '/vendor/autoload.php';
-include_once __DIR__ . '/app/components/views/getStartedComponent.php';
+include_once __DIR__ . '/app/components/views/GetStartedComponent.php';
 
 $ds = DIRECTORY_SEPARATOR;
 
