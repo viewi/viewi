@@ -1,0 +1,19 @@
+{
+    "name": "viewi/viewi",
+    "description": "Powerful tool for building progressive and completely reactive web applications",
+    "keywords": [
+        "viewi",
+        "UI",
+        "reactive",
+        "template"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Viewi\\": "src/Viewi/"
+        }
+    }
+}
