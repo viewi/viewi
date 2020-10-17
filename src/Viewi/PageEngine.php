@@ -138,6 +138,9 @@ class PageEngine
      */
     function render(string $component, array $params = [])
     {
+        $component = strpos($component, '\\') !== false ?
+            substr(strrchr($component, "\\"), 1)
+            : $component;
         if ($this->development) {
             set_time_limit(5);
             $this->compile();

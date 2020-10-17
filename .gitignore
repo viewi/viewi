@@ -1,2 +1,4 @@
-www/application/build/**/*
-tests/temp/**/*
+**/temp/**/*
+composer.lock
+**/build/**/*
+**/vendor
