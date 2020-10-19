@@ -17,14 +17,15 @@ Get started
 
 Run `composer require viewi/viewi:dev-master`
 
-### Create folder for your components, templates build and public build for the browser. For example:
+### Create folders for your components, templates build and public build for the browser. For example:
 
 ```
 app
-  |components (for components and templates)
-  |build  (for compiled server's version, make sure it's writable)
+  |-components (for components and templates)
+  |-build  (for compiled server's version, make sure it's writable)
 public
-  |build (for browser's version, make sure it's publicly visible)
+  |-build (for browser's version, make sure it's publicly visible)
+index.php
 ```
 
 ### Now let's create our fist component `Counter.php` and `Counter.html` in `app/components` folder.
