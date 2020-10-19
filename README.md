@@ -30,7 +30,7 @@ index.php
 
 ### Now let's create our fist component `Counter.php` and `Counter.html` in `app/components` folder.
 
-Create `Counter` component by extending `BaseComponent`, this will tell Viewi to check html template as well. The name of template should be the same as component's file name.
+Create `Counter` component by extending `BaseComponent`, this will tell Viewi to check html template as well. The name of the template should be the same as component's file name.
 
 ```php
 <?php
@@ -89,10 +89,10 @@ include_once __DIR__ . '/app/components/Counter.php';
 $ds = DIRECTORY_SEPARATOR;
 
 $engine = new PageEngine(
-    __DIR__ . $ds . 'app' . $ds . 'components', // Location of your's components
+    __DIR__ . $ds . 'app' . $ds . 'components', // Location of your components
     __DIR__ . $ds . 'app' . $ds . 'build', // compiled server's version
     __DIR__ . $ds . 'public' . $ds . 'build', // compiled public assets (javascripts, etc.)
-    true, // true if you are in developing mode. All components will be compiled as soon as request occures
+    true, // true if you are in developing mode. All components will be compiled as soon as the request occures
     true // true if you want to render into variable, otherwise - echo output
 );
 
@@ -104,7 +104,7 @@ Final result should be looking like this:
 
 ![VScode](images/counter-dev.jpg)
 
-And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everythink is good you should be able to click on the "Increment" button and count should be updated accordingly.
+And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everything is good you should be able to click on the "Increment" button and count should be updated accordingly.
 
 Features
 ----------------
@@ -145,7 +145,7 @@ Please see [LICENSE](/LICENSE) for license text
 Legal
 ------
 
-By submitting a Pull Request, you disavow any rights or claims to any changes submitted to the Viewi project and assign the copyright of those changes to Ivan Voitovych.
+By submitting a Pull Request, you disallow any rights or claims to any changes submitted to the Viewi project and assign the copyright of those changes to Ivan Voitovych.
 
 If you cannot or do not want to reassign those rights (your employment contract for your employer may not allow this), you should not submit a PR. Open an issue and someone else can do the work.
 
