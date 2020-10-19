@@ -1,6 +1,6 @@
 # Viewi Page Engine
 
-This is shortened version of how to use and avaliable features. More detailed documentation is in progress.
+This is the shortened version of how to use the avaliable features. A more detailed documentation is in progress.
 
 ##### *Requirements: php 7.4+*
 
@@ -130,7 +130,7 @@ template: *app/home.html*
 
 ## Dynamic components
 
-You can use a component defined in variable, just make sure it exists.
+You can use a component defined in variable, just make sure that it exists.
 
 ```php
 //...
@@ -147,7 +147,7 @@ template: *app/home.html*
 ```
 
 ## Slots
-You can pass content into component which will be rendered instead of `<slot>` tag. Also you can specify default content (optional).
+You can pass content into a component which will be rendered instead of `<slot>` tag. Also you can specify default content (optional).
 template: *app/HomeLink.html*
 ```html
 <a href="$href"><slot>Home</slot></a>
@@ -167,7 +167,7 @@ template: *app/home.html*
 
 ## Named slots
 
-You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without name attribute bacomes slot by default and any content outside `<slotContent..` tag becomes content for default slot `<slot>` (without name attribute).
+You can also have named slots using `<slot name="top">` tag with name attribute. To specify content for named slot you should use `<slotContent name="top">` tag with name attribute. Slot without a name attribute bacomes slot by default and any content outside `<slotContent..` tag becomes content for default slot `<slot>` (without name attribute).
 
 template: *app/HomeLink.html*
 ```html
@@ -244,7 +244,7 @@ template: *app/home.html*
 
 ## If and foreach combinations
 
-You can have `if` and `foreach` together, but order matters: 
+You can have `if` and `foreach` together, but the order matters: 
 This will check `if` condition first, and if it's true will execute `foreach`
 ```php
 <div if="$condition" foreach="$array as $item"...`
@@ -256,7 +256,7 @@ And this will run `foreach` first and then check `if` condition for each item
 
 ## Boolean attributes
 
-If html attribute is boolean you can pass condition into attribute value, and it will render attribute based on  that condition. List of boolean attributes: `async` `autofocus` `autoplay` `checked` `controls` `default` `defer` `disabled` `formnovalidate` `hidden` `ismap` `itemscope` `loop` `multiple` `muted` `nomodule` `novalidate` `open` `readonly` `required` `reversed` `selected`
+If html attribute is boolean you can pass condition into attribute value, and it will render attribute based on that condition. List of boolean attributes: `async` `autofocus` `autoplay` `checked` `controls` `default` `defer` `disabled` `formnovalidate` `hidden` `ismap` `itemscope` `loop` `multiple` `muted` `nomodule` `novalidate` `open` `readonly` `required` `reversed` `selected`
 
 component: *app/HomeLink.php*
 ```php
@@ -294,7 +294,7 @@ You can have as many attributes as you want, all of them will be merged during r
 
 ## Passing inputs into component
 
-You can pass any data into component, data will be assigned to component's public properties.
+You can pass any data into a component, data will be assigned to component's public properties.
 component: *app/HomeLink.php*
 ```php
 //...
@@ -347,7 +347,7 @@ template: *app/home.html*
 
 ## Event Handling
 
-You can use `(evenyName)` directive in order to listen to DOM events and run some code when they are accured. The usage is simple:
+You can use `(eventName)` directive in order to listen to DOM events and run some code when they are occured. The usage is simple:
 1. Write `(event)="Method()"` in your html template, for example:
     template: *app/home.html*
     ```html
@@ -388,13 +388,13 @@ class HomeLink extends BaseComponent
     ) {
 //...
 ```
-You can pass any inputs here and DI will try to resolve as much as possible based on type of argument, default values, etc. It is required from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
+You can pass any inputs here and DI will try to resolve as much as possible based on the b type of argument, default values, etc. It is required from you to write dependencies correctly and avoid recursion. All services will be shared between all components during render, all child components will be created every time as new.
 
 # Advanced
 
 ## Data fetching
 
-You have `HttpClient` in your command which allows you to fetch data from certain url. If component is rendering on server side it will invoke Router and Controller internally in order to retrieve data (Adapters for Laravel and Symfony are in progress) and if it's a front end it will make ajax request to the same url. As a result you will get the same data no matter which side it is.
+You have `HttpClient` at your command which allows you to fetch data from certain url. If component is rendering on the server side it will invoke Router and Controller internally in order to retrieve data (Adapters for Laravel and Symfony are in progress) and if it's a front end it will make ajax request to the same url. As a result you will get the same data no matter at which side it was.
 
 ```php
 use DevApp\PostModel;
@@ -421,5 +421,5 @@ class PostPage extends BaseComponent
 
 ## Routing params
 
-Imagine you have route like this `'/post/{postId}'` that registered to PostPage component. And you need to get `{postId}`. Well, likely for you, Viewi engine will inject this as a input argument into your component (see code snippet above).
+Imagine that you have a route like this `'/post/{postId}'` that is registered to PostPage component. And you need to get `{postId}`. Well, luckily for you, Viewi engine will inject this as an input argument into your component (see code snippet above).
 
