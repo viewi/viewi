@@ -856,7 +856,7 @@ function Viewi() {
                     },
                     true
                 ) : null;
-                if (existenElm) {
+                if (existenElm && existenElm[0].parentNode) {
                     existenElm[0].parentNode.removeChild(existenElm[0]);
                 }
                 elm = document.createElement(val);
