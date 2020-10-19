@@ -131,6 +131,15 @@ Under the hood Viewi translates your entire view components into the javascript,
 Got to `tests` folder
 Run `php test.php backend`
 
+Support
+--------
+
+For over six months we dedicated most of our free time to this project and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
+
+ - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
+ - Contribute by sending pull requests.
+ - Any other ideas or proposals ? Please mail me `voitovych.ivan.v@gmail.com`.
+
 
 License
 --------
