@@ -8,9 +8,105 @@ Not production ready yet, as it's in development and still needs a lot of work
 
 #### *Requirements: php 7.4+*
 
- Support versions will be expanded  in the future
+Supported versions will be expanded  in the future
 
-### Features
+Get started
+-----------
+
+### Install Viewi
+
+Run `composer require viewi/viewi:dev-master`
+
+### Create folder for your components, templates build and public build for the browser. For example:
+
+```
+app
+  |components (for components and templates)
+  |build  (for compiled server's version, make sure it's writable)
+public
+  |build (for browser's version, make sure it's publicly visible)
+```
+
+### Now let's create our fist component `Counter.php` and `Counter.html` in `app/components` folder.
+
+Create `Counter` component by extending `BaseComponent`, this will tell Viewi to check html template as well. The name of template should be the same as component's file name.
+
+```php
+<?php
+
+namespace App\Components\Counter;
+
+use Viewi\BaseComponent;
+
+class Counter extends BaseComponent
+{
+    public int $count = 0;
+
+    public function increment(): void
+    {
+        $this->count++;
+    }
+}
+
+```
+
+Create `Counter.html` in the same folder and include javascript assets (`/public/build/app.js` and `/public/build/bundle.js`) to enable reactivity. Like this:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter</title>
+    <script src="/public/build/app.js"></script>
+    <script src="/public/build/bundle.js"></script>
+</head>
+
+<body>
+    <h2>$count</h2>
+    <!-- to handle events just write event name in brackets and expression to execute -->
+    <!-- (event)="expression" -->
+    <button (click)="increment()">Increment</button>
+</body>
+
+</html>
+```
+
+Now let's render our component. In your root `index.php` create instance of `PageEngine` and call `render` method with component name as an argument. For example:
+
+```php
+<?php
+
+use App\Components\Counter;
+use Viewi\PageEngine;
+
+require __DIR__ . '/vendor/autoload.php';
+include_once __DIR__ . '/app/components/Counter.php';
+
+$ds = DIRECTORY_SEPARATOR;
+
+$engine = new PageEngine(
+    __DIR__ . $ds . 'app' . $ds . 'components', // Location of your's components
+    __DIR__ . $ds . 'app' . $ds . 'build', // compiled server's version
+    __DIR__ . $ds . 'public' . $ds . 'build', // compiled public assets (javascripts, etc.)
+    true, // true if you are in developing mode. All components will be compiled as soon as request occures
+    true // true if you want to render into variable, otherwise - echo output
+);
+
+echo $engine->render(Counter::class);
+
+```
+
+Final result should be looking like this:
+
+![VScode](images/counter-dev.jpg)
+
+And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everythink is good you should be able to click on the "Increment" button and count should be updated accordingly.
+
+Features
+----------------
 - Server side rendering
 - Perfect page load score
 - Front end rendering
@@ -27,7 +123,7 @@ Under the hood Viewi translates your entire view components into the javascript,
 
 ## Short documentation
 
-##### [PageEngine](/doc/PageEngine.md)
+[PageEngine](/doc/PageEngine.md)
 
 ## Tests
 
