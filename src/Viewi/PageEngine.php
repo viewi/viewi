@@ -357,12 +357,12 @@ class PageEngine
 
     /**
      * 
-     * @param string $initialComponent fallback component
+     * @param string|null $initialComponent fallback component
      * @return void 
      * @throws ReflectionException 
      * @throws Exception 
      */
-    function compile(string $initialComponent): void
+    function compile(string $initialComponent = null): void
     {
         if ($this->compiled) {
             return;
@@ -451,7 +451,7 @@ class PageEngine
         // mate info
         $publicJson['_meta'] = ['tags' => $this->reservedTagsString];
         $routes = Route::getRoutes();
-        if (count($routes) === 0) {
+        if ($initialComponent && count($routes) === 0) {
             Route::get('*', $initialComponent);
             $routes = Route::getRoutes();
         }
@@ -1845,7 +1845,8 @@ class PageEngine
                         }
                     case '>': {
                             if (
-                                $currentType->Name === TagItemType::Attribute
+                                !$waitForTagEnd
+                                && $currentType->Name === TagItemType::Attribute
                                 && isset($this->voidTags[$currentParent->Content])
                             ) {
                                 $skipCount = 1;
@@ -1856,7 +1857,8 @@ class PageEngine
                             }
 
                             if (
-                                $currentType->Name === TagItemType::Tag
+                                !$waitForTagEnd
+                                && $currentType->Name === TagItemType::Tag
                                 && isset($this->voidTags[$content])
                             ) {
                                 $skipCount = 1;
