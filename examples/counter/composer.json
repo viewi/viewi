@@ -1,0 +1,13 @@
+{
+    "name": "ivan/counter",
+    "description": "Counter demo",
+    "require": {
+        "viewi/viewi": "dev-master"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ivan Voitovych"
+        }
+    ]
+}
