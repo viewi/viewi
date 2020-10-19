@@ -13,9 +13,9 @@ class Route
 
     /**
      * 
-     * @var RouteAdapterBase
+     * @var RouteAdapterBase|null
      */
-    protected static RouteAdapterBase $adapter;
+    protected static ?RouteAdapterBase $adapter = null;
 
     public static function getRoutes(): array
     {
@@ -40,7 +40,7 @@ class Route
             $component,
             $defaults
         );
-        self::$adapter->register($method, $url, $component, $defaults);
+        self::$adapter && self::$adapter->register($method, $url, $component, $defaults);
     }
 
     public static function get(string $url, string $component, ?array $defaults = null)

@@ -6,6 +6,7 @@ use \ReflectionClass;
 use \ReflectionProperty;
 use \ReflectionNamedType;
 use \Exception;
+use ReflectionException;
 use \Viewi\Routing\Route;
 
 class PageEngine
@@ -149,7 +150,7 @@ class PageEngine
             : $component;
         if ($this->development) {
             set_time_limit(5);
-            $this->compile();
+            $this->compile($component);
         } else {
             if ($this->waitingComponents) {
                 $this->waitingComponents = false;
@@ -354,8 +355,14 @@ class PageEngine
         }
     }
 
-    /** */
-    function compile(): void
+    /**
+     * 
+     * @param string $initialComponent fallback component
+     * @return void 
+     * @throws ReflectionException 
+     * @throws Exception 
+     */
+    function compile(string $initialComponent): void
     {
         if ($this->compiled) {
             return;
@@ -443,7 +450,12 @@ class PageEngine
 
         // mate info
         $publicJson['_meta'] = ['tags' => $this->reservedTagsString];
-        $publicJson['_routes'] = Route::getRoutes();
+        $routes = Route::getRoutes();
+        if (count($routes) === 0) {
+            Route::get('*', $initialComponent);
+            $routes = Route::getRoutes();
+        }
+        $publicJson['_routes'] = $routes;
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
