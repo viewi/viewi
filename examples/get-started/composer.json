@@ -7,8 +7,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Ivan Voitovych",
-            "email": "voitovych.ivan.v@gmail.com"
+            "name": "Ivan Voitovych"
         }
     ],
     "minimum-stability": "dev"

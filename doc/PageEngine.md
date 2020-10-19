@@ -6,7 +6,7 @@ This is shortened version of how to use and avaliable features. More detailed do
 
 ## Install
 
-`composer require viewi/viewi`
+`composer require viewi/viewi:dev-master`
 
 **Example Code:**
 component: *app/home.php*

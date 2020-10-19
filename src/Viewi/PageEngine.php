@@ -75,6 +75,11 @@ class PageEngine
     /** @var array<string,string> */
     private array $selfClosingTags;
 
+    private string $voidTagsString = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
+
+    /** @var array<string,string> */
+    private array $voidTags;
+
     private string $selfClosingTagsString = 'area,base,br,col,command,embed,hr' .
         ',img,input,keygen,link,menuitem,meta,param,source,track,wbr';
 
@@ -125,6 +130,7 @@ class PageEngine
         $this->templates = [];
         $this->development = $development;
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
+        $this->voidTags = array_flip(explode(',', $this->voidTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
         $this->booleanAttributes = array_flip(explode(',', $this->booleanAttributesString));
     }
@@ -1826,6 +1832,27 @@ class PageEngine
                             break;
                         }
                     case '>': {
+                            if (
+                                $currentType->Name === TagItemType::Attribute
+                                && isset($this->voidTags[$currentParent->Content])
+                            ) {
+                                $skipCount = 1;
+                                $nextType = new TagItemType(TagItemType::TextContent);
+                                $goUp = $currentType->Name !== TagItemType::Tag;
+                                $saveContent = true;
+                                break;
+                            }
+
+                            if (
+                                $currentType->Name === TagItemType::Tag
+                                && isset($this->voidTags[$content])
+                            ) {
+                                $skipCount = 1;
+                                $nextType = new TagItemType(TagItemType::TextContent);
+                                $saveContent = true;
+                                break;
+                            }
+
                             if (
                                 $currentType->Name === TagItemType::AttributeValue
                                 || $currentType->Name === TagItemType::Comment
