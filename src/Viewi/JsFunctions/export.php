@@ -2,10 +2,10 @@
 
 namespace Viewi;
 
-require 'breakCondition.php';
-require 'baseFunction.php';
-require 'functions/count.php';
-require 'functions/print_r.php';
-require 'functions/echo.php';
-require 'functions/array_pop.php';
-require 'functions/in_array.php';
+require 'BreakCondition.php';
+require 'BaseFunctionConverter.php';
+require 'Functions/JsCount.php';
+require 'Functions/JsPrintR.php';
+require 'Functions/JsEcho.php';
+require 'Functions/JsArrayPop.php';
+require 'Functions/JsInArray.php';

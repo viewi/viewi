@@ -1,6 +1,8 @@
 <?php
 
-namespace Viewi;
+namespace Viewi\JsFunctions;
+
+use Viewi\JsTranslator;
 
 abstract class BaseFunctionConverter
 {

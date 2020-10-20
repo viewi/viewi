@@ -1,6 +1,9 @@
 <?php
 
-namespace Viewi;
+namespace Viewi\JsFunctions\Functions;
+
+use Viewi\JsFunctions\BaseFunctionConverter;
+use Viewi\JsTranslator;
 
 class JsEcho extends BaseFunctionConverter
 {

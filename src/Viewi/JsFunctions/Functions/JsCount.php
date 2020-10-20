@@ -1,26 +1,28 @@
 <?php
 
-namespace Viewi;
+namespace Viewi\JsFunctions\Functions;
 
-class JsArrayPop extends BaseFunctionConverter
+use Viewi\JsFunctions\BaseFunctionConverter;
+use Viewi\JsFunctions\BreakCondition;
+use Viewi\JsTranslator;
+
+class JsCount extends BaseFunctionConverter
 {
-    public static string $name = 'array_pop';
+    public static string $name = 'count';
 
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $identation
     ): string {
-        $code = substr($code, 0, -9);
+        $code = substr($code, 0, -5);
 
         $breakOn = new BreakCondition();
         $breakOn->Keyword = ')';
         $breakOn->ParenthesisNormal = 0;
         $code .= $translator->readCodeBlock($breakOn);
         $translator->skipToTheSymbol(')');
-        $code .= '.pop()';
-        $translator->activateReactivity([$translator->latestVariablePath, "'pop'"]);
-
+        $code .= '.length';
         return $code;
     }
 }
