@@ -229,7 +229,7 @@ function Viewi() {
                 if (stack) {
                     if (slotName === 0) {
                         var items = stack.where(function (x) {
-                            return x.type !== 'tag' && x.contents[0].content !== 'slotContent';
+                            return x.type !== 'tag' || x.contents[0].content !== 'slotContent';
                         });
                         // reassign parent
                         var prevNode = currentNodeList.length > 0
