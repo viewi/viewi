@@ -138,7 +138,8 @@ For over six months we dedicated most of our free time to this project and we wo
 
  - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
  - Contribute by sending pull requests.
- - Any other ideas or proposals ? Please mail me `voitovych.ivan.v@gmail.com`.
+ - Any other ideas or proposals ? Please mail me voitovych.ivan.v@gmail.com.
+ - Feel welcome to share this project with your friends.
 
 
 License
