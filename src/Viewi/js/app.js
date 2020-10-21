@@ -122,11 +122,14 @@ function Viewi() {
         document.addEventListener('click', function (e) {
             e = e || window.event;
             var target = e.target || e.srcElement;
-
-            if (target.tagName === 'A' && target.href && target.href.indexOf(location.origin) === 0) {
+            var aTarget = target;
+            if (aTarget.parentNode.tagName === 'A') {
+                aTarget = aTarget.parentNode;
+            }
+            if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
                 e.preventDefault(); // Cancel the native event
                 // e.stopPropagation(); // Don't bubble/capture the event
-                $this.go(target.href, true);
+                $this.go(aTarget.href, true);
             }
         }, false);
 
