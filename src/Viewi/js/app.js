@@ -830,7 +830,7 @@ function Viewi() {
                     takenDomArray[1] = true;
                     break;
                 }
-                if (val === 'script') {
+                if (val === 'script' || val === 'link') {
                     break; // skip script for now, TODO: process scripts, styles
                 }
                 if (val === 'head') {
@@ -1125,7 +1125,12 @@ function Viewi() {
         }
         if (cleanRender) {
             currentLevelDomArray.each(function (x, k) {
-                if (!(k in takenDomArray) && x.parentNode && x.nodeName.toLowerCase() !== 'script') {
+                if (
+                    !(k in takenDomArray)
+                    && x.parentNode
+                    && x.nodeName.toLowerCase() !== 'script'
+                    && x.nodeName.toLowerCase() !== 'link'
+                ) {
                     x.parentNode.removeChild(x);
                 }
             });
