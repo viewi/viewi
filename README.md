@@ -28,7 +28,7 @@ public
 index.php
 ```
 
-### Now let's create our fist component `Counter.php` and `Counter.html` in `app/components` folder.
+### Now let's create our first component `Counter.php` and `Counter.html` in `app/components` folder.
 
 Create `Counter` component by extending `BaseComponent`, this will tell Viewi to check html template as well. The name of the template should be the same as component's file name.
 
