@@ -205,14 +205,6 @@ function Viewi() {
             var item = children[i];
 
             if (item.type === 'tag' && item.content === 'slot') {
-                // if (currentNodeList.length > 0) {
-                //     currentNodeList[currentNodeList.length - 1].nextNode = null;
-                //     currentNodeList[currentNodeList.length - 1].previousNode =
-                //         currentNodeList.length > 1
-                //             ? currentNodeList[currentNodeList.length - 2]
-                //             : null;
-                // }
-
                 skip = true;
                 var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
                 var slotName = 0;
@@ -229,36 +221,40 @@ function Viewi() {
                             });
                     }
                 }
+                var useDefault = true;
                 if (stack) {
                     if (slotName === 0) {
                         var items = stack.where(function (x) {
                             return x.type !== 'tag' || x.contents[0].content !== 'slotContent';
                         });
-                        // reassign parent
-                        var prevNode = currentNodeList.length > 0
-                            ? currentNodeList[currentNodeList.length - 1]
-                            : null;
-                        var toConcat = [];
-                        items.each(function (x) {
-                            if (prevNode
-                                && prevNode.type === 'text'
-                                && x.type === 'text'
-                                && !x.raw
-                                && !prevNode.raw
-                            ) {
-                                prevNode.contents = prevNode.contents.concat(x.contents);
-                            } else {
-                                x.nextNode = null;
-                                x.parent = parentNode;
-                                x.previousNode = prevNode;
-                                if (prevNode) {
-                                    prevNode.nextNode = x;
+                        if (items.length > 0) {
+                            useDefault = false;
+                            // reassign parent
+                            var prevNode = currentNodeList.length > 0
+                                ? currentNodeList[currentNodeList.length - 1]
+                                : null;
+                            var toConcat = [];
+                            items.each(function (x) {
+                                if (prevNode
+                                    && prevNode.type === 'text'
+                                    && x.type === 'text'
+                                    && !x.raw
+                                    && !prevNode.raw
+                                ) {
+                                    prevNode.contents = prevNode.contents.concat(x.contents);
+                                } else {
+                                    x.nextNode = null;
+                                    x.parent = parentNode;
+                                    x.previousNode = prevNode;
+                                    if (prevNode) {
+                                        prevNode.nextNode = x;
+                                    }
+                                    prevNode = x;
+                                    toConcat.push(x);
                                 }
-                                prevNode = x;
-                                toConcat.push(x);
-                            }
-                        });
-                        currentNodeList = currentNodeList.concat(toConcat);
+                            });
+                            currentNodeList = currentNodeList.concat(toConcat);
+                        }
                     } else {
                         var slotContent = stack.first(function (x) {
                             return x.type === 'tag'
@@ -266,6 +262,7 @@ function Viewi() {
                                 && slotNameExpression(x);
                         });
                         if (slotContent) {
+                            useDefault = false;
                             // reassign parent
                             var prevNode = currentNodeList.length > 0
                                 ? currentNodeList[currentNodeList.length - 1]
@@ -296,7 +293,8 @@ function Viewi() {
                     previousNode = currentNodeList.length > 0
                         ? currentNodeList[currentNodeList.length - 1]
                         : null;
-                } else {
+                }
+                if (useDefault) {
                     // unnamed slot
                     var defaultContent = build(item, instance, false, parentNode);
                     // reassign parent
