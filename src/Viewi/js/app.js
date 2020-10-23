@@ -96,6 +96,15 @@ Object.defineProperty(Array.prototype, 'each', {
 function Viewi() {
     var $this = this;
     var avaliableTags = {};
+    var resourceTags = {};
+    'img,embed,object,link,script,audio,video,style'
+        .split(',')
+        .each(function (t) {
+            resourceTags[t] = true;
+        });
+
+    var resourcesCache = [];
+
     var router = new Router();
     this.componentsUrl = '/public/build/components.json';
     this.components = {};
@@ -105,6 +114,15 @@ function Viewi() {
         htmlElementA.href = href;
         return htmlElementA.pathname;
     };
+
+    var cacheResources = function () {
+        for (var tag in resourceTags) {
+            var elements = document.getElementsByTagName(tag);
+            for (var i = 0; i < elements.length; i++) {
+                resourcesCache.push(elements[i]);
+            }
+        }
+    }
 
     this.start = function () {
         ajax.get(this.componentsUrl)
@@ -116,6 +134,7 @@ function Viewi() {
                 components._routes.each(function (x) {
                     router.register(x.method, x.url, x.component);
                 });
+                cacheResources();
                 $this.go(location.href, false);
             });
         // catch all locl A tags click
@@ -831,7 +850,60 @@ function Viewi() {
                     takenDomArray[1] = true;
                     break;
                 }
-                if (val === 'script' || val === 'link') {
+                if (val in resourceTags) {
+                    // create to compare
+                    var newNode = elm = document.createElement(val);
+                    createDOM(newNode, node.children, nextInsert, skipGroup);
+                    if (node.attributes) {
+                        for (var a in node.attributes) {
+                            renderAttribute(newNode, node.attributes[a]);
+                        }
+                    }
+                    // search in parent
+                    var equalNode = currentLevelDomArray.first(
+                        function (x, index) {
+                            return !(index in takenDomArray) && x.isEqualNode(newNode);
+                        },
+                        true
+                    );
+                    if (equalNode) {
+                        takenDomArray[equalNode[1]] = true;
+                        node.domNode = equalNode[0];
+                        // console.log('Reusing from DOM', equalNode[0]);
+                        // put in correct order
+                        var nodeBefore = getFirstBefore(node);
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(equalNode[0], nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            nodeBefore.node.domNode.appendChild(equalNode[0]);
+                        } else {
+                            nodeBefore.node.domNode.parentNode.appendChild(equalNode[0]);
+                        }
+                        break;
+                    }
+                    // search in resourcesCache                    
+                    if (!equalNode) {
+                        // TODO: filter: if not used (parentNode == null && !HTML)
+                        equalNode = resourcesCache.first(
+                            function (x) {
+                                return x.isEqualNode(newNode);
+                            }
+                        );
+                        node.domNode = equalNode;
+                        // console.log('Reusing from cache', equalNode);
+                        // put in correct order
+                        var nodeBefore = getFirstBefore(node);
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            nodeBefore.node.domNode.appendChild(equalNode);
+                        } else {
+                            nodeBefore.node.domNode.parentNode.appendChild(equalNode);
+                        }
+                    }
+                    // isEqualNode
                     break; // skip script for now, TODO: process scripts, styles
                 }
                 if (val === 'head') {
@@ -850,7 +922,7 @@ function Viewi() {
                     /**
                      * 
                      * @param {Node} x 
-                     * @param {int} index 
+                     * @param {number} index 
                      */
                     function (x, index) {
                         return x.nodeName.toLowerCase() === val && !(index in takenDomArray);
@@ -1129,8 +1201,6 @@ function Viewi() {
                 if (
                     !(k in takenDomArray)
                     && x.parentNode
-                    && x.nodeName.toLowerCase() !== 'script'
-                    && x.nodeName.toLowerCase() !== 'link'
                 ) {
                     x.parentNode.removeChild(x);
                 }
