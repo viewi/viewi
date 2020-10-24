@@ -1,4 +1,4 @@
-console.log('app.js included');
+// console.log('app.js included');
 // load /public/app/build/components.json
 function OnReady(func) {
     var $this = this;
@@ -213,7 +213,7 @@ function Viewi() {
 
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
-        var parentNode = arguments.length > 3 ? arguments[3] : null;
+        var parentNode = arguments.length > 3 ? arguments[3] : null; ``
         var children = parent.children;
         var currentNodeList = [];
         var skip = false;
@@ -527,11 +527,10 @@ function Viewi() {
                     );
             }
             if (component) {
-                // TODO: reassign parent, next, previous ???
+                // compare component and reuse if matched
+                // if resused refresh slots
+
                 var componenNodes = create(component, childNodes, node.attributes);
-                // componenNodes.each(function (x) {
-                //     x.parent = node;
-                // });
 
                 var prevNode = currentNodeList.length > 0
                     ? currentNodeList[currentNodeList.length - 1]
@@ -610,7 +609,7 @@ function Viewi() {
                 if (attr.dynamic) {
                     if (!attr.eventExpression) {
                         attr.eventExpression = getDataExpression(attr.dynamic, attr.instance, true);
-                        console.log(attr.eventExpression);
+                        // console.log(attr.eventExpression);
                     }
                     actionContent = attr.eventExpression.func;
                 } else {
@@ -800,34 +799,157 @@ function Viewi() {
         var val = texts.join(''); // TODO: process conditions (if,else,elif)
         var elm = false;
         var nextInsert = false;
-        switch (node.type) {
-            case 'text': { // TODO: implement text insert
-                if (parent === document) {
-                    elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
+        if (node.skipIteration) {
+            node.skipIteration = false;
+            elm = node.domNode;
+        } else {
+            switch (node.type) {
+                case 'text': { // TODO: implement text insert
+                    if (parent === document) {
+                        elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
+                        break;
+                    }
+                    var skip = false;
+                    var nodeBefore = getFirstBefore(node);
+                    if (insert) {
+                        // look up for previous text to append or insert after first tag
+                        if (nodeBefore == null) {
+                            return;
+                            break; // throw error ??
+                        }
+                    }
+                    if (!skip) {
+                        if (nodeBefore && nodeBefore.node.type == 'text') {
+                            nodeBefore.node.domNode.nodeValue += val;
+                            if (node.domNode !== null) {
+                                node.domNode.parentNode.removeChild(node.domNode);
+                                node.domNode = null;
+                            }
+                        } else {
+                            if (node.domNode !== null && node.domNode.parentNode === parent) {
+                                node.domNode.nodeValue = val;
+                                elm = node.domNode;
+                            } else {
+                                elm = document.createTextNode(val);
+                                var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                                if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                    nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                                } else if (nodeBefore.itsParent) {
+                                    nodeBefore.node.domNode.appendChild(elm);
+                                } else {
+                                    nodeBefore.node.domNode.parentNode.appendChild(elm);
+                                }
+                                node.domNode = elm;
+                            }
+                        }
+                    }
                     break;
                 }
-                var skip = false;
-                var nodeBefore = getFirstBefore(node);
-                if (insert) {
-                    // look up for previous text to append or insert after first tag
-                    if (nodeBefore == null) {
-                        return;
-                        break; // throw error ??
+                case 'tag': {
+                    if (parent === document) {
+                        elm = document.children[0];
+                        node.domNode = elm;
+                        takenDomArray[0] = true;
+                        takenDomArray[1] = true;
+                        break;
                     }
-                }
-                if (!skip) {
-                    if (nodeBefore && nodeBefore.node.type == 'text') {
-                        nodeBefore.node.domNode.nodeValue += val;
-                        if (node.domNode !== null) {
-                            node.domNode.parentNode.removeChild(node.domNode);
-                            node.domNode = null;
+                    if (val in resourceTags) {
+                        // create to compare
+                        var newNode = elm = document.createElement(val);
+                        createDOM(newNode, node.children, nextInsert, skipGroup);
+                        if (node.attributes) {
+                            for (var a in node.attributes) {
+                                renderAttribute(newNode, node.attributes[a]);
+                            }
                         }
+                        // search in parent
+                        var equalNode = currentLevelDomArray.first(
+                            function (x, index) {
+                                return !(index in takenDomArray) && x.isEqualNode(newNode);
+                            },
+                            true
+                        );
+                        if (equalNode) {
+                            takenDomArray[equalNode[1]] = true;
+                            node.domNode = equalNode[0];
+                            // console.log('Reusing from DOM', equalNode[0]);
+                            // put in correct order
+                            var nodeBefore = getFirstBefore(node);
+                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                            if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                nextSibiling.parentNode.insertBefore(equalNode[0], nextSibiling);
+                            } else if (nodeBefore.itsParent) {
+                                nodeBefore.node.domNode.appendChild(equalNode[0]);
+                            } else {
+                                nodeBefore.node.domNode.parentNode.appendChild(equalNode[0]);
+                            }
+                            break;
+                        }
+                        // search in resourcesCache                    
+                        if (!equalNode) {
+                            // TODO: filter: if not used (parentNode == null && !HTML)
+                            equalNode = resourcesCache.first(
+                                function (x) {
+                                    return x.isEqualNode(newNode);
+                                }
+                            );
+                            node.domNode = equalNode;
+                            // console.log('Reusing from cache', equalNode);
+                            // put in correct order
+                            var nodeBefore = getFirstBefore(node);
+                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                            if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
+                            } else if (nodeBefore.itsParent) {
+                                nodeBefore.node.domNode.appendChild(equalNode);
+                            } else {
+                                nodeBefore.node.domNode.parentNode.appendChild(equalNode);
+                            }
+                        }
+                        // isEqualNode
+                        break; // skip script for now, TODO: process scripts, styles
+                    }
+                    if (val === 'head') {
+                        var firstMatch = currentLevelDomArray.first(
+                            function (x) {
+                                return x.nodeName.toLowerCase() === val;
+                            },
+                            true
+                        );
+                        elm = firstMatch[0];
+                        takenDomArray[firstMatch[1]] = true;
+                        node.domNode = elm;
+                        // console.log('taking head from DOM');
+                        break;
+                    }
+
+                    var existenElm = cleanRender ? currentLevelDomArray.first(
+                        /**
+                         * 
+                         * @param {Node} x 
+                         * @param {number} index 
+                         */
+                        function (x, index) {
+                            return x.nodeName.toLowerCase() === val && !(index in takenDomArray);
+                        },
+                        true
+                    ) : null;
+
+                    if (existenElm && existenElm[0].parentNode) {
+                        existenElm[0].parentNode.removeChild(existenElm[0]);
+                    }
+                    elm = document.createElement(val);
+
+                    if (node.domNode !== null) {
+                        node.domNode.parentNode.replaceChild(elm, node.domNode);
                     } else {
-                        if (node.domNode !== null && node.domNode.parentNode === parent) {
-                            node.domNode.nodeValue = val;
-                            elm = node.domNode;
-                        } else {
-                            elm = document.createTextNode(val);
+                        if (insert) {
+                            // find first previous not virtual up tree non virtual
+                            var nodeBefore = getFirstBefore(node);
+                            if (nodeBefore == null) {
+                                return;
+                                break; // throw error ??
+                            }
                             var nextSibiling = nodeBefore.node.domNode.nextSibling;
                             if (!nodeBefore.itsParent && nextSibiling !== null) {
                                 nextSibiling.parentNode.insertBefore(elm, nextSibiling);
@@ -836,345 +958,231 @@ function Viewi() {
                             } else {
                                 nodeBefore.node.domNode.parentNode.appendChild(elm);
                             }
-                            node.domNode = elm;
+                        } else {
+                            parent.appendChild(elm);
                         }
+
                     }
-                }
-                break;
-            }
-            case 'tag': {
-                if (parent === document) {
-                    elm = document.children[0];
                     node.domNode = elm;
-                    takenDomArray[0] = true;
-                    takenDomArray[1] = true;
-                    break;
-                }
-                if (val in resourceTags) {
-                    // create to compare
-                    var newNode = elm = document.createElement(val);
-                    createDOM(newNode, node.children, nextInsert, skipGroup);
                     if (node.attributes) {
                         for (var a in node.attributes) {
-                            renderAttribute(newNode, node.attributes[a]);
+                            renderAttribute(elm, node.attributes[a]);
                         }
                     }
-                    // search in parent
-                    var equalNode = currentLevelDomArray.first(
-                        function (x, index) {
-                            return !(index in takenDomArray) && x.isEqualNode(newNode);
-                        },
-                        true
-                    );
-                    if (equalNode) {
-                        takenDomArray[equalNode[1]] = true;
-                        node.domNode = equalNode[0];
-                        // console.log('Reusing from DOM', equalNode[0]);
-                        // put in correct order
-                        var nodeBefore = getFirstBefore(node);
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(equalNode[0], nextSibiling);
-                        } else if (nodeBefore.itsParent) {
-                            nodeBefore.node.domNode.appendChild(equalNode[0]);
-                        } else {
-                            nodeBefore.node.domNode.parentNode.appendChild(equalNode[0]);
-                        }
-                        break;
-                    }
-                    // search in resourcesCache                    
-                    if (!equalNode) {
-                        // TODO: filter: if not used (parentNode == null && !HTML)
-                        equalNode = resourcesCache.first(
-                            function (x) {
-                                return x.isEqualNode(newNode);
-                            }
-                        );
-                        node.domNode = equalNode;
-                        // console.log('Reusing from cache', equalNode);
-                        // put in correct order
-                        var nodeBefore = getFirstBefore(node);
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
-                        } else if (nodeBefore.itsParent) {
-                            nodeBefore.node.domNode.appendChild(equalNode);
-                        } else {
-                            nodeBefore.node.domNode.parentNode.appendChild(equalNode);
-                        }
-                    }
-                    // isEqualNode
-                    break; // skip script for now, TODO: process scripts, styles
+                    break;
                 }
-                if (val === 'head') {
-                    var firstMatch = currentLevelDomArray.first(
-                        function (x) {
-                            return x.nodeName.toLowerCase() === val;
-                        },
-                        true
-                    );
-                    elm = firstMatch[0];
-                    takenDomArray[firstMatch[1]] = true;
+                case 'comment': {
+                    elm = document.createComment(val);
+                    if (node.domNode !== null) {
+                        node.domNode.parentNode.replaceChild(elm, node.domNode);
+                    } else {
+                        if (insert) {
+                            // find first previous not virtual up tree non virtual
+                            var nodeBefore = getFirstBefore(node);
+                            if (nodeBefore == null) {
+                                return;
+                                break; // throw error ??
+                            }
+                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                            if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                            } else if (nodeBefore.itsParent) {
+                                nodeBefore.node.domNode.appendChild(elm);
+                            } else {
+                                nodeBefore.node.domNode.parentNode.appendChild(elm);
+                            }
+                        } else {
+                            parent.appendChild(elm);
+                        }
+                    }
                     node.domNode = elm;
                     break;
                 }
-                var existenElm = cleanRender ? currentLevelDomArray.first(
-                    /**
-                     * 
-                     * @param {Node} x 
-                     * @param {number} index 
-                     */
-                    function (x, index) {
-                        return x.nodeName.toLowerCase() === val && !(index in takenDomArray);
-                    },
-                    true
-                ) : null;
-                if (existenElm && existenElm[0].parentNode) {
-                    existenElm[0].parentNode.removeChild(existenElm[0]);
+                case 'if': {
+                    // TODO: check conditon
+                    // TODO: if false remove node if exists
+                    // TODO: if true create element
+                    node.condition.value = node.condition.func(node.instance, $this);
+                    elm = parent;
+                    node.parentDomNode = parent;
+                    node.condition.previousValue = node.condition.value;
+                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    nextInsert = true;
+                    break;
                 }
-                elm = document.createElement(val);
-                if (node.domNode !== null) {
-                    node.domNode.parentNode.replaceChild(elm, node.domNode);
-                } else {
-                    if (insert) {
-                        // find first previous not virtual up tree non virtual
-                        var nodeBefore = getFirstBefore(node);
-                        if (nodeBefore == null) {
-                            return;
-                            break; // throw error ??
+                case 'else-if': {
+                    // TODO: check condition
+                    node.condition.value = !node.previousNode.condition.value
+                        && node.condition.func(node.instance, $this);
+                    node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
+                    elm = parent;
+                    node.parentDomNode = parent;
+                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    nextInsert = true;
+                    break;
+                }
+                case 'else': {
+                    // TODO: check condition
+                    node.condition.value = !node.previousNode.condition.previousValue;
+                    elm = parent;
+                    node.parentDomNode = parent;
+                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    nextInsert = true;
+                    break;
+                }
+                case 'template': {
+                    elm = parent;
+                    nextInsert = true;
+                    break;
+                }
+                case 'foreach': {
+                    elm = parent;
+                    nextInsert = true;
+                    if (elm) {
+                        // create n nodes (copy of children) and render
+                        if (!node.itemChilds) { // TODO: bug, need to rewrite
+                            node.itemChilds = node.children;
                         }
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
-                        } else if (nodeBefore.itsParent) {
-                            nodeBefore.node.domNode.appendChild(elm);
-                        } else {
-                            nodeBefore.node.domNode.parentNode.appendChild(elm);
+                        removeDomNodes(node.children);
+                        node.children = null;
+                        var args = [node.instance, $this];
+                        // args = args.concat(currentScope); // TODO concat with scope values
+                        var data = node.forExpression.data.apply(null, args);
+                        if (data && data.length > 0) {
+                            node.children = [];
                         }
-                    } else {
-                        parent.appendChild(elm);
-                    }
+                        var prevNode = null;
+                        for (var k in data) {
+                            var wrapperNode = {
+                                type: 'template',
+                                isVirtual: true,
+                                parent: node,
+                                previousNode: prevNode,
+                                instance: node.instance,
+                                domNode: null,
+                                scope: {
+                                    stack: node.scope.stack,
+                                    data: Object.assign({}, node.scope.data)
+                                }
+                            };
+                            if (prevNode) {
+                                prevNode.nextNode = wrapperNode;
+                            }
+                            prevNode = wrapperNode;
+                            wrapperNode.scope.data[node.forExpression.key] = k;
+                            wrapperNode.scope.data[node.forExpression.value] = data[k];
+                            copyNodes(wrapperNode, node.itemChilds);
+                            node.children.push(wrapperNode);
+                        }
+                        // TODO: resubscribe for changes, remove subscriptions for itemChilds
 
-                }
-                node.domNode = elm;
-                if (node.attributes) {
-                    for (var a in node.attributes) {
-                        renderAttribute(elm, node.attributes[a]);
                     }
+                    // console.log(node, data);
+                    break;
                 }
-                break;
-            }
-            case 'comment': {
-                elm = document.createComment(val);
-                if (node.domNode !== null) {
-                    node.domNode.parentNode.replaceChild(elm, node.domNode);
-                } else {
-                    if (insert) {
-                        // find first previous not virtual up tree non virtual
-                        var nodeBefore = getFirstBefore(node);
-                        if (nodeBefore == null) {
-                            return;
-                            break; // throw error ??
-                        }
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
-                        } else if (nodeBefore.itsParent) {
-                            nodeBefore.node.domNode.appendChild(elm);
-                        } else {
-                            nodeBefore.node.domNode.parentNode.appendChild(elm);
-                        }
-                    } else {
-                        parent.appendChild(elm);
-                    }
-                }
-                node.domNode = elm;
-                break;
-            }
-            case 'if': {
-                // TODO: check conditon
-                // TODO: if false remove node if exists
-                // TODO: if true create element
-                node.condition.value = node.condition.func(node.instance, $this);
-                elm = parent;
-                node.parentDomNode = parent;
-                node.condition.previousValue = node.condition.value;
-                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
-                nextInsert = true;
-                break;
-            }
-            case 'else-if': {
-                // TODO: check condition
-                node.condition.value = !node.previousNode.condition.value
-                    && node.condition.func(node.instance, $this);
-                node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
-                elm = parent;
-                node.parentDomNode = parent;
-                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
-                nextInsert = true;
-                break;
-            }
-            case 'else': {
-                // TODO: check condition
-                node.condition.value = !node.previousNode.condition.previousValue;
-                elm = parent;
-                node.parentDomNode = parent;
-                node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
-                nextInsert = true;
-                break;
-            }
-            case 'template': {
-                elm = parent;
-                nextInsert = true;
-                break;
-            }
-            case 'foreach': {
-                elm = parent;
-                nextInsert = true;
-                if (elm) {
-                    // create n nodes (copy of children) and render
-                    if (!node.itemChilds) { // TODO: bug, need to rewrite
-                        node.itemChilds = node.children;
-                    }
+                case 'dynamic': { // dynamic tag or component
+                    // wrap into template
+                    // clone child for tag
+                    // or build component
+                    // render
+                    elm = parent;
+                    nextInsert = true;
                     removeDomNodes(node.children);
                     node.children = null;
-                    var args = [node.instance, $this];
-                    // args = args.concat(currentScope); // TODO concat with scope values
-                    var data = node.forExpression.data.apply(null, args);
-                    if (data && data.length > 0) {
-                        node.children = [];
-                    }
-                    var prevNode = null;
-                    for (var k in data) {
-                        var wrapperNode = {
-                            type: 'template',
-                            isVirtual: true,
-                            parent: node,
-                            previousNode: prevNode,
-                            instance: node.instance,
-                            domNode: null,
-                            scope: {
-                                stack: node.scope.stack,
-                                data: Object.assign({}, node.scope.data)
-                            }
-                        };
-                        if (prevNode) {
-                            prevNode.nextNode = wrapperNode;
-                        }
-                        prevNode = wrapperNode;
-                        wrapperNode.scope.data[node.forExpression.key] = k;
-                        wrapperNode.scope.data[node.forExpression.value] = data[k];
+                    var wrapperNode = {
+                        contents: node.contents,
+                        attributes: node.attributes,
+                        parent: node,
+                        previousNode: null,
+                        scope: node.scope,
+                        instance: node.instance,
+                        domNode: null
+                    };
+                    if (node.itemChilds) {
                         copyNodes(wrapperNode, node.itemChilds);
-                        node.children.push(wrapperNode);
                     }
-                    // TODO: resubscribe for changes, remove subscriptions for itemChilds
-
+                    if (val in avaliableTags) { // it's a tag
+                        wrapperNode.type = 'tag';
+                    } else {
+                        // build component
+                        // componentChilds
+                        wrapperNode.type = 'template';
+                        wrapperNode.isVirtual = true;
+                        wrapperNode.children = create(val, wrapperNode.children, node.attributes);
+                        // reassign parent
+                        wrapperNode.children.each(function (x) {
+                            x.parent = wrapperNode;
+                        });
+                    }
+                    node.children = [wrapperNode];
+                    // console.log(node, val);
+                    break;
                 }
-                console.log(node, data);
-                break;
-            }
-            case 'dynamic': { // dynamic tag or component
-                // wrap into template
-                // clone child for tag
-                // or build component
-                // render
-                elm = parent;
-                nextInsert = true;
-                removeDomNodes(node.children);
-                node.children = null;
-                var wrapperNode = {
-                    contents: node.contents,
-                    attributes: node.attributes,
-                    parent: node,
-                    previousNode: null,
-                    scope: node.scope,
-                    instance: node.instance,
-                    domNode: null
-                };
-                if (node.itemChilds) {
-                    copyNodes(wrapperNode, node.itemChilds);
-                }
-                if (val in avaliableTags) { // it's a tag
-                    wrapperNode.type = 'tag';
-                } else {
-                    // build component
-                    // componentChilds
-                    wrapperNode.type = 'template';
-                    wrapperNode.isVirtual = true;
-                    wrapperNode.children = create(val, wrapperNode.children, node.attributes);
-                    // reassign parent
-                    wrapperNode.children.each(function (x) {
-                        x.parent = wrapperNode;
-                    });
-                }
-                node.children = [wrapperNode];
-                console.log(node, val);
-                break;
-            }
-            case 'raw': {
-                elm = parent;
-                nextInsert = true;
-                if (node.rawNodes) {
-                    removeDomNodes(node.rawNodes);
-                }
-                node.children = null;
-                node.rawNodes = null;
-                var firstParentNode = getFirstParentWithDom(node);
-                if (firstParentNode) {
-                    // console.log(val);
-                    var vdom = document.createElement(firstParentNode.domNode.nodeName);
-                    vdom.innerHTML = val;
-                    // cases:
-                    // 1: only text node
-                    // 2: only non text node(s)
-                    // 3: text,..any, text
-                    // 4: text,.. any, non text
-                    console.log({ d: vdom });
-                    if (vdom.childNodes.length > 0) {
-                        var startI = 0;
-                        var firstClosest = getFirstBefore(node);
-                        if (!firstClosest.itsParent
-                            && firstClosest.node.type === 'text'
-                            && vdom.childNodes[0].nodeType === 3
-                        ) { // merge text
-                            firstClosest.node.domNode.nodeValue +=
-                                vdom.childNodes[0].nodeValue;
-                            startI = 1;
-                        }
-                        var newNodes = [];
-
-                        // insert after
-                        for (startI; startI < vdom.childNodes.length; startI++) {
-                            newNodes.push({
-                                domNode: vdom.childNodes[startI]
-                            });
-                        }
-                        var nextSibiling = firstClosest.node.domNode.nextSibling;
-                        if (newNodes.length > 0) {
-                            for (var i = 0; i < newNodes.length; i++) {
-                                if (nextSibiling) {
-                                    nextSibiling.parentNode.insertBefore(newNodes[i].domNode, nextSibiling);
-                                } else {
-                                    firstClosest.node.domNode.parentNode.appendChild(newNodes[i].domNode);
-                                }
+                case 'raw': {
+                    elm = parent;
+                    nextInsert = true;
+                    if (node.rawNodes) {
+                        removeDomNodes(node.rawNodes);
+                    }
+                    node.children = null;
+                    node.rawNodes = null;
+                    var firstParentNode = getFirstParentWithDom(node);
+                    if (firstParentNode) {
+                        // console.log(val);
+                        var vdom = document.createElement(firstParentNode.domNode.nodeName);
+                        vdom.innerHTML = val;
+                        // cases:
+                        // 1: only text node
+                        // 2: only non text node(s)
+                        // 3: text,..any, text
+                        // 4: text,.. any, non text
+                        // console.log({ d: vdom });
+                        if (vdom.childNodes.length > 0) {
+                            var startI = 0;
+                            var firstClosest = getFirstBefore(node);
+                            if (!firstClosest.itsParent
+                                && firstClosest.node.type === 'text'
+                                && vdom.childNodes[0].nodeType === 3
+                            ) { // merge text
+                                firstClosest.node.domNode.nodeValue +=
+                                    vdom.childNodes[0].nodeValue;
+                                startI = 1;
                             }
-                            var latestNode = newNodes[newNodes.length - 1];
-                            node.children = [{
-                                type: latestNode.domNode.nodeType === 3 ? 'text' : 'tag', // non text, tag is good
-                                parent: node,
-                                previousNode: null,
-                                scope: node.scope,
-                                instance: node.instance,
-                                domNode: latestNode.domNode
-                            }];
-                            node.rawNodes = newNodes;
+                            var newNodes = [];
+
+                            // insert after
+                            for (startI; startI < vdom.childNodes.length; startI++) {
+                                newNodes.push({
+                                    domNode: vdom.childNodes[startI]
+                                });
+                            }
+                            var nextSibiling = firstClosest.node.domNode.nextSibling;
+                            if (newNodes.length > 0) {
+                                for (var i = 0; i < newNodes.length; i++) {
+                                    if (nextSibiling) {
+                                        nextSibiling.parentNode.insertBefore(newNodes[i].domNode, nextSibiling);
+                                    } else {
+                                        firstClosest.node.domNode.parentNode.appendChild(newNodes[i].domNode);
+                                    }
+                                }
+                                var latestNode = newNodes[newNodes.length - 1];
+                                node.children = [{
+                                    type: latestNode.domNode.nodeType === 3 ? 'text' : 'tag', // non text, tag is good
+                                    parent: node,
+                                    previousNode: null,
+                                    scope: node.scope,
+                                    instance: node.instance,
+                                    domNode: latestNode.domNode
+                                }];
+                                node.rawNodes = newNodes;
+                            }
                         }
                     }
+                    return; // do not run children
                 }
-                return; // do not run children
+                default:
+                    throw new Error('Node type \'' + node.type + '\' is not implemented.');
             }
-            default:
-                throw new Error('Node type \'' + node.type + '\' is not implemented.');
         }
         elm && createDOM(elm, node.children, nextInsert, skipGroup);
     }
@@ -1197,14 +1205,14 @@ function Viewi() {
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
         if (cleanRender) {
-            currentLevelDomArray.each(function (x, k) {
-                if (
-                    !(k in takenDomArray)
-                    && x.parentNode
-                ) {
-                    x.parentNode.removeChild(x);
-                }
-            });
+            // currentLevelDomArray.each(function (x, k) {
+            //     if (
+            //         !(k in takenDomArray)
+            //         && x.parentNode
+            //     ) {
+            //         x.parentNode.removeChild(x);
+            //     }
+            // });
         }
         currentParent = previousParent;
         currentLevelDomArray = previousLevelDomArray;
@@ -1421,6 +1429,7 @@ function Viewi() {
             if (info.init) {
                 instance.__init();
             }
+            getInstanceId(instance);
             makeReactive(instance);
             if (cache) {
                 injectionCache[name] = instance;
@@ -1457,12 +1466,82 @@ function Viewi() {
         return instance;
     }
 
+    var mergeNodes = function (a, b) {
+        var la = a.length;
+        var lb = b.length;
+        if (la != lb) {
+            // console.log('Length is different', la, lb, a, b);
+            // temp solution, remove all b
+            for (var i = 0; i < lb; i++) {
+                if (b[i].domNode && b[i].domNode.parentNode) {
+                    b[i].domNode.parentNode.removeChild(b[i].domNode);
+                }
+            }
+            return; // TODO: match each node individually
+        }
+        for (var i = 0; i < la; i++) {
+            if (i < lb) {
+                var matched = true;
+                var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || x.code; }).join();
+                var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || x.code; }).join();
+                if (a[i].instance.constructor != b[i].instance.constructor) {
+                    // console.log('Instances don\'t match', [a[i].instance, b[i].instance], a[i], b[i]);
+                    matched = false;
+                }
+                if (ac != bc) {
+                    // console.log('Contents don\'t match', [ac, bc], a[i], b[i]);
+                    matched = false;
+                }
+                // compare attributes
+                // attributes[0].content attributes[0].instance attributes[0].content.children[0].content
+                var aa = a[i].attributes && a[i].attributes.select(function (x) { return x.content || ''; }).join(';');
+                var ba = b[i].attributes && b[i].attributes.select(function (x) { return x.content || ''; }).join(';');
+                if (aa != ba) { // TODO: compare attr instance and attr values
+                    // console.log('Attributes don\'t match', aa, ba);
+                    matched = false;
+                }
+                if (matched) {
+                    // all matched, reassigning DOM node
+                    a[i].domNode = b[i].domNode;
+                    a[i].skipIteration = true;
+                    // console.log('Merged:', a[i], b[i]);
+                    if (a[i].children && b[i].children) {
+                        mergeNodes(a[i].children, b[i].children);
+                    }
+                } else {
+                    // remove DOM node
+                    if (b[i].domNode && b[i].domNode.parentNode) {
+                        b[i].domNode.parentNode.removeChild(b[i].domNode);
+                    }
+                }
+            }
+        }
+    };
+
+    var parentComponentName = null;
+
     var create = function (name, childNodes, attributes, params) {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        var instance = null;
+        var builtNodes = null;
+        // if (parentComponentName === currentPage.name) {
+        // reuse wrapper components
+        var same = latestPage.components.first(function (x) {
+            return x.name === name;
+        }, true);
+        if (same) {
+            latestPage.components.splice(same[1], 1);
+            builtNodes = same[0].build;
+            instance = same[0].instance;
+        }
+        // }
+        var previousName = parentComponentName;
+        parentComponentName = name;
         var page = $this.components[name];
-        var instance = resolve(name, params);
+        instance = instance || resolve(name, params);
+
         // pass props
         if (attributes) {
             for (var ai in attributes) {
@@ -1500,8 +1579,33 @@ function Viewi() {
                 }
             }
         }
-        console.log(instance, childNodes, attributes);
-        return build(page.nodes, instance, childNodes);
+
+        var newBuild = build(page.nodes, instance, childNodes);
+        if (builtNodes) {
+            mergeNodes(newBuild, builtNodes);
+        }
+        // console.log(instance, newBuild, builtNodes, childNodes, attributes);
+        parentComponentName = previousName;
+        // if (parentComponentName === currentPage.name) {
+        currentPage.components.push({
+            name: name,
+            build: newBuild,
+            instance: instance
+        });
+        // }
+        return newBuild;
+    };
+
+    var currentPage = {
+        name: null,
+        nodes: null,
+        components: []
+    };
+
+    var latestPage = {
+        name: null,
+        nodes: null,
+        components: []
     };
 
     this.render = function (name, params) {
@@ -1511,9 +1615,15 @@ function Viewi() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        parentComponentName = null;
+        latestPage = currentPage;
+        currentPage = {};
+        currentPage.name = name;
+        currentPage.components = [];
         var nodes = create(name, null, null, params);
+        currentPage.nodes = nodes;
         // document.childNodes[1].remove();
-        console.log(nodes);
+        // console.log(latestPage, currentPage);
         cleanRender = true;
         createDOM(document, nodes, false);
         cleanRender = false;
