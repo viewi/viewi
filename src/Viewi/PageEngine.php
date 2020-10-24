@@ -42,8 +42,7 @@ class PageEngine
     private string $buildPath;
     private string $publicBuildPath;
     private ?PageTemplate $latestPageTemplate = null;
-    private int $slotCounter = 0;
-
+    private array $slotCounterMap;
     /** @var ComponentInfo[] */
     private array $components;
 
@@ -367,6 +366,7 @@ class PageEngine
         if ($this->compiled) {
             return;
         }
+        $this->slotCounterMap = [];
         $this->_CompileExpressionPrefix = $this->_CompileComponentName . '->';
         $this->expressionsTranslator = new JsTranslator('');
         $this->expressionsTranslator->setOuterScope();
@@ -814,7 +814,8 @@ class PageEngine
         $lastLineIsSpace = false; // $this->lastLineIsSpace;
         $children = $tagItem->getChildren();
         $slots = [];
-        $slotContentName = false;
+        $slotContentNameExpr = false;
+        $slotContentName = '';
         $componentBaseName = '';
         if (!empty($children)) { // has slot(s)
 
@@ -830,9 +831,11 @@ class PageEngine
                         if ($childTag->Content === 'name') {
                             $slotNameAttributeValues = $childTag->getChildren();
                             if (!empty($slotNameAttributeValues)) {
-                                $slotContentName = "'{$slotNameAttributeValues[0]->Content}'";
+                                $slotContentName = $slotNameAttributeValues[0]->Content;
+                                $slotContentNameExpr = "'{$slotNameAttributeValues[0]->Content}'";
                                 if ($slotNameAttributeValues[0]->ItsExpression) {
-                                    $slotContentName = $this->convertExpressionToCode($slotNameAttributeValues[0]->Content);
+                                    $slotContentNameExpr = $this->convertExpressionToCode($slotNameAttributeValues[0]->Content);
+                                    $slotContentName = '';
                                 }
                             }
                         }
@@ -841,10 +844,17 @@ class PageEngine
                 $tagItem = $defaultTagItem;
             }
 
-            $this->slotCounter++;
-            $partialComponentName = $slotContentName ? '_SlotContent' : '_Slot';
-            $componentBaseName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
-                "$partialComponentName{$this->slotCounter}";
+            $partialComponentName = $slotContentName ? '_' . ucfirst($slotContentName) : '_Slot';
+            $slotFileName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
+                "$partialComponentName";
+            if (!isset($this->slotCounterMap[$slotFileName])) {
+                $this->slotCounterMap[$slotFileName] = 0;
+            } else {
+                $this->slotCounterMap[$slotFileName]++;
+                $slotFileName .= $this->slotCounterMap[$slotFileName];
+            }
+
+            $componentBaseName = $slotFileName;
             $slotPageTemplate = new PageTemplate();
             $slotPageTemplate->ItsSlot = true;
             $slotPageTemplate->RootTag = $tagItem;
@@ -881,9 +891,9 @@ class PageEngine
         $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
         $codeEnd = $this->renderReturn ? '' : '?>';
 
-        if ($slotContentName) {
+        if ($slotContentNameExpr) {
 
-            $html .= "{$codeBegin}{$this->identation}\$slotContents[$slotContentName] = '{$componentBaseName}';$eol{$codeEnd}";
+            $html .= "{$codeBegin}{$this->identation}\$slotContents[$slotContentNameExpr] = '{$componentBaseName}';$eol{$codeEnd}";
         } else {
             $scopeArguments = implode(', ', $this->componentArguments);
             if ($scopeArguments) {
