@@ -925,7 +925,7 @@ class PageEngine
                 "$componentName, " .
                 "[], " .
                 "{$this->_CompileComponentName}, " .
-                "\$slotContents, " .
+                "\$slotContents + \$slots, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
                 PHP_EOL . $this->identation . "\$slotContents = [];" .
@@ -968,7 +968,7 @@ class PageEngine
         if (!$defaultContent) {
             $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, [], []); $codeEnd";
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents + \$slots, []); $codeEnd";
         }
     }
 
