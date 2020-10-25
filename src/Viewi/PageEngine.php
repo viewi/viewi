@@ -50,6 +50,8 @@ class PageEngine
     private array $tokens;
     /** @var string[] */
     private array $compiledJs;
+    /** @var array<string,array<string,array<string,bool>>> */
+    private array $componentDependencies;
     /** @var PageTemplate[] */
     private array $templates;
 
@@ -349,7 +351,8 @@ class PageEngine
                 $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->getRequestedIncludes());
             }
             // $this->debug($className);
-            // $this->debug($translator->GetVariablePaths());
+            // $this->debug($translator->getVariablePaths());
+            $this->componentDependencies += $translator->getVariablePaths();
             $this->compiledJs[$className] = $jscode;
         }
     }
@@ -371,6 +374,7 @@ class PageEngine
         $this->expressionsTranslator = new JsTranslator('');
         $this->expressionsTranslator->setOuterScope();
         $this->compiledJs = [];
+        $this->componentDependencies = [];
         $this->compiled = true;
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
@@ -681,6 +685,7 @@ class PageEngine
         }
         $tagItem->PhpExpression = $phpCode;
         $detectedReferences = $this->expressionsTranslator->getVariablePaths();
+        // $this->debug($detectedReferences);
         $this->requestedIncludes = array_merge(
             $this->requestedIncludes,
             $this->expressionsTranslator->getRequestedIncludes()
@@ -692,7 +697,40 @@ class PageEngine
                 },
                 array_keys($detectedReferences['global']['function'])
             );
-            $tagItem->Subscriptions = $subscriptions;
+            if ($subscriptions) {
+                $tagItem->Subscriptions = $subscriptions;
+                // merge with dependent subscriptions
+                $componentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
+                // $this->debug($componentName);
+                if (isset($this->componentDependencies[$componentName])) {
+                    // $this->debug($tagItem->Subscriptions);
+                    // $this->debug($this->componentDependencies[$componentName]);
+                    $used = [];
+
+                    $componentDeps = $this->componentDependencies[$componentName];
+                    $digIn = true;
+                    $i = 0;
+                    while ($digIn) {
+                        $digIn = false;
+                        $count = count($tagItem->Subscriptions);
+                        for ($i; $i < $count; $i++) {
+                            // $this->debug($tagItem->Subscriptions[$i]);
+                            // $this->debug($componentDeps);
+                            $cleanName = str_replace('this.', '', $tagItem->Subscriptions[$i]);
+                            if (isset($componentDeps[$cleanName])) {
+                                foreach ($componentDeps[$cleanName] as $dep => $ghost) {
+                                    if (!isset($used[$dep])) {
+                                        $used[$dep] = true;
+                                        $tagItem->Subscriptions[] = $dep;
+                                        $digIn = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // $this->debug($tagItem->Subscriptions);
+            }
         }
         // $this->debug($phpCode);
         // $this->debug($tagItem->JsExpression);
@@ -1396,6 +1434,7 @@ class PageEngine
                                 $attributeName = $parts[0];
                                 $valueToReplace = $parts[1];
                                 $childTag->Content = $attributeName;
+                                $this->combineChildren($childTag);
                             }
                             if (isset($newChildren[$attributeName])) { // merge values
                                 $firstTime = true;

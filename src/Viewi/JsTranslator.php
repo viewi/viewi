@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use ReflectionClass;
+use Viewi\JsFunctions\BreakCondition;
 
 require 'JsFunctions/export.php';
 
@@ -131,7 +132,7 @@ class JsTranslator
     private $pasteArrayReactivity;
     private array $requestedIncludes = [];
     private int $anonymousCounter = 0;
-    
+
     public function __construct(string $content)
     {
         if (!self::$functionConvertersInited) {
@@ -335,7 +336,7 @@ class JsTranslator
             $this->collectVariablePath = false;
             if ($this->currentVariablePath !== '') {
                 $class = $this->currentClass ?? 'global';
-                $method = $this->currentMethod ?? 'function';
+                $method = $this->currentMethod ? $this->currentMethod.'()' : 'function';
                 if (!isset($this->variablePaths[$class])) {
                     $this->variablePaths[$class] = [];
                 }
@@ -932,7 +933,7 @@ class JsTranslator
         // $this->debug('==========' . $classHead . '==========');
         return $classHead;
     }
-  
+
     private function readFunction(string $modifier): string
     {
         $private = $modifier === 'private';
@@ -1264,6 +1265,7 @@ class JsTranslator
             }
             $this->position++;
         }
+        $string = implode("\\n' +\n '", explode(PHP_EOL, $string));
         return "'$string'";
     }
 

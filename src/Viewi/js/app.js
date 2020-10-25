@@ -202,7 +202,7 @@ function Viewi() {
             contentExpression.func = Function.apply(null, args);
             return contentExpression;
         }
-        return { call: false, content: item.content };
+        return { call: false, content: $this.decode(item.content) };
     }
 
     var specialTags = ['template'];
@@ -1639,6 +1639,13 @@ function Viewi() {
         return typeof html === 'string' ? html.replace(/[\u00A0-\u9999<>\&]/gim, function (i) {
             return '&#' + i.charCodeAt(0) + ';';
         }) : html;
+    }
+
+    var encoder = document.createElement('textarea');
+
+    this.decode = function (text) {        
+        encoder.innerHTML = text;
+        return encoder.value;
     }
 }
 var app = new Viewi();
