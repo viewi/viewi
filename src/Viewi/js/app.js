@@ -893,21 +893,24 @@ function Viewi() {
                                     return x.isEqualNode(newNode);
                                 }
                             );
-                            node.domNode = equalNode;
-                            // console.log('Reusing from cache', equalNode);
-                            // put in correct order
-                            var nodeBefore = getFirstBefore(node);
-                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                            if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
-                            } else if (nodeBefore.itsParent) {
-                                nodeBefore.node.domNode.appendChild(equalNode);
-                            } else {
-                                nodeBefore.node.domNode.parentNode.appendChild(equalNode);
+                            if (equalNode) {
+                                node.domNode = equalNode;
+                                // console.log('Reusing from cache', equalNode);
+                                // put in correct order
+                                var nodeBefore = getFirstBefore(node);
+                                var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                                if (!nodeBefore.itsParent && nextSibiling !== null) {
+                                    nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
+                                } else if (nodeBefore.itsParent) {
+                                    nodeBefore.node.domNode.appendChild(equalNode);
+                                } else {
+                                    nodeBefore.node.domNode.parentNode.appendChild(equalNode);
+                                }
+                                break;
                             }
                         }
                         // isEqualNode
-                        break; // skip script for now, TODO: process scripts, styles
+                        // skip script for now, TODO: process scripts, styles
                     }
                     if (val === 'head') {
                         var firstMatch = currentLevelDomArray.first(
@@ -964,6 +967,9 @@ function Viewi() {
 
                     }
                     node.domNode = elm;
+                    if (val in resourceTags) {
+                        resourcesCache.push(elm);
+                    }
                     if (node.attributes) {
                         for (var a in node.attributes) {
                             renderAttribute(elm, node.attributes[a]);
