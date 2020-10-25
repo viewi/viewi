@@ -1629,6 +1629,7 @@ class PageEngine
             $inputArguments = [];
             // extract slotContents and input arguments
             $children = $tagItem->getChildren();
+            // $this->debug($tagItem->Content  .count($children));            
             foreach ($children as &$childTag) {
                 if (
                     $childTag->Type->Name === TagItemType::Tag
@@ -1652,14 +1653,20 @@ class PageEngine
                     foreach ($values as $propValue) {
                         $this->compileExpression($propValue);
                     }
-                    //$this->debug($tagItem->Content);
+                    // $this->debug($tagItem->Content);                    
                     if ($dynamicTagDetected || isset($this->components[$tagItem->Content])) {
                         if (!$dynamicTagDetected) {
-                            $className = $this->components[$tagItem->Content]->ComponentName;
+                            $componentInfo = $this->components[$tagItem->Content];
+                            $className = $componentInfo->Namespace . '\\' . $componentInfo->Name;
                             include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
                         }
+                        // if ($tagItem->Content == 'HelloMessage') {
+                        //     $this->debug($tagItem->Content . ': ' . $childTag->Content . '=' . $values[0]->Content);
+                        //     $this->debug($className);
+                        // }
                         if ($dynamicTagDetected || class_exists($className)) {
                             //$this->debug($className);
+
                             if (!$dynamicTagDetected) {
                                 if (!isset($this->components[$tagItem->Content]->Inputs)) {
                                     $this->components[$tagItem->Content]->Inputs = [];
