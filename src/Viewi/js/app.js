@@ -213,7 +213,7 @@ function Viewi() {
 
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
-        var parentNode = arguments.length > 3 ? arguments[3] : null; ``
+        var parentNode = arguments.length > 3 ? arguments[3] : null;
         var children = parent.children;
         var currentNodeList = [];
         var skip = false;
@@ -847,7 +847,7 @@ function Viewi() {
                 }
                 case 'tag': {
                     if (parent === document) {
-                        elm = document.children[0];
+                        elm = document.childNodes[1];
                         node.domNode = elm;
                         takenDomArray[0] = true;
                         takenDomArray[1] = true;
@@ -1643,7 +1643,7 @@ function Viewi() {
 
     var encoder = document.createElement('textarea');
 
-    this.decode = function (text) {        
+    this.decode = function (text) {
         encoder.innerHTML = text;
         return encoder.value;
     }
