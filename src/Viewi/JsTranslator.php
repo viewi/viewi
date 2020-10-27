@@ -5,6 +5,7 @@ namespace Viewi;
 use Exception;
 use ReflectionClass;
 use Viewi\JsFunctions\BreakCondition;
+use Viewi\JsFunctions\BaseFunctionConverter;
 
 require 'JsFunctions/export.php';
 
