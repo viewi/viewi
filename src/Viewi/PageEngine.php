@@ -45,7 +45,8 @@ class PageEngine
     private array $slotCounterMap;
     /** @var ComponentInfo[] */
     private array $components;
-
+    /** @var \ReflectionClass[] */
+    private array $componentReflectionTypes;
     /** @var mixed[] */
     private array $tokens;
     /** @var string[] */
@@ -412,6 +413,7 @@ class PageEngine
             $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
+                $this->componentReflectionTypes[$className] = $reflectionClass;
             }
             $this->compileToJs($reflectionClass);
         }
@@ -650,7 +652,14 @@ class PageEngine
                     if ($i > 0 && $keywords[$i - 1] === '->') { // nested property or method
                         $newExpression .= $keyword;
                     } else if ($i + 1 < $count && $keywords[$i + 1] === '(') { // method call
-                        $newExpression .= $this->_CompileExpressionPrefix . $keyword;
+                        // check if method exists
+                        $componentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
+                        if ($this->componentReflectionTypes[$componentName]->hasMethod($keyword)) {
+                            $newExpression .= $this->_CompileExpressionPrefix . $keyword;
+                        } else {
+                            // otherwise it's just a function
+                            $newExpression .= $keyword;
+                        }
                     } else {
                         $newExpression .= $spaces[$i] . $keyword;
                     }
