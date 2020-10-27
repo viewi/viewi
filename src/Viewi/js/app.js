@@ -505,6 +505,9 @@ function Viewi() {
                                             || node.type === 'component'
                                         ) { // we need props
                                             valCopy.propExpression = getDataExpression(v, instance, null, true);
+                                            if (v.subs) {
+                                                valCopy.subs = v.subs;
+                                            }
                                         }
 
                                         valCopy.content = v.content; // keep it for slots
@@ -1290,7 +1293,7 @@ function Viewi() {
 
     var renderQueue = {};
     var subscribers = {};
-
+    var propsSubs = {};
 
     var listenTo = function (node, path) {
         var isAttribute = node.isAttribute;
@@ -1303,6 +1306,23 @@ function Viewi() {
             subscribers[iid][path] = [];
         }
         subscribers[iid][path].push(node);
+
+        if (path in propsSubs) {
+            var propSubscription = propsSubs[path];
+            var propInstance = propSubscription.instance;
+            var propPaths = propSubscription.subs;
+            var iidProp = getInstanceId(propInstance);
+            if (!(iidProp in subscribers)) {
+                subscribers[iidProp] = {};
+            }
+            for (var p in propPaths) {
+                var propPath = propPaths[p];
+                if (!(propPath in subscribers[iidProp])) {
+                    subscribers[iidProp][propPath] = [];
+                }
+                subscribers[iidProp][propPath].push(node);
+            }
+        }
     }
 
     // TODO: on change conditions, insert element if new, remove if not active
@@ -1543,6 +1563,8 @@ function Viewi() {
             instance = same[0].instance;
         }
         // }
+        var previousPropsSubs = propsSubs;
+        propsSubs = {};
         var previousName = parentComponentName;
         parentComponentName = name;
         var page = $this.components[name];
@@ -1564,7 +1586,13 @@ function Viewi() {
                                     args.push(attr.scope.data[attr.scope.stack[k]]);
                                 }
                             }
-                            currentValue = propExpression.func.apply(null, args);
+                            currentValue = propExpression.func.apply(null, args);                            
+                            if (attr.children[i].subs) {
+                                propsSubs['this.' + attr.content] = {
+                                    instance: attr.instance,
+                                    subs: attr.children[i].subs
+                                };
+                            }
                         } else {
                             currentValue = propExpression.content;
                         }
@@ -1587,6 +1615,7 @@ function Viewi() {
         }
 
         var newBuild = build(page.nodes, instance, childNodes);
+        propsSubs = previousPropsSubs;
         if (builtNodes) {
             mergeNodes(newBuild, builtNodes);
         }
