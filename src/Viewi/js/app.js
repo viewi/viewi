@@ -1246,7 +1246,9 @@ function Viewi() {
                 removeDomNodes(nodes[k].children);
             }
             if (nodes[k].domNode) {
-                nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
+                if (nodes[k].domNode.parentNode) {
+                    nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
+                }
                 nodes[k].domNode = null;
             }
         }
