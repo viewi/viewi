@@ -21,6 +21,7 @@ class JsTranslator
     private array $scope;
     private int $scopeLevel = 0;
     private ?string $currentClass = null;
+    private array $staticCache;
     private ?string $currentMethod = null;
     private array $allowedOperators = [
         '+' => ['+', '+=', '++'], '-' => ['-', '-=', '--', '->'], '*' => ['*', '*=', '**', '*/'], '/' => ['/', '/=', '/*', '//'],
@@ -180,6 +181,7 @@ class JsTranslator
         $this->currentClass = null;
         $this->latestVariablePath = '';
         $this->pasteArrayReactivity = false;
+        $this->staticCache = [];
     }
 
     public function includeJsFile(string $name, string $filePath)
@@ -337,7 +339,7 @@ class JsTranslator
             $this->collectVariablePath = false;
             if ($this->currentVariablePath !== '') {
                 $class = $this->currentClass ?? 'global';
-                $method = $this->currentMethod ? $this->currentMethod.'()' : 'function';
+                $method = $this->currentMethod ? $this->currentMethod . '()' : 'function';
                 if (!isset($this->variablePaths[$class])) {
                     $this->variablePaths[$class] = [];
                 }
@@ -690,11 +692,16 @@ class JsTranslator
                     case 'public': {
                             $public = $keyword === 'public';
                             $typeOrName = $this->matchKeyword();
+                            $static = false;
+                            if ($typeOrName == 'static') {
+                                $static = true;
+                                $typeOrName = $this->matchKeyword();
+                            }
                             if ($typeOrName === '?') {
                                 $typeOrName = $this->matchKeyword();
                             }
                             if ($typeOrName === 'function') {
-                                $fn = $this->readFunction($keyword);
+                                $fn = $this->readFunction($keyword, $static);
                                 $code .= $identation . $fn;
                                 break;
                             } else if ($typeOrName[0] === '$') {
@@ -889,7 +896,8 @@ class JsTranslator
 
     private function processClass(): string
     {
-
+        $previousStaticCache = $this->staticCache;
+        $this->staticCache = [];
         $className = $this->matchKeyword();
         $classHead = "var $className = function (";
         $option = $this->matchKeyword();
@@ -925,30 +933,40 @@ class JsTranslator
             $arguments = $this->constructors[$className]['arguments'];
         }
 
-        $classHead .= $arguments . ') ' . '{' . PHP_EOL . $classCode . '};' . PHP_EOL . PHP_EOL;
+        $classHead .= $arguments . ') ' . '{' . PHP_EOL . $classCode . '};';
+
+
+
         $this->lastKeyword = '}';
         $this->scope = $previousScope;
         $this->scopeLevel = $previousScopeLevel;
         $this->currentIdentation = $lastIdentation;
 
+        foreach ($this->staticCache as $static) {
+            $classHead .= PHP_EOL . $this->currentIdentation . $static;
+        }
+        $classHead .= PHP_EOL . PHP_EOL;
+        $this->staticCache = $previousStaticCache;
         // $this->debug('==========' . $classHead . '==========');
         return $classHead;
     }
 
-    private function readFunction(string $modifier): string
+    private function readFunction(string $modifier, bool $static = false): string
     {
         $private = $modifier === 'private';
-
         $functionName = $this->matchKeyword();
         $constructor = $functionName === '__construct';
         $anonymous = $functionName === '(';
         $functionCode = '';
+        $staticIdentation = $static ? substr($this->currentIdentation, 0, -4) : $this->currentIdentation;
         if ($anonymous) { // anonymous function
             $functionCode .= 'function (';
             $functionName = 'anonymousFn' . (++$this->anonymousCounter);
             $private = true;
         } else {
-            $functionCode = PHP_EOL . $this->currentIdentation . ($private ? 'var ' : 'this.')
+            $functionCode = PHP_EOL . $staticIdentation . ($static
+                ? $this->currentClass . '.'
+                : ($private ? 'var ' : 'this.'))
                 . $functionName . ' = function (';
         }
         $this->currentMethod = $functionName;
@@ -964,8 +982,9 @@ class JsTranslator
         $this->skipToTheSymbol('{');
         $this->lastKeyword = '{';
         $lastIdentation = $this->currentIdentation;
-        $this->currentIdentation .= $this->identation;
-
+        if (!$static) {
+            $this->currentIdentation .= $this->identation;
+        }
         $this->putIdentation = true;
         $body = '';
         // default arguments
@@ -987,7 +1006,7 @@ class JsTranslator
 
         $this->currentIdentation = $lastIdentation;
 
-        $functionCode .= '{' . PHP_EOL . $body . $this->currentIdentation .
+        $functionCode .= '{' . PHP_EOL . $body . $staticIdentation .
             ($anonymous ? '}' :   '};' . PHP_EOL);
         // echo 'F lastKeyword:  "' . $this->lastKeyword . '"' . PHP_EOL;
         $this->lastKeyword = '}';
@@ -996,6 +1015,10 @@ class JsTranslator
             $this->constructors[$this->currentClass] = $arguments;
         }
         $this->currentMethod = null;
+        if ($static) {
+            $this->staticCache[] = $functionCode;
+            return PHP_EOL;
+        }
         return $functionCode;
     }
 
