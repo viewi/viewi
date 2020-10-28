@@ -202,7 +202,7 @@ function Viewi() {
             contentExpression.func = Function.apply(null, args);
             return contentExpression;
         }
-        return { call: false, content: $this.decode(item.content) };
+        return { call: false, content: item.raw ? item.content : $this.decode(item.content) };
     }
 
     var specialTags = ['template'];
@@ -1168,8 +1168,10 @@ function Viewi() {
                             var nextSibiling = firstClosest.node.domNode.nextSibling;
                             if (newNodes.length > 0) {
                                 for (var i = 0; i < newNodes.length; i++) {
-                                    if (nextSibiling) {
+                                    if (!firstClosest.itsParent && nextSibiling) {
                                         nextSibiling.parentNode.insertBefore(newNodes[i].domNode, nextSibiling);
+                                    } else if (firstClosest.itsParent) {
+                                        firstClosest.node.domNode.appendChild(newNodes[i].domNode);
                                     } else {
                                         firstClosest.node.domNode.parentNode.appendChild(newNodes[i].domNode);
                                     }
@@ -1586,7 +1588,7 @@ function Viewi() {
                                     args.push(attr.scope.data[attr.scope.stack[k]]);
                                 }
                             }
-                            currentValue = propExpression.func.apply(null, args);                            
+                            currentValue = propExpression.func.apply(null, args);
                             if (attr.children[i].subs) {
                                 propsSubs['this.' + attr.content] = {
                                     instance: attr.instance,

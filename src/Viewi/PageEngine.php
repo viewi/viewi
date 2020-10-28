@@ -684,6 +684,15 @@ class PageEngine
             $code .= $this->renderReturn ? '' : '?>';
             $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
             $tagItem->RawHtml = true;
+        } else if ($expression[0] === '#' && $expression[strlen($expression) - 1] === '#') {
+            // injected html during the build
+            $tagItem->ItsExpression = false;
+            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
+            // $this->debug($phpCode);
+            $tagItem->Content = eval('return ' . $phpCode . ';');
+            $code .= $tagItem->Content;
+            $tagItem->RawHtml = true;
+            return $code;
         } else {
             $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
             $phpCode = $this->convertExpressionToCode($expression, $reserved);

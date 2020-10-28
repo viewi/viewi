@@ -25,14 +25,14 @@ class TagItem
         $node['content'] = $this->Content;
         $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
         $node['expression'] = $this->ItsExpression;
+        if ($this->RawHtml) {
+            $node['raw'] = true;
+        }
         if ($this->ItsExpression) {
             $node['code'] = $this->JsExpression;
             unset($node['content']);
             if ($this->Subscriptions != null) {
                 $node['subs'] = $this->Subscriptions;
-            }
-            if ($this->RawHtml) {
-                $node['raw'] = true;
             }
             if (isset($this->DataExpression)) {
                 if ($this->DataExpression->ForData !== null) {
