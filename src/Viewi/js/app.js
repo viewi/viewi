@@ -368,11 +368,10 @@ function Viewi() {
             }
             var component = false;
             node = {
-                // TODO: process foreach
+                id: ++nextNodeId,
                 type: item.type,
                 contents: [getDataExpression(item, instance)],
                 domNode: null, // DOM node if rendered
-                // conditions: [true], // collection of expressions (if,else,elseif)
                 parent: parentNode, // TODO: make imutable
                 instance: instance,
                 previousNode: previousNode
@@ -709,13 +708,13 @@ function Viewi() {
         for (var i in nodes) {
             if (nodes[i].domNode !== null) {
                 // TODO: remove children
+                if (nodes[i].children) {
+                    removeDomNodes(nodes[i].children);
+                }
                 // TODO: on remove rerender sibilings before and after if text or virtual
                 nodes[i].domNode.parentNode.removeChild(nodes[i].domNode);
                 nodes[i].domNode = null;
-            }
-            if (nodes[i].children) {
-                removeDomNodes(nodes[i].children);
-            }
+            }            
         }
     }
 
@@ -943,6 +942,7 @@ function Viewi() {
 
                     if (existenElm && existenElm[0].parentNode) {
                         existenElm[0].parentNode.removeChild(existenElm[0]);
+                        takenDomArray[existenElm[1]] = true;
                     }
                     elm = document.createElement(val);
 
@@ -1248,6 +1248,8 @@ function Viewi() {
             if (nodes[k].domNode) {
                 if (nodes[k].domNode.parentNode) {
                     nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
+                } else {
+                    console.log('Can\'t remove', nodes[k]);
                 }
                 nodes[k].domNode = null;
             }
