@@ -714,7 +714,7 @@ function Viewi() {
                 // TODO: on remove rerender sibilings before and after if text or virtual
                 nodes[i].domNode.parentNode.removeChild(nodes[i].domNode);
                 nodes[i].domNode = null;
-            }            
+            }
         }
     }
 
@@ -1656,6 +1656,7 @@ function Viewi() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        subscribers = {};
         parentComponentName = null;
         latestPage = currentPage;
         currentPage = {};
