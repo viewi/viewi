@@ -1536,6 +1536,9 @@ function Viewi() {
                     // all matched, reassigning DOM node
                     a[i].domNode = b[i].domNode;
                     a[i].skipIteration = true;
+                    if (b[i].rawNodes) {
+                        a[i].rawNodes = b[i].rawNodes;
+                    }
                     // console.log('Merged:', a[i], b[i]);
                     if (a[i].children && b[i].children) {
                         mergeNodes(a[i].children, b[i].children);
