@@ -120,7 +120,7 @@ Features
 
 ## How does it work ?
 
-Under the hood Viewi translates your entire view components into the javascript, and uses it for front end reactive application.
+Under the hood Viewi translates view components into the javascript, and uses it for front end reactive application.
 
 ## Short documentation
 
@@ -134,7 +134,7 @@ Run `php test.php backend`
 Support
 --------
 
-For over six months we dedicated most of our free time to this project and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
+We all have full-time jobs and do this in our free time for over six months now and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
 
  - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
  - Contribute by sending pull requests.

@@ -67,13 +67,13 @@ $html = $page->render(HomeComponent::class);
 
 # Supported features
 
-## Render variable
-`<div>$myVar</div>` or `<div>{$myVar}</div>`. In case of class or array use `{}` `<div>{$user->Name}</div>`. All values are automatically escaped.
+## Render property
+`<div>$myVar</div>` or `<div>{$myVar}</div>`. In case of object or array use `{}` `<div>{$user->Name}</div>`. All values are automatically encoded.
 
-## Render method\`s call result
-`<div>{method()}</div>`. All values are automatically escaped.
+## Render method\`s call result with {expression} syntax
+`<div>{method()}</div>`. All values are automatically encoded.
 
-## Render raw html
+## Render raw html with {{expression}} syntax
 `<div>{{$raw}}</div>`
 
 ## Render component
