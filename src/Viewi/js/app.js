@@ -109,6 +109,7 @@ function Viewi() {
     this.componentsUrl = '/build/components.json';
     this.components = {};
     var htmlElementA = document.createElement('a');
+    var hydrate = false;
 
     var getPathName = function (href) {
         htmlElementA.href = href;
@@ -135,6 +136,7 @@ function Viewi() {
                     router.register(x.method, x.url, x.component);
                 });
                 cacheResources();
+                hydrate = true;
                 $this.go(location.href, false);
             });
         // catch all locl A tags click
@@ -581,7 +583,7 @@ function Viewi() {
         return currentNodeList;
     };
 
-    var renderAttribute = function (elm, attr) {
+    var renderAttribute = function (elm, attr, eventsOnly) {
         if (!elm) {
             return;
         }
@@ -605,7 +607,10 @@ function Viewi() {
                 }
                 attr.latestValue = attrName;
             }
-            if (attrName[0] === '(') { // TODO: attach event only once
+            if (attrName[0] === '(') {
+                if (hydrate && !eventsOnly) {
+                    return; // no events just yet
+                }
                 var eventName = attrName.substring(1, attrName.length - 1);
                 var actionContent = null;
                 if (attr.dynamic) {
@@ -625,6 +630,9 @@ function Viewi() {
                 };
                 elm.addEventListener(eventName, attr.listeners[attrName]);
             } else {
+                if (eventsOnly && attrName !== 'value') {
+                    return;
+                }
                 var texts = [];
                 for (var i in attr.children) {
                     var contentExpression = attr.children[i].contentExpression;
@@ -643,6 +651,9 @@ function Viewi() {
                 var val = texts.join('');
                 elm.setAttribute(attrName, val);
                 if (attrName === 'value') {
+                    if (hydrate && !eventsOnly) {
+                        return; // no events just yet
+                    }
                     elm.value = val;
                     var eventName = 'input';
                     if (!attr.listeners) {
@@ -807,8 +818,8 @@ function Viewi() {
         } else {
             switch (node.type) {
                 case 'text': { // TODO: implement text insert
-                    if (parent === document) {
-                        elm = document.childNodes[0]; // TODO: check for <!DOCTYPE html> node
+                    if (parent.doctype) {
+                        elm = parent.doctype; // TODO: check for <!DOCTYPE html> node
                         break;
                     }
                     var skip = false;
@@ -848,14 +859,14 @@ function Viewi() {
                     break;
                 }
                 case 'tag': {
-                    if (parent === document) {
-                        elm = document.childNodes[1];
+                    if (parent.documentElement) {
+                        elm = parent.documentElement;
                         node.domNode = elm;
                         takenDomArray[0] = true;
                         takenDomArray[1] = true;
                         break;
                     }
-                    if (val in resourceTags) {
+                    if (!hydrate && val in resourceTags) {
                         // create to compare
                         var newNode = elm = document.createElement(val);
                         createDOM(newNode, node.children, nextInsert, skipGroup);
@@ -914,7 +925,7 @@ function Viewi() {
                         // isEqualNode
                         // skip script for now, TODO: process scripts, styles
                     }
-                    if (val === 'head') {
+                    if (!hydrate && val === 'head') {
                         var firstMatch = currentLevelDomArray.first(
                             function (x) {
                                 return x.nodeName.toLowerCase() === val;
@@ -941,8 +952,15 @@ function Viewi() {
                     ) : null;
 
                     if (existenElm && existenElm[0].parentNode) {
-                        existenElm[0].parentNode.removeChild(existenElm[0]);
                         takenDomArray[existenElm[1]] = true;
+                        if (currentElemPosition == existenElm[1]) {
+                            // reuse
+                            elm = existenElm[0];
+                            node.domNode = elm;
+                            break;
+                        } else {
+                            existenElm[0].parentNode.removeChild(existenElm[0]);
+                        }
                     }
                     elm = document.createElement(val);
 
@@ -1202,6 +1220,7 @@ function Viewi() {
     var currentLevelDomArray = [];
     var takenDomArray = {};
     var cleanRender = false;
+    var currentElemPosition = 0;
 
     var createDOM = function (parent, nodes, insert, skipGroup) {
         var previousParent = currentParent;
@@ -1213,6 +1232,7 @@ function Viewi() {
             takenDomArray = {};
         }
         for (var i in nodes) {
+            currentElemPosition = i;
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
         if (cleanRender) {
@@ -1652,6 +1672,127 @@ function Viewi() {
         components: []
     };
 
+    /**
+     * 
+     * @param {vNode} node 
+     * @param {Node} domElement 
+     */
+    var hydrateDOM = function (node, domElement) {
+        // nodeName - tag name
+        // nodeType - 1 tag, 3 text, 8 comment
+        // nodeValue for text and comment
+        var same = node.domNode.nodeType === domElement.nodeType;
+        if (same) {
+            if (node.domNode.nodeType === 3 || node.domNode.nodeType == 8) {
+                same = node.domNode.nodeValue == domElement.nodeValue;
+                if (same) {
+                    node.domNode = domElement;
+                }
+            } else if (node.domNode.nodeType === 1) {
+                // compare 1. tag name, 2.attributes, 3. children, 4. attach events
+                // 1. tag name
+                same = node.domNode.nodeName == domElement.nodeName;
+                if (same) {
+                    var oldParent = node.domNode;
+                    node.domNode = domElement;
+                    var s = 0; // shift fot virtual nodes
+                    var count = domElement.childNodes.length;
+                    var maxNodes = node.children ? node.children.length : 0;
+                    if (count < maxNodes) {
+                        // normalize
+                        if (
+                            node.children[maxNodes - 1].domNode
+                            && node.children[maxNodes - 1].domNode.nodeType === 3
+                            && domElement.childNodes[count - 1] !== 3
+                            && /^\s*$/.test(node.children[maxNodes - 1].domNode.nodeValue)
+                        ) {
+                            // oldParent.removeChild(node.children[maxNodes - 1].domNode);
+                            // node.children.splice(maxNodes - 1, 1);
+                            // node.children[maxNodes - 2].nextNode = null;
+                            domElement.appendChild(node.children[maxNodes - 1].domNode);
+                        }
+
+                        if (
+                            node.children[0].domNode
+                            && node.children[0].domNode.nodeType === 3
+                            && domElement.childNodes[0] !== 3
+                            && /^\s*$/.test(node.children[0].domNode.nodeValue)
+                        ) {
+                            // oldParent.removeChild(node.children[0].domNode);
+                            // node.children.splice(0, 1);
+                            // node.children[0].previousNode = null;
+                            domElement.insertBefore(node.children[0].domNode, domElement.childNodes[0]);
+                        }
+                        maxNodes = node.children.length;
+                        count = domElement.childNodes.length;
+                    }
+                    var nodesToRemove = [];
+                    var vNodes = [];
+                    for (var i = 0; i < maxNodes; i++) {
+                        if (node.children[i].rawNodes) {
+                            vNodes = vNodes.concat(node.children[i].rawNodes);
+                        } else {
+                            vNodes.push(node.children[i]);
+                        }
+                    }
+                    var vCount = vNodes.length;
+                    for (var i = 0; i < count; i++) {
+                        while (i + s < vCount && !vNodes[i + s].domNode) { // TODO: support vistual nodes, dig deeper
+                            s++;
+                        }
+                        if (i + s < vCount) {
+                            var sameChild = !vNodes[i + s].type || hydrateDOM(vNodes[i + s], domElement.childNodes[i]);
+                            if (!sameChild) {
+                                // nodesToRemove.push(i);
+                                // reattach parent
+                                if (node.domNode !== vNodes[i + s].domNode.parentNode) {
+                                    if (node.domNode.childNodes.length > i) {
+                                        node.domNode.replaceChild(vNodes[i + s].domNode, node.domNode.childNodes[i]);
+                                    } else {
+                                        node.domNode.appendChild(vNodes[i + s].domNode);
+                                    }
+                                }
+                            }
+                        } else {
+                            // no more nodes to compare, remove dom element 
+                            nodesToRemove.push(i);
+                        }
+                    }
+                    if (nodesToRemove.length > 0) {
+                        var oldTotal = node.children.length;
+                        for (var k = nodesToRemove.length - 1; k >= 0; k--) {
+                            if (k < oldTotal) {
+                                // replace
+                                domElement.replaceChild(node.children[k].domNode, domElement.childNodes[k]);
+                            } else {
+                                domElement.removeChild(domElement.childNodes[k]);
+                            }
+                        }
+                    }
+                    if (count > vCount) {
+                        for (var k = count - 1; k >= vCount; k--) {
+                            domElement.removeChild(domElement.childNodes[k]);
+                        }
+                    }
+                    if (vCount > count) {
+                        for (var k = count; k < vCount; k++) {
+                            if (vNodes[k].domNode && !vNodes[k].type) { // raw html from external js
+                                domElement.appendChild(vNodes[k].domNode);
+                            }
+                        }
+                    }
+                    // 4. attach events
+                    if (node.attributes) {
+                        for (var a in node.attributes) {
+                            renderAttribute(node.domNode, node.attributes[a], true);
+                        }
+                    }
+                }
+            }
+        }
+        return same;
+    }
+
     this.render = function (name, params) {
         if (!name) {
             throw new Error('Component name is required.');
@@ -1669,9 +1810,13 @@ function Viewi() {
         currentPage.nodes = nodes;
         // document.childNodes[1].remove();
         // console.log(latestPage, currentPage);
-        cleanRender = true;
-        createDOM(document, nodes, false);
+        cleanRender = !hydrate;
+        var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
+        createDOM(target, nodes, false);
+        // hydrate && console.log(target);
+        hydrate && hydrateDOM(nodes[1], document.documentElement);
         cleanRender = false;
+        hydrate = false;
     };
 
     this.htmlentities = function (html) {
@@ -1689,4 +1834,8 @@ function Viewi() {
 }
 var app = new Viewi();
 var notify = app.notify;
-app.start();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { app.start(); });
+} else {
+    app.start();
+}
