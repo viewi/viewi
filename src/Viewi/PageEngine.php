@@ -471,6 +471,9 @@ class PageEngine
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
         // save public json
+        if (!file_exists($this->publicBuildPath)) {
+            mkdir($this->publicBuildPath, 0777, true);
+        }
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
 

@@ -106,7 +106,7 @@ function Viewi() {
     var resourcesCache = [];
 
     var router = new Router();
-    this.componentsUrl = '/public/build/components.json';
+    this.componentsUrl = '/build/components.json';
     this.components = {};
     var htmlElementA = document.createElement('a');
 
