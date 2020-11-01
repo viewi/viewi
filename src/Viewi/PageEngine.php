@@ -28,6 +28,11 @@ class PageEngine
     const PUBLIC_BUILD_DIR = 'PUBLIC_BUILD_DIR';
 
     /**
+     * Url path of compiled public assets (javascripts, etc.), for ex: /build or /public/build
+     */
+    const PUBLIC_URL_PATH = 'PUBLIC_URL_PATH';
+
+    /**
      * true if you are in developing mode.
      * All components will be compiled as soon as request occures. 
      */
@@ -377,6 +382,7 @@ class PageEngine
         $this->compiledJs = [];
         $this->componentDependencies = [];
         $this->compiled = true;
+        $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
         $pages = $this->getDirContents($this->sourcePath);

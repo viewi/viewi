@@ -24,4 +24,9 @@ class App
     {
         return self::$engine->render($component, $params);
     }
+
+    public static function getEngine(): PageEngine
+    {
+        return self::$engine;
+    }
 }
