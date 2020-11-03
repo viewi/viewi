@@ -240,6 +240,7 @@ class PageEngine
     {
         $children  = array();
         $types = get_declared_classes();
+        // $this->debug($types);
         foreach ($types as $class) {
             $rf = new ReflectionClass($class);
             if ($baseClass !== null && $path !== null) {
@@ -399,14 +400,19 @@ class PageEngine
         $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
-        $pages = $this->getDirContents($this->sourcePath);
+        $viewiComponentsPath = __DIR__ . '/Components';
+        $viewiComponentsPath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $viewiComponentsPath);
+        $pages = $this->getDirContents($this->sourcePath)
+            + $this->getDirContents($viewiComponentsPath);
+        // $this->debug($pages);
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
             if ($pathinfo['extension'] === 'php') {
                 include_once $filename;
             }
         }
-        $types = $this->getClasses(BaseComponent::class, $this->sourcePath);
+        $types = $this->getClasses(BaseComponent::class, $this->sourcePath)
+            + $this->getClasses(null, $viewiComponentsPath);
         // $this->debug($this->sourcePath);
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
@@ -499,6 +505,7 @@ class PageEngine
 
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
+        $publicMinJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.min.js';
 
         $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.js';
         $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
@@ -528,7 +535,7 @@ class PageEngine
         if ($this->enableMinificationAndGzipping) {
             if (!$this->combineJs) {
                 $publicBundleJsMin = $this->minify($publicBundleJs);
-                file_put_contents($publicJsFilePath . '.min.js', $publicBundleJsMin);
+                file_put_contents($publicMinJsFilePath, $publicBundleJsMin);
             }
 
             $appJsContentMin = $this->minify($appJsContent);
@@ -587,10 +594,12 @@ class PageEngine
         if ($pageTemplate->ItsSlot) {
             $buildPath .= DIRECTORY_SEPARATOR . '_slots';
         }
-        $buildFilePath = str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path));
+        $buildFilePath = $pageTemplate->ComponentInfo->Relative ?
+            str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path))
+            : $buildPath . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Namespace;
         $pathinfo = pathinfo($buildFilePath);
-        //$this->debug($pageTemplate->Path);
-        //$this->debug($pathinfo);
+        // $this->debug($pageTemplate);
+        // $this->debug($pathinfo);
         if (!file_exists($pathinfo['dirname'])) {
             mkdir($pathinfo['dirname'], 0777, true);
         }
@@ -1870,7 +1879,7 @@ class PageEngine
     {
         $template = new PageTemplate();
         // $this->debug($componentInfo);
-        $path = $this->sourcePath . $componentInfo->TemplatePath;
+        $path = $componentInfo->Relative ? $this->sourcePath . $componentInfo->TemplatePath : $componentInfo->TemplatePath;
         if (empty($path)) {
             throw new Exception("Argument `\$path` is missing");
         }

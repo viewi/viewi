@@ -138,7 +138,7 @@ function Viewi() {
     };
 
     this.start = function () {
-        if (ViewiPages) {
+        if (typeof ViewiPages !== 'undefined') {
             $this.components = ViewiPages;
             startInternal();
         } else {
