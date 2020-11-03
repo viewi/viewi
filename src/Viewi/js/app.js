@@ -125,20 +125,30 @@ function Viewi() {
         }
     }
 
+    var startInternal = function () {
+        $this.components._meta.tags.split(',').each(function (x) {
+            avaliableTags[x] = true;
+        });
+        $this.components._routes.each(function (x) {
+            router.register(x.method, x.url, x.component);
+        });
+        cacheResources();
+        hydrate = true;
+        $this.go(location.href, false);
+    };
+
     this.start = function () {
-        ajax.get(this.componentsUrl)
-            .then(function (components) {
-                $this.components = components;
-                components._meta.tags.split(',').each(function (x) {
-                    avaliableTags[x] = true;
+        if (ViewiPages) {
+            $this.components = ViewiPages;
+            startInternal();
+        } else {
+            ajax.get(this.componentsUrl)
+                .then(function (components) {
+                    $this.components = components;
+                    startInternal();
                 });
-                components._routes.each(function (x) {
-                    router.register(x.method, x.url, x.component);
-                });
-                cacheResources();
-                hydrate = true;
-                $this.go(location.href, false);
-            });
+        }
+
         // catch all locl A tags click
         document.addEventListener('click', function (e) {
             e = e || window.event;

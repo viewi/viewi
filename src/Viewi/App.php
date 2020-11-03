@@ -11,13 +11,7 @@ class App
     public static function init(array $config)
     {
         self::$config = $config;
-        self::$engine = new PageEngine(
-            $config[PageEngine::SOURCE_DIR],
-            $config[PageEngine::SERVER_BUILD_DIR],
-            $config[PageEngine::PUBLIC_BUILD_DIR],
-            $config[PageEngine::DEV_MODE],
-            $config[PageEngine::RETURN_OUTPUT]
-        );
+        self::$engine = new PageEngine(self::$config);
     }
 
     public static function run(string $component, array $params)

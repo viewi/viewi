@@ -33,15 +33,28 @@ class PageEngine
     const PUBLIC_URL_PATH = 'PUBLIC_URL_PATH';
 
     /**
+     * combine all viewi scripts into one, use in production.
+     */
+    const COMBINE_JS = 'COMBINE_JS';
+
+    /**
+     * enable scripts minifications, use in production.
+     */
+    const MINIFY = 'MINIFY';
+
+    /**
      * true if you are in developing mode.
      * All components will be compiled as soon as request occures. 
+     * Default: true.
      */
     const DEV_MODE = 'DEV_MODE';
 
     /**
-     * true if you want to render into variable, otherwise - echo output
+     * true if you want to render into variable, otherwise - echo output, Default: true.
      */
     const RETURN_OUTPUT = 'RETURN_OUTPUT';
+
+
 
     private string $sourcePath;
     private string $buildPath;
@@ -114,29 +127,28 @@ class PageEngine
     private bool $renderReturn;
     private string $_CompileComponentName = '$_component';
     private string $_CompileExpressionPrefix;
-    private bool $_enableMinificationAndGzipping = false;
+    private bool $enableMinificationAndGzipping;
+    private bool $combineJs;
     /**
      * 
      * @var array<string,object>
      */
     private array $Dependencies = [];
     private int $forIterationKey = 0;
+    private array $config;
 
     public function __construct(
-        string $sourcePath,
-        string $buildPath,
-        string $publicBuildPath,
-        bool $development,
-        bool $return = false
+        array $config
     ) {
-        $this->sourcePath = $sourcePath;
-        $this->buildPath = $buildPath;
-        $this->publicBuildPath = $publicBuildPath;
-        $this->renderReturn = $return;
+        $this->config = $config;
+        $this->sourcePath = $config[self::SOURCE_DIR]; // $sourcePath;
+        $this->buildPath = $config[self::SERVER_BUILD_DIR]; // $buildPath;
+        $this->publicBuildPath = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
+        $this->renderReturn = $config[self::RETURN_OUTPUT] ?? true; // $return;
         $this->components = [];
         $this->tokens = [];
         $this->templates = [];
-        $this->development = $development;
+        $this->development =  $config[self::DEV_MODE] ?? true; // $development;
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
@@ -375,6 +387,8 @@ class PageEngine
         if ($this->compiled) {
             return;
         }
+        $this->enableMinificationAndGzipping = $this->config[self::MINIFY] ?? false;
+        $this->combineJs = $this->config[self::COMBINE_JS] ?? false;
         $this->slotCounterMap = [];
         $this->_CompileExpressionPrefix = $this->_CompileComponentName . '->';
         $this->expressionsTranslator = new JsTranslator('');
@@ -480,32 +494,45 @@ class PageEngine
         if (!file_exists($this->publicBuildPath)) {
             mkdir($this->publicBuildPath, 0777, true);
         }
+
+        $combined = '';
+
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
 
         $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.js';
+        $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
         $copyright = file_get_contents($thisRoot . 'js/copyright.js');
-        $appJsContent = $copyright
-            . file_get_contents($thisRoot . 'js/router.js')
-            . file_get_contents($thisRoot . 'js/app.js');
 
 
         $publicJsonContent = json_encode($publicJson, 0, 1024);
+        $publicJsonContentJs = PHP_EOL . "ViewiPages = $publicJsonContent;" . PHP_EOL . PHP_EOL;
+
         $jsContentToInclude = '';
         foreach ($this->requestedIncludes as $path) {
             $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
         }
-        $publicBundleJs = $copyright . $jsContentToInclude . implode('', array_values($this->compiledJs));
+        $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
+
+        $appJsContent = $copyright
+            . file_get_contents($thisRoot . 'js/router.js')
+            . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
+            . file_get_contents($thisRoot . 'js/app.js');
+
+        $publicBundleJs = $copyright . $publicBundleJs;
+
         file_put_contents($publicAppJsFilePath, $appJsContent);
         file_put_contents($publicFilePath, $publicJsonContent);
         file_put_contents($publicJsFilePath, $publicBundleJs);
         //minify
-        if ($this->_enableMinificationAndGzipping) {
-            $publicBundleJsMin = $this->minify($publicBundleJs);
-            file_put_contents($publicJsFilePath . '.min.js', $publicBundleJsMin);
+        if ($this->enableMinificationAndGzipping) {
+            if (!$this->combineJs) {
+                $publicBundleJsMin = $this->minify($publicBundleJs);
+                file_put_contents($publicJsFilePath . '.min.js', $publicBundleJsMin);
+            }
 
             $appJsContentMin = $this->minify($appJsContent);
-            file_put_contents($publicAppJsFilePath . '.min.js', $appJsContentMin);
+            file_put_contents($publicAppMiniJsFilePath, $appJsContentMin);
 
             //gzip
             file_put_contents($publicAppJsFilePath . '.min.js.gz', gzencode($appJsContentMin, 5));
