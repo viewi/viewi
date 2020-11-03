@@ -2053,9 +2053,10 @@ class PageEngine
                                 $escapeNextChar = false;
                                 break;
                             }
-                            // allow inline style for a moment
+                            // allow inline style and scripts for a moment
                             if (
-                                $currentParent->Content === 'style'
+                                ($currentParent->Content === 'style'
+                                    || $currentParent->Content === 'script')
                                 && $currentParent->Type->Name === TagItemType::Tag
                             ) {
                                 break;
