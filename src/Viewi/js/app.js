@@ -1167,6 +1167,10 @@ function Viewi() {
                 case 'raw': {
                     elm = parent;
                     nextInsert = true;
+                    if (node.latestHtml === val) {
+                        return;
+                    }
+                    node.latestHtml = val;
                     if (node.rawNodes) {
                         removeDomNodes(node.rawNodes);
                     }
@@ -1590,6 +1594,7 @@ function Viewi() {
                     a[i].skipIteration = true;
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
+                        a[i].latestHtml = b[i].latestHtml;                        
                     }
                     // console.log('Merged:', a[i], b[i]);
                     if (a[i].children && b[i].children) {
@@ -1773,17 +1778,21 @@ function Viewi() {
                             s++;
                         }
                         if (i + s < vCount) {
-                            var sameChild = !vNodes[i + s].type || hydrateDOM(vNodes[i + s], domElement.childNodes[i]);
-                            if (!sameChild) {
-                                // nodesToRemove.push(i);
-                                // reattach parent
-                                if (node.domNode !== vNodes[i + s].domNode.parentNode) {
-                                    if (node.domNode.childNodes.length > i) {
-                                        node.domNode.replaceChild(vNodes[i + s].domNode, node.domNode.childNodes[i]);
-                                    } else {
-                                        node.domNode.appendChild(vNodes[i + s].domNode);
+                            if (vNodes[i + s].type) {
+                                var sameChild = hydrateDOM(vNodes[i + s], domElement.childNodes[i]);
+                                if (!sameChild) {
+                                    // nodesToRemove.push(i);
+                                    // reattach parent
+                                    if (node.domNode !== vNodes[i + s].domNode.parentNode) {
+                                        if (node.domNode.childNodes.length > i) {
+                                            node.domNode.replaceChild(vNodes[i + s].domNode, node.domNode.childNodes[i]);
+                                        } else {
+                                            node.domNode.appendChild(vNodes[i + s].domNode);
+                                        }
                                     }
                                 }
+                            } else {
+                                vNodes[i + s].domNode = domElement.childNodes[i]; // TODO: compare attributes
                             }
                         } else {
                             // no more nodes to compare, remove dom element 
