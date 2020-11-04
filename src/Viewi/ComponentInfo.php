@@ -13,25 +13,25 @@ class ComponentInfo
         $this->Inputs = $item['Inputs'] ?? [];
         $this->Dependencies = $item['Dependencies'] ?? [];
 
-        if ($item['ComponentName'])
+        if (isset($item['ComponentName']))
             $this->ComponentName = $item['ComponentName'];
 
-        if ($item['Tag'])
+        if (isset($item['Tag']))
             $this->Tag = $item['Tag'];
 
-        if ($item['BuildPath'])
+        if (isset($item['BuildPath']))
             $this->BuildPath = $item['BuildPath'];
 
-        if ($item['RenderFunction'])
+        if (isset($item['RenderFunction']))
             $this->RenderFunction = $item['RenderFunction'];
 
-        if ($item['IsSlot'])
+        if (isset($item['IsSlot']))
             $this->IsSlot = $item['IsSlot'];
 
         $this->HasInit = $item['HasInit'] ?? false;
         $this->Relative = $item['Relative'] ?? false;
     }
-    
+
     public string $Name;
     public string $Namespace;
     public string $ComponentName;

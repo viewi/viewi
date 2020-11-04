@@ -9,7 +9,7 @@ class AssetsManager
 {
     public static function getViewiScriptsHtml(): string
     {
-        $path = App::$config[PageEngine::PUBLIC_URL_PATH];
+        $path = App::$config[PageEngine::PUBLIC_URL_PATH] ?? '/';
         $combine = App::$config[PageEngine::COMBINE_JS] ?? false;
         $minify = App::$config[PageEngine::MINIFY] ?? false;
         $async = $combine ? 'async' : '';

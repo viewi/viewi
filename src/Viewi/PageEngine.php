@@ -1057,7 +1057,7 @@ class PageEngine
                             if ($slotNameAttributeValues[0]->ItsExpression) {
                                 $slotName = $this->convertExpressionToCode($slotNameAttributeValues[0]->Content);
                             }
-                            $componentName = "\$slots[$slotName]";
+                            $componentName = "\$slots[$slotName] ?? null";
                         }
                     }
                 }

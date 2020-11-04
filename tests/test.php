@@ -17,6 +17,7 @@ if (count($inputs) === 1) {
     // $testTool->debug($arguments);
     switch ($command) {
         case 'run': {
+                // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest CanRenderNamedSlots
                 list($file, $class, $method) = $arguments;
                 $testTool->StartTestFile($file, $class, $method);
                 break;
@@ -174,9 +175,9 @@ class UnitTestTool
             $errorMessage = $error->getMessage();
         } finally {
             $this->TotalCount++;
-            $this->removeDirectory($workingDir, true);
+            // $this->removeDirectory($workingDir, true);
         }
-        $this->removeTempDirectory($className);
+        // $this->removeTempDirectory($className);
         $output = ob_get_contents();
         ob_end_clean();
         echo json_encode([

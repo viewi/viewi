@@ -18,7 +18,7 @@ class ComplexTestComponent extends BaseComponent
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 5; $i++) {
             $user = new User();
-            $user->Name = 'Jhon' . $letters[26 - $i] . ' Doe' . $letters[$i];
+            $user->Name = 'Jhon' . $letters[25 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
             $this->users['ID-' . $i] = $user;
         }

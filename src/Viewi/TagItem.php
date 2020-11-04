@@ -94,7 +94,8 @@ class TagItem
     public function &getChildren(): ?array
     {
         if (!isset($this->Children)) {
-            return [];
+            $empty = [];
+            return $empty;
         }
         return $this->Children;
     }
