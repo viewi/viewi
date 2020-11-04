@@ -82,27 +82,25 @@ Now let's render our component. In your root `index.php` create instance of `Pag
 
 use App\Components\Counter;
 use Viewi\PageEngine;
+use Viewi\App;
 
 require __DIR__ . '/vendor/autoload.php';
 include_once __DIR__ . '/app/components/Counter.php';
 
 $ds = DIRECTORY_SEPARATOR;
 
-$engine = new PageEngine(
-    __DIR__ . $ds . 'app' . $ds . 'components', // Location of your components
-    __DIR__ . $ds . 'app' . $ds . 'build', // compiled server's version
-    __DIR__ . $ds . 'public' . $ds . 'build', // compiled public assets (javascripts, etc.)
-    true, // true if you are in developing mode. All components will be compiled as soon as the request occures
-    true // true if you want to render into variable, otherwise - echo output
-);
+App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . '/app/components', // Location of your components
+            PageEngine::SERVER_BUILD_DIR => __DIR__ . '/app/build', // compiled server's version
+            PageEngine::PUBLIC_BUILD_DIR => __DIR__ . '/public/build', // compiled public assets (javascripts, etc.)
+            PageEngine::DEV_MODE => true, // true if you are in developing mode. All components will be compiled as soon as the request occures
+            PageEngine::RETURN_OUTPUT => true // true if you want to render into variable, otherwise - echo output
+        ]);
+$engine = App::getEngine();
 
 echo $engine->render(Counter::class);
 
 ```
-
-Final result should be looking like this:
-
-![VScode](images/counter-dev.jpg)
 
 And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everything is good you should be able to click on the "Increment" button and count should be updated accordingly.
 

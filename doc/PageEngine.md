@@ -52,13 +52,14 @@ $develop = true;
 // true if you want to render into variable, otherwise - echo output
 $renderReturn = true;
 
-$page = new Viewi\PageEngine(
-    'path/to/your/components', // Location of components source code
-    'server/build/path', // Target directory of compiled php components
-    'public/build/path', // Target directory of compiled public assets (javascripts, etc.)
-    $develop, // true if you are in developing mode. All components will be compiled as soon as request occures
-    $renderReturn // true if you want to render into variable, otherwise - echo output
-);
+Viewi\App::init([
+            PageEngine::SOURCE_DIR => 'path/to/your/components', // Location of components source code
+            PageEngine::SERVER_BUILD_DIR => 'server/build/path', // Target directory of compiled php components
+            PageEngine::PUBLIC_BUILD_DIR => 'public/build/path', // Target directory of compiled public assets (javascripts, etc.)
+            PageEngine::DEV_MODE => // true if you are in developing mode. All components will be compiled as soon as request occures
+            PageEngine::RETURN_OUTPUT => $renderReturn // true if you want to render into variable, otherwise - echo output
+        ]);
+$page = Viewi\App::getEngine();
 
 // render selected component, for example HomeComponent
 $html = $page->render(HomeComponent::class);
