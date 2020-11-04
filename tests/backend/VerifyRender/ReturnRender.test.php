@@ -1,6 +1,8 @@
 <?php
 
+use Viewi\App;
 use Viewi\BaseComponent;
+use Viewi\PageEngine;
 
 include_once 'BaseRender.php';
 
@@ -16,24 +18,26 @@ class ReturnRenderingTest extends BaseRenderingTest
     {
 
         $startedAt = microtime(true);
-        $page = new Viewi\PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . $path,
-            $T->WorkingDirectory(),
-            $T->WorkingDirectory(),
-            true,
-            true
-        );
+        App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
+            PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::DEV_MODE => true,
+            PageEngine::RETURN_OUTPUT => true
+        ]);
+        $page = App::getEngine();
         $page->compile();
         $compileTime = floor((microtime(true) - $startedAt) * 1000);
 
         $startedAt = microtime(true);
-        $page = new Viewi\PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . $path,
-            $T->WorkingDirectory(),
-            $T->WorkingDirectory(),
-            false,
-            true
-        );
+        App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
+            PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::DEV_MODE => false,
+            PageEngine::RETURN_OUTPUT => true
+        ]);
+        $page = App::getEngine();
         $html = '';
         $howMany = $iterations;
         for ($i = 0; $i < $howMany; $i++) {

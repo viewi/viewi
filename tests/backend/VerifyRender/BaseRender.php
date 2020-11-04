@@ -1,6 +1,8 @@
 <?php
 
+use Viewi\App;
 use Viewi\BaseComponent;
+use Viewi\PageEngine;
 
 include_once '../src/Viewi/autoload.php';
 
@@ -94,13 +96,14 @@ class BaseRenderingTest extends BaseTest
         UnitTestScope $T,
         bool $echoRendered = false
     ) {
-        $page = new Viewi\PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . $path,
-            $T->WorkingDirectory(),
-            $T->WorkingDirectory(),
-            true,
-            $this->returnRendering
-        );
+        App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
+            PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::DEV_MODE => true,
+            PageEngine::RETURN_OUTPUT => $this->returnRendering
+        ]);
+        $page = App::getEngine();
         $html = null;
         if ($this->returnRendering) {
             $html = $page->render($component);

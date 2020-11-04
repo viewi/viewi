@@ -1,6 +1,8 @@
 <?php
 
+use Viewi\App;
 use Viewi\BaseComponent;
+use Viewi\PageEngine;
 
 include_once 'BaseRender.php';
 
@@ -11,23 +13,27 @@ class EchoRenderingTest extends BaseRenderingTest
         $component = ComplexTestComponent::class;
         $path = 'PerformanceTest';
         $startedAt = microtime(true);
-        $page = new Viewi\PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . $path,
-            $T->WorkingDirectory(),
-            $T->WorkingDirectory(),
-            true
-        );
+        App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
+            PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::DEV_MODE => true,
+            PageEngine::RETURN_OUTPUT => false
+        ]);
+        $page = App::getEngine();
         ob_start();
         $page->compile();
         $compileTime = floor((microtime(true) - $startedAt) * 1000);
 
         $startedAt = microtime(true);
-        $page = new Viewi\PageEngine(
-            __DIR__ . DIRECTORY_SEPARATOR . $path,
-            $T->WorkingDirectory(),
-            $T->WorkingDirectory(),
-            false
-        );
+        App::init([
+            PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
+            PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::DEV_MODE => false,
+            PageEngine::RETURN_OUTPUT => false
+        ]);
+        $page = App::getEngine();
         $howMany = 500;
         for ($i = 0; $i < $howMany; $i++) {
             $page->render($component);
