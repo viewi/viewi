@@ -825,6 +825,20 @@ function Viewi() {
         if (node.skipIteration) {
             node.skipIteration = false;
             elm = node.domNode;
+            var saved = currentLevelDomArray.first(
+                /**
+                 * 
+                 * @param {Node} x 
+                 * @param {number} index 
+                 */
+                function (x, index) {
+                    return x === elm;
+                },
+                true
+            );
+            if (saved && saved[0].parentNode) {
+                takenDomArray[saved[1]] = true;
+            }
         } else {
             switch (node.type) {
                 case 'text': { // TODO: implement text insert
@@ -965,6 +979,7 @@ function Viewi() {
                         takenDomArray[existenElm[1]] = true;
                         if (currentElemPosition == existenElm[1]) {
                             // reuse
+                            // TODO: clear attributes
                             elm = existenElm[0];
                             node.domNode = elm;
                             break;
@@ -977,25 +992,19 @@ function Viewi() {
                     if (node.domNode !== null) {
                         node.domNode.parentNode.replaceChild(elm, node.domNode);
                     } else {
-                        if (insert) {
-                            // find first previous not virtual up tree non virtual
-                            var nodeBefore = getFirstBefore(node);
-                            if (nodeBefore == null) {
-                                return;
-                                break; // throw error ??
-                            }
-                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                            if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                nextSibiling.parentNode.insertBefore(elm, nextSibiling);
-                            } else if (nodeBefore.itsParent) {
-                                nodeBefore.node.domNode.appendChild(elm);
-                            } else {
-                                nodeBefore.node.domNode.parentNode.appendChild(elm);
-                            }
-                        } else {
-                            parent.appendChild(elm);
+                        var nodeBefore = getFirstBefore(node);
+                        if (nodeBefore == null) {
+                            return;
+                            break; // throw error ??
                         }
-
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            nodeBefore.node.domNode.appendChild(elm);
+                        } else {
+                            nodeBefore.node.domNode.parentNode.appendChild(elm);
+                        }
                     }
                     node.domNode = elm;
                     if (val in resourceTags) {
@@ -1240,6 +1249,19 @@ function Viewi() {
         if (cleanRender && parent !== previousParent) {
             currentLevelDomArray = Array.prototype.slice.call(currentParent.childNodes);
             takenDomArray = {};
+        }
+        for (var i in nodes) {
+            if (nodes[i].skipIteration) {
+                var saved = currentLevelDomArray.first(
+                    function (x, index) {
+                        return x === nodes[i].domNode;
+                    },
+                    true
+                );
+                if (saved && saved[0].parentNode) {
+                    takenDomArray[saved[1]] = true;
+                }
+            }
         }
         for (var i in nodes) {
             currentElemPosition = i;
