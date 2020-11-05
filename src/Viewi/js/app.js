@@ -97,6 +97,9 @@ function Viewi() {
     var $this = this;
     var avaliableTags = {};
     var resourceTags = {};
+    var events = {
+        onViewiUrlChange: null
+    };
     'img,embed,object,link,script,audio,video,style'
         .split(',')
         .each(function (t) {
@@ -138,6 +141,10 @@ function Viewi() {
     };
 
     this.start = function () {
+        if (typeof onViewiUrlChange !== 'undefined'
+            && typeof onViewiUrlChange === 'function') {
+            events.onViewiUrlChange = onViewiUrlChange;
+        }
         if (typeof ViewiPages !== 'undefined') {
             $this.components = ViewiPages;
             startInternal();
@@ -175,6 +182,7 @@ function Viewi() {
 
     this.go = function (href, isForward) {
         var url = getPathName(href);
+        events.onViewiUrlChange && events.onViewiUrlChange(url);
         var routeItem = router.resolve(url);
         if (routeItem == null) {
             throw 'Can\'t resolve route for uri: ' + url;

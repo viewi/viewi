@@ -544,7 +544,7 @@ class PageEngine
             //gzip
             file_put_contents($publicAppJsFilePath . '.min.js.gz', gzencode($appJsContentMin, 5));
             file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
-            file_put_contents($publicJsFilePath . '.min.js.gz', gzencode($publicBundleJsMin, 5));
+            file_put_contents($publicJsFilePath . '.min.js.gz', gzencode($publicBundleJs, 5));
         }
         //$this->debug($this->components);
     }
