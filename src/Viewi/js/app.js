@@ -511,7 +511,8 @@ function Viewi() {
                                 copy.children = a.children.select(
                                     function (v) {
                                         var valCopy = {};
-                                        valCopy.contentExpression = getDataExpression(v, instance, itsEvent);
+                                        var forceRaw = a.content === 'value';
+                                        valCopy.contentExpression = getDataExpression(v, instance, itsEvent, forceRaw);
                                         if (node.type === 'dynamic'
                                             || node.type === 'component'
                                         ) { // we need props
@@ -1594,7 +1595,7 @@ function Viewi() {
                     a[i].skipIteration = true;
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
-                        a[i].latestHtml = b[i].latestHtml;                        
+                        a[i].latestHtml = b[i].latestHtml;
                     }
                     // console.log('Merged:', a[i], b[i]);
                     if (a[i].children && b[i].children) {
@@ -1861,9 +1862,15 @@ function Viewi() {
     };
 
     this.htmlentities = function (html) {
-        return typeof html === 'string' ? html.replace(/[\u00A0-\u9999<>\&]/gim, function (i) {
-            return '&#' + i.charCodeAt(0) + ';';
-        }) : html;
+        return html;
+        return typeof html === 'string' ?
+            html
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+            : html;
     }
 
     var encoder = document.createElement('textarea');
