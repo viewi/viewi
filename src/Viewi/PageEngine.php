@@ -2023,7 +2023,7 @@ class PageEngine
                             }
                             if ($currentType->Name === TagItemType::Tag) { // <tag/> or </tag>
                                 $skipCount = 1;
-                                if (empty($content) || ctype_space($content)) { // </tag> closing tag
+                                if ($content === '' || ctype_space($content)) { // </tag> closing tag
                                     // ignore next until '>'
                                     $waitForTagEnd = true;
                                 } else { // <tag/> selfClosingTag
@@ -2168,7 +2168,7 @@ class PageEngine
                 $skipCount = 1;
             }
             if ($saveContent) {
-                if (!empty($content)) {
+                if ($content !== '') {
                     $child = $currentParent->newChild();
                     $child->Type = $currentType;
                     $child->Content = $content;
@@ -2223,7 +2223,7 @@ class PageEngine
             // end of while
             $i++;
         }
-        if (!empty($content)) {
+        if ($content !== '') {
             $child = $currentParent->newChild();
             $child->Type = $currentType;
             $child->Content = $content;

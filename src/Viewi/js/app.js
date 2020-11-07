@@ -1830,7 +1830,7 @@ function Viewi() {
                         }
                     }
                     if (nodesToRemove.length > 0) {
-                        var oldTotal = node.children.length;
+                        // var oldTotal = node.children ? node.children.length : 0;
                         for (var k = nodesToRemove.length - 1; k >= 0; k--) {
                             var nodeIndex = nodesToRemove[k];
                             // if (nodeIndex < oldTotal) {
