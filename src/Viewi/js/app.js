@@ -1741,15 +1741,17 @@ function Viewi() {
                 if (same) {
                     var oldParent = node.domNode;
                     node.domNode = domElement;
-                    var s = 0; // shift fot virtual nodes
+                    var s = 0; // shift for virtual nodes
+                    var shiftDOM = 0; // shift for DOM childs
                     var count = domElement.childNodes.length;
                     var maxNodes = node.children ? node.children.length : 0;
-                    if (count < maxNodes) {
+                    //if (count < maxNodes) {
+                    if (node.children) {
                         // normalize
                         if (
                             node.children[maxNodes - 1].domNode
                             && node.children[maxNodes - 1].domNode.nodeType === 3
-                            && domElement.childNodes[count - 1] !== 3
+                            && domElement.childNodes[count - 1].nodeType !== 3
                             && /^\s*$/.test(node.children[maxNodes - 1].domNode.nodeValue)
                         ) {
                             // oldParent.removeChild(node.children[maxNodes - 1].domNode);
@@ -1761,7 +1763,7 @@ function Viewi() {
                         if (
                             node.children[0].domNode
                             && node.children[0].domNode.nodeType === 3
-                            && domElement.childNodes[0] !== 3
+                            && domElement.childNodes[0].nodeType !== 3
                             && /^\s*$/.test(node.children[0].domNode.nodeValue)
                         ) {
                             // oldParent.removeChild(node.children[0].domNode);
@@ -1782,43 +1784,64 @@ function Viewi() {
                         }
                     }
                     var vCount = vNodes.length;
-                    for (var i = 0; i < count; i++) {
-                        while (i + s < vCount && !vNodes[i + s].domNode) { // TODO: support vistual nodes, dig deeper
+                    for (var i = 0; i + shiftDOM < count; i++) {
+                        while (i + s < vCount && !vNodes[i + s].domNode) { // TODO: support virtual nodes, dig deeper
                             s++;
                         }
                         if (i + s < vCount) {
                             if (vNodes[i + s].type) {
-                                var sameChild = hydrateDOM(vNodes[i + s], domElement.childNodes[i]);
+                                var sameChild = hydrateDOM(vNodes[i + s], domElement.childNodes[i + shiftDOM]);
                                 if (!sameChild) {
-                                    // nodesToRemove.push(i);
+                                    // try to find next match
+                                    var foundNext = false;
+                                    for (var ni = i + shiftDOM + 1; ni < count; ni++) {
+                                        foundNext = hydrateDOM(vNodes[i + s], domElement.childNodes[ni]);
+                                        if (foundNext) {
+                                            // remove all not mathced before
+                                            for (var ri = i + shiftDOM; ri < ni; ri++) {
+                                                nodesToRemove.push(ri);
+                                            }
+                                            shiftDOM += ni - (i + shiftDOM);
+                                            break;
+                                        }
+                                    }
+                                    if (foundNext) {
+                                        continue;
+                                    }
                                     // reattach parent
                                     if (node.domNode !== vNodes[i + s].domNode.parentNode) {
-                                        if (node.domNode.childNodes.length > i) {
-                                            node.domNode.replaceChild(vNodes[i + s].domNode, node.domNode.childNodes[i]);
+                                        if (node.domNode.childNodes.length > i + shiftDOM) {
+                                            node.domNode.replaceChild(vNodes[i + s].domNode, node.domNode.childNodes[i + shiftDOM]);
                                         } else {
                                             node.domNode.appendChild(vNodes[i + s].domNode);
                                         }
+                                        hydrateDOM(vNodes[i + s], domElement.childNodes[i + shiftDOM]);
+                                    } else {
+                                        // two copies, remove one
+                                        nodesToRemove.push(i);
                                     }
                                 }
                             } else {
-                                vNodes[i + s].domNode = domElement.childNodes[i]; // TODO: compare attributes
+                                vNodes[i + s].domNode = domElement.childNodes[i + shiftDOM]; // TODO: compare attributes
                             }
                         } else {
                             // no more nodes to compare, remove dom element 
-                            nodesToRemove.push(i);
+                            nodesToRemove.push(i + shiftDOM);
                         }
                     }
                     if (nodesToRemove.length > 0) {
                         var oldTotal = node.children.length;
                         for (var k = nodesToRemove.length - 1; k >= 0; k--) {
-                            if (k < oldTotal) {
-                                // replace
-                                domElement.replaceChild(node.children[k].domNode, domElement.childNodes[k]);
-                            } else {
-                                domElement.removeChild(domElement.childNodes[k]);
-                            }
+                            var nodeIndex = nodesToRemove[k];
+                            // if (nodeIndex < oldTotal) {
+                            //     // replace
+                            //     domElement.replaceChild(node.children[nodeIndex].domNode, domElement.childNodes[nodeIndex]);
+                            // } else {
+                            domElement.removeChild(domElement.childNodes[nodeIndex]);
+                            // }
                         }
                     }
+                    count = domElement.childNodes.length;
                     if (count > vCount) {
                         for (var k = count - 1; k >= vCount; k--) {
                             domElement.removeChild(domElement.childNodes[k]);
@@ -1890,6 +1913,7 @@ function Viewi() {
 }
 var app = new Viewi();
 var notify = app.notify;
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { app.start(); });
 } else {

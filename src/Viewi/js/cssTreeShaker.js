@@ -229,7 +229,7 @@ fetch('/css/main.dev.css').then((r) => {
             return true;
         }
     });
+    window.tscss = shaker;
     console.log(shaker);
-    console.log(shaker.getShakedCss());
     return shaker;
 });
