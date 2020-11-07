@@ -1564,6 +1564,7 @@ function Viewi() {
     }
 
     var mergeNodes = function (a, b) {
+        var randI = 0;
         var la = a.length;
         var lb = b.length;
         if (la != lb) {
@@ -1579,8 +1580,8 @@ function Viewi() {
         for (var i = 0; i < la; i++) {
             if (i < lb) {
                 var matched = true;
-                var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || x.code; }).join();
-                var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || x.code; }).join();
+                var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || (x.code && ++randI); }).join();
+                var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || (x.code && ++randI); }).join();
                 if (a[i].instance.constructor != b[i].instance.constructor) {
                     // console.log('Instances don\'t match', [a[i].instance, b[i].instance], a[i], b[i]);
                     matched = false;
@@ -1591,8 +1592,18 @@ function Viewi() {
                 }
                 // compare attributes
                 // attributes[0].content attributes[0].instance attributes[0].content.children[0].content
-                var aa = a[i].attributes && a[i].attributes.select(function (x) { return x.content || ''; }).join(';');
-                var ba = b[i].attributes && b[i].attributes.select(function (x) { return x.content || ''; }).join(';');
+                var aa = a[i].attributes && a[i].attributes.select(function (x) {
+                    return (x.content || '') +
+                        ((x.children && ';' + x.children.select(function (y) {
+                            return y.contentExpression.content || (y.contentExpression.call && ++randI) || ''
+                        }).join(';')) || '');
+                }).join(';');
+                var ba = b[i].attributes && b[i].attributes.select(function (x) {
+                    return (x.content || '') +
+                        ((x.children && ';' + x.children.select(function (y) {
+                            return y.contentExpression.content || (y.contentExpression.call && ++randI) || ''
+                        }).join(';')) || '');
+                }).join(';');
                 if (aa != ba) { // TODO: compare attr instance and attr values
                     // console.log('Attributes don\'t match', aa, ba);
                     matched = false;
