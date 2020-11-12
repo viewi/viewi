@@ -99,7 +99,7 @@ class BaseRenderingTest extends BaseTest
         App::init([
             PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
             PageEngine::SERVER_BUILD_DIR => $T->WorkingDirectory(),
-            PageEngine::PUBLIC_BUILD_DIR => $T->WorkingDirectory(),
+            PageEngine::PUBLIC_ROOT_DIR => $T->WorkingDirectory(),
             PageEngine::DEV_MODE => true,
             PageEngine::RETURN_OUTPUT => $this->returnRendering
         ]);

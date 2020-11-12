@@ -175,9 +175,9 @@ class UnitTestTool
             $errorMessage = $error->getMessage();
         } finally {
             $this->TotalCount++;
-            // $this->removeDirectory($workingDir, true);
+            $this->removeDirectory($workingDir, true);
         }
-        // $this->removeTempDirectory($className);
+        $this->removeTempDirectory($className);
         $output = ob_get_contents();
         ob_end_clean();
         echo json_encode([
