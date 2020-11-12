@@ -1699,8 +1699,8 @@ function Viewi() {
                 }
             }
         }
-
-        var newBuild = build(page.nodes, instance, childNodes);
+        var nodes = page.hasVersions ? page.versions[instance.__version()] : page.nodes;
+        var newBuild = build(nodes, instance, childNodes);
         propsSubs = previousPropsSubs;
         if (builtNodes) {
             mergeNodes(newBuild, builtNodes);

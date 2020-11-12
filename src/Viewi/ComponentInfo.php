@@ -12,6 +12,7 @@ class ComponentInfo
         $this->Fullpath = $item['Fullpath'];
         $this->Inputs = $item['Inputs'] ?? [];
         $this->Dependencies = $item['Dependencies'] ?? [];
+        $this->Versions = $item['Versions'] ?? [];
 
         if (isset($item['ComponentName']))
             $this->ComponentName = $item['ComponentName'];
@@ -29,6 +30,7 @@ class ComponentInfo
             $this->IsSlot = $item['IsSlot'];
 
         $this->HasInit = $item['HasInit'] ?? false;
+        $this->HasVersions = $item['HasVersions'] ?? false;
         $this->Relative = $item['Relative'] ?? false;
     }
 
@@ -43,6 +45,7 @@ class ComponentInfo
     public bool $IsComponent;
     public bool $IsSlot;
     public bool $HasInit;
+    public bool $HasVersions;
     public bool $Relative;
 
     /**
@@ -56,4 +59,10 @@ class ComponentInfo
      * @var array<string,array>
      */
     public array $Dependencies;
+
+    /**
+     * 
+     * @var array<string,array>
+     */
+    public array $Versions;
 }

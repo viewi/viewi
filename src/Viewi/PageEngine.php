@@ -23,6 +23,11 @@ class PageEngine
     const SERVER_BUILD_DIR = 'SERVER_BUILD_DIR';
 
     /**
+     * Public root folder of application (location of index.php)
+     */
+    const PUBLIC_ROOT_DIR = 'PUBLIC_ROOT_DIR';
+
+    /**
      * Target directory of compiled public assets (javascripts, etc.)
      */
     const PUBLIC_BUILD_DIR = 'PUBLIC_BUILD_DIR';
@@ -58,11 +63,15 @@ class PageEngine
 
     private string $sourcePath;
     private string $buildPath;
+    private string $publicRootPath;
+    private string $publicBuildDir;
     private string $publicBuildPath;
     private ?PageTemplate $latestPageTemplate = null;
     private array $slotCounterMap;
     /** @var ComponentInfo[] */
     private array $components;
+    private array $templateVersions;
+    private ?BaseComponent $currentComponentInstance;
     /** @var \ReflectionClass[] */
     private array $componentReflectionTypes;
     /** @var mixed[] */
@@ -143,7 +152,9 @@ class PageEngine
         $this->config = $config;
         $this->sourcePath = $config[self::SOURCE_DIR]; // $sourcePath;
         $this->buildPath = $config[self::SERVER_BUILD_DIR]; // $buildPath;
-        $this->publicBuildPath = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
+        $this->publicRootPath = $config[self::PUBLIC_ROOT_DIR]; // $publicRootPath;
+        $this->publicBuildDir = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
+        $this->publicBuildPath = $this->publicRootPath . $this->publicBuildDir;
         $this->renderReturn = $config[self::RETURN_OUTPUT] ?? true; // $return;
         $this->components = [];
         $this->tokens = [];
@@ -397,6 +408,7 @@ class PageEngine
         $this->compiledJs = [];
         $this->componentDependencies = [];
         $this->compiled = true;
+        $this->templateVersions = [];
         $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
@@ -412,7 +424,7 @@ class PageEngine
             }
         }
         $types = $this->getClasses(BaseComponent::class, $this->sourcePath)
-            + $this->getClasses(null, $viewiComponentsPath);
+            + $this->getClasses(BaseComponent::class, $viewiComponentsPath);
         // $this->debug($this->sourcePath);
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
@@ -437,6 +449,7 @@ class PageEngine
             $componentInfo->ComponentName = $className;
             $componentInfo->Tag = $className;
             $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
+            $componentInfo->HasVersions = $reflectionClass->hasMethod('__version');
             if (!empty($className)) {
                 $this->components[$className] = $componentInfo;
                 $this->componentReflectionTypes[$className] = $reflectionClass;
@@ -451,8 +464,9 @@ class PageEngine
         //$this->debug($this->buildPath);
         $publicJson = [];
         foreach ($this->components as $className => &$componentInfo) {
-
-
+            if (isset($componentInfo->HasVersions) && $componentInfo->HasVersions) {
+                continue; // has multiple templates based on input
+            }
             if ($componentInfo->IsComponent) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
                 // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
@@ -477,7 +491,56 @@ class PageEngine
                     $publicJson[$className]['init'] = true;
             }
         }
-
+        foreach ($this->templateVersions as $className => $versions) {
+            $componentInfo = $this->components[$className];
+            $templates = [];
+            $numberContext = 0;
+            $publicJson[$className] = [];
+            $publicJson[$className] = [];
+            if (isset($componentInfo->Dependencies)) {
+                $publicJson[$className]['dependencies'] = [];
+                foreach ($componentInfo->Dependencies as $argumentName => $argumentInfo) {
+                    $publicJson[$className]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
+                }
+            };
+            $publicJson[$className]['hasVersions'] = true;
+            $publicJson[$className]['versions'] = [];
+            if ($componentInfo->HasInit)
+                $publicJson[$className]['init'] = true;
+                
+            foreach ($versions as $arguments) {
+                // init instance
+                $instance = $this->resolve($componentInfo, false, [], true);
+                $this->currentComponentInstance = $instance;
+                // $this->debug($instance);
+                // $this->debug($arguments);
+                foreach ($arguments as $key => $phpString) {
+                    if (isset($componentInfo->Inputs[$key])) {
+                        $instance->{$key} = eval("return $phpString;");
+                    }
+                }
+                // $this->debug($instance);
+                if ($componentInfo->IsComponent) {
+                    $template = $this->compileTemplate($componentInfo);
+                    $version = $instance->__version();
+                    // $this->debug($version);
+                    $templateKey = '_v' . (++$numberContext);
+                    $templates[$version] = [
+                        'key' => $templateKey,
+                    ];
+                    // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
+                    $this->build($template, $templateKey);
+                    $this->save($template, $templateKey);
+                    $templates[$version]['BuildPath'] = $template->ComponentInfo->BuildPath;
+                    $templates[$version]['RenderFunction'] = $template->ComponentInfo->RenderFunction;
+                    $publicJson[$className]['versions'][$version] = $template->RootTag->getRaw();
+                }
+                $this->currentComponentInstance = null;
+            }
+            unset($componentInfo->BuildPath);
+            unset($componentInfo->RenderFunction);
+            $componentInfo->Versions = $templates;
+        }
         $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
 
         // mate info
@@ -588,7 +651,7 @@ class PageEngine
         }
     }
 
-    function save(PageTemplate &$pageTemplate)
+    function save(PageTemplate &$pageTemplate, string $templateKey = '')
     {
         $buildPath = $this->buildPath;
         if ($pageTemplate->ItsSlot) {
@@ -596,7 +659,7 @@ class PageEngine
         }
         $buildFilePath = $pageTemplate->ComponentInfo->Relative ?
             str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path))
-            : $buildPath . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Namespace;
+            : $buildPath . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Namespace . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Name;
         $pathinfo = pathinfo($buildFilePath);
         // $this->debug($pageTemplate);
         // $this->debug($pathinfo);
@@ -604,13 +667,13 @@ class PageEngine
             mkdir($pathinfo['dirname'], 0777, true);
         }
         $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
-        $phpPath = $pathWOext . '.php';
+        $phpPath = $pathWOext . $templateKey . '.php';
         file_put_contents($phpPath, $pageTemplate->PhpHtmlContent);
         $pageTemplate->ComponentInfo->BuildPath = $this->getRelativeBuildPath($phpPath);
         $pageTemplate->RootTag->cleanParents();
     }
 
-    function build(PageTemplate &$pageTemplate): void
+    function build(PageTemplate &$pageTemplate, string $templateKey = ''): void
     {
         $this->previousItem = new TagItem();
         $this->previousItem->Type = new TagItemType(TagItemType::TextContent);
@@ -618,7 +681,7 @@ class PageEngine
         $moduleContent = file_get_contents($moduleTemplatePath);
         $parts = explode("//#content", $moduleContent, 2);
         $html = $parts[0];
-        $renderFunction = "Render{$pageTemplate->ComponentInfo->Name}";
+        $renderFunction = "Render{$pageTemplate->ComponentInfo->Name}$templateKey";
         $html = str_replace('BaseComponent $', $pageTemplate->ComponentInfo->Namespace . '\\' . $pageTemplate->ComponentInfo->ComponentName . ' $', $html);
         $html = str_replace('RenderFunction', $renderFunction, $html);
 
@@ -688,7 +751,7 @@ class PageEngine
                 $newExpression .= $spaces[$i] . $keyword;
             } else if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
-                    if (isset($this->componentArguments[$keyword]) || $newVariables) {
+                    if (isset($this->componentArguments[$keyword]) || $newVariables || $keyword == $this->_CompileComponentName) {
                         $newExpression .= $spaces[$i] . $keyword;
                     } else {
                         $newExpression .= $spaces[$i] . $this->_CompileExpressionPrefix . substr($keyword, 1);
@@ -731,9 +794,11 @@ class PageEngine
             $tagItem->RawHtml = true;
         } else if ($expression[0] === '#' && $expression[strlen($expression) - 1] === '#') {
             // injected html during the build
+            // $this->debug($expression);
             $tagItem->ItsExpression = false;
             $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
             // $this->debug($phpCode);
+            $_component = $this->currentComponentInstance ?? null; // use for version
             $tagItem->Content = eval('return ' . $phpCode . ';');
             $code .= $tagItem->Content;
             $tagItem->RawHtml = true;
@@ -805,6 +870,7 @@ class PageEngine
     {
         // cache service instances or parent components for slots
         // do not cache component instances
+        // $this->debug($componentInfo);
         $cache = true;
         $relative = $componentInfo->Relative;
         if ($relative) {
@@ -815,7 +881,6 @@ class PageEngine
         if ($componentInfo->IsComponent) {
             // always new instance
             $cache = $defaultCache;
-            include_once $this->buildPath . $componentInfo->BuildPath;
         } elseif (isset($componentInfo->IsSlot)) {
             include_once $this->buildPath . $componentInfo->BuildPath;
             return $this->resolve($this->components[$componentInfo->ComponentName], true);
@@ -895,17 +960,28 @@ class PageEngine
     ) {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
-            $compInfo = &$this->components[$componentName];
-            $classInstance = $this->resolve($compInfo, false, $params);
+            $componentInfo = &$this->components[$componentName];
+            $classInstance = $this->resolve($componentInfo, false, $params);
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
             foreach ($componentArguments as $key => $inputValue) {
-                if (isset($compInfo->Inputs[$key])) {
+                if (isset($componentInfo->Inputs[$key])) {
                     $classInstance->{$key} = $inputValue;
                 }
             }
-            return ($this->components[$componentName]->RenderFunction)($classInstance, $this, $slots, ...$slotArguments);
+            $renderFunction = $this->components[$componentName]->RenderFunction ?? '';
+            if ($componentInfo->IsComponent) {
+                // always new instance
+                if ($componentInfo->HasVersions) {
+                    $version = $classInstance->__version();
+                    include_once $this->buildPath . $componentInfo->Versions[$version]['BuildPath'];
+                    $renderFunction = $componentInfo->Versions[$version]['RenderFunction'];
+                } else {
+                    include_once $this->buildPath . $componentInfo->BuildPath;
+                }
+            }
+            return $renderFunction($classInstance, $this, $slots, ...$slotArguments);
         }
     }
 
@@ -1760,7 +1836,11 @@ class PageEngine
                         if (!$dynamicTagDetected) {
                             $componentInfo = $this->components[$tagItem->Content];
                             $className = $componentInfo->Namespace . '\\' . $componentInfo->Name;
-                            include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+                            if ($this->components[$tagItem->Content]->Relative) {
+                                include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+                            } else {
+                                include_once $this->components[$tagItem->Content]->Fullpath;
+                            }
                         }
                         // if ($tagItem->Content == 'HelloMessage') {
                         //     $this->debug($tagItem->Content . ': ' . $childTag->Content . '=' . $values[0]->Content);
@@ -1809,13 +1889,20 @@ class PageEngine
                                 //     $inputValue = str_replace("'", "\\'", $inputValue);
                                 //     $inputValue = "'$inputValue'";
                                 // }
+                                // $this->debug($inputValue);
                                 $inputValue = $this->convertExpressionToCode($inputValue);
+                                // $this->debug($inputValue);
                                 if ($inputValue === "'true'") {
                                     $inputValue = 'true';
                                 } else if ($inputValue === "'false'") {
                                     $inputValue = 'false';
                                 } else if (ctype_digit(str_replace("'", "", $inputValue))) {
                                     $inputValue = (float)str_replace("'", "", $inputValue);
+                                } else if ($inputValue && substr($inputValue, 0, 2) == '\'[') { // array
+                                    // $this->debug($inputValue);
+                                    $inputValue = str_replace("\\'", "'", substr($inputValue, 1, strlen($inputValue) - 2));
+                                    // $inputValue = eval("return $inputValue;");
+                                    // $this->debug($inputValue);
                                 }
                                 $inputArguments[$inputArgument] = $inputValue;
                                 // $this->debug($inputArgument);
@@ -1840,6 +1927,17 @@ class PageEngine
             $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
 
+            // add template versions into the queue
+            if (!$dynamicTagDetected) {
+                $componentInfo = $this->components[$tagItem->Content];
+                if ($componentInfo->HasVersions) {
+                    if (!isset($this->templateVersions[$tagItem->Content])) {
+                        $this->templateVersions[$tagItem->Content] = [];
+                    }
+                    $this->templateVersions[$tagItem->Content][] = $inputArguments;
+                    // $this->debug($this->templateVersions);
+                }
+            }
             if ($dynamicTagDetected) {
                 // put if
                 if ($this->renderReturn) {
