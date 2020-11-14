@@ -419,6 +419,9 @@ class PageEngine
         $this->removeDirectory($this->publicBuildPath);
         $viewiComponentsPath = __DIR__ . '/Components';
         $viewiComponentsPath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $viewiComponentsPath);
+        if (!file_exists($this->publicBuildPath)) {
+            mkdir($this->publicBuildPath, 0777, true);
+        }
         $pages = $this->getDirContents($this->sourcePath)
             + $this->getDirContents($viewiComponentsPath);
         // $this->debug($pages);
@@ -566,10 +569,7 @@ class PageEngine
         $parts = explode("//#content", $templateContent, 2);
         $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
-        // save public json
-        if (!file_exists($this->publicBuildPath)) {
-            mkdir($this->publicBuildPath, 0777, true);
-        }
+
 
         $combined = '';
 
@@ -666,7 +666,7 @@ class PageEngine
         }
         $buildFilePath = $pageTemplate->ComponentInfo->Relative ?
             str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path))
-            : $buildPath . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Namespace . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Name;
+            : $buildPath . DIRECTORY_SEPARATOR . str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $pageTemplate->ComponentInfo->Namespace) . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Name;
         $pathinfo = pathinfo($buildFilePath);
         // $this->debug($pageTemplate);
         // $this->debug($pathinfo);
