@@ -437,29 +437,29 @@ class PageEngine
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
             // $this->debug('Path: '.$filename);
-            $componentInfo = new ComponentInfo();
+            $versionComponentInfo = new ComponentInfo();
             $className = $reflectionClass->getShortName();
             $filename = $reflectionClass->getFileName();
             $dependencies = $this->getDependencies($reflectionClass);
             if (!empty($dependencies)) {
-                $componentInfo->Dependencies = $dependencies;
+                $versionComponentInfo->Dependencies = $dependencies;
             }
             $pathinfo = pathinfo($filename);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $templatePath = $pathWOext . '.html';
-            $componentInfo->IsComponent = true;
-            $this->updateComponentPath($componentInfo, $filename);
+            $versionComponentInfo->IsComponent = true;
+            $this->updateComponentPath($versionComponentInfo, $filename);
             if (isset($pages[$templatePath])) {
-                $componentInfo->TemplatePath = $this->getRelativeSourcePath($templatePath);
+                $versionComponentInfo->TemplatePath = $this->getRelativeSourcePath($templatePath);
             }
-            $componentInfo->Name = $className;
-            $componentInfo->Namespace = $reflectionClass->getNamespaceName();
-            $componentInfo->ComponentName = $className;
-            $componentInfo->Tag = $className;
-            $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
-            $componentInfo->HasVersions = $reflectionClass->hasMethod('__version');
+            $versionComponentInfo->Name = $className;
+            $versionComponentInfo->Namespace = $reflectionClass->getNamespaceName();
+            $versionComponentInfo->ComponentName = $className;
+            $versionComponentInfo->Tag = $className;
+            $versionComponentInfo->HasInit = $reflectionClass->hasMethod('__init');
+            $versionComponentInfo->HasVersions = $reflectionClass->hasMethod('__version');
             if (!empty($className)) {
-                $this->components[$className] = $componentInfo;
+                $this->components[$className] = $versionComponentInfo;
                 $this->componentReflectionTypes[$className] = $reflectionClass;
             }
             $this->compileToJs($reflectionClass);
@@ -501,37 +501,38 @@ class PageEngine
                     $publicJson[$className]['init'] = true;
             }
         }
+
         foreach ($this->templateVersions as $className => $versions) {
-            $componentInfo = $this->components[$className];
+            $versionComponentInfo = $this->components[$className];
             $templates = [];
             $numberContext = 0;
             $publicJson[$className] = [];
             $publicJson[$className] = [];
-            if (isset($componentInfo->Dependencies)) {
+            if (isset($versionComponentInfo->Dependencies)) {
                 $publicJson[$className]['dependencies'] = [];
-                foreach ($componentInfo->Dependencies as $argumentName => $argumentInfo) {
+                foreach ($versionComponentInfo->Dependencies as $argumentName => $argumentInfo) {
                     $publicJson[$className]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
                 }
             };
             $publicJson[$className]['hasVersions'] = true;
             $publicJson[$className]['versions'] = [];
-            if ($componentInfo->HasInit)
+            if ($versionComponentInfo->HasInit)
                 $publicJson[$className]['init'] = true;
 
             foreach ($versions as $arguments) {
                 // init instance
-                $instance = $this->resolve($componentInfo, false, [], true);
+                $instance = $this->resolve($versionComponentInfo, false, [], true);
                 $this->currentComponentInstance = $instance;
                 // $this->debug($instance);
                 // $this->debug($arguments);
                 foreach ($arguments as $key => $phpString) {
-                    if (isset($componentInfo->Inputs[$key])) {
+                    if (isset($versionComponentInfo->Inputs[$key])) {
                         $instance->{$key} = eval("return $phpString;");
                     }
                 }
                 // $this->debug($instance);
-                if ($componentInfo->IsComponent) {
-                    $template = $this->compileTemplate($componentInfo);
+                if ($versionComponentInfo->IsComponent) {
+                    $template = $this->compileTemplate($versionComponentInfo);
                     $version = $instance->__version();
                     // $this->debug($version);
                     $templateKey = '_v' . (++$numberContext);
@@ -547,9 +548,9 @@ class PageEngine
                 }
                 $this->currentComponentInstance = null;
             }
-            unset($componentInfo->BuildPath);
-            unset($componentInfo->RenderFunction);
-            $componentInfo->Versions = $templates;
+            unset($versionComponentInfo->BuildPath);
+            unset($versionComponentInfo->RenderFunction);
+            $versionComponentInfo->Versions = $templates;
         }
         $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
 
@@ -609,6 +610,9 @@ class PageEngine
             }
 
             $appJsContentMin = $this->minify($appJsContent);
+            if (!$appJsContentMin) {
+                $appJsContentMin = $appJsContent;
+            }
             file_put_contents($publicAppMiniJsFilePath, $appJsContentMin);
 
             //gzip
@@ -636,10 +640,10 @@ class PageEngine
                 CURLOPT_HTTPHEADER => ["Content-Type: application/x-www-form-urlencoded"],
                 CURLOPT_POSTFIELDS => http_build_query(["input" => $js])
             ]);
-
             $minified = curl_exec($ch);
             curl_close($ch);
         } catch (Exception $exc) {
+            $this->debug($exc);
         }
         return $minified;
     }
@@ -968,6 +972,11 @@ class PageEngine
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
             $componentInfo = &$this->components[$componentName];
+            // $this->debug($componentInfo);
+            // $this->debug('============' . $componentName);
+            // if(!$componentInfo){
+            //     $this->debug($this->components);
+            // }
             $classInstance = $this->resolve($componentInfo, false, $params);
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
