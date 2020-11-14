@@ -39,12 +39,19 @@ class AssetsManager
         $version = $dev ? '' : '?v=' . date('ymdHis');
         $componentVersion = $bundle->__version();
         $minifyService = new MinifyService();
+        $treeShakeService = new TreeShakingService();
         if ($bundle->link) {
             $cssName = $bundle->link;
-            $cssContent = ($bundle->combine || $bundle->minify) ? file_get_contents($rootDir . $cssName) : '';
+            $cssContent = ($bundle->combine || $bundle->minify || $bundle->shakeTree) ? file_get_contents($rootDir . $cssName) : '';
+            if ($bundle->shakeTree) {
+                $cssContent = $treeShakeService->shakeCss($cssContent);
+                $cssName = $buildDir . '/' . basename($cssName, '.css') . '.shk.css';
+                $newFileName =  $rootDir . $cssName;
+                file_put_contents($newFileName, $cssContent);
+            }
             if ($bundle->minify) {
                 $cssContent = $minifyService->minifyCss($cssContent);
-                $cssName = $buildDir . '/' . basename($bundle->link, '.css') . '.min.css';
+                $cssName = $buildDir . '/' . basename($cssName, '.css') . '.min.css';
                 $newFileName =  $rootDir . $cssName;
                 file_put_contents($newFileName, $cssContent);
             }
@@ -58,7 +65,13 @@ class AssetsManager
         }
         foreach ($bundle->links as $link) {
             $cssName = $link;
-            $cssContent = ($bundle->combine || $bundle->minify) ? file_get_contents($rootDir . $cssName) : '';
+            $cssContent = ($bundle->combine || $bundle->minify || $bundle->shakeTree) ? file_get_contents($rootDir . $cssName) : '';
+            if ($bundle->shakeTree) {
+                $cssContent = $treeShakeService->shakeCss($cssContent);
+                $cssName = $buildDir . '/' . basename($cssName, '.css') . '.shk.css';
+                $newFileName =  $rootDir . $cssName;
+                file_put_contents($newFileName, $cssContent);
+            }
             if ($bundle->minify) {
                 $cssContent = $minifyService->minifyCss($cssContent);
                 $cssName = $buildDir . '/' . basename($cssName, '.css') . '.min.css';

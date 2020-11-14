@@ -63,7 +63,7 @@ class MinifyService
                         $nextSafe = false;
                         if ($currentWhiteSpace) {
                             $keyword = ' ';
-                            $nextSafe = $this->i >= $this->count || isset($this->safeTokensAfter[$this->css[$this->i + 1]]);
+                            $nextSafe = $this->i + 1 >= $this->count || isset($this->safeTokensAfter[$this->css[$this->i + 1]]);
                         } else {
                             $this->previousToken = $keyword;
                         }

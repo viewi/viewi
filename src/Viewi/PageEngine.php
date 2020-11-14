@@ -146,9 +146,8 @@ class PageEngine
     private int $forIterationKey = 0;
     private array $config;
 
-    public function __construct(
-        array $config
-    ) {
+    public function __construct(array $config)
+    {
         $this->config = $config;
         $this->sourcePath = $config[self::SOURCE_DIR]; // $sourcePath;
         $this->buildPath = $config[self::SERVER_BUILD_DIR]; // $buildPath;
@@ -304,6 +303,12 @@ class PageEngine
                 $componentInfo->Dependencies = $dependencies;
             }
         }
+    }
+
+    /** @return PageTemplate[] */
+    public function getTemplates(): array
+    {
+        return $this->templates;
     }
 
     /**
@@ -465,6 +470,8 @@ class PageEngine
         $publicJson = [];
         foreach ($this->components as $className => &$componentInfo) {
             if (isset($componentInfo->HasVersions) && $componentInfo->HasVersions) {
+                $this->templates[$className] = $this->compileTemplate($componentInfo); // compile just for selectors
+                // print_r($this->templates[$className]);
                 continue; // has multiple templates based on input
             }
             if ($componentInfo->IsComponent) {
@@ -507,7 +514,7 @@ class PageEngine
             $publicJson[$className]['versions'] = [];
             if ($componentInfo->HasInit)
                 $publicJson[$className]['init'] = true;
-                
+
             foreach ($versions as $arguments) {
                 // init instance
                 $instance = $this->resolve($componentInfo, false, [], true);
