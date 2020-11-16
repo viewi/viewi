@@ -279,7 +279,7 @@ class JsTranslator
             if ($thisMatched) {
                 if ($declaredProp === null) {
                     $this->scope[$this->scopeLevel][$this->buffer] = 'public';
-                    $this->scope[$this->scopeLevel][$this->buffer . '_this'];
+                    $this->scope[$this->scopeLevel][$this->buffer . '_this'] = true;
                     $varStatement = '$this.';
                 } else {
                     $varStatement = $declaredProp === 'private' ? '' : '$this.';

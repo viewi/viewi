@@ -213,7 +213,6 @@ require 'Functions/Strings/ConvertCyrString.php';
 require 'Functions/Strings/ConvertUuencode.php';
 require 'Functions/Strings/CountChars.php';
 require 'Functions/Strings/Crc32.php';
-require 'Functions/Strings/EchoPHP.php';
 require 'Functions/Strings/Explode.php';
 require 'Functions/Strings/GetHtmlTranslationTable.php';
 require 'Functions/Strings/Hex2bin.php';

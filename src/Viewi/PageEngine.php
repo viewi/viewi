@@ -384,10 +384,10 @@ class PageEngine
                 $translator = new JsTranslator($raw);
                 $jscode = $translator->convert();
                 $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->getRequestedIncludes());
+                $this->componentDependencies += $translator->getVariablePaths();
             }
             // $this->debug($className);
-            // $this->debug($translator->getVariablePaths());
-            $this->componentDependencies += $translator->getVariablePaths();
+            // $this->debug($translator->getVariablePaths());            
             $this->compiledJs[$className] = $jscode;
         }
     }
