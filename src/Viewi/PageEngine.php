@@ -623,7 +623,12 @@ class PageEngine
         //$this->debug($this->components);
     }
 
-    function minify($js): string
+    function minify($js)
+    {
+        return $js; // TODO: implement js minification without API
+    }
+
+    function minifyByAPI($js): string
     {
         $minified = $js;
         try {

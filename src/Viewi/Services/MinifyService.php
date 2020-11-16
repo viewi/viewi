@@ -20,6 +20,11 @@ class MinifyService
         $this->safeTokensBefore = array_flip(str_split('{},;:('));
     }
 
+    public function minifyJavaScript(string $jsText): string
+    {
+        return $jsText;
+    }
+
     public function minifyCss(string $cssText): string
     {
         $this->css = $cssText;
