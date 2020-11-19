@@ -1654,6 +1654,10 @@ function Viewi() {
                         }
                         removeDomNodes(b[i].children);
                     }
+                    if (b[i].rawNodes) {
+                        a[i].rawNodes = b[i].rawNodes;
+                        a[i].latestHtml = b[i].latestHtml;
+                    }
                 }
             }
         }
