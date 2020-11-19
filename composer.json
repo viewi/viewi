@@ -15,5 +15,8 @@
         "psr-4": {
             "Viewi\\": "src/Viewi/"
         }
-    }
+    },
+    "bin": [
+        "bin/viewi"
+    ]
 }
