@@ -595,6 +595,7 @@ class PageEngine
         $appJsContent = $copyright
             . file_get_contents($thisRoot . 'js/router.js')
             . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
+            . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";' . PHP_EOL
             . file_get_contents($thisRoot . 'js/app.js');
 
         $publicBundleJs = $copyright . $publicBundleJs;

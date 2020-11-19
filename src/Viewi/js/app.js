@@ -109,7 +109,7 @@ function Viewi() {
     var resourcesCache = [];
 
     var router = new Router();
-    this.componentsUrl = '/build/components.json';
+    this.componentsUrl = VIEWI_PATH + '/components.json';
     this.components = {};
     var htmlElementA = document.createElement('a');
     var hydrate = false;
@@ -833,7 +833,11 @@ function Viewi() {
         var nextInsert = false;
         if (node.skipIteration) {
             node.skipIteration = false;
-            elm = node.domNode;
+            var vvn = node;
+            while (vvn.isVirtual) {
+                vvn = vvn.parent;
+            }
+            elm = vvn.domNode;
             var saved = currentLevelDomArray.first(
                 /**
                  * 
@@ -881,7 +885,11 @@ function Viewi() {
                                 if (!nodeBefore.itsParent && nextSibiling !== null) {
                                     nextSibiling.parentNode.insertBefore(elm, nextSibiling);
                                 } else if (nodeBefore.itsParent) {
-                                    nodeBefore.node.domNode.appendChild(elm);
+                                    if (nodeBefore.node.domNode.childNodes.length > 0) {
+                                        nodeBefore.node.domNode.insertBefore(elm, nodeBefore.node.domNode.childNodes[0]);
+                                    } else {
+                                        nodeBefore.node.domNode.appendChild(elm);
+                                    }
                                 } else {
                                     nodeBefore.node.domNode.parentNode.appendChild(elm);
                                 }
@@ -902,6 +910,7 @@ function Viewi() {
                     if (!hydrate && val in resourceTags) {
                         // create to compare
                         var newNode = elm = document.createElement(val);
+                        node.domNode = elm;
                         createDOM(newNode, node.children, nextInsert, skipGroup);
                         if (node.attributes) {
                             for (var a in node.attributes) {
@@ -992,14 +1001,16 @@ function Viewi() {
                             elm = existenElm[0];
                             node.domNode = elm;
                             break;
-                        } else {
+                        }
+                        else if (!(existenElm[1] in takenDomArray)) {
                             existenElm[0].parentNode.removeChild(existenElm[0]);
                         }
                     }
                     elm = document.createElement(val);
 
-                    if (node.domNode !== null) {
+                    if (node.domNode !== null && node.domNode.parentNode) {
                         node.domNode.parentNode.replaceChild(elm, node.domNode);
+                        node.children && removeDomNodes(node.children);
                     } else {
                         var nodeBefore = getFirstBefore(node);
                         if (nodeBefore == null) {
@@ -1010,7 +1021,12 @@ function Viewi() {
                         if (!nodeBefore.itsParent && nextSibiling !== null) {
                             nextSibiling.parentNode.insertBefore(elm, nextSibiling);
                         } else if (nodeBefore.itsParent) {
-                            nodeBefore.node.domNode.appendChild(elm);
+                            // nodeBefore.node.domNode.appendChild(elm);
+                            if (nodeBefore.node.domNode.childNodes.length > 0) {
+                                nodeBefore.node.domNode.insertBefore(elm, nodeBefore.node.domNode.childNodes[0]);
+                            } else {
+                                nodeBefore.node.domNode.appendChild(elm);
+                            }
                         } else {
                             nodeBefore.node.domNode.parentNode.appendChild(elm);
                         }
@@ -1031,24 +1047,28 @@ function Viewi() {
                     if (node.domNode !== null) {
                         node.domNode.parentNode.replaceChild(elm, node.domNode);
                     } else {
-                        if (insert) {
-                            // find first previous not virtual up tree non virtual
-                            var nodeBefore = getFirstBefore(node);
-                            if (nodeBefore == null) {
-                                return;
-                                break; // throw error ??
-                            }
-                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                            if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                nextSibiling.parentNode.insertBefore(elm, nextSibiling);
-                            } else if (nodeBefore.itsParent) {
-                                nodeBefore.node.domNode.appendChild(elm);
+                        // if (insert) {
+                        // find first previous not virtual up tree non virtual
+                        var nodeBefore = getFirstBefore(node);
+                        if (nodeBefore == null) {
+                            return;
+                            break; // throw error ??
+                        }
+                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibiling !== null) {
+                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        } else if (nodeBefore.itsParent) {
+                            if (nodeBefore.node.domNode.childNodes.length > 0) {
+                                nodeBefore.node.domNode.insertBefore(elm, nodeBefore.node.domNode.childNodes[0]);
                             } else {
-                                nodeBefore.node.domNode.parentNode.appendChild(elm);
+                                nodeBefore.node.domNode.appendChild(elm);
                             }
                         } else {
-                            parent.appendChild(elm);
+                            nodeBefore.node.domNode.parentNode.appendChild(elm);
                         }
+                        // } else {
+                        //     parent.appendChild(elm);
+                        // }
                     }
                     node.domNode = elm;
                     break;
@@ -1264,17 +1284,17 @@ function Viewi() {
             takenDomArray = {};
         }
         for (var i in nodes) {
-            if (nodes[i].skipIteration) {
-                var saved = currentLevelDomArray.first(
-                    function (x, index) {
-                        return x === nodes[i].domNode;
-                    },
-                    true
-                );
-                if (saved && saved[0].parentNode) {
-                    takenDomArray[saved[1]] = true;
-                }
+            // if (nodes[i].skipIteration) {
+            var saved = currentLevelDomArray.first(
+                function (x, index) {
+                    return x === nodes[i].domNode;
+                },
+                true
+            );
+            if (saved && saved[0].parentNode) {
+                takenDomArray[saved[1]] = true;
             }
+            // }
         }
         for (var i in nodes) {
             currentElemPosition = i;
@@ -1570,11 +1590,14 @@ function Viewi() {
         if (la != lb) {
             // console.log('Length is different', la, lb, a, b);
             // temp solution, remove all b
-            for (var i = 0; i < lb; i++) {
-                if (b[i].domNode && b[i].domNode.parentNode) {
-                    b[i].domNode.parentNode.removeChild(b[i].domNode);
-                }
-            }
+            removeDomNodes(b);
+            // for (var i = 0; i < lb; i++) {
+            //     if (b[i].domNode && b[i].domNode.parentNode) {
+            //         b[i].domNode.parentNode.removeChild(b[i].domNode);
+            //     } else if (b[i].isVirtual) {
+            //         removeDomNodes();
+            //     }
+            // }
             return; // TODO: match each node individually
         }
         for (var i = 0; i < la; i++) {
@@ -1611,7 +1634,7 @@ function Viewi() {
                 if (matched) {
                     // all matched, reassigning DOM node
                     a[i].domNode = b[i].domNode;
-                    a[i].skipIteration = true;
+                    a[i].skipIteration = !a[i].isVirtual && b[i].domNode;
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
                         a[i].latestHtml = b[i].latestHtml;
@@ -1624,6 +1647,12 @@ function Viewi() {
                     // remove DOM node
                     if (b[i].domNode && b[i].domNode.parentNode) {
                         b[i].domNode.parentNode.removeChild(b[i].domNode);
+                    } else if (b[i].isVirtual) {
+                        if (a[i].previousNode && a[i].previousNode.type === 'text' && a[i].previousNode.skipIteration) {
+                            a[i].previousNode.skipIteration = false;
+                            removeDomNodes([a[i].previousNode]);
+                        }
+                        removeDomNodes(b[i].children);
                     }
                 }
             }
@@ -1729,6 +1758,17 @@ function Viewi() {
         components: []
     };
 
+    var collectVirtual = function (node, vNodes) {
+        if (node.children) {
+            for (var c in node.children) {
+                if (node.children[c].domNode) {
+                    vNodes.push(node.children[c]);
+                } else if (node.children[c].isVirtual) {
+                    collectVirtual(node.children[c], vNodes);
+                }
+            }
+        }
+    }
     /**
      * 
      * @param {vNode} node 
@@ -1790,6 +1830,8 @@ function Viewi() {
                     for (var i = 0; i < maxNodes; i++) {
                         if (node.children[i].rawNodes) {
                             vNodes = vNodes.concat(node.children[i].rawNodes);
+                        } else if (node.children[i].isVirtual) {
+                            collectVirtual(node.children[i], vNodes);
                         } else {
                             vNodes.push(node.children[i]);
                         }

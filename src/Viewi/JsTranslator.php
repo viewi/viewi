@@ -608,6 +608,11 @@ class JsTranslator
                             $this->putIdentation = true;
                             $this->newVar = true;
                             if ($this->pasteArrayReactivity) {
+                                // $this->debug($this->pasteArrayReactivity);
+                                // $this->debug($this->latestVariablePath);
+                                if($this->pasteArrayReactivity[0] === null){
+                                    $this->pasteArrayReactivity[0] = $this->latestVariablePath;
+                                }
                                 $code .= $this->currentIdentation .
                                     'notify(' . implode(', ', $this->pasteArrayReactivity) . ');'
                                     . PHP_EOL;
