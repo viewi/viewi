@@ -294,7 +294,7 @@ class TreeShakingService
                 }
                 foreach ($group['rules'] as $rule) {
                     $selector = trim($rule['selector']);
-                    if ($rule['valid']) {
+                    if ($rule['valid'] || $group['special']) {
                         $textCss .= ($blocked ? $identation : '') . $selector . ' {' . PHP_EOL;
                         $textCss .= $identation . ($blocked ? $identation : '') . trim($rule['content']);
                         $textCss .= $blocked ?  PHP_EOL . $identation . '}' . PHP_EOL :  PHP_EOL . PHP_EOL . '}' . PHP_EOL . PHP_EOL;
