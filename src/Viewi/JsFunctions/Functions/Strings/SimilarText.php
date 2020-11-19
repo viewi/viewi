@@ -1,21 +1,21 @@
 <?php
 
-    namespace Viewi\JsFunctions\Functions\Strings;
+namespace Viewi\JsFunctions\Functions\Strings;
 
-    use Viewi\JsFunctions\BaseFunctionConverter;
-    use Viewi\JsTranslator;
+use Viewi\JsFunctions\BaseFunctionConverter;
+use Viewi\JsTranslator;
 
-    class SimilarText extends BaseFunctionConverter
-    {
-        public static string $name = 'similar_text';
+class SimilarText extends BaseFunctionConverter
+{
+    public static string $name = 'similar_text';
     
-        public static function convert(
-            JsTranslator $translator,
-            string $code,
-            string $identation
-        ): string {
-            $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'SimilarText.js';
-            $translator->includeJsFile(self::$name, $jsToInclue);
-            return $code . '(';
-        }
+    public static function convert(
+        JsTranslator $translator,
+        string $code,
+        string $identation
+    ): string {
+        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'SimilarText.js';
+        $translator->includeJsFile(self::$name, $jsToInclue);
+        return $code . '(';
     }
+}

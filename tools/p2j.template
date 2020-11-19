@@ -1,21 +1,21 @@
 <?php
 
-namespace Viewi\JsFunctions\Functions\Math;
+namespace ##namespace##;
 
 use Viewi\JsFunctions\BaseFunctionConverter;
 use Viewi\JsTranslator;
 
-class IsNan extends BaseFunctionConverter
+class ##class## extends BaseFunctionConverter
 {
-    public static string $name = 'is_nan';
+    public static string $name = '##function##';
     
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $identation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'IsNan.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . '##class##.js';
+        $translator->includeJsFile(self::$name, $jsToInclue);##watchLatest##
         return $code . '(';
     }
 }

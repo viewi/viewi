@@ -1,21 +1,21 @@
 <?php
 
-    namespace Viewi\JsFunctions\Functions\Ctype;
+namespace Viewi\JsFunctions\Functions\Ctype;
 
-    use Viewi\JsFunctions\BaseFunctionConverter;
-    use Viewi\JsTranslator;
+use Viewi\JsFunctions\BaseFunctionConverter;
+use Viewi\JsTranslator;
 
-    class CtypeCntrl extends BaseFunctionConverter
-    {
-        public static string $name = 'ctype_cntrl';
+class CtypeCntrl extends BaseFunctionConverter
+{
+    public static string $name = 'ctype_cntrl';
     
-        public static function convert(
-            JsTranslator $translator,
-            string $code,
-            string $identation
-        ): string {
-            $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CtypeCntrl.js';
-            $translator->includeJsFile(self::$name, $jsToInclue);
-            return $code . '(';
-        }
+    public static function convert(
+        JsTranslator $translator,
+        string $code,
+        string $identation
+    ): string {
+        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CtypeCntrl.js';
+        $translator->includeJsFile(self::$name, $jsToInclue);
+        return $code . '(';
     }
+}
