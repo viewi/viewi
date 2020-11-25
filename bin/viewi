@@ -70,7 +70,12 @@ class ViewiCLITool
         $projectDir = getcwd();
         $viewiDir = isset($inputs[1]) && trim($inputs[1], ' \\/') ?
             trim($inputs[1], ' \\/') :
-            'ViewiApp';
+            'viewi-app';
+        
+        if ($viewiDir === 'viewi-app' && file_exists("$projectDir/src")) {
+            $viewiDir = 'ViewiApp';
+            $viewiDir = "src/$viewiDir";
+        }
         $viewiDirFullPath = "$projectDir/$viewiDir";
         if (file_exists($viewiDirFullPath)) {
             echo "Viewi directory '$viewiDir' alredy exists. To continue please remove the old one or select another folder.\n";
@@ -114,7 +119,6 @@ class ViewiCLITool
         $composerFile = "$projectDir/composer.json";
         echo "Updating composer.json..\n";
         if (file_exists($composerFile)) {
-            echo "Updating composer.json\n";
             $content = file_get_contents($composerFile);
             $json = json_decode($content, true);
             if (!isset($json['autoload'])) {
@@ -135,14 +139,14 @@ class ViewiCLITool
             echo "Can't find composer.json file.\n";
         }
         // composer install
-        // $composerPhar = "$projectDir/composer.phar";
-        // echo "composer install\n";
-        // if (file_exists($composerPhar)) {
-        //     echo shell_exec("php composer.phar install");
-        // } else {
-        //     echo shell_exec("composer install");
-        // }
-        // echo "\n";
+        $composerPhar = "$projectDir/composer.phar";
+        echo "composer install\n";
+        if (file_exists($composerPhar)) {
+            echo shell_exec("php composer.phar install");
+        } else {
+            echo shell_exec("composer install");
+        }
+        echo "\n";
         // update index.php
         $appCode = "\n\n" .
             "// Viewi application here, uncomment to use as standalone application\n" .
