@@ -1,4 +1,135 @@
 #!/usr/bin/env php
 <?php
 
-echo 'Welcome';
+$cliTool = new ViewiCLITool();
+$cliTool->exec($argv);
+class ViewiCLITool
+{
+
+    static array $commands = [
+        'new' => [
+            'description' => 'Initialize Viewi application.',
+            'arguments' => [
+                'directory' => [
+                    'optional' => true,
+                    'default' => 'viewi',
+                    'description' => 'Directory for Viewi components'
+                ]
+            ],
+            'action' => 'createNew'
+        ],
+        'help' => [
+            'description' => 'Prints all avaliable commands.',
+            'action' => 'help'
+        ]
+    ];
+
+    function exec($argv)
+    {
+        $inputs = array_slice($argv, 1);
+        if (!isset($inputs[0])) {
+            echo "You must specify command\n";
+            $this->help();
+            return;
+        }
+        $command = $inputs[0];
+        if (!isset(self::$commands[$command])) {
+            echo "Command '$command' is not supported.\n";
+            $this->help();
+            return;
+        }
+        $commandProps = self::$commands[$command];
+        $action = $commandProps['action'];
+        $this->$action($inputs, $command);
+    }
+
+    function help($inputs = [], $invokedCommand = '', string $command = '')
+    {
+        echo "Supported commands:\n\n";
+        foreach (self::$commands as $command => $props) {
+            $arguments = $props['arguments'] && count($props['arguments']) > 0 ?
+                '<' . implode('> <', array_keys($props['arguments'])) . '>' :
+                '';
+            echo "    $command $arguments\n    ({$props['description']})\n";
+            if ($arguments) {
+                echo "    - arguments\n";
+                foreach ($props['arguments'] as $argument => $argDetail) {
+                    $details = $argDetail['optional'] ? '; optional' : '; required';
+                    $details .= $argDetail['default'] ? ';  default: ' . $argDetail['default'] : '';
+                    echo "        $argument - {$argDetail['description']}$details\n";
+                }
+            }
+            echo "\n";
+        }
+    }
+
+    function createNew($inputs, $command)
+    {
+        echo "Starting setting up View for you.\n";
+        // create directory
+        $projectDir = getcwd();
+        $viewiDir = isset($inputs[1]) && trim($inputs[1], ' \\/') ?
+            trim($inputs[1], ' \\/') :
+            'viewi';
+        $viewiDirFullPath = "$projectDir/$viewiDir";
+        if (file_exists($viewiDirFullPath)) {
+            echo "Viewi directory alredy exists. To continue please remove the old one or select another folder.\n";
+            return;
+        }
+        mkdir($viewiDirFullPath);
+        $rootPath = '/';
+        $indexPath = 'index.php';
+        $publicPath = '/';
+        if (file_exists("$projectDir/public/index.php")) {
+            $rootPath = "../";
+            $indexPath = 'public/index.php';
+            $publicPath = 'public/';
+        }
+        if (file_exists("$projectDir/www/index.php")) {
+            $rootPath = "../";
+            $indexPath = 'www/index.php';
+            $publicPath = 'www/';
+        }
+        // copy contents
+        // set up config
+        // update composer.json
+        $composerFile = "$projectDir/composer.json";
+        if (file_exists($composerFile)) {
+            echo "Updating composer.json\n";
+            $content = file_get_contents($composerFile);
+            $json = json_decode($content, true);
+            if (!isset($json['autoload'])) {
+                $json['autoload'] = [];
+            }
+            if (!isset($json['autoload']['psr-4'])) {
+                $json['autoload']['psr-4'] = [];
+            }
+            $json['autoload']['psr-4']['Components\\'] = "$viewiDir/components/";
+            $content = json_encode(
+                $json,
+                JSON_PRETTY_PRINT |
+                    JSON_UNESCAPED_SLASHES |
+                    JSON_UNESCAPED_UNICODE
+            );
+            file_put_contents($composerFile, $content);
+        }
+        // finish up
+        echo "All is set up. Enjoy!\n";
+    }
+
+    function recurse_copy($src, $dst)
+    {
+        $dir = opendir($src);
+        @mkdir($dst);
+        while (false !== ($file = readdir($dir))) {
+            if (($file != '.') && ($file != '..')) {
+                if (is_dir($src . '/' . $file)) {
+                    $this->recurse_copy($src . '/' . $file, $dst . '/' . $file);
+                } else {
+                    copy($src . '/' . $file, $dst . '/' . $file);
+                }
+            }
+        }
+        closedir($dir);
+    }
+}
