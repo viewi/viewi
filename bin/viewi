@@ -145,13 +145,13 @@ class ViewiCLITool
         // echo "\n";
         // update index.php
         $appCode = "\n\n" .
-            "// Viewi application here, uncomment to use as standalone application" .
+            "// Viewi application here, uncomment to use as standalone application\n" .
             "// include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
             "// Viewi\App::handle();";
         $indexFilePath = "$projectDir/$indexPath";
         if (file_exists($indexFilePath)) {
             $content = file_get_contents($indexFilePath);
-            if (strpos($content, "$viewiDir/viewi.php") !== false) {
+            if (strpos($content, "$viewiDir/viewi.php") === false) {
                 echo "Updating index.php\n";
                 $content .= $appCode;
                 file_put_contents($indexFilePath, $content);
