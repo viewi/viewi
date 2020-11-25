@@ -76,35 +76,43 @@ class ViewiCLITool
             echo "Viewi directory '$viewiDir' alredy exists. To continue please remove the old one or select another folder.\n";
             return;
         }
+        echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath);
-        $rootPath = '/';
+        $rootPath = '';
         $indexPath = 'index.php';
         $publicPath = '/';
         if (file_exists("$projectDir/public/index.php")) {
-            $rootPath = "../";
+            $rootPath = "/..";
             $indexPath = 'public/index.php';
             $publicPath = 'public/';
         }
         if (file_exists("$projectDir/www/index.php")) {
-            $rootPath = "../";
+            $rootPath = "/..";
             $indexPath = 'www/index.php';
             $publicPath = 'www/';
         }
         // copy contents
         $newAppStubs = 'vendor/viewi/viewi/stubs/new-app';
         $newAppStubsPath = "$projectDir/$newAppStubs";
+        echo "Copying files..\n";
         if (file_exists($newAppStubsPath)) {
             $this->recurse_copy($newAppStubsPath, $viewiDirFullPath);
+        } else {
+            echo "Can't find path '$newAppStubsPath'\n";
         }
         // set up config
         $configPath = "$projectDir/$viewiDir/config.php";
-        if(file_exists($configPath)){
+        echo "Updating config..\n";
+        if (file_exists($configPath)) {
             $content = file_get_contents($configPath);
-            $content = str_replace('##public##', "/$rootPath{$publicPath}", $content);
+            $content = str_replace('##public##', "$rootPath/$publicPath", $content);
             file_put_contents($configPath, $content);
+        } else {
+            echo "Can't find path '$configPath'\n";
         }
         // update composer.json
         $composerFile = "$projectDir/composer.json";
+        echo "Updating composer.json..\n";
         if (file_exists($composerFile)) {
             echo "Updating composer.json\n";
             $content = file_get_contents($composerFile);
@@ -115,7 +123,7 @@ class ViewiCLITool
             if (!isset($json['autoload']['psr-4'])) {
                 $json['autoload']['psr-4'] = [];
             }
-            $json['autoload']['psr-4']['Components\\'] = "$viewiDir/components/";
+            $json['autoload']['psr-4']['Components\\'] = "$viewiDir/Components/";
             $content = json_encode(
                 $json,
                 JSON_PRETTY_PRINT |
@@ -123,6 +131,31 @@ class ViewiCLITool
                     JSON_UNESCAPED_UNICODE
             );
             file_put_contents($composerFile, $content);
+        } else {
+            echo "Can't find composer.json file.\n";
+        }
+        // composer install
+        // $composerPhar = "$projectDir/composer.phar";
+        // echo "composer install\n";
+        // if (file_exists($composerPhar)) {
+        //     echo shell_exec("php composer.phar install");
+        // } else {
+        //     echo shell_exec("composer install");
+        // }
+        // echo "\n";
+        // update index.php
+        $appCode = "\n\n" .
+            "// Viewi application here, uncomment to use as standalone application" .
+            "// include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+            "// Viewi\App::handle();";
+        $indexFilePath = "$projectDir/$indexPath";
+        if (file_exists($indexFilePath)) {
+            $content = file_get_contents($indexFilePath);
+            if (strpos($content, "$viewiDir/viewi.php") !== false) {
+                echo "Updating index.php\n";
+                $content .= $appCode;
+                file_put_contents($indexFilePath, $content);
+            }
         }
         // finish up
         echo "All is set up. Enjoy!\n";

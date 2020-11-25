@@ -37,6 +37,7 @@ class Route
         self::$routes[] = new RouteItem(
             $method,
             $url,
+            $component,
             strpos($component, '\\') !== false ?
                 substr(strrchr($component, "\\"), 1)
                 : $component,
