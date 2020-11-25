@@ -71,7 +71,7 @@ class ViewiCLITool
         $viewiDir = isset($inputs[1]) && trim($inputs[1], ' \\/') ?
             trim($inputs[1], ' \\/') :
             'viewi-app';
-        
+
         if ($viewiDir === 'viewi-app' && file_exists("$projectDir/src")) {
             $viewiDir = 'ViewiApp';
             $viewiDir = "src/$viewiDir";
@@ -83,16 +83,18 @@ class ViewiCLITool
         }
         echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath);
-        $rootPath = '';
+        $deepLevel = count(explode('/', $viewiDir)) - 1;
+        $rootPath = str_repeat('/..', $deepLevel);
+        $includePath = str_repeat('/..', $deepLevel + 1);
         $indexPath = 'index.php';
-        $publicPath = '/';
+        $publicPath = '';
         if (file_exists("$projectDir/public/index.php")) {
-            $rootPath = "/..";
+            // $rootPath .= "/..";
             $indexPath = 'public/index.php';
             $publicPath = 'public/';
         }
         if (file_exists("$projectDir/www/index.php")) {
-            $rootPath = "/..";
+            // $rootPath .= "/..";
             $indexPath = 'www/index.php';
             $publicPath = 'www/';
         }
@@ -110,7 +112,7 @@ class ViewiCLITool
         echo "Updating config..\n";
         if (file_exists($configPath)) {
             $content = file_get_contents($configPath);
-            $content = str_replace('##public##', "$rootPath/$publicPath", $content);
+            $content = str_replace('##public##', "$includePath/$publicPath", $content);
             file_put_contents($configPath, $content);
         } else {
             echo "Can't find path '$configPath'\n";

@@ -12,7 +12,7 @@ class App
 
     public static function init(array $config)
     {
-        $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/build';
+        $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
         self::$config = $config;
         self::$engine = new PageEngine(self::$config);
     }
