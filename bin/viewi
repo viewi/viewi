@@ -70,10 +70,10 @@ class ViewiCLITool
         $projectDir = getcwd();
         $viewiDir = isset($inputs[1]) && trim($inputs[1], ' \\/') ?
             trim($inputs[1], ' \\/') :
-            'viewi';
+            'ViewiApp';
         $viewiDirFullPath = "$projectDir/$viewiDir";
         if (file_exists($viewiDirFullPath)) {
-            echo "Viewi directory alredy exists. To continue please remove the old one or select another folder.\n";
+            echo "Viewi directory '$viewiDir' alredy exists. To continue please remove the old one or select another folder.\n";
             return;
         }
         mkdir($viewiDirFullPath);
@@ -91,7 +91,18 @@ class ViewiCLITool
             $publicPath = 'www/';
         }
         // copy contents
+        $newAppStubs = 'vendor/viewi/viewi/stubs/new-app';
+        $newAppStubsPath = "$projectDir/$newAppStubs";
+        if (file_exists($newAppStubsPath)) {
+            $this->recurse_copy($newAppStubsPath, $viewiDirFullPath);
+        }
         // set up config
+        $configPath = "$projectDir/$viewiDir/config.php";
+        if(file_exists($configPath)){
+            $content = file_get_contents($configPath);
+            $content = str_replace('##public##', "/$rootPath{$publicPath}", $content);
+            file_put_contents($configPath, $content);
+        }
         // update composer.json
         $composerFile = "$projectDir/composer.json";
         if (file_exists($composerFile)) {
