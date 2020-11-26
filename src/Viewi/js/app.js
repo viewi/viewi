@@ -1318,10 +1318,15 @@ function Viewi() {
             if (nodes[k].domNode) {
                 if (nodes[k].domNode.parentNode) {
                     nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
-                } else if(!silent) {
+                } else if (!silent) {
                     console.log('Can\'t remove', nodes[k]);
                 }
                 nodes[k].domNode = null;
+            }
+            if (nodes[k].origin) {                
+                nodes[k].origin.skipIteration = false;
+                nodes[k].origin.domNode = null;
+                nodes[k].origin = null;
             }
         }
     }
@@ -1620,6 +1625,9 @@ function Viewi() {
                     // all matched, reassigning DOM node
                     a[i].domNode = b[i].domNode;
                     a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode;
+                    if (a[i].skipIteration) {
+                        b[i].origin = a[i];
+                    }
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
                         a[i].latestHtml = b[i].latestHtml;
