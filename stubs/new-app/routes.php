@@ -1,16 +1,18 @@
 <?php
 
-use Components\Views\Counter\Counter;
-use Viewi\Routing\Route as ViewiRoute;
+use Components\Views\AllAtOnce\DemoListPage;
 use Components\Views\Home\HomePage;
 use Components\Views\NotFound\NotFoundPage;
-use Components\Views\StatefulCounter\StatefulCounter;
-use Components\Views\StatefulTodoApp\StatefulTodoApp;
-use Components\Views\TodoApp\TodoApp;
+use Components\Views\Pages\CounterPage;
+use Components\Views\Pages\StatefulCounterPage;
+use Components\Views\Pages\StatefulTodoAppPage;
+use Components\Views\Pages\TodoAppPage;
+use Viewi\Routing\Route as ViewiRoute;
 
 ViewiRoute::get('/', HomePage::class);
-ViewiRoute::get('/counter', Counter::class);
-ViewiRoute::get('/todo', TodoApp::class);
-ViewiRoute::get('/stateful-counter', StatefulCounter::class);
-ViewiRoute::get('/stateful-todo', StatefulTodoApp::class);
+ViewiRoute::get('/counter', CounterPage::class);
+ViewiRoute::get('/todo', TodoAppPage::class);
+ViewiRoute::get('/stateful-counter', StatefulCounterPage::class);
+ViewiRoute::get('/stateful-todo', StatefulTodoAppPage::class);
+ViewiRoute::get('/all-at-once', DemoListPage::class);
 ViewiRoute::get('*', NotFoundPage::class);
