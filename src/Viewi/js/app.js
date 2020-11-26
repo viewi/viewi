@@ -1677,7 +1677,7 @@ function Viewi() {
         if (same) {
             latestPage.components.splice(same[1], 1);
             builtNodes = same[0].build;
-            instance = same[0].instance;
+            // instance = same[0].instance;
         }
         // }
         var previousPropsSubs = propsSubs;
