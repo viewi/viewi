@@ -733,21 +733,6 @@ function Viewi() {
     }
 
     var nextNodeId = 0;
-
-    var removeDomNodes = function (nodes) {
-        for (var i in nodes) {
-            if (nodes[i].domNode !== null) {
-                // TODO: remove children
-                if (nodes[i].children) {
-                    removeDomNodes(nodes[i].children);
-                }
-                // TODO: on remove rerender sibilings before and after if text or virtual
-                nodes[i].domNode.parentNode.removeChild(nodes[i].domNode);
-                nodes[i].domNode = null;
-            }
-        }
-    }
-
     var renderScopeStack = [];
 
     var createDomNode = function (parent, node, insert, skipGroup) {
@@ -1325,15 +1310,15 @@ function Viewi() {
         return getFirstParentWithDom(node.parent);
     }
 
-    var removeDomNodes = function (nodes) {
+    var removeDomNodes = function (nodes, silent) {
         for (var k in nodes) {
             if (nodes[k].children) {
-                removeDomNodes(nodes[k].children);
+                removeDomNodes(nodes[k].children, silent);
             }
             if (nodes[k].domNode) {
                 if (nodes[k].domNode.parentNode) {
                     nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
-                } else {
+                } else if(!silent) {
                     console.log('Can\'t remove', nodes[k]);
                 }
                 nodes[k].domNode = null;
@@ -1591,13 +1576,13 @@ function Viewi() {
             // console.log('Length is different', la, lb, a, b);
             // temp solution, remove all b
             removeDomNodes(b);
-            // for (var i = 0; i < lb; i++) {
-            //     if (b[i].domNode && b[i].domNode.parentNode) {
-            //         b[i].domNode.parentNode.removeChild(b[i].domNode);
-            //     } else if (b[i].isVirtual) {
-            //         removeDomNodes();
-            //     }
-            // }
+            for (var i = 0; i < la; i++) {
+                if (a[i].skipIteration) {
+                    a[i].skipIteration = false;
+                    a[i].domNode = null;
+                    a[i].children && removeDomNodes(a[i].children, true);
+                }
+            }
             return; // TODO: match each node individually
         }
         for (var i = 0; i < la; i++) {
@@ -1634,7 +1619,7 @@ function Viewi() {
                 if (matched) {
                     // all matched, reassigning DOM node
                     a[i].domNode = b[i].domNode;
-                    a[i].skipIteration = !a[i].isVirtual && b[i].domNode;
+                    a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode;
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
                         a[i].latestHtml = b[i].latestHtml;
