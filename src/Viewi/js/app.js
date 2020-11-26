@@ -1323,10 +1323,12 @@ function Viewi() {
                 }
                 nodes[k].domNode = null;
             }
-            if (nodes[k].origin) {                
-                nodes[k].origin.skipIteration = false;
-                nodes[k].origin.domNode = null;
-                nodes[k].origin = null;
+            if (nodes[k].origin) {
+                for (var oi in nodes[k].origin) {
+                    nodes[k].origin[oi].skipIteration = false;
+                    nodes[k].origin[oi].domNode = null;
+                    nodes[k].origin[oi] = null;
+                }
             }
         }
     }
@@ -1626,7 +1628,10 @@ function Viewi() {
                     a[i].domNode = b[i].domNode;
                     a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode;
                     if (a[i].skipIteration) {
-                        b[i].origin = a[i];
+                        if (!b[i].origin) {
+                            b[i].origin = {};
+                        }
+                        b[i].origin[a[i].id] = a[i];
                     }
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
