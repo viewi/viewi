@@ -1,0 +1,11 @@
+<Layout title="Stateful Counter">
+    <h1>Stateful Counter</h1>
+    <div class="mui--text-dark mui--text-subhead">Unlike the regular counter, this one remembers its state for further
+        use.</div>
+    <div class="mui--text-dark mui--text-subhead">No matter how you change the count, it will keep it in reducer.</div>
+    <div class="mui--text-dark mui--text-subhead">And foremore - you can use it in different places (share with another component for example) and the count
+        will be the same.</div>
+    <button (click)="$counter->decrement()" class="mui-btn mui-btn--accent">-</button>
+    <span class="mui--text-dark mui--text-title">$counter->count</span>
+    <button (click)="$counter->increment()" class="mui-btn mui-btn--accent">+</button>
+</Layout>

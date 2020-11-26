@@ -1,0 +1,19 @@
+<Layout title="Stateful Todo">
+    <h1>Stateful Todo</h1>
+    <div class="mui--text-dark mui--text-subhead">Unlike the regular todo, this one remembers its state for further
+        use.</div>
+    <div class="mui--text-dark mui--text-subhead">No matter how you change the todo list, it will keep it in reducer.</div>
+    <div class="mui--text-dark mui--text-subhead">And foremore - you can use it in different places (share with another
+        component for example) and the list
+        will be the same.</div>
+    <form (submit)="handleSubmit($event)">
+        <div class="mui-textfield mui-textfield--float-label">
+            <input type="text" value="$text" autocomplete="off">
+            <label>What needs to be done?</label>
+        </div>
+        <button class="mui-btn mui-btn--raised">
+            Add #{count($todo->items) + 1}
+        </button>
+    </form>
+    <TodoList items="$todo->items" />
+</Layout>
