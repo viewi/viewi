@@ -15,7 +15,9 @@ Get started
 
 ### Install Viewi
 
-Run `composer require viewi/viewi:dev-master`
+Run:
+
+`composer require viewi/viewi:dev-master`
 
 `vendor/bin/viewi new`
 
