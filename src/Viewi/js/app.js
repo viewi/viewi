@@ -1319,7 +1319,7 @@ function Viewi() {
                 if (nodes[k].domNode.parentNode) {
                     nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
                 } else if (!silent) {
-                    console.log('Can\'t remove', nodes[k]);
+                    // console.log('Can\'t remove', nodes[k]);
                 }
                 nodes[k].domNode = null;
             }
@@ -1936,8 +1936,7 @@ function Viewi() {
         currentPage.components = [];
         var nodes = create(name, null, null, params);
         currentPage.nodes = nodes;
-        // document.childNodes[1].remove();
-        // console.log(latestPage, currentPage);
+        window.scrollTo(0, 0);
         cleanRender = !hydrate;
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createDOM(target, nodes, false);
