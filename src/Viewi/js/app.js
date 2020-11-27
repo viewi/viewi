@@ -38,6 +38,28 @@ var ajax = {
             req.open('GET', url, true);
             req.send();
         });
+    },
+    post: function (url, data) {
+        return new OnReady(function (onOk, onError) {
+            var req = new XMLHttpRequest();
+            req.onreadystatechange = function () {
+                if (req.readyState === 4) {
+                    var status = req.status;
+                    if (status === 0 || (status >= 200 && status < 400)) {
+                        var contentType = req.getResponseHeader("Content-Type");
+                        if (contentType.indexOf('application/json') === 0) {
+                            onOk(JSON.parse(req.responseText));
+                        } else {
+                            onOk(req.responseText);
+                        }
+                    } else {
+                        onError();
+                    }
+                }
+            }
+            req.open('POST', url, true);
+            req.send(JSON.stringify(data));
+        });
     }
 };
 Object.defineProperty(Array.prototype, 'first', {
@@ -688,8 +710,10 @@ function Viewi() {
                         attr.listeners[eventName] = function ($event) {
                             actionContent(attr.parent.instance, $this, $event);
                         };
-                        elm.addEventListener(eventName, attr.listeners[eventName]);
+
                     }
+                    elm.removeEventListener(eventName, attr.listeners[eventName]);
+                    elm.addEventListener(eventName, attr.listeners[eventName]);
                 }
             }
         } catch (ex) {
@@ -1804,7 +1828,7 @@ function Viewi() {
                         if (
                             node.children[maxNodes - 1].domNode
                             && node.children[maxNodes - 1].domNode.nodeType === 3
-                            && domElement.childNodes[count - 1].nodeType !== 3
+                            && (domElement.childNodes.length == 0 || domElement.childNodes[count - 1].nodeType !== 3)
                             && /^\s*$/.test(node.children[maxNodes - 1].domNode.nodeValue)
                         ) {
                             // oldParent.removeChild(node.children[maxNodes - 1].domNode);

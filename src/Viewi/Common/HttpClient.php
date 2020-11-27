@@ -14,4 +14,13 @@ class HttpClient
 
         return $resolver;
     }
+
+    public function post($url, $data)
+    {
+        $resolver = new PromiseResolver(function () use ($url, $data) {
+            return Route::handle('post', $url, $data);
+        });
+
+        return $resolver;
+    }
 }

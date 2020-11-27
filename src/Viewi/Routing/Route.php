@@ -27,7 +27,7 @@ class Route
         self::$adapter = $adapter;
     }
 
-    public static function handle(string $method, string $url)
+    public static function handle(string $method, string $url, $data = null)
     {
         return self::$adapter->handle($method, $url);
     }
@@ -44,6 +44,16 @@ class Route
             $defaults
         );
         self::$adapter && self::$adapter->register($method, $url, $component, $defaults);
+    }
+
+    public static function all(string $url, string $component, ?array $defaults = null)
+    {
+        self::add(
+            '*',
+            $url,
+            $component,
+            $defaults
+        );
     }
 
     public static function get(string $url, string $component, ?array $defaults = null)
