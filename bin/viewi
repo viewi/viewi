@@ -84,17 +84,17 @@ class ViewiCLITool
         echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath);
         $deepLevel = count(explode('/', $viewiDir)) - 1;
-        $rootPath = str_repeat('/..', $deepLevel);
+        $rootPath = ''; // str_repeat('/..', $deepLevel);
         $includePath = str_repeat('/..', $deepLevel + 1);
         $indexPath = 'index.php';
         $publicPath = '';
         if (file_exists("$projectDir/public/index.php")) {
-            // $rootPath .= "/..";
+            $rootPath .= "/..";
             $indexPath = 'public/index.php';
             $publicPath = 'public/';
         }
         if (file_exists("$projectDir/www/index.php")) {
-            // $rootPath .= "/..";
+            $rootPath .= "/..";
             $indexPath = 'www/index.php';
             $publicPath = 'www/';
         }
@@ -140,13 +140,13 @@ class ViewiCLITool
         } else {
             echo "Can't find composer.json file.\n";
         }
-        // composer install
+        // composer dump-autoload
         $composerPhar = "$projectDir/composer.phar";
-        echo "composer install\n";
+        echo "composer dump-autoload\n";
         if (file_exists($composerPhar)) {
-            echo shell_exec("php composer.phar install");
+            echo shell_exec("php composer.phar dump-autoload");
         } else {
-            echo shell_exec("composer install");
+            echo shell_exec("composer dump-autoload");
         }
         echo "\n";
         // update index.php
@@ -155,6 +155,11 @@ class ViewiCLITool
             "// include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
             "// Viewi\App::handle();";
         $indexFilePath = "$projectDir/$indexPath";
+        $codeToInsert =
+            "require __DIR__ . '$rootPath/vendor/autoload.php';\n" .
+            "// Viewi application here\n" .
+            "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+            "Viewi\App::handle();";
         if (file_exists($indexFilePath)) {
             $content = file_get_contents($indexFilePath);
             if (strpos($content, "$viewiDir/viewi.php") === false) {
@@ -162,7 +167,16 @@ class ViewiCLITool
                 $content .= $appCode;
                 file_put_contents($indexFilePath, $content);
             }
+        } else {
+            $appCode = "<?php\n\n" .
+                "require __DIR__ . '$rootPath/vendor/autoload.php';\n\n" .
+                "// Viewi application here\n" .
+                "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+                "Viewi\App::handle();";
         }
+        echo "Make sure you have these in your index.php:\n\n";
+        echo $codeToInsert;
+        echo "\n\n";
         // finish up
         echo "All is set up. Enjoy!\n";
     }
