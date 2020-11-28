@@ -15,7 +15,7 @@ class AssetsManager
         $minify = App::$config[PageEngine::MINIFY] ?? false;
         $dev = App::$config[PageEngine::DEV_MODE];
         $version = $dev ? '' : '?v=' . date('ymdHis');
-        $async = $combine ? 'async' : '';
+        $async = $combine ? 'defer' : '';
         $scripts = $minify ?
             "<script $async src=\"$path/app.min.js$version\"></script>"
             : "<script $async src=\"$path/app.js$version\"></script>";
