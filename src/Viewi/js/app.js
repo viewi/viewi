@@ -233,7 +233,11 @@ function Viewi() {
             }
             args = args.concat(currentScope);
             if (item.setter) {
-                args.push(item.code + ' = event.target.value;');
+                args.push(item.code + (
+                    item.boolean ? ' = event.target.checked;'
+                        : ' = event.target.value;'
+                )
+                );
             }
             else if (item.raw || forceRaw) {
                 args.push('return ' + item.code + ';');
@@ -704,7 +708,8 @@ function Viewi() {
                         attr.valueExpression = getDataExpression({
                             code: attr.children[0].contentExpression.code,
                             expression: true,
-                            setter: true
+                            setter: true,
+                            boolean: elm.getAttribute('type') === 'checkbox'
                         }, attr.instance);
                         var actionContent = attr.valueExpression.func;
                         attr.listeners[eventName] = function ($event) {

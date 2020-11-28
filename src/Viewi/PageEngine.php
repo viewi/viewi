@@ -1591,6 +1591,7 @@ class PageEngine
                             }
 
                             if (strpos($attributeName, '.') !== false) {
+                                $childTag->OriginContent = $attributeName;
                                 $parts = explode('.', $attributeName, 2);
                                 $attributeName = $parts[0];
                                 $valueToReplace = $parts[1];

@@ -44,9 +44,10 @@ class TreeShakingService
                             } else if ($tag->Content === 'id') {
                                 $id = self::getChildrenText($tag);
                                 self::$selectors["#$id"] = true; // #id
-                            } else if (strpos($tag->Content, '.') !== false) {
-                                $parts = explode('.', $tag->Content, 2);
-                                self::$selectors["[{$parts[0]}]"] = true; // [attribute]
+                            }
+                            if ($tag->OriginContent !== null && strpos($tag->OriginContent, '.') !== false) {
+                                $parts = explode('.', $tag->OriginContent, 2);
+                                // self::$selectors["[{$parts[0]}]"] = true; // [attribute]
                                 if ($parts[0] === 'class') {
                                     $values = explode(' ', $parts[1]);
                                     foreach ($values as $class) {
@@ -318,7 +319,7 @@ class TreeShakingService
         $this->validateRules();
 
         // echo '<pre>';
-        // print_r($this->cssTokens);
+        // print_r(self::$selectors);
 
         return $this->getShakedCss();
     }
