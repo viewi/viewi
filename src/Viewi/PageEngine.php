@@ -145,7 +145,8 @@ class PageEngine
     private array $Dependencies = [];
     private int $forIterationKey = 0;
     private array $config;
-
+    private array $_slots = [];
+    
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -984,6 +985,18 @@ class PageEngine
             //     $this->debug($this->components);
             // }
             $classInstance = $this->resolve($componentInfo, false, $params);
+            // if ($parentComponent !== null) {
+            //$parentClassName = get_class($parentComponent);
+            $slotsQueue = $slots;
+            $slotsBefore = [];
+            if(isset($this->_slots[$componentInfo->ComponentName])){
+                $slotsQueue = $slotsQueue + $this->_slots[$componentInfo->ComponentName];
+                $slotsBefore = $this->_slots[$componentInfo->ComponentName];
+            }            
+            $this->_slots[$componentInfo->ComponentName] = $slotsQueue;
+            // print_r($componentInfo->ComponentName . ' == ' . $componentName);
+            // print_r($this->_slots);
+            // }
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
@@ -1003,7 +1016,9 @@ class PageEngine
                     include_once $this->buildPath . $componentInfo->BuildPath;
                 }
             }
-            return $renderFunction($classInstance, $this, $slots, ...$slotArguments);
+            $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
+            $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
+            return $content;
         }
     }
 
@@ -1124,7 +1139,7 @@ class PageEngine
                 "$componentName, " .
                 "[], " .
                 "{$this->_CompileComponentName}, " .
-                "\$slotContents + \$slots, " .
+                "\$slotContents, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
                 PHP_EOL . $this->identation . "\$slotContents = [];" .
@@ -1167,7 +1182,7 @@ class PageEngine
         if (!$defaultContent) {
             $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents + \$slots, []); $codeEnd";
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, []); $codeEnd";
         }
     }
 
