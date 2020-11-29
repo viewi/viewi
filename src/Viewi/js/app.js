@@ -1583,6 +1583,8 @@ function Viewi() {
             }
             else if (d.default) {
                 a = d.default; // TODO: copy object or array
+            } else if (d.null) {
+                a = null;
             } else if (d.builtIn) {
                 a = d.name === 'string' ? '' : 0;
             } else {
@@ -1652,7 +1654,7 @@ function Viewi() {
                     // console.log('Attributes don\'t match', aa, ba);
                     matched = false;
                 }
-                if (matched) {
+                if (matched || (a[i].type === 'dynamic' && b[i].type === 'dynamic')) {
                     // all matched, reassigning DOM node
                     a[i].domNode = b[i].domNode;
                     a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode;
@@ -1970,7 +1972,12 @@ function Viewi() {
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createDOM(target, nodes, false);
         // hydrate && console.log(target);
-        hydrate && hydrateDOM(nodes[1], document.documentElement);
+        var nodeToHydrate = nodes[1];
+        if (!nodeToHydrate && nodes[0].type === 'dynamic') {
+            //              dynamic  template    html
+            nodeToHydrate = nodes[0].children[0].children[1];
+        }
+        hydrate && hydrateDOM(nodeToHydrate, document.documentElement);
         cleanRender = false;
         hydrate = false;
     };
