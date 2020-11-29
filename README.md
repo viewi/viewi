@@ -23,7 +23,7 @@ Run:
 
 Make sure that script has been generated for you files in one of these folders: `viewi-app/`, `src/ViewiApp/` or your custom folder if you specified it directly.
 
-Check you index.php. Script should generate for your code to include, usually you just need to uncomment generated code. Also don't forget about `vendor/autoload.php';`
+Check you index.php. Script should generate for your code to include, usually you just need to uncomment generated code. Also don't forget about `vendor/autoload.php`
 
 ```php
 require __DIR__ . '/vendor/autoload.php';
