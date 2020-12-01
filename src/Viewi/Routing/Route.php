@@ -34,7 +34,7 @@ class Route
 
     public static function add(string $method, string $url, string $component, ?array $defaults = null)
     {
-        self::$routes[] = new RouteItem(
+        $item = new RouteItem(
             $method,
             $url,
             $component,
@@ -43,7 +43,9 @@ class Route
                 : $component,
             $defaults
         );
+        self::$routes[] = $item;
         self::$adapter && self::$adapter->register($method, $url, $component, $defaults);
+        return $item;
     }
 
     public static function all(string $url, string $component, ?array $defaults = null)
