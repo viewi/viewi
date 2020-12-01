@@ -32,13 +32,13 @@ class Route
         return self::$adapter->handle($method, $url);
     }
 
-    public static function add(string $method, string $url, string $component, ?array $defaults = null)
+    public static function add(string $method, string $url, $component, ?array $defaults = null)
     {
         $item = new RouteItem(
             $method,
             $url,
             $component,
-            strpos($component, '\\') !== false ?
+            is_string($component) && strpos($component, '\\') !== false ?
                 substr(strrchr($component, "\\"), 1)
                 : $component,
             $defaults

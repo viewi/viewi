@@ -35,7 +35,7 @@ $r->register('get', 'all-posts/{name?}', 'post-by-name');
 $testCollection[] = [
     'urls' => ['/all-posts', 'all-posts/23', '/all-posts/myname'],
     'expected' => [true, true, true],
-    'params' => [['name' => ''], ['name' => '23'], ['name' => 'myname']],
+    'params' => [['name' => null], ['name' => '23'], ['name' => 'myname']],
     'action' => 'post-by-name'
 ];
 $r->register('get', 'search/{search}', 'search-page')->where('search', '.*');
@@ -59,8 +59,8 @@ $testCollection[] = [
     'params' => [
         [],
         [],
-        ['type' => 'product', 'id' => '78', 'seo' => ''],
-        ['type' => 'category', 'id' => '84', 'seo' => ''],
+        ['type' => 'product', 'id' => '78', 'seo' => null],
+        ['type' => 'category', 'id' => '84', 'seo' => null],
         ['type' => 'category', 'id' => '84', 'seo' => 'my-page']
     ],
     'action' => 'edit-page-seo'
@@ -79,7 +79,7 @@ $testCollection[] = [
         [],
         [],
         ['type' => 'fruit', 'id' => '65', 'seo' => 'banana'],
-        ['type' => 'fruit', 'id' => '54', 'seo' => ''],
+        ['type' => 'fruit', 'id' => '54', 'seo' => null],
         []
     ],
     'action' => 'product-page'

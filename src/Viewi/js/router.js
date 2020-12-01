@@ -94,7 +94,7 @@ var Router = function () {
                             skipAll = true;
                         }
                     }
-                    var paramValue = parts[pi];
+                    var paramValue = pi < parts.length ? parts[pi] : null;
                     if (bracketParts[0]) {
                         if (paramValue.indexOf(bracketParts[0]) !== 0) {
                             valid = false;

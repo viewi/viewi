@@ -102,7 +102,7 @@ class Router
                                 // echo $paramName . $parts[$pi]. $regex;
                             }
                         }
-                        $paramValue = $parts[$pi] ?? '';
+                        $paramValue = $parts[$pi] ?? null;
                         if ($bracketParts[0]) {
                             if (strpos($paramValue, $bracketParts[0]) !== 0) {
                                 $valid = false;

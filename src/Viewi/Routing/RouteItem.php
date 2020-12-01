@@ -6,12 +6,20 @@ class RouteItem
 {
     public string $url;
     public string $method;
-    public string $action;
-    public string $component;
+    /**
+     * 
+     * @var string|callable
+     */
+    public $action;
+    /**
+     * 
+     * @var string|callable
+     */
+    public $component;
     public ?array $defaults = null;
     public array $wheres;
 
-    function __construct(string $method, string $url, string $action, string $component, ?array $defaults = null)
+    function __construct(string $method, string $url, $action, $component, ?array $defaults = null)
     {
         $this->method = $method;
         $this->url = $url;
