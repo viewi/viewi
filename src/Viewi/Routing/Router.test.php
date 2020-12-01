@@ -102,11 +102,11 @@ $testCollection[] = [
 // ===============================================
 function clPassed($text)
 {
-    print_r("\x1b[42mPASSED' => $text\x1b[0m");
+    print_r("\x1b[42mPASSED => $text\x1b[0m");
 }
 function clFailed($text)
 {
-    print_r("\x1b[41m\x1b[1mFAILED' => $text\x1b[0m");
+    print_r("\x1b[41m\x1b[1mFAILED => $text\x1b[0m");
 }
 foreach ($testCollection as $test) {
     $count = count($test['urls']);
@@ -136,3 +136,13 @@ foreach ($testCollection as $test) {
         print_r("\n");
     }
 }
+
+// performance test
+$iterations = 10000;
+$time = microtime(true);
+for ($i = 0; $i < $iterations; $i++) {
+    $r->resolve('product/type-fruit/banana/seo-test');
+}
+$total = microtime(true) - $time;
+$perSec = $iterations / $total;
+echo "Elapsed $total for $iterations iterations; $perSec rps";
