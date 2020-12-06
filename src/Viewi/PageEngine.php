@@ -146,7 +146,7 @@ class PageEngine
     private int $forIterationKey = 0;
     private array $config;
     private array $_slots = [];
-    
+
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -577,10 +577,11 @@ class PageEngine
 
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
         $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
-        $publicMinJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.min.js';
+        // $publicMinJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.min.js';
 
-        $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.js';
-        $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
+        $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR
+            . ($this->enableMinificationAndGzipping ? 'app.min.js' : 'app.js');
+        // $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
         $copyright = file_get_contents($thisRoot . 'js/copyright.js');
 
 
@@ -594,34 +595,25 @@ class PageEngine
         $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
 
         $appJsContent = $copyright
-            . file_get_contents($thisRoot . 'js/router.js')
+            . ($this->enableMinificationAndGzipping ?
+                file_get_contents($thisRoot . 'js/router.min.js') :
+                file_get_contents($thisRoot . 'js/router.js'))
             . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
             . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";' . PHP_EOL
-            . file_get_contents($thisRoot . 'js/app.js');
+            . ($this->enableMinificationAndGzipping ?
+                file_get_contents($thisRoot . 'js/app.min.js') :
+                file_get_contents($thisRoot . 'js/app.js'));
 
         $publicBundleJs = $copyright . $publicBundleJs;
 
         file_put_contents($publicAppJsFilePath, $appJsContent);
         file_put_contents($publicFilePath, $publicJsonContent);
         file_put_contents($publicJsFilePath, $publicBundleJs);
-        //minify
-        if ($this->enableMinificationAndGzipping) {
-            if (!$this->combineJs) {
-                $publicBundleJsMin = $this->minify($publicBundleJs);
-                file_put_contents($publicMinJsFilePath, $publicBundleJsMin);
-            }
 
-            $appJsContentMin = $this->minify($appJsContent);
-            if (!$appJsContentMin) {
-                $appJsContentMin = $appJsContent;
-            }
-            file_put_contents($publicAppMiniJsFilePath, $appJsContentMin);
-
-            //gzip
-            file_put_contents($publicAppJsFilePath . '.min.js.gz', gzencode($appJsContentMin, 5));
-            file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
-            file_put_contents($publicJsFilePath . '.min.js.gz', gzencode($publicBundleJs, 5));
-        }
+        file_put_contents($publicAppJsFilePath . '.gz', gzencode($appJsContent, 5));
+        file_put_contents($publicJsFilePath . '.gz', gzencode($publicBundleJs, 5));
+        file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
+        file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
         //$this->debug($this->components);
     }
 
@@ -989,10 +981,10 @@ class PageEngine
             //$parentClassName = get_class($parentComponent);
             $slotsQueue = $slots;
             $slotsBefore = [];
-            if(isset($this->_slots[$componentInfo->ComponentName])){
+            if (isset($this->_slots[$componentInfo->ComponentName])) {
                 $slotsQueue = $slotsQueue + $this->_slots[$componentInfo->ComponentName];
                 $slotsBefore = $this->_slots[$componentInfo->ComponentName];
-            }            
+            }
             $this->_slots[$componentInfo->ComponentName] = $slotsQueue;
             // print_r($componentInfo->ComponentName . ' == ' . $componentName);
             // print_r($this->_slots);
