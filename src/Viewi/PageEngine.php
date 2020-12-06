@@ -562,7 +562,14 @@ class PageEngine
             Route::get('*', $initialComponent);
             $routes = Route::getRoutes();
         }
-        $publicJson['_routes'] = $routes;
+        $publicJson['_routes'] = [];
+        foreach ($routes as $route) {
+            if (!is_callable($route->action)) {
+                $asocRoute = (array)$route;
+                unset($asocRoute['action']);
+                $publicJson['_routes'][] = $asocRoute;
+            }
+        }
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
@@ -576,7 +583,8 @@ class PageEngine
         $combined = '';
 
         $publicFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'components.json';
-        $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.js';
+        $publicJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR
+            . ($this->enableMinificationAndGzipping ? 'bundle.min.js' : 'bundle.js');
         // $publicMinJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'bundle.min.js';
 
         $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR
