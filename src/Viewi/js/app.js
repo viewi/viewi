@@ -119,6 +119,8 @@ function Viewi() {
     var $this = this;
     var avaliableTags = {};
     var resourceTags = {};
+    var trimExpr = /^\s*|\s*$/g;
+    var trimSemicolonExpr = /;$/g;
     var events = {
         onViewiUrlChange: null
     };
@@ -232,13 +234,15 @@ function Viewi() {
                 args.push('event');
             }
             args = args.concat(currentScope);
+            item.code = item.code.replace(trimExpr, '');
+            item.code = item.code.replace(trimSemicolonExpr, '');            
             if (item.setter) {
                 args.push(item.code + (
                     item.boolean ? ' = event.target.checked;'
                         : ' = event.target.value;'
                 )
                 );
-            }
+            }            
             else if (item.raw || forceRaw) {
                 args.push('return ' + item.code + ';');
             } else {

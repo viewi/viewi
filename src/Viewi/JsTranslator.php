@@ -183,6 +183,7 @@ class JsTranslator
         $this->latestVariablePath = '';
         $this->pasteArrayReactivity = false;
         $this->staticCache = [];
+        $this->newVar = false;
     }
 
     public function includeJsFile(string $name, string $filePath)
