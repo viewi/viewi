@@ -1356,6 +1356,9 @@ function Viewi() {
                 }
                 nodes[k].domNode = null;
             }
+            if (nodes[k].skipIteration) {
+                nodes[k].skipIteration = false;
+            }
             if (nodes[k].origin) {
                 for (var oi in nodes[k].origin) {
                     nodes[k].origin[oi].skipIteration = false;
@@ -1687,6 +1690,7 @@ function Viewi() {
                         }
                         removeDomNodes(b[i].children);
                     }
+                    a[i].children && removeDomNodes(a[i].children); // TODO: reuse dom items
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
                         a[i].latestHtml = b[i].latestHtml;
