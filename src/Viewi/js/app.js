@@ -235,14 +235,14 @@ function Viewi() {
             }
             args = args.concat(currentScope);
             item.code = item.code.replace(trimExpr, '');
-            item.code = item.code.replace(trimSemicolonExpr, '');            
+            item.code = item.code.replace(trimSemicolonExpr, '');
             if (item.setter) {
                 args.push(item.code + (
                     item.boolean ? ' = event.target.checked;'
                         : ' = event.target.value;'
                 )
                 );
-            }            
+            }
             else if (item.raw || forceRaw) {
                 args.push('return ' + item.code + ';');
             } else {
@@ -264,6 +264,7 @@ function Viewi() {
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
         var parentNode = arguments.length > 3 ? arguments[3] : null;
+        var isRoot = arguments.length > 4 ? arguments[4] : false;
         var children = parent.children;
         var currentNodeList = [];
         var skip = false;
@@ -582,9 +583,15 @@ function Viewi() {
             if (component) {
                 // compare component and reuse if matched
                 // if resused refresh slots
-
+                var resetReuse = false;
+                if (isRoot) {
+                    reuseEnabled = true;
+                    resetReuse = true;
+                }
                 var componenNodes = create(component, childNodes, node.attributes);
-
+                if (resetReuse) {
+                    reuseEnabled = false;
+                }
                 var prevNode = currentNodeList.length > 0
                     ? currentNodeList[currentNodeList.length - 1]
                     : null;
@@ -1702,7 +1709,7 @@ function Viewi() {
 
     var parentComponentName = null;
 
-    var create = function (name, childNodes, attributes, params) {
+    var create = function (name, childNodes, attributes, params, isRoot) {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
@@ -1716,7 +1723,10 @@ function Viewi() {
         if (same) {
             latestPage.components.splice(same[1], 1);
             builtNodes = same[0].build;
-            // instance = same[0].instance;
+            if (reuseEnabled) {
+                instance = same[0].instance; // TODO: default values restore
+                // console.log('Reusing', instance);
+            }
         }
         // }
         var previousPropsSubs = propsSubs;
@@ -1770,7 +1780,7 @@ function Viewi() {
             }
         }
         var nodes = page.hasVersions ? page.versions[instance.__version()] : page.nodes;
-        var newBuild = build(nodes, instance, childNodes);
+        var newBuild = build(nodes, instance, childNodes, null, isRoot);
         propsSubs = previousPropsSubs;
         if (builtNodes) {
             mergeNodes(newBuild, builtNodes);
@@ -1960,6 +1970,8 @@ function Viewi() {
         return same;
     }
 
+    var reuseEnabled = false;
+
     this.render = function (name, params) {
         if (!name) {
             throw new Error('Component name is required.');
@@ -1967,13 +1979,14 @@ function Viewi() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        reuseEnabled = false;
         subscribers = {};
         parentComponentName = null;
         latestPage = currentPage;
         currentPage = {};
         currentPage.name = name;
         currentPage.components = [];
-        var nodes = create(name, null, null, params);
+        var nodes = create(name, null, null, params, true);
         currentPage.nodes = nodes;
         window.scrollTo(0, 0);
         cleanRender = !hydrate;
