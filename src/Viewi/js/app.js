@@ -681,6 +681,7 @@ function Viewi() {
                 if (!attr.listeners) {
                     attr.listeners = {};
                 }
+                attr.listeners[attrName] && elm.removeEventListener(eventName, attr.listeners[attrName]);
                 attr.listeners[attrName] = function ($event) {
                     actionContent(attr.parent.instance, $this, $event);
                 };
@@ -876,6 +877,12 @@ function Viewi() {
             );
             if (saved && saved[0].parentNode) {
                 takenDomArray[saved[1]] = true;
+            }
+            if (node.refreshAttributes && node.attributes) {
+                node.refreshAttributes = false;
+                for (var a in node.attributes) {
+                    renderAttribute(elm, node.attributes[a]);
+                }
             }
         } else {
             switch (node.type) {
@@ -1640,8 +1647,9 @@ function Viewi() {
         for (var i = 0; i < la; i++) {
             if (i < lb) {
                 var matched = true;
-                var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || (x.code && ++randI); }).join();
-                var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || (x.code && ++randI); }).join();
+                var hasCode = false;
+                var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || (x.code); }).join(); // && ++randI
+                var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || (x.code); }).join();
                 if (a[i].instance.constructor != b[i].instance.constructor) {
                     // console.log('Instances don\'t match', [a[i].instance, b[i].instance], a[i], b[i]);
                     matched = false;
@@ -1655,13 +1663,13 @@ function Viewi() {
                 var aa = a[i].attributes && a[i].attributes.select(function (x) {
                     return (x.content || '') +
                         ((x.children && ';' + x.children.select(function (y) {
-                            return y.contentExpression.content || (y.contentExpression.call && ++randI) || ''
+                            return y.contentExpression.content || (y.contentExpression.code) || ''
                         }).join(';')) || '');
                 }).join(';');
                 var ba = b[i].attributes && b[i].attributes.select(function (x) {
                     return (x.content || '') +
                         ((x.children && ';' + x.children.select(function (y) {
-                            return y.contentExpression.content || (y.contentExpression.call && ++randI) || ''
+                            return y.contentExpression.content || (y.contentExpression.code) || ''
                         }).join(';')) || '');
                 }).join(';');
                 if (aa != ba) { // TODO: compare attr instance and attr values
@@ -1670,13 +1678,23 @@ function Viewi() {
                 }
                 if (matched || (a[i].type === 'dynamic' && b[i].type === 'dynamic')) {
                     // all matched, reassigning DOM node
+                    hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
+                    // ||
                     a[i].domNode = b[i].domNode;
-                    a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode;
+                    a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;                    
                     if (a[i].skipIteration) {
                         if (!b[i].origin) {
                             b[i].origin = {};
                         }
                         b[i].origin[a[i].id] = a[i];
+                        a[i].refreshAttributes = (a[i].attributes && a[i].attributes.first(function (x) {
+                            return x.children && x.children.first(function (y) {
+                                return y.contentExpression.code;
+                            });
+                        }));
+                        if(a[i].refreshAttributes){
+                            a[i].attributes = b[i].attributes;
+                        }
                     }
                     if (b[i].rawNodes) {
                         a[i].rawNodes = b[i].rawNodes;
@@ -1735,7 +1753,7 @@ function Viewi() {
         parentComponentName = name;
         var page = $this.components[name];
         instance = instance || resolve(name, params);
-
+        instance.__beforeMount && instance.__beforeMount();
         // pass props
         if (attributes) {
             for (var ai in attributes) {
@@ -1779,8 +1797,10 @@ function Viewi() {
                 }
             }
         }
+
         var nodes = page.hasVersions ? page.versions[instance.__version()] : page.nodes;
         var newBuild = build(nodes, instance, childNodes, null, isRoot);
+        instance.__mounted && instance.__mounted();
         propsSubs = previousPropsSubs;
         if (builtNodes) {
             mergeNodes(newBuild, builtNodes);
