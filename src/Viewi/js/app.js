@@ -1681,7 +1681,7 @@ function Viewi() {
                     hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
                     // ||
                     a[i].domNode = b[i].domNode;
-                    a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;                    
+                    a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;
                     if (a[i].skipIteration) {
                         if (!b[i].origin) {
                             b[i].origin = {};
@@ -1692,8 +1692,12 @@ function Viewi() {
                                 return y.contentExpression.code;
                             });
                         }));
-                        if(a[i].refreshAttributes){
-                            a[i].attributes = b[i].attributes;
+                        if (a[i].refreshAttributes) {
+                            // reattach instances
+                            a[i].attributes.each(function (attr, index) {
+                                attr.latestValue = b[i].attributes[index].latestValue;
+                                attr.listeners = b[i].attributes[index].listeners;
+                            });
                         }
                     }
                     if (b[i].rawNodes) {
