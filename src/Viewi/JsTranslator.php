@@ -611,7 +611,7 @@ class JsTranslator
                             if ($this->pasteArrayReactivity) {
                                 // $this->debug($this->pasteArrayReactivity);
                                 // $this->debug($this->latestVariablePath);
-                                if($this->pasteArrayReactivity[0] === null){
+                                if ($this->pasteArrayReactivity[0] === null) {
                                     $this->pasteArrayReactivity[0] = $this->latestVariablePath;
                                 }
                                 $code .= $this->currentIdentation .
@@ -1179,7 +1179,14 @@ class JsTranslator
             $stopWord .= $this->parts[$this->position];
             $this->position++;
         }
-        // $this->debug($stopWord);
+        $inlineJs = false;
+        $identation = false;
+        if ($stopWord === 'javascript' || $stopWord === "'javascript'") {
+            $inlineJs = true;
+            if ($stopWord[0] === "'") {
+                $stopWord = substr($stopWord, 1, -1);
+            }
+        }
         while ($this->position < $this->length) {
             if (
                 $this->parts[$this->position] === "\n"
@@ -1189,9 +1196,20 @@ class JsTranslator
                 $buffer = '';
                 $word = '';
                 $break = false;
-
+                $catchIdentation = false;
+                if ($identation === false) {
+                    $catchIdentation = true;
+                    $identation = '';
+                }
                 while ($this->position < $this->length) {
                     $buffer .= $this->parts[$this->position];
+                    if ($catchIdentation) {
+                        if ($this->parts[$this->position] === ' ') {
+                            $identation .= ' ';
+                        } else if (!ctype_space($this->parts[$this->position])) {
+                            $catchIdentation = false;
+                        }
+                    }
                     if (ctype_alpha($this->parts[$this->position])) {
                         $word .= $this->parts[$this->position];
                     } else if ($word !== '') {
@@ -1214,6 +1232,15 @@ class JsTranslator
             }
             $code .= $this->parts[$this->position];
             $this->position++;
+        }
+        if (!$inlineJs) {
+            // $this->debug($code);
+            $code = preg_replace('/^\s+/m', '', $code);
+            // $this->debug($code);
+            $code = '"' . str_replace('"', '\\"', $code) . '"';
+            $code = str_replace("\r", '', $code);
+            $code = str_replace("\n", "\\n\" +\n$identation\"", $code);
+            // $this->debug($code);
         }
         return $code;
     }
