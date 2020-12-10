@@ -44,8 +44,12 @@ template: *app/home.html*
 <p>Occupation: Web developer</p>
 ```
 
+**Note:** home.php and home.html must be on the same directory.
+
 ### How to use
 ```php
+use Viewi\PageEngine;
+
 // true if you are in developing mode
 $develop = true;
 
@@ -53,12 +57,12 @@ $develop = true;
 $renderReturn = true;
 
 Viewi\App::init([
-            PageEngine::SOURCE_DIR => 'path/to/your/components', // Location of components source code
-            PageEngine::SERVER_BUILD_DIR => 'server/build/path', // Target directory of compiled php components
-            PageEngine::PUBLIC_BUILD_DIR => 'public/build/path', // Target directory of compiled public assets (javascripts, etc.)
-            PageEngine::DEV_MODE => // true if you are in developing mode. All components will be compiled as soon as request occures
-            PageEngine::RETURN_OUTPUT => $renderReturn // true if you want to render into variable, otherwise - echo output
-        ]);
+    PageEngine::SOURCE_DIR => 'path/to/your/components', // Location of components source code
+    PageEngine::SERVER_BUILD_DIR => 'server/build/path', // Target directory of compiled php components
+    PageEngine::PUBLIC_BUILD_DIR => 'public/build/path', // Target directory of compiled public assets (javascripts, etc.)
+    PageEngine::DEV_MODE => true, // true if you are in developing mode. All components will be compiled as soon as request occures
+    PageEngine::RETURN_OUTPUT => $renderReturn // true if you want to render into variable, otherwise - echo output
+]);
 $page = Viewi\App::getEngine();
 
 // render selected component, for example HomeComponent
