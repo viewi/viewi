@@ -6,7 +6,7 @@ Imagine Vue js or Angular but in PHP world with the similar user-friendly html t
 
 Not production ready yet, as it's in development and still needs a lot of work
 
-#### *Requirements: php 7.4+*
+#### *Requirements: php 7.4+ or 8.0+*
 
 Supported versions will be expanded  in the future
 
