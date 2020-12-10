@@ -2,7 +2,7 @@
 
 This is the shortened version of how to use the avaliable features. A more detailed documentation is in progress.
 
-##### *Requirements: php 7.4+*
+##### *Requirements: php 7.4, 8+*
 
 ## Install
 
