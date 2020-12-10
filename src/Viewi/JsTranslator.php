@@ -643,7 +643,7 @@ class JsTranslator
                         }
                     case '<<<': {
                             // $this->debug('<<< detected');
-                            $code .= $identation . $this->readHereDocString() . PHP_EOL;
+                            $code .= $identation . $this->readHereDocString();
                             break;
                         }
                     case '[': {
@@ -1122,7 +1122,7 @@ class JsTranslator
                     $escapedKey = substr($key, 1, -1);
                 }
                 $object[$escapedKey] = $item;
-
+                // var_dump($item);
                 if (is_int($key) || ctype_digit($key)) {
                     $key++;
                     $index = max($key, $index);
@@ -1140,7 +1140,7 @@ class JsTranslator
 
         $this->currentIdentation = $lastIdentation;
         $valueIdentation = $lastIdentation . $this->identation;
-        // $this->debug($object);
+        // var_dump($object);
         $totalLength = 0;
         foreach ($object as $key => $val) {
             $totalLength += ($isObject ? strlen($key) : 0) + strlen($val) + 2;
@@ -1220,8 +1220,8 @@ class JsTranslator
                             // $this->debug($code);
                         } else {
                             $code .= $buffer;
+                            $this->position++;
                         }
-                        $this->position++;
                         break;
                     }
                     $this->position++;
@@ -1235,8 +1235,10 @@ class JsTranslator
         }
         if (!$inlineJs) {
             // $this->debug($code);
-            $code = preg_replace('/^\s+/m', '', $code);
+            $code = preg_replace('/^ +/m', '', $code);
+            $code = preg_replace('/^[\n\r]+/', '', $code);
             // $this->debug($code);
+            $code = str_replace('\\', '\\\\', $code);
             $code = '"' . str_replace('"', '\\"', $code) . '"';
             $code = str_replace("\r", '', $code);
             $code = str_replace("\n", "\\n\" +\n$identation\"", $code);
@@ -1293,7 +1295,7 @@ class JsTranslator
                 $string .= $this->parts[$this->position];
             } else {
                 $this->position++;
-                if ($string !== '') {
+                if ($string !== '' || count($parts) === 0) {
                     $parts[] = "\"$string\"";
                     $string = '';
                 }
