@@ -1243,7 +1243,8 @@ class JsTranslator
             $code = preg_replace("/^$identation/m", '', $code);
             $code = preg_replace('/^[\n\r]+/', '', $code);
             // $this->debug($code);
-            $code = str_replace('\\', '\\\\', $code);
+            $code = str_replace('\\$', '$', $code);
+            $code = str_replace('\\', '\\\\', $code);            
             $code = '"' . str_replace('"', '\\"', $code) . '"';
             $code = str_replace("\r", '', $code);
             $code = str_replace("\n", "\\n\" +\n$identation\"", $code);
