@@ -189,9 +189,18 @@ function Viewi() {
                 aTarget = aTarget.parentNode;
             }
             if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
-                e.preventDefault(); // Cancel the native event
-                // e.stopPropagation(); // Don't bubble/capture the event
-                $this.go(aTarget.href, true);
+                getPathName(aTarget.href);
+                if (
+                    !htmlElementA.hash
+                    || htmlElementA.pathname !== location.pathname
+                ) {
+                    e.preventDefault(); // Cancel the native event
+                    // e.stopPropagation(); // Don't bubble/capture the event
+                    $this.go(aTarget.href, true);
+                    if (htmlElementA.hash) {
+                        htmlElementA.click();
+                    }
+                }
             }
         }, false);
 
