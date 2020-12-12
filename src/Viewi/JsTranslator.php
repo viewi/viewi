@@ -1201,8 +1201,7 @@ class JsTranslator
                     $catchIdentation = true;
                     $identation = '';
                 }
-                while ($this->position < $this->length) {
-                    $buffer .= $this->parts[$this->position];
+                while ($this->position < $this->length) {                    
                     if ($catchIdentation) {
                         if ($this->parts[$this->position] === ' ') {
                             $identation .= ' ';
@@ -1213,8 +1212,10 @@ class JsTranslator
                     if (ctype_alpha($this->parts[$this->position])) {
                         $word .= $this->parts[$this->position];
                     } else if ($word !== '') {
+                        $buffer .= $this->parts[$this->position];
                         if ($word === $stopWord) {
                             $break = true;
+                            // $code .= $buffer;
                             // $this->debug($word);
                             // $this->debug($buffer);
                             // $this->debug($code);
@@ -1223,7 +1224,11 @@ class JsTranslator
                             $this->position++;
                         }
                         break;
+                    }else if(!ctype_space($this->parts[$this->position])){
+                        $code .= $buffer;
+                        break;
                     }
+                    $buffer .= $this->parts[$this->position];
                     $this->position++;
                 }
                 if ($break) {
@@ -1235,7 +1240,7 @@ class JsTranslator
         }
         if (!$inlineJs) {
             // $this->debug($code);
-            $code = preg_replace('/^ +/m', '', $code);
+            $code = preg_replace("/^$identation/m", '', $code);
             $code = preg_replace('/^[\n\r]+/', '', $code);
             // $this->debug($code);
             $code = str_replace('\\', '\\\\', $code);
