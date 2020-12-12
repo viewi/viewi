@@ -151,9 +151,9 @@ class ViewiCLITool
         echo "\n";
         // update index.php
         $appCode = "\n\n" .
-            "// Viewi application here, uncomment to use as standalone application\n" .
-            "// include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
-            "// Viewi\App::handle();";
+            "// Viewi application here\n" .
+            "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+            "Viewi\App::handle();";
         $indexFilePath = "$projectDir/$indexPath";
         $codeToInsert =
             "require __DIR__ . '$rootPath/vendor/autoload.php';\n" .
@@ -173,6 +173,7 @@ class ViewiCLITool
                 "// Viewi application here\n" .
                 "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
                 "Viewi\App::handle();";
+            file_put_contents($indexFilePath, $appCode);
         }
         echo "Make sure you have these in your index.php:\n\n";
         echo $codeToInsert;
