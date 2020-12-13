@@ -2004,6 +2004,7 @@ function Viewi() {
     }
 
     var reuseEnabled = false;
+    var scroll = false;
 
     this.render = function (name, params) {
         if (!name) {
@@ -2021,7 +2022,8 @@ function Viewi() {
         currentPage.components = [];
         var nodes = create(name, null, null, params, true);
         currentPage.nodes = nodes;
-        window.scrollTo(0, 0);
+        scroll && window.scrollTo(0, 0);
+        scroll = true;
         cleanRender = !hydrate;
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createDOM(target, nodes, false);
