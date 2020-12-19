@@ -556,7 +556,7 @@ class PageEngine
         $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
 
         // mate info
-        $publicJson['_meta'] = ['tags' => $this->reservedTagsString];
+        $publicJson['_meta'] = ['tags' => $this->reservedTagsString, 'boolean' => $this->booleanAttributesString];
         $routes = Route::getRoutes();
         if ($initialComponent && count($routes) === 0) {
             Route::get('*', $initialComponent);
@@ -1712,6 +1712,7 @@ class PageEngine
                         $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
                         $this->previousItem = $tagItem;
                     }
+                    $this->compileExpression($children[0]);
                     return;
                 }
                 $codeToAppend .= ' ';

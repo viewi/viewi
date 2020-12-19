@@ -117,7 +117,8 @@ Object.defineProperty(Array.prototype, 'each', {
 
 function Viewi() {
     var $this = this;
-    var avaliableTags = {};
+    var availableTags = {};
+    var booleanAttributes = {};
     var resourceTags = {};
     var trimExpr = /^\s*|\s*$/g;
     var trimSemicolonExpr = /;$/g;
@@ -154,8 +155,11 @@ function Viewi() {
 
     var startInternal = function () {
         $this.components._meta.tags.split(',').each(function (x) {
-            avaliableTags[x] = true;
+            availableTags[x] = true;
         });
+        $this.components._meta.boolean.split(',').each(function (x) {
+            booleanAttributes[x] = true;
+        });        
         $this.components._routes.each(function (x) {
             router.register(x.method, x.url, x.component);
         });
@@ -699,6 +703,11 @@ function Viewi() {
                 if (eventsOnly && attrName !== 'value') {
                     return;
                 }
+                var boolean = false;
+                var exprValue = true;
+                if(attrName in booleanAttributes){
+                    boolean = true;
+                }
                 var texts = [];
                 for (var i in attr.children) {
                     var contentExpression = attr.children[i].contentExpression;
@@ -709,10 +718,19 @@ function Viewi() {
                                 args.push(attr.scope.data[attr.scope.stack[k]]);
                             }
                         }
-                        texts.push(contentExpression.func.apply(null, args));
+                        exprValue = contentExpression.func.apply(null, args);
+                        texts.push(exprValue);
                     } else {
                         texts.push(contentExpression.content);
                     }
+                }
+                if(boolean){
+                    if(exprValue) {
+                        elm.setAttribute(attrName, attrName);
+                    }else{
+                        elm.removeAttribute(attrName);
+                    }
+                    return;
                 }
                 var val = texts.join('');
                 elm.setAttribute(attrName, val);
@@ -1217,7 +1235,7 @@ function Viewi() {
                     if (node.itemChilds) {
                         copyNodes(wrapperNode, node.itemChilds);
                     }
-                    if (val in avaliableTags) { // it's a tag
+                    if (val in availableTags) { // it's a tag
                         wrapperNode.type = 'tag';
                     } else {
                         // build component
