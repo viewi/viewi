@@ -1212,7 +1212,7 @@ class JsTranslator
                     if (ctype_alpha($this->parts[$this->position])) {
                         $word .= $this->parts[$this->position];
                     } else if ($word !== '') {
-                        $buffer .= $this->parts[$this->position];
+                        // $buffer .= $this->parts[$this->position];
                         if ($word === $stopWord) {
                             $break = true;
                             // $code .= $buffer;
@@ -1221,7 +1221,7 @@ class JsTranslator
                             // $this->debug($code);
                         } else {
                             $code .= $buffer;
-                            $this->position++;
+                            // $this->position++;
                         }
                         break;
                     }else if(!ctype_space($this->parts[$this->position])){
