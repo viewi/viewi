@@ -1186,6 +1186,7 @@ function Viewi() {
                             node.children = [];
                         }
                         var prevNode = null;
+                        var isNumeric = Array.isArray(data);
                         for (var k in data) {
                             var wrapperNode = {
                                 type: 'template',
@@ -1203,7 +1204,7 @@ function Viewi() {
                                 prevNode.nextNode = wrapperNode;
                             }
                             prevNode = wrapperNode;
-                            wrapperNode.scope.data[node.forExpression.key] = k;
+                            wrapperNode.scope.data[node.forExpression.key] = isNumeric ? +k : k;
                             wrapperNode.scope.data[node.forExpression.value] = data[k];
                             copyNodes(wrapperNode, node.itemChilds);
                             node.children.push(wrapperNode);
