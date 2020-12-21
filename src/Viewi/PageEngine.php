@@ -1581,7 +1581,7 @@ class PageEngine
                             $attributeName = $childTag->Content;
                             $mergeValues = $childTag->getChildren();
                             $valueToReplace = false;
-                            if ($attributeName[0] === '(' || $childTag->ItsExpression) { // event
+                            if ($attributeName[0] === '(' || $attributeName === 'model' || $childTag->ItsExpression) { // event
                                 $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $childTag->getChildren();
                                 $newValueContent = '';
