@@ -159,7 +159,7 @@ function Viewi() {
         });
         $this.components._meta.boolean.split(',').each(function (x) {
             booleanAttributes[x] = true;
-        });        
+        });
         $this.components._routes.each(function (x) {
             router.register(x.method, x.url, x.component);
         });
@@ -250,10 +250,21 @@ function Viewi() {
             item.code = item.code.replace(trimExpr, '');
             item.code = item.code.replace(trimSemicolonExpr, '');
             if (item.setter) {
-                args.push(item.code + (
-                    item.boolean ? ' = event.target.checked;'
-                        : ' = event.target.value;'
-                )
+                args.push(
+                    item.isChecked ?
+                        'if(Array.isArray(' + item.code + ')) { '
+                        + ' if (' + item.code + '.indexOf(event.target.value) === -1) { '
+                        + 'event.target.checked && ' + item.code + '.push(event.target.value);'
+                        + 'event.target.checked && notify(' + item.code + '); '
+                        + ' } else { '
+                        + '!event.target.checked && ' + item.code + '.splice(' + item.code + '.indexOf(event.target.value), 1);'
+                        + '!event.target.checked && notify(' + item.code + '); '
+                        + ' } '
+                        + ' } else { '
+                        + item.code + ' = event.target.checked;'
+                        + ' } '
+                        : item.code + ' = event.target.value;'
+
                 );
             }
             else if (item.raw || forceRaw) {
@@ -563,7 +574,7 @@ function Viewi() {
                                 copy.children = a.children.select(
                                     function (v) {
                                         var valCopy = {};
-                                        var forceRaw = a.content === 'value';
+                                        var forceRaw = a.content === 'model';
                                         valCopy.contentExpression = getDataExpression(v, instance, itsEvent, forceRaw);
                                         if (node.type === 'dynamic'
                                             || node.type === 'component'
@@ -700,12 +711,12 @@ function Viewi() {
                 };
                 elm.addEventListener(eventName, attr.listeners[attrName]);
             } else {
-                if (eventsOnly && attrName !== 'value') {
+                if (eventsOnly && attrName !== 'model') {
                     return;
                 }
                 var boolean = false;
                 var exprValue = true;
-                if(attrName in booleanAttributes){
+                if (attrName in booleanAttributes) {
                     boolean = true;
                 }
                 var texts = [];
@@ -724,22 +735,39 @@ function Viewi() {
                         texts.push(contentExpression.content);
                     }
                 }
-                if(boolean){
-                    if(exprValue) {
+                if (boolean) {
+                    if (exprValue) {
                         elm.setAttribute(attrName, attrName);
-                    }else{
+                    } else {
                         elm.removeAttribute(attrName);
                     }
                     return;
                 }
+                var isModel = attrName === 'model';
                 var val = texts.join('');
-                elm.setAttribute(attrName, val);
-                if (attrName === 'value') {
+                !isModel && elm.setAttribute(attrName, val);
+                if (isModel) {
                     if (hydrate && !eventsOnly) {
                         return; // no events just yet
                     }
-                    elm.value = val;
-                    var eventName = 'input';
+                    var isChecked = elm.getAttribute('type') === 'checkbox';
+                    var isRadio = elm.getAttribute('type') === 'radio';
+                    var isBoolean = isChecked
+                        || isRadio;
+                    if (!isBoolean) {
+                        elm.value = val;
+                    }
+                    if (isRadio) {
+                        var hasChecked = elm.getAttribute('checked');
+                        if (elm.value != val && hasChecked) {
+                            elm.removeAttribute('checked');
+                            elm.checked = false;
+                        } else if (elm.value == val && !hasChecked) {
+                            elm.setAttribute('checked', 'checked');
+                            elm.checked = true;
+                        }
+                    }
+                    var eventName = isBoolean ? 'change' : 'input';
                     if (!attr.listeners) {
                         attr.listeners = {};
                     }
@@ -748,7 +776,7 @@ function Viewi() {
                             code: attr.children[0].contentExpression.code,
                             expression: true,
                             setter: true,
-                            boolean: elm.getAttribute('type') === 'checkbox'
+                            isChecked: isChecked
                         }, attr.instance);
                         var actionContent = attr.valueExpression.func;
                         attr.listeners[eventName] = function ($event) {
