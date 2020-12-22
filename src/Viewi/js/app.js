@@ -134,7 +134,7 @@ function Viewi() {
     var resourcesCache = [];
 
     var router = new Router();
-    this.componentsUrl = VIEWI_PATH + '/components.json';
+    this.componentsUrl = VIEWI_PATH + '/components.json' + VIEWI_VERSION;
     this.components = {};
     var htmlElementA = document.createElement('a');
     var hydrate = false;

@@ -607,7 +607,8 @@ class PageEngine
                 file_get_contents($thisRoot . 'js/router.min.js') :
                 file_get_contents($thisRoot . 'js/router.js'))
             . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
-            . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";' . PHP_EOL
+            . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";'
+            . PHP_EOL . 'var VIEWI_VERSION = "' . ($this->development ? '' : '?v=' . date('ymdHis')) . '";' . PHP_EOL
             . ($this->enableMinificationAndGzipping ?
                 file_get_contents($thisRoot . 'js/app.min.js') :
                 file_get_contents($thisRoot . 'js/app.js'));
