@@ -263,7 +263,11 @@ function Viewi() {
                         + ' } else { '
                         + item.code + ' = event.target.checked;'
                         + ' } '
-                        : item.code + ' = event.target.value;'
+                        : (item.isMultiple
+                            ? item.code + ' = Array.prototype.slice.call(event.target.options)'
+                            + '.where(function(x){ return x.selected; })'
+                            + '.select(function(x){ return x.value; });'
+                            : item.code + ' = event.target.value;')
 
                 );
             }
@@ -752,9 +756,11 @@ function Viewi() {
                     }
                     var isChecked = elm.getAttribute('type') === 'checkbox';
                     var isRadio = elm.getAttribute('type') === 'radio';
+                    var isSelect = elm.tagName === 'SELECT';
+                    var isMultiple = isSelect && elm.multiple;
                     var isBoolean = isChecked
                         || isRadio;
-                    if (!isBoolean) {
+                    if (!isBoolean && !isMultiple) {
                         elm.value = val;
                     }
                     if (isRadio) {
@@ -767,7 +773,7 @@ function Viewi() {
                             elm.checked = true;
                         }
                     }
-                    var eventName = isBoolean ? 'change' : 'input';
+                    var eventName = isBoolean || isSelect ? 'change' : 'input';
                     if (!attr.listeners) {
                         attr.listeners = {};
                     }
@@ -776,7 +782,8 @@ function Viewi() {
                             code: attr.children[0].contentExpression.code,
                             expression: true,
                             setter: true,
-                            isChecked: isChecked
+                            isChecked: isChecked,
+                            isMultiple: isMultiple
                         }, attr.instance);
                         var actionContent = attr.valueExpression.func;
                         attr.listeners[eventName] = function ($event) {
