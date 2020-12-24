@@ -451,7 +451,7 @@ function Viewi() {
                 type: item.type,
                 contents: [getDataExpression(item, instance)],
                 domNode: null, // DOM node if rendered
-                parent: parentNode, // TODO: make immutable
+                parent: parentNode, // TODO: make imutable
                 instance: instance,
                 previousNode: previousNode
             };
@@ -613,46 +613,40 @@ function Viewi() {
             }
             if (component) {
                 // compare component and reuse if matched
-                // if reused refresh slots
+                // if resused refresh slots
                 var resetReuse = false;
                 if (isRoot) {
                     reuseEnabled = true;
                     resetReuse = true;
                 }
-                var componentNodes = create(component, childNodes, node.attributes);
+                var componenNodes = create(component, childNodes, node.attributes);
                 if (resetReuse) {
                     reuseEnabled = false;
                 }
-                var versions = [];
-                for (var ver in componentNodes) {
-                    var prevNode = currentNodeList.length > 0
-                        ? currentNodeList[currentNodeList.length - 1]
-                        : null;
-                    var toConcat = [];
-                    componentNodes[ver].each(function (x) {
-                        if (prevNode
-                            && prevNode.type === 'text'
-                            && x.type === 'text'
-                            && !x.raw
-                            && !prevNode.raw
-                        ) {
-                            prevNode.contents = prevNode.contents.concat(x.contents);
-                        } else {
-                            x.nextNode = null;
-                            x.parent = parentNode;
-                            x.previousNode = prevNode;
-                            if (prevNode) {
-                                prevNode.nextNode = x;
-                            }
-                            prevNode = x;
-                            toConcat.push(x);
+                var prevNode = currentNodeList.length > 0
+                    ? currentNodeList[currentNodeList.length - 1]
+                    : null;
+                var toConcat = [];
+                componenNodes.each(function (x) {
+                    if (prevNode
+                        && prevNode.type === 'text'
+                        && x.type === 'text'
+                        && !x.raw
+                        && !prevNode.raw
+                    ) {
+                        prevNode.contents = prevNode.contents.concat(x.contents);
+                    } else {
+                        x.nextNode = null;
+                        x.parent = parentNode;
+                        x.previousNode = prevNode;
+                        if (prevNode) {
+                            prevNode.nextNode = x;
                         }
-                    });
-                    versions.push(toConcat);
-                }
-                for (var k in versions) {
-                    currentNodeList = currentNodeList.concat(versions[k]);
-                }
+                        prevNode = x;
+                        toConcat.push(x);
+                    }
+                });
+                currentNodeList = currentNodeList.concat(toConcat);
                 previousNode = currentNodeList.length > 0
                     ? currentNodeList[currentNodeList.length - 1]
                     : null;
@@ -676,57 +670,6 @@ function Viewi() {
         return currentNodeList;
     };
 
-    var createInstance = function (wrapper) {
-        var component = resolve(wrapper.name, wrapper.params);
-        component.__beforeMount && component.__beforeMount();
-        if (wrapper.attributes) {
-            for (var ai in wrapper.attributes) {
-                var attr = wrapper.attributes[ai];
-                if (attr.content in component) {
-                    var propValue = null;
-                    var currentValue = null;
-                    for (var i in attr.children) {
-                        var propExpression = attr.children[i].propExpression;
-                        if (propExpression.call) {
-                            if (!attr.instance.component) {
-                                attr.instance.component = createInstance(attr.instance);
-                            }
-                            var args = [attr.instance.component, $this];
-                            if (attr.scope) {
-                                for (var k in attr.scope.stack) {
-                                    args.push(attr.scope.data[attr.scope.stack[k]]);
-                                }
-                            }
-                            currentValue = propExpression.func.apply(null, args);
-                            if (attr.children[i].subs) {
-                                propsSubs['this.' + attr.content] = {
-                                    instance: attr.instance,
-                                    subs: attr.children[i].subs
-                                };
-                            }
-                        } else {
-                            currentValue = propExpression.content;
-                        }
-                        if (i > 0) {
-                            propValue += currentValue;
-                        } else {
-                            propValue = currentValue;
-                        }
-                    }
-                    if (propValue === 'true') {
-                        propValue = true;
-                    } else if (propValue === 'false') {
-                        propValue = false;
-                    } else if (typeof propValue === 'string' && !isNaN(propValue)) {
-                        propValue = +propValue;
-                    }
-                    component[attr.content] = propValue;
-                }
-            }
-        }
-        return component;
-    }
-
     var renderAttribute = function (elm, attr, eventsOnly) {
         if (!elm) {
             return;
@@ -734,10 +677,7 @@ function Viewi() {
         try {
             var attrName = attr.content;
             if (attr.contentExpression.call) {
-                if (!attr.instance.component) {
-                    attr.instance.component = createInstance(attr.instance);
-                }
-                var args = [attr.instance.component, $this];
+                var args = [attr.instance, $this];
                 if (attr.scope) {
                     for (var k in attr.scope.stack) {
                         args.push(attr.scope.data[attr.scope.stack[k]]);
@@ -762,9 +702,6 @@ function Viewi() {
                 var actionContent = null;
                 if (attr.dynamic) {
                     if (!attr.eventExpression) {
-                        if (!attr.instance.component) {
-                            attr.instance.component = createInstance(attr.instance);
-                        }
                         attr.eventExpression = getDataExpression(attr.dynamic, attr.instance, true);
                         // console.log(attr.eventExpression);
                     }
@@ -777,7 +714,7 @@ function Viewi() {
                 }
                 attr.listeners[attrName] && elm.removeEventListener(eventName, attr.listeners[attrName]);
                 attr.listeners[attrName] = function ($event) {
-                    actionContent(attr.instance.component, $this, $event);
+                    actionContent(attr.parent.instance, $this, $event);
                 };
                 elm.addEventListener(eventName, attr.listeners[attrName]);
             } else {
@@ -793,10 +730,7 @@ function Viewi() {
                 for (var i in attr.children) {
                     var contentExpression = attr.children[i].contentExpression;
                     if (contentExpression.call) {
-                        if (!attr.instance.component) {
-                            attr.instance.component = createInstance(attr.instance);
-                        }
-                        var args = [attr.instance.component, $this];
+                        var args = [attr.instance, $this];
                         if (attr.scope) {
                             for (var k in attr.scope.stack) {
                                 args.push(attr.scope.data[attr.scope.stack[k]]);
@@ -847,9 +781,6 @@ function Viewi() {
                         attr.listeners = {};
                     }
                     if (!attr.valueExpression && attr.children.length > 0) {
-                        if (!attr.instance.component) {
-                            attr.instance.component = createInstance(attr.instance);
-                        }
                         attr.valueExpression = getDataExpression({
                             code: attr.children[0].contentExpression.code,
                             expression: true,
@@ -977,10 +908,7 @@ function Viewi() {
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
             if (contentExpression.call) {
-                if (!contentExpression.instance.component) {
-                    contentExpression.instance.component = createInstance(contentExpression.instance);
-                }
-                var args = [contentExpression.instance.component, $this];
+                var args = [contentExpression.instance, $this];
                 if (node.scope) {
                     for (var k in node.scope.stack) {
                         args.push(node.scope.data[node.scope.stack[k]]);
@@ -1246,10 +1174,7 @@ function Viewi() {
                     // TODO: check conditon
                     // TODO: if false remove node if exists
                     // TODO: if true create element
-                    if (!node.instance.component) {
-                        node.instance.component = createInstance(node.instance);
-                    }
-                    node.condition.value = node.condition.func(node.instance.component, $this);
+                    node.condition.value = node.condition.func(node.instance, $this);
                     elm = parent;
                     node.parentDomNode = parent;
                     node.condition.previousValue = node.condition.value;
@@ -1259,11 +1184,8 @@ function Viewi() {
                 }
                 case 'else-if': {
                     // TODO: check condition
-                    if (!node.instance.component) {
-                        node.instance.component = createInstance(node.instance);
-                    }
                     node.condition.value = !node.previousNode.condition.value
-                        && node.condition.func(node.instance.component, $this);
+                        && node.condition.func(node.instance, $this);
                     node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
                     elm = parent;
                     node.parentDomNode = parent;
@@ -1295,10 +1217,7 @@ function Viewi() {
                         }
                         removeDomNodes(node.children);
                         node.children = null;
-                        if (!node.instance.component) {
-                            node.instance.component = createInstance(node.instance);
-                        }
-                        var args = [node.instance.component, $this];
+                        var args = [node.instance, $this];
                         // args = args.concat(currentScope); // TODO concat with scope values
                         var data = node.forExpression.data.apply(null, args);
                         if (data && data.length > 0) {
@@ -1325,13 +1244,7 @@ function Viewi() {
                             prevNode = wrapperNode;
                             wrapperNode.scope.data[node.forExpression.key] = isNumeric ? +k : k;
                             wrapperNode.scope.data[node.forExpression.value] = data[k];
-                            var iterationNodes = [];
-                            for (var f = 0; f < node.itemChilds.length; f++) {
-                                var newNode = Object.assign({}, node.itemChilds[f]);
-                                newNode.instance = Object.assign({}, newNode.instance);
-                                iterationNodes.push(newNode);
-                            }
-                            copyNodes(wrapperNode, iterationNodes);
+                            copyNodes(wrapperNode, node.itemChilds);
                             node.children.push(wrapperNode);
                         }
                         // TODO: resubscribe for changes, remove subscriptions for itemChilds
@@ -1368,7 +1281,7 @@ function Viewi() {
                         // componentChilds
                         wrapperNode.type = 'template';
                         wrapperNode.isVirtual = true;
-                        wrapperNode.children = create(val, wrapperNode.children, node.attributes)['main'];
+                        wrapperNode.children = create(val, wrapperNode.children, node.attributes);
                         // reassign parent
                         wrapperNode.children.each(function (x) {
                             x.parent = wrapperNode;
@@ -1553,12 +1466,11 @@ function Viewi() {
 
     var cloneNode = function (parent, node) {
         var copy = Object.assign({}, node);
+        copy.scope = parent.scope;
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
         copy.scope = parent.scope;
-        // copy.instance = Object.assign({}, node.instance);
-        // copy.instance.component = null;
         if (node.children) {
             copyNodes(copy, node.children)
         }
@@ -1804,7 +1716,7 @@ function Viewi() {
                 var hasCode = false;
                 var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || (x.code); }).join(); // && ++randI
                 var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || (x.code); }).join();
-                if (a[i].instance.name != b[i].instance.name) {
+                if (a[i].instance.constructor != b[i].instance.constructor) {
                     // console.log('Instances don\'t match', [a[i].instance, b[i].instance], a[i], b[i]);
                     matched = false;
                 }
@@ -1889,8 +1801,8 @@ function Viewi() {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        var instance = null;
         var builtNodes = null;
-        var instanceWrapper = null;
         // if (parentComponentName === currentPage.name) {
         // reuse wrapper components
         var same = latestPage.components.first(function (x) {
@@ -1900,29 +1812,66 @@ function Viewi() {
             latestPage.components.splice(same[1], 1);
             builtNodes = same[0].build;
             if (reuseEnabled) {
-                instanceWrapper = same[0].instanceWrapper; // TODO: default values restore
+                instance = same[0].instance; // TODO: default values restore
                 // console.log('Reusing', instance);
             }
         }
         // }
+        var previousPropsSubs = propsSubs;
+        propsSubs = {};
         var previousName = parentComponentName;
         parentComponentName = name;
         var page = $this.components[name];
-        instanceWrapper = instanceWrapper || {
-            component: null,
-            name: name,
-            params: params,
-            attributes: attributes
-        }
-        var newBuild = {};
-        if (page.hasVersions) {
-            for (var ver in page.versions) {
-                newBuild[ver] = build(page.versions[ver], instanceWrapper, childNodes, null, isRoot);
+        instance = instance || resolve(name, params);
+        instance.__beforeMount && instance.__beforeMount();
+        // pass props
+        if (attributes) {
+            for (var ai in attributes) {
+                var attr = attributes[ai];
+                if (attr.content in instance) {
+                    var propValue = null;
+                    var currentValue = null;
+                    for (var i in attr.children) {
+                        var propExpression = attr.children[i].propExpression;
+                        if (propExpression.call) {
+                            var args = [attr.instance, $this];
+                            if (attr.scope) {
+                                for (var k in attr.scope.stack) {
+                                    args.push(attr.scope.data[attr.scope.stack[k]]);
+                                }
+                            }
+                            currentValue = propExpression.func.apply(null, args);
+                            if (attr.children[i].subs) {
+                                propsSubs['this.' + attr.content] = {
+                                    instance: attr.instance,
+                                    subs: attr.children[i].subs
+                                };
+                            }
+                        } else {
+                            currentValue = propExpression.content;
+                        }
+                        if (i > 0) {
+                            propValue += currentValue;
+                        } else {
+                            propValue = currentValue;
+                        }
+                    }
+                    if (propValue === 'true') {
+                        propValue = true;
+                    } else if (propValue === 'false') {
+                        propValue = false;
+                    } else if (typeof propValue === 'string' && !isNaN(propValue)) {
+                        propValue = +propValue;
+                    }
+                    instance[attr.content] = propValue;
+                }
             }
-        } else {
-            newBuild['main'] = build(page.nodes, instanceWrapper, childNodes, null, isRoot);
         }
 
+        var nodes = page.hasVersions ? page.versions[instance.__version()] : page.nodes;
+        var newBuild = build(nodes, instance, childNodes, null, isRoot);
+        instance.__mounted && instance.__mounted();
+        propsSubs = previousPropsSubs;
         if (builtNodes) {
             mergeNodes(newBuild, builtNodes);
         }
@@ -1932,7 +1881,7 @@ function Viewi() {
         currentPage.components.push({
             name: name,
             build: newBuild,
-            instanceWrapper: instanceWrapper
+            instance: instance
         });
         // }
         return newBuild;
@@ -2128,7 +2077,7 @@ function Viewi() {
         currentPage = {};
         currentPage.name = name;
         currentPage.components = [];
-        var nodes = create(name, null, null, params, true)['main'];
+        var nodes = create(name, null, null, params, true);
         currentPage.nodes = nodes;
         scroll && window.scrollTo(0, 0);
         scroll = true;
