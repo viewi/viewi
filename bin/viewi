@@ -19,7 +19,7 @@ class ViewiCLITool
             'action' => 'createNew'
         ],
         'help' => [
-            'description' => 'Prints all avaliable commands.',
+            'description' => 'Prints all available commands.',
             'action' => 'help'
         ]
     ];
@@ -78,7 +78,7 @@ class ViewiCLITool
         }
         $viewiDirFullPath = "$projectDir/$viewiDir";
         if (file_exists($viewiDirFullPath)) {
-            echo "Viewi directory '$viewiDir' alredy exists. To continue please remove the old one or select another folder.\n";
+            echo "Viewi directory '$viewiDir' already exists. To continue please remove the old one or select another folder.\n";
             return;
         }
         echo "Creating directory '$viewiDir'..\n";
