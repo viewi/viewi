@@ -677,7 +677,7 @@ function Viewi() {
     };
 
     var createInstance = function (wrapper) {
-        var component = resolve(wrapper.name, wrapper.params);
+        var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
         component.__beforeMount && component.__beforeMount();
         if (wrapper.attributes) {
             for (var ai in wrapper.attributes) {
@@ -859,7 +859,7 @@ function Viewi() {
                         }, attr.instance);
                         var actionContent = attr.valueExpression.func;
                         attr.listeners[eventName] = function ($event) {
-                            actionContent(attr.parent.instance, $this, $event);
+                            actionContent(attr.parent.instance.component, $this, $event);
                         };
 
                     }
@@ -913,7 +913,7 @@ function Viewi() {
     var createDomNode = function (parent, node, insert, skipGroup) {
         if (!skipGroup) {
             if (node.isVirtual || node.type === 'text') {
-                // TODO: make property which says if text or virtual node has text or virtual sibilings
+                // TODO: make property which says if text or virtual node has text or virtual siblings
                 // TODO: make property which indicates if node is text type (shortness)
                 // TODO: make track property to set render version and render group once
                 // render fresh DOM from first text/virtual to the last text/virtual
@@ -973,13 +973,13 @@ function Viewi() {
         if (!node.isVirtual && node.condition && !node.condition.value) {
             return;
         }
+        if (!node.instance.component) {
+            node.instance.component = createInstance(node.instance);
+        }
         var texts = [];
         for (var i in node.contents) {
             var contentExpression = node.contents[i];
             if (contentExpression.call) {
-                if (!contentExpression.instance.component) {
-                    contentExpression.instance.component = createInstance(contentExpression.instance);
-                }
                 var args = [contentExpression.instance.component, $this];
                 if (node.scope) {
                     for (var k in node.scope.stack) {
@@ -1316,14 +1316,18 @@ function Viewi() {
                                 domNode: null,
                                 scope: node.scope
                             };
-                            wrapperNode.scope.data = Object.assign({}, node.scope.data);
+                            wrapperNode.scope = {
+                                parentScope: node.scope,
+                                data: {},
+                                stack: node.scope.stack
+                            }
                             if (prevNode) {
                                 prevNode.nextNode = wrapperNode;
                             }
                             prevNode = wrapperNode;
                             wrapperNode.scope.data[node.forExpression.key] = isNumeric ? +k : k;
                             wrapperNode.scope.data[node.forExpression.value] = data[k];
-                            copyNodes(wrapperNode, node.itemChilds);
+                            scopeNodes(wrapperNode, node.itemChilds);
                             node.children.push(wrapperNode);
                         }
                         // TODO: resubscribe for changes, remove subscriptions for itemChilds
@@ -1528,6 +1532,15 @@ function Viewi() {
         }
     }
 
+    var instancesScope = {};
+    var cleanInstance = false;
+    var scopeNodes = function (parent, nodes) {
+        instancesScope = {};
+        cleanInstance = true;
+        copyNodes(parent, nodes);
+        cleanInstance = false;
+    };
+
     var copyNodes = function (parent, nodes) {
         var prev = null;
         var newChildren = nodes.select(function (x) {
@@ -1541,7 +1554,7 @@ function Viewi() {
             return z;
         });
         parent.children = newChildren;
-    }
+    };
 
     var cloneNode = function (parent, node) {
         var copy = Object.assign({}, node);
@@ -1549,22 +1562,52 @@ function Viewi() {
         copy.previousNode = null;
         copy.domNode = null;
         copy.scope = parent.scope;
+        if (cleanInstance) {
+            if (!copy.instance.component) {
+                if (copy.instance.__id in instancesScope) {
+                    copy.instance = instancesScope[copy.instance.__id]
+                } else {
+                    copy.instance = Object.assign({}, node.instance);
+                    instancesScope[copy.instance.__id] = copy.instance;
+                    copy.instance.attributes = copy.instance.attributes.select(function (x) {
+                        var attr = Object.assign({}, x);
+                        attr.scope = copy.scope;
+                        return attr;
+                    });
+                }
+            }
+            copy.contents = copy.contents.select(function (x) {
+                var content = Object.assign({}, x);
+                if (content.call && content.instance.__id === copy.instance.__id) {
+                    content.instance = copy.instance;
+                }
+                return content;
+            });
+            if (copy.attributes) {
+                for (var i in copy.attributes) {
+                    if (copy.attributes[i].call) {
+                        copy.attributes[i].instance = copy.instance;
+                    }
+                }
+            }
+        }
+        // console.log(copy.instance);
         // copy.instance = Object.assign({}, node.instance);
         // copy.instance.component = null;
         if (node.children) {
             copyNodes(copy, node.children)
         }
         return copy;
-    }
+    };
 
     var nextInstanceId = 0;
 
-    var getInstanceId = function (instance) {
+    var getInstanceId = function (instance, id) {
         if (!('__id' in instance)) {
             Object.defineProperty(instance, "__id", {
                 enumerable: false,
                 writable: false,
-                value: ++nextInstanceId
+                value: id || ++nextInstanceId
             });
         }
         return instance.__id;
@@ -1605,6 +1648,7 @@ function Viewi() {
     }
 
     // TODO: on change conditions, insert element if new, remove if not active
+    // TODO: try catch
     var reRender = function () {
         for (var path in renderQueue) {
             for (var i in renderQueue[path]) {
@@ -1647,6 +1691,17 @@ function Viewi() {
     //reactivate array
     var ra = function (a, deps) {
         var p = Object.getPrototypeOf(a);
+        if ('deps' in p) {
+            for (var k in deps) {
+                if (!(k in a.deps)) {
+                    a.deps[k] = {}
+                }
+                for (var t in deps[k]) {
+                    a.deps[k][t] = deps[k][t];
+                }
+            }
+            return;
+        }
         var np = {};
         Object.defineProperty(np, "deps", {
             enumerable: false,
@@ -1713,6 +1768,9 @@ function Viewi() {
                     if (newVal !== val) {
                         onChange(deps);
                         val = newVal;
+                        if (val !== null && typeof val === 'object') {
+                            makeReactive(val, instance, path, deps);
+                        }
                     }
                 }
             });
@@ -1721,7 +1779,7 @@ function Viewi() {
 
     var injectionCache = {};
 
-    var resolve = function (name, params) {
+    var resolve = function (name, params, id) {
         // TODO: check scope and/or cache
         var info = $this.components[name];
         var dependencies = info.dependencies;
@@ -1734,7 +1792,7 @@ function Viewi() {
             if (info.init) {
                 instance.__init();
             }
-            getInstanceId(instance);
+            getInstanceId(instance, id);            
             makeReactive(instance);
             if (cache) {
                 injectionCache[name] = instance;
@@ -1766,6 +1824,7 @@ function Viewi() {
             arguments.shift();
             instance.__init.apply(instance, arguments);
         }
+        getInstanceId(instance, id); 
         makeReactive(instance);
         if (cache) {
             injectionCache[name] = instance;
@@ -1904,19 +1963,21 @@ function Viewi() {
             component: null,
             name: name,
             params: params,
-            attributes: attributes
+            attributes: attributes,
+            __id: ++nextInstanceId
         }
         var newBuild = {};
         if (page.hasVersions) {
             for (var ver in page.versions) {
-                newBuild[ver] = build(page.versions[ver], instanceWrapper, childNodes, null, isRoot);
+                // TODO: ver support
+                newBuild['main'] = build(page.versions[ver], instanceWrapper, childNodes, null, isRoot);
             }
         } else {
             newBuild['main'] = build(page.nodes, instanceWrapper, childNodes, null, isRoot);
         }
 
         if (builtNodes) {
-            mergeNodes(newBuild, builtNodes);
+            mergeNodes(newBuild['main'], builtNodes['main']);
         }
         // console.log(instance, newBuild, builtNodes, childNodes, attributes);
         parentComponentName = previousName;
@@ -2163,5 +2224,8 @@ var notify = app.notify;
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { app.start(); });
 } else {
+    // setTimeout(function () {
+    //     app.start();
+    // }, 1000);
     app.start();
 }
