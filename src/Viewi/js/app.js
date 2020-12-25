@@ -1312,26 +1312,18 @@ function Viewi() {
                                 isVirtual: true,
                                 parent: node,
                                 previousNode: prevNode,
-                                instance: node.instance,
+                                instance: Object.assign({}, node.instance),
                                 domNode: null,
-                                scope: {
-                                    stack: node.scope.stack,
-                                    data: Object.assign({}, node.scope.data)
-                                }
+                                scope: node.scope
                             };
+                            wrapperNode.scope.data = Object.assign({}, node.scope.data);
                             if (prevNode) {
                                 prevNode.nextNode = wrapperNode;
                             }
                             prevNode = wrapperNode;
                             wrapperNode.scope.data[node.forExpression.key] = isNumeric ? +k : k;
                             wrapperNode.scope.data[node.forExpression.value] = data[k];
-                            var iterationNodes = [];
-                            for (var f = 0; f < node.itemChilds.length; f++) {
-                                var newNode = Object.assign({}, node.itemChilds[f]);
-                                newNode.instance = Object.assign({}, newNode.instance);
-                                iterationNodes.push(newNode);
-                            }
-                            copyNodes(wrapperNode, iterationNodes);
+                            copyNodes(wrapperNode, node.itemChilds);
                             node.children.push(wrapperNode);
                         }
                         // TODO: resubscribe for changes, remove subscriptions for itemChilds
