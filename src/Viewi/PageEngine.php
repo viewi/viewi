@@ -43,13 +43,13 @@ class PageEngine
     const COMBINE_JS = 'COMBINE_JS';
 
     /**
-     * enable scripts minifications, use in production.
+     * enable scripts minification, use in production.
      */
     const MINIFY = 'MINIFY';
 
     /**
      * true if you are in developing mode.
-     * All components will be compiled as soon as request occures. 
+     * All components will be compiled as soon as request occurs. 
      * Default: true.
      */
     const DEV_MODE = 'DEV_MODE';
@@ -85,7 +85,7 @@ class PageEngine
 
     /** @var string<string, string> */
     private array $reservedTags;
-    private string $identation = '    ';
+    private string $indentation = '    ';
 
     private string $reservedTagsString = 'html,body,base,head,link,meta,style,title,' .
         'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' .
@@ -713,7 +713,7 @@ class PageEngine
         $html = str_replace('/** scope*/', $scopeArguments, $html);
         // 
         if ($this->renderReturn) {
-            $html .= PHP_EOL . $this->identation . "\$_content = '';" . PHP_EOL;
+            $html .= PHP_EOL . $this->indentation . "\$_content = '';" . PHP_EOL;
         } else {
             $html .= '?>';
             if ($this->lastLineIsSpace) {
@@ -722,7 +722,7 @@ class PageEngine
         }
         $this->buildInternal($pageTemplate, $html);
         if ($this->renderReturn) {
-            $html .= PHP_EOL . $this->identation . "return \$_content;" . PHP_EOL;
+            $html .= PHP_EOL . $this->indentation . "return \$_content;" . PHP_EOL;
         } else {
             $html .= '<?php';
         }
@@ -743,7 +743,7 @@ class PageEngine
         }
         if ($codeToAppend) {
             if ($this->renderReturn) {
-                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                     var_export($codeToAppend, true) . ";";
             } else {
                 $html .= $codeToAppend;
@@ -1109,7 +1109,7 @@ class PageEngine
 
         if ($slotContentNameExpr) {
 
-            $html .= "{$codeBegin}{$this->identation}\$slotContents[$slotContentNameExpr] = '{$componentBaseName}';$eol{$codeEnd}";
+            $html .= "{$codeBegin}{$this->indentation}\$slotContents[$slotContentNameExpr] = '{$componentBaseName}';$eol{$codeEnd}";
         } else {
             $scopeArguments = implode(', ', $this->componentArguments);
             if ($scopeArguments) {
@@ -1136,15 +1136,15 @@ class PageEngine
             // }
 
             $html .= $codeBegin .
-                $this->identation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->identation . "{$codeMiddle}\$pageEngine->renderComponent(" .
+                $this->indentation . "\$slotContents[0] = $slotsExpression;" .
+                PHP_EOL . $this->indentation . "{$codeMiddle}\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "[], " .
                 "{$this->_CompileComponentName}, " .
                 "\$slotContents, " .
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
-                PHP_EOL . $this->identation . "\$slotContents = [];" .
+                PHP_EOL . $this->indentation . "\$slotContents = [];" .
                 $codeEnd;
         }
     }
@@ -1182,7 +1182,7 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
+            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
             $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
         }
@@ -1190,9 +1190,9 @@ class PageEngine
 
     function flushBuffer(string &$html, string &$codeToAppend)
     {
-        if ($codeToAppend) {
+        if ($codeToAppend !== '') {
             if ($this->renderReturn) {
-                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                     var_export($codeToAppend, true) . ";";
             } else {
                 $html .= $codeToAppend;
@@ -1215,18 +1215,18 @@ class PageEngine
             $this->componentArguments[$argument] = $argument;
             $foreachArguments[$argument] = $argument;
         }
-        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
             "foreach($foreachSource as {$foreachParts[1]}){" .
-            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+            PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
     }
 
     function endForeach($foreach, $foreachArguments, &$html, string &$codeToAppend)
     {
         if ($foreach) {
             $this->flushBuffer($html, $codeToAppend);
-            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
                 "}" .
-                PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+                PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
             foreach ($foreachArguments as $argument) {
                 unset($this->componentArguments[$argument]);
             }
@@ -1241,18 +1241,18 @@ class PageEngine
     {
         $this->flushBuffer($html, $codeToAppend);
         $ifCode = $this->convertExpressionToCode($ifExpression);
-        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+        $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
             "if($ifCode){" .
-            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+            PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
     }
 
     function closeIf(string $ifExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($ifExpression) {
             $this->flushBuffer($html, $codeToAppend);
-            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
                 "}" .
-                ($closeIfTag ? (PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>")) : '');
+                ($closeIfTag ? (PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>")) : '');
             $this->extraLine = true;
         }
     }
@@ -1262,16 +1262,16 @@ class PageEngine
         $this->flushBuffer($html, $codeToAppend);
         $ifCode = $this->convertExpressionToCode($elseIfExpression);
         $html .= " else if ($ifCode){" .
-            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+            PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
     }
 
     function closeElseIf(string $elseIfExpression, string &$html, string &$codeToAppend, bool $closeIfTag)
     {
         if ($elseIfExpression) {
             $this->flushBuffer($html, $codeToAppend);
-            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
                 "}" .
-                ($closeIfTag ? PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>") : '');
+                ($closeIfTag ? PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>") : '');
             $this->extraLine = true;
         }
     }
@@ -1280,16 +1280,16 @@ class PageEngine
     {
         $this->flushBuffer($html, $codeToAppend);
         $html .= " else {" .
-            PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+            PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
     }
 
     function closeElse(string $elseExpression, string &$html, string &$codeToAppend)
     {
         if ($elseExpression) {
             $this->flushBuffer($html, $codeToAppend);
-            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->identation .
+            $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
                 "}" .
-                PHP_EOL . $this->identation . ($this->renderReturn ? '' : "?>");
+                PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
             $this->extraLine = true;
         }
     }
@@ -1489,7 +1489,7 @@ class PageEngine
                 // foreach($tagItem->parent()->getChildren() as &$chld){
                 //     var_dump($chld->Content);
                 // }
-                // lines formating
+                // lines formatting
                 // if (
                 //     $this->previousItem->Type->Name === TagItemType::TextContent
                 //     && $this->previousItem->Content !== null
@@ -1510,7 +1510,7 @@ class PageEngine
                 // }
                 if ($codeToAppend) {
                     if ($this->renderReturn) {
-                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             var_export($codeToAppend, true) . ";";
                     } else {
                         $html .= $codeToAppend;
@@ -1544,22 +1544,22 @@ class PageEngine
                     if ($dynamicTagDetected) {
                         // put if
                         if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                 var_export($codeToAppend, true) . ";";
                             $codeToAppend = '';
-                            $html .= PHP_EOL . $this->identation .
+                            $html .= PHP_EOL . $this->indentation .
                                 "if(\$pageEngine->isTag($content)) {";
                         } else {
-                            $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                            $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
                                 "if(\$pageEngine->isTag({$tagItem->PhpExpression})) {" . PHP_EOL . '?>';
                         }
                     }
                     $codeToAppend .= '<';
                     if ($this->renderReturn) {
                         if ($tagItem->ItsExpression) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                 var_export($codeToAppend, true) . ";";
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                 $content . ";";
                             $codeToAppend = '';
                         } else {
@@ -1676,9 +1676,9 @@ class PageEngine
                     $codeToAppend .= '<!--';
                 }
                 if ($this->renderReturn && $tagItem->ItsExpression) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         var_export($codeToAppend, true) . ";";
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         $content . ";";
                     $codeToAppend = '';
                 } else {
@@ -1706,7 +1706,7 @@ class PageEngine
                     $condition = $this->convertExpressionToCode($children[0]->Content);
                     if ($this->renderReturn) {
                         $this->flushBuffer($html, $codeToAppend);
-                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
                     } else {
                         $html .= $codeToAppend;
@@ -1720,15 +1720,15 @@ class PageEngine
                 $codeToAppend .= ' ';
                 if ($tagItem->ItsExpression) {
                     if ($this->renderReturn) {
-                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             var_export($codeToAppend, true) . ";";
-                        $html .=  PHP_EOL . $this->identation . "if ({$tagItem->PhpExpression}[0] !== '(') {";
+                        $html .=  PHP_EOL . $this->indentation . "if ({$tagItem->PhpExpression}[0] !== '(') {";
                         // TODO: fix identation
-                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             $content . ";";
                         $codeToAppend = '';
                     } else {
-                        $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                        $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
                             "if ({$tagItem->PhpExpression}[0] !== '(') {" . PHP_EOL . '?>';
                         $codeToAppend .= $content;
                     }
@@ -1743,9 +1743,9 @@ class PageEngine
 
             if ($tagItem->Type->Name === TagItemType::AttributeValue) {
                 if ($tagItem->ItsExpression && $this->renderReturn) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         var_export($codeToAppend, true) . ";";
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         $content . ";";
                     $codeToAppend = '';
                 } else {
@@ -1758,6 +1758,7 @@ class PageEngine
                     if (
                         $childTag->Type->Name === TagItemType::TextContent
                         || $childTag->Type->Name === TagItemType::Tag
+                        || $childTag->Type->Name === TagItemType::Component
                     ) {
                         if ($noContent) {
                             $noContent = false;
@@ -1788,12 +1789,12 @@ class PageEngine
                 $codeToAppend .= ($noChildren ? '' : '"');
                 if ($tagItem->ItsExpression) {
                     if ($this->renderReturn) {
-                        $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             var_export($codeToAppend, true) . ";";
-                        $html .=  PHP_EOL . $this->identation . '}';
+                        $html .=  PHP_EOL . $this->indentation . '}';
                         $codeToAppend = '';
                     } else {
-                        $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                        $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
                             '}' . PHP_EOL . '?>';
                     }
                 }
@@ -1811,9 +1812,9 @@ class PageEngine
                         if ($this->renderReturn) {
                             if ($tagItem->ItsExpression) {
                                 $codeToAppend .= '</';
-                                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                     var_export($codeToAppend, true) . ";";
-                                $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                                $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                     $content . ";";
                                 $codeToAppend = '>';
                             } else {
@@ -1827,12 +1828,12 @@ class PageEngine
                     if ($dynamicTagDetected) {
                         // put if
                         if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                 var_export($codeToAppend, true) . ";";
                             $codeToAppend = '';
-                            $html .= PHP_EOL . $this->identation . "} else {";
+                            $html .= PHP_EOL . $this->indentation . "} else {";
                         } else {
-                            $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                            $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
                                 '} else {' . PHP_EOL . '?>';
                         }
                     }
@@ -1856,7 +1857,7 @@ class PageEngine
                 ) { // slot content
                     if ($codeToAppend) {
                         if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                                 var_export($codeToAppend, true) . ";";
                         } else {
                             $html .= $codeToAppend;
@@ -1958,7 +1959,7 @@ class PageEngine
             // compile component
             if ($codeToAppend) {
                 if ($this->renderReturn) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         var_export($codeToAppend, true) . ";";
                 } else {
                     $html .= $codeToAppend;
@@ -1982,12 +1983,12 @@ class PageEngine
             if ($dynamicTagDetected) {
                 // put if
                 if ($this->renderReturn) {
-                    $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         var_export($codeToAppend, true) . ";";
                     $codeToAppend = '';
-                    $html .= PHP_EOL . $this->identation . "}";
+                    $html .= PHP_EOL . $this->indentation . "}";
                 } else {
-                    $codeToAppend .= '<?php' . PHP_EOL . $this->identation .
+                    $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
                         '}' . PHP_EOL . '?>';
                 }
             }
