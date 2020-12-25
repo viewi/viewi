@@ -706,7 +706,7 @@ class PageEngine
 
         $scopeArguments = implode(', ', $this->componentArguments);
         if ($scopeArguments) {
-            $scopeArguments = ', ' . $scopeArguments;
+            $scopeArguments = ', ' . $scopeArguments . ', ...$scope';
         } else {
             $scopeArguments = ', ...$scope';
         }
@@ -1017,6 +1017,7 @@ class PageEngine
                     include_once $this->buildPath . $componentInfo->BuildPath;
                 }
             }
+            // $this->debug(func_get_args());
             $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
             $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
             return $content;
@@ -1112,7 +1113,7 @@ class PageEngine
         } else {
             $scopeArguments = implode(', ', $this->componentArguments);
             if ($scopeArguments) {
-                $scopeArguments = ', ' . $scopeArguments;
+                $scopeArguments = ', ' . $scopeArguments . ', ...$scope';
             } else {
                 $scopeArguments = ', ...$scope';
             }
@@ -1183,7 +1184,7 @@ class PageEngine
         if (!$defaultContent) {
             $codeBegin = $this->renderReturn ? PHP_EOL . $this->identation . "\$_content .=" : "<?php";
             $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, []); $codeEnd";
+            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
         }
     }
 
