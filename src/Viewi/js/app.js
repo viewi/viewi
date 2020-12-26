@@ -291,7 +291,8 @@ function Viewi() {
 
     var build = function (parent, instance) {
         var stack = arguments.length > 2 ? arguments[2] : false;
-        var parentNode = arguments.length > 3 ? arguments[3] : null;
+        var owner = arguments.length > 3 ? arguments[3] : null;
+        var parentNode = owner && !owner.isRoot ? owner : null;
         var isRoot = arguments.length > 4 ? arguments[4] : false;
         var children = parent.children;
         var currentNodeList = [];
@@ -620,16 +621,20 @@ function Viewi() {
                     resetReuse = true;
                 }
                 var componentNodes = create(component, childNodes, node.attributes);
+                if (!owner.childInstances) {
+                    owner.childInstances = [];
+                }
+                owner.childInstances.push(componentNodes);
                 if (resetReuse) {
                     reuseEnabled = false;
                 }
                 var versions = [];
-                for (var ver in componentNodes) {
+                for (var ver in componentNodes.versions) {
                     var prevNode = currentNodeList.length > 0
                         ? currentNodeList[currentNodeList.length - 1]
                         : null;
                     var toConcat = [];
-                    componentNodes[ver].each(function (x) {
+                    componentNodes.versions[ver].each(function (x) {
                         if (prevNode
                             && prevNode.type === 'text'
                             && x.type === 'text'
@@ -676,13 +681,13 @@ function Viewi() {
         return currentNodeList;
     };
 
-    var createInstance = function (wrapper) {
-        var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
-        component.__beforeMount && component.__beforeMount();
+    var mountInstance = function (wrapper) {
+        if (wrapper.isMounted) return;
+        wrapper.component.__beforeMount && wrapper.component.__beforeMount();
         if (wrapper.attributes) {
             for (var ai in wrapper.attributes) {
                 var attr = wrapper.attributes[ai];
-                if (attr.content in component) {
+                if (attr.content in wrapper.component) {
                     var propValue = null;
                     var currentValue = null;
                     for (var i in attr.children) {
@@ -720,10 +725,18 @@ function Viewi() {
                     } else if (typeof propValue === 'string' && !isNaN(propValue)) {
                         propValue = +propValue;
                     }
-                    component[attr.content] = propValue;
+                    wrapper.component[attr.content] = propValue;
                 }
             }
         }
+        wrapper.component.__mounted && wrapper.component.__mounted();
+        wrapper.isMounted = true;
+    }
+
+    var createInstance = function (wrapper) {
+        var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
+        wrapper.component = component;
+        wrapper.isCreated = true;
         return component;
     }
 
@@ -1362,9 +1375,13 @@ function Viewi() {
                     } else {
                         // build component
                         // componentChilds
+                        var dynamicNodes = create(val, wrapperNode.children, node.attributes);
+                        createInstance(dynamicNodes.wrapper);
+                        mountInstance(dynamicNodes.wrapper);
+                        instantiateChildren(dynamicNodes.root);
                         wrapperNode.type = 'template';
                         wrapperNode.isVirtual = true;
-                        wrapperNode.children = create(val, wrapperNode.children, node.attributes)['main'];
+                        wrapperNode.children = dynamicNodes.versions['main'];
                         // reassign parent
                         wrapperNode.children.each(function (x) {
                             x.parent = wrapperNode;
@@ -1479,6 +1496,7 @@ function Viewi() {
         }
         for (var i in nodes) {
             currentElemPosition = i;
+            nodes[i].childInstances && instantiateChildren(nodes[i]);
             createDomNode(parent, nodes[i], insert, skipGroup);
         }
         if (cleanRender) {
@@ -1652,13 +1670,17 @@ function Viewi() {
     var reRender = function () {
         for (var path in renderQueue) {
             for (var i in renderQueue[path]) {
-                var node = renderQueue[path][i];
-                if (node.isAttribute) {
-                    renderAttribute(node.parent.domNode, node);
-                } else if (node.isVirtual) {
-                    createDomNode(node.parentDomNode, node);
-                } else {
-                    createDomNode(node.domNode && node.domNode.parentNode, node);
+                try {
+                    var node = renderQueue[path][i];
+                    if (node.isAttribute) {
+                        node.parent.domNode && renderAttribute(node.parent.domNode, node);
+                    } else if (node.isVirtual) {
+                        createDomNode(node.parentDomNode, node);
+                    } else {
+                        node.domNode && node.domNode.parentNode && createDomNode(node.domNode.parentNode, node);
+                    }
+                } catch (error) {
+                    console.error(error);
                 }
             }
         }
@@ -1792,7 +1814,7 @@ function Viewi() {
             if (info.init) {
                 instance.__init();
             }
-            getInstanceId(instance, id);            
+            getInstanceId(instance, id);
             makeReactive(instance);
             if (cache) {
                 injectionCache[name] = instance;
@@ -1824,7 +1846,7 @@ function Viewi() {
             arguments.shift();
             instance.__init.apply(instance, arguments);
         }
-        getInstanceId(instance, id); 
+        getInstanceId(instance, id);
         makeReactive(instance);
         if (cache) {
             injectionCache[name] = instance;
@@ -1952,6 +1974,9 @@ function Viewi() {
             builtNodes = same[0].build;
             if (reuseEnabled) {
                 instanceWrapper = same[0].instanceWrapper; // TODO: default values restore
+                instanceWrapper.isMounted = false;
+                instanceWrapper.attributes = attributes;
+                instanceWrapper.params = params;
                 // console.log('Reusing', instance);
             }
         }
@@ -1962,22 +1987,29 @@ function Viewi() {
         instanceWrapper = instanceWrapper || {
             component: null,
             name: name,
+            isMounted: false,
+            isCreated: false,
             params: params,
             attributes: attributes,
             __id: ++nextInstanceId
         }
-        var newBuild = {};
+        var root = { isRoot: true };
+        var newBuild = {
+            root: root,
+            versions: {},
+            wrapper: instanceWrapper
+        };
         if (page.hasVersions) {
             for (var ver in page.versions) {
                 // TODO: ver support
-                newBuild['main'] = build(page.versions[ver], instanceWrapper, childNodes, null, isRoot);
+                newBuild.versions['main'] = build(page.versions[ver], instanceWrapper, childNodes, root, isRoot);
             }
         } else {
-            newBuild['main'] = build(page.nodes, instanceWrapper, childNodes, null, isRoot);
+            newBuild.versions['main'] = build(page.nodes, instanceWrapper, childNodes, root, isRoot);
         }
 
         if (builtNodes) {
-            mergeNodes(newBuild['main'], builtNodes['main']);
+            mergeNodes(newBuild.versions['main'], builtNodes.versions['main']);
         }
         // console.log(instance, newBuild, builtNodes, childNodes, attributes);
         parentComponentName = previousName;
@@ -2038,7 +2070,7 @@ function Viewi() {
                     var oldParent = node.domNode;
                     node.domNode = domElement;
                     var s = 0; // shift for virtual nodes
-                    var shiftDOM = 0; // shift for DOM childs
+                    var shiftDOM = 0; // shift for DOM children
                     var count = domElement.childNodes.length;
                     var maxNodes = node.children ? node.children.length : 0;
                     //if (count < maxNodes) {
@@ -2095,7 +2127,7 @@ function Viewi() {
                                     for (var ni = i + shiftDOM + 1; ni < count; ni++) {
                                         foundNext = hydrateDOM(vNodes[i + s], domElement.childNodes[ni]);
                                         if (foundNext) {
-                                            // remove all not mathced before
+                                            // remove all not matched before
                                             for (var ri = i + shiftDOM; ri < ni; ri++) {
                                                 nodesToRemove.push(ri);
                                             }
@@ -2167,6 +2199,17 @@ function Viewi() {
     var reuseEnabled = false;
     var scroll = false;
 
+    var instantiateChildren = function (root) {
+        if (root.childInstances) {
+            for (var i in root.childInstances) {
+                createInstance(root.childInstances[i].wrapper);
+                mountInstance(root.childInstances[i].wrapper);
+                root.childInstances[i].root.childInstances
+                    && instantiateChildren(root.childInstances[i].root);
+            }
+        }
+    }
+
     this.render = function (name, params) {
         if (!name) {
             throw new Error('Component name is required.');
@@ -2181,12 +2224,16 @@ function Viewi() {
         currentPage = {};
         currentPage.name = name;
         currentPage.components = [];
-        var nodes = create(name, null, null, params, true)['main'];
+        var instanceMeta = create(name, null, null, params, true);
+        var nodes = instanceMeta.versions['main'];
         currentPage.nodes = nodes;
         scroll && window.scrollTo(0, 0);
         scroll = true;
         cleanRender = !hydrate;
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
+        createInstance(instanceMeta.wrapper);
+        mountInstance(instanceMeta.wrapper);
+        instantiateChildren(instanceMeta.root);
         createDOM(target, nodes, false);
         // hydrate && console.log(target);
         var nodeToHydrate = nodes[1];
