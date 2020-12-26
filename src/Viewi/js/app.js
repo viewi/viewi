@@ -1601,6 +1601,14 @@ function Viewi() {
                         attr.scope = copy.scope;
                         return attr;
                     });
+                    // TODO: new __id for each iteration level, keep instances
+                    if (node.childInstances) {
+                        copy.childInstances = node.childInstances.select(function (x) {
+                            var childInstance = Object.assign({}, x);
+                            childInstance.wrapper = Object.assign({}, x.wrapper);
+                            return childInstance;
+                        });
+                    }
                 }
             }
             copy.contents = copy.contents.select(function (x) {
