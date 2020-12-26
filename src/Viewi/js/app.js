@@ -525,6 +525,10 @@ function Viewi() {
                     }
                 }
                 node.children = build({ children: [item] }, instance, stack, node);
+                if (node.childInstances) {
+                    node.children[0].childInstances = node.childInstances;
+                    delete node.childInstances;
+                }
                 // reset currentScope
                 if (codeChild) {
                     // remove from currentScope
@@ -734,9 +738,11 @@ function Viewi() {
     }
 
     var createInstance = function (wrapper) {
+        if (wrapper.component) return;
         var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
         wrapper.component = component;
         wrapper.isCreated = true;
+        // console.log(component);
         return component;
     }
 
@@ -988,6 +994,9 @@ function Viewi() {
         }
         if (!node.instance.component) {
             node.instance.component = createInstance(node.instance);
+        }
+        if (!node.instance.isMounted) {
+            mountInstance(node.instance);
         }
         var texts = [];
         for (var i in node.contents) {
