@@ -1400,38 +1400,41 @@ function Viewi() {
                     // render
                     elm = parent;
                     nextInsert = true;
-                    removeDomNodes(node.children);
-                    node.children = null;
-                    var wrapperNode = {
-                        contents: node.contents,
-                        attributes: node.attributes,
-                        parent: node,
-                        previousNode: null,
-                        scope: node.scope,
-                        instance: node.instance,
-                        domNode: null
-                    };
-                    if (node.itemChilds) {
-                        copyNodes(wrapperNode, node.itemChilds);
+                    if (node.latestVal !== val) {
+                        removeDomNodes(node.children);
+                        node.children = null;
+                        var wrapperNode = {
+                            contents: node.contents,
+                            attributes: node.attributes,
+                            parent: node,
+                            previousNode: null,
+                            scope: node.scope,
+                            instance: node.instance,
+                            domNode: null
+                        };
+                        if (node.itemChilds) {
+                            copyNodes(wrapperNode, node.itemChilds);
+                        }
+                        if (val in availableTags) { // it's a tag
+                            wrapperNode.type = 'tag';
+                        } else {
+                            // build component
+                            // componentChilds
+                            var dynamicNodes = create(val, wrapperNode.children, node.attributes);
+                            createInstance(dynamicNodes.wrapper);
+                            mountInstance(dynamicNodes.wrapper);
+                            instantiateChildren(dynamicNodes.root);
+                            wrapperNode.type = 'template';
+                            wrapperNode.isVirtual = true;
+                            wrapperNode.children = dynamicNodes.versions['main'];
+                            // reassign parent
+                            wrapperNode.children.each(function (x) {
+                                x.parent = wrapperNode;
+                            });
+                        }
+                        node.children = [wrapperNode];
                     }
-                    if (val in availableTags) { // it's a tag
-                        wrapperNode.type = 'tag';
-                    } else {
-                        // build component
-                        // componentChilds
-                        var dynamicNodes = create(val, wrapperNode.children, node.attributes);
-                        createInstance(dynamicNodes.wrapper);
-                        mountInstance(dynamicNodes.wrapper);
-                        instantiateChildren(dynamicNodes.root);
-                        wrapperNode.type = 'template';
-                        wrapperNode.isVirtual = true;
-                        wrapperNode.children = dynamicNodes.versions['main'];
-                        // reassign parent
-                        wrapperNode.children.each(function (x) {
-                            x.parent = wrapperNode;
-                        });
-                    }
-                    node.children = [wrapperNode];
+                    node.latestVal = val;
                     // console.log(node, val);
                     break;
                 }
