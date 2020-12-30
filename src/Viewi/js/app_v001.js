@@ -1171,7 +1171,7 @@ function Viewi() {
                     break;
                 }
                 case 'if': {
-                    // TODO: check conditon
+                    // TODO: check condition
                     // TODO: if false remove node if exists
                     // TODO: if true create element
                     node.condition.value = node.condition.func(node.instance, $this);

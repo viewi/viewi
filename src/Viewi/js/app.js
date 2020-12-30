@@ -184,7 +184,7 @@ function Viewi() {
                 });
         }
 
-        // catch all locl A tags click
+        // catch all local A tags click
         document.addEventListener('click', function (e) {
             e = e || window.event;
             var target = e.target || e.srcElement;
@@ -742,7 +742,7 @@ function Viewi() {
         var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
         wrapper.component = component;
         wrapper.isCreated = true;
-        // console.log(component);
+        // console.log('Created', component);
         return component;
     }
 
@@ -1310,47 +1310,82 @@ function Viewi() {
                 case 'foreach': {
                     elm = parent;
                     nextInsert = true;
+                    // console.log('foreach');
                     if (elm) {
                         // create n nodes (copy of children) and render
                         if (!node.itemChilds) { // TODO: bug, need to rewrite
                             node.itemChilds = node.children;
                         }
-                        removeDomNodes(node.children);
-                        node.children = null;
+                        // removeDomNodes(node.children);
+                        // node.children = null;
                         if (!node.instance.component) {
                             node.instance.component = createInstance(node.instance);
                         }
                         var args = [node.instance.component, $this];
                         // args = args.concat(currentScope); // TODO concat with scope values
                         var data = node.forExpression.data.apply(null, args);
-                        if (data && data.length > 0) {
-                            node.children = [];
-                        }
+                        // if (data && data.length > 0) {
+                        //     node.children = [];
+                        // }
                         var prevNode = null;
                         var isNumeric = Array.isArray(data);
+                        var used = {};
+                        var newChildren = [];
                         for (var k in data) {
-                            var wrapperNode = {
-                                type: 'template',
-                                isVirtual: true,
-                                parent: node,
-                                previousNode: prevNode,
-                                instance: Object.assign({}, node.instance),
-                                domNode: null,
-                                scope: node.scope
-                            };
-                            wrapperNode.scope = {
-                                parentScope: node.scope,
-                                data: {},
-                                stack: node.scope.stack
+                            var dataKey = isNumeric ? +k : k;
+                            var found = false;
+                            if (node.children) {
+                                for (var i = 0; i < node.children.length; i++) {
+                                    if (k in used) {
+                                        continue;
+                                    }
+                                    if (node.children[i].foreachData === data[k]) {
+                                        used[k] = true;
+                                        node.children[i].previousNode = prevNode;
+                                        if (prevNode) {
+                                            prevNode.nextNode = node.children[i];
+                                        }
+                                        prevNode = node.children[i];
+                                        node.children[i].scope.data[node.forExpression.key] = dataKey;
+                                        newChildren.push(node.children[i]);
+                                        found = true;
+                                        break;
+                                    }
+                                }
                             }
-                            if (prevNode) {
-                                prevNode.nextNode = wrapperNode;
+                            if (!found) {
+                                var wrapperNode = {
+                                    type: 'template',
+                                    isVirtual: true,
+                                    parent: node,
+                                    previousNode: prevNode,
+                                    instance: Object.assign({}, node.instance),
+                                    domNode: null,
+                                    scope: node.scope,
+                                    foreachData: data[k],
+                                    foreachKey: dataKey
+                                };
+                                wrapperNode.scope = {
+                                    parentScope: node.scope,
+                                    data: {},
+                                    stack: node.scope.stack
+                                }
+                                if (prevNode) {
+                                    prevNode.nextNode = wrapperNode;
+                                }
+                                prevNode = wrapperNode;
+                                wrapperNode.scope.data[node.forExpression.key] = dataKey;
+                                wrapperNode.scope.data[node.forExpression.value] = data[k];
+                                scopeNodes(wrapperNode, node.itemChilds);
+                                newChildren.push(wrapperNode);
                             }
-                            prevNode = wrapperNode;
-                            wrapperNode.scope.data[node.forExpression.key] = isNumeric ? +k : k;
-                            wrapperNode.scope.data[node.forExpression.value] = data[k];
-                            scopeNodes(wrapperNode, node.itemChilds);
-                            node.children.push(wrapperNode);
+                        }
+                        // remove dom nodes in unused
+                        // set new children
+                        if (newChildren.length > 0) {
+                            node.children = newChildren;
+                        } else {
+                            node.children = null;
                         }
                         // TODO: resubscribe for changes, remove subscriptions for itemChilds
 
@@ -1596,25 +1631,43 @@ function Viewi() {
                 } else {
                     copy.instance = Object.assign({}, node.instance);
                     instancesScope[copy.instance.__id] = copy.instance;
+                    copy.instance.__id = ++nextInstanceId;
+                    instancesScope[copy.instance.__id] = copy.instance;
+                    // console.log(instancesScope);
                     copy.instance.attributes = copy.instance.attributes.select(function (x) {
                         var attr = Object.assign({}, x);
                         attr.scope = copy.scope;
                         return attr;
                     });
-                    // TODO: new __id for each iteration level, keep instances
-                    if (node.childInstances) {
-                        copy.childInstances = node.childInstances.select(function (x) {
-                            var childInstance = Object.assign({}, x);
-                            childInstance.wrapper = Object.assign({}, x.wrapper);
-                            return childInstance;
-                        });
-                    }
                 }
+            }
+            // TODO: new __id for each iteration level, keep instances
+            if (node.childInstances) {
+                copy.childInstances = node.childInstances.select(function (x) {
+                    if (!x.wrapper.component) {
+                        var childInstance = Object.assign({}, x);
+                        if (x.wrapper.__id in instancesScope) {
+                            childInstance.wrapper = instancesScope[x.wrapper.__id];
+                        } else {
+                            childInstance.wrapper = Object.assign({}, x.wrapper);
+                            instancesScope[childInstance.wrapper.__id] = childInstance.wrapper;
+                            childInstance.wrapper.__id = ++nextInstanceId;
+                            instancesScope[childInstance.wrapper.__id] = childInstance.wrapper;
+                            childInstance.wrapper.attributes = x.wrapper.attributes.select(function (y) {
+                                var attr = Object.assign({}, y);
+                                attr.scope = copy.scope;
+                                return attr;
+                            });
+                        }
+                        return childInstance;
+                    }
+                    return x;
+                });
             }
             copy.contents = copy.contents.select(function (x) {
                 var content = Object.assign({}, x);
-                if (content.call && content.instance.__id === copy.instance.__id) {
-                    content.instance = copy.instance;
+                if (content.call && content.instance.__id in instancesScope) {
+                    content.instance = instancesScope[content.instance.__id];
                 }
                 return content;
             });
