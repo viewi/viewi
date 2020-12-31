@@ -30,6 +30,8 @@ class ComponentInfo
             $this->IsSlot = $item['IsSlot'];
 
         $this->HasInit = $item['HasInit'] ?? false;
+        $this->HasMounted = $item['HasMounted'] ?? false;
+        $this->HasBeforeMount = $item['HasBeforeMount'] ?? false;
         $this->HasVersions = $item['HasVersions'] ?? false;
         $this->Relative = $item['Relative'] ?? false;
     }
@@ -45,6 +47,8 @@ class ComponentInfo
     public bool $IsComponent;
     public bool $IsSlot;
     public bool $HasInit;
+    public bool $HasMounted;
+    public bool $HasBeforeMount;
     public bool $HasVersions;
     public bool $Relative;
 

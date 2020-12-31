@@ -297,6 +297,8 @@ class PageEngine
             $componentInfo->Namespace = $reflectionClass->getNamespaceName();
             $componentInfo->IsComponent = false;
             $componentInfo->HasInit = $reflectionClass->hasMethod('__init');
+            $componentInfo->HasMounted = $reflectionClass->hasMethod('__mounted');
+            $componentInfo->HasBeforeMount = $reflectionClass->hasMethod('__beforeMount');
             $this->updateComponentPath($componentInfo, $reflectionClass->getFileName());
             $this->components[$name] = $componentInfo;
             $dependencies = $this->getDependencies($reflectionClass, $componentInfo->HasInit);
@@ -458,6 +460,8 @@ class PageEngine
             $versionComponentInfo->ComponentName = $className;
             $versionComponentInfo->Tag = $className;
             $versionComponentInfo->HasInit = $reflectionClass->hasMethod('__init');
+            $versionComponentInfo->HasMounted = $reflectionClass->hasMethod('__mounted');
+            $versionComponentInfo->HasBeforeMount = $reflectionClass->hasMethod('__beforeMount');
             $versionComponentInfo->HasVersions = $reflectionClass->hasMethod('__version');
             if (!empty($className)) {
                 $this->components[$className] = $versionComponentInfo;
@@ -1001,11 +1005,13 @@ class PageEngine
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
+            $componentInfo->IsComponent && $componentInfo->HasBeforeMount && $classInstance->__beforeMount();
             foreach ($componentArguments as $key => $inputValue) {
                 if (isset($componentInfo->Inputs[$key])) {
                     $classInstance->{$key} = $inputValue;
                 }
             }
+            $componentInfo->IsComponent && $componentInfo->HasMounted && $classInstance->__mounted();
             $renderFunction = $this->components[$componentName]->RenderFunction ?? '';
             if ($componentInfo->IsComponent) {
                 // always new instance
