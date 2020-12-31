@@ -12,28 +12,7 @@ Supported versions will be expanded  in the future
 
 Get started
 -----------
-
-### Install Viewi
-
-Run:
-
-`composer require viewi/viewi:dev-master`
-
-`vendor/bin/viewi new`
-
-Make sure that script has been generated for you files in one of these folders: `viewi-app/`, `src/ViewiApp/` or your custom folder if you specified it directly.
-
-Check you index.php. Script should generate for your code to include, usually you just need to uncomment generated code. Also don't forget about `vendor/autoload.php`
-
-```php
-require __DIR__ . '/vendor/autoload.php';
-
-// Viewi application here, uncomment to use as standalone application
-include __DIR__ . '/viewi-app/viewi.php';
-Viewi\App::handle();
-```
-
-And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everything is good you should be able to see Viewi demo application.
+[Quick Start](https://viewi.net/docs)
 
 Features
 ----------------
@@ -51,9 +30,9 @@ Features
 
 Under the hood Viewi translates view components into the javascript, and uses it for front end reactive application.
 
-## Short documentation
+## Documentation
 
-[PageEngine](/doc/PageEngine.md)
+[https://viewi.net/docs](https://viewi.net/docs)
 
 ## Tests
 
