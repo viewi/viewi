@@ -263,11 +263,10 @@ function Viewi() {
                         + ' } else { '
                         + item.code + ' = event.target.checked;'
                         + ' } '
-                        : (item.isMultiple
-                            ? item.code + ' = Array.prototype.slice.call(event.target.options)'
+                        : (item.code + ' = event.target.multiple ? Array.prototype.slice.call(event.target.options)'
                             + '.where(function(x){ return x.selected; })'
-                            + '.select(function(x){ return x.value; });'
-                            : item.code + ' = event.target.value;')
+                            + '.select(function(x){ return x.value; })'
+                            + ' : event.target.value;')
 
                 );
             }
