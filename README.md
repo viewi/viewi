@@ -80,6 +80,7 @@ We all have full-time jobs and dedicate to this project our free time for over s
 
  - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
  - Give us a star⭐.
+ - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
  - Any other ideas or proposals ? Please mail me voitovych.ivan.v@gmail.com.
  - Feel welcome to share this project with your friends.
