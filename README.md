@@ -1,4 +1,4 @@
-<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="240"/></a></p>
+<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
 <h1 align="center">Viewi</h1>
 <h2 align="center">Powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
 
@@ -79,6 +79,7 @@ Support
 We all have full-time jobs and dedicate to this project our free time for over six months now, and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
 
  - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
+ - Give us a star⭐.
  - Contribute by sending pull requests.
  - Any other ideas or proposals ? Please mail me voitovych.ivan.v@gmail.com.
  - Feel welcome to share this project with your friends.
