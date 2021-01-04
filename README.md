@@ -1,6 +1,38 @@
-## Powerful tool for building full-stack and completely reactive user interfaces using PHP
+<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="240"/></a></p>
+<h1 align="center">Viewi</h1>
+<h2 align="center">Powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
 
-Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
+Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome ?
+
+Short example:
+--------
+`Counter.php`
+```php
+<?php
+
+namespace Application\Components\Views\Demo\SimpleComponent;
+
+use Viewi\BaseComponent;
+
+class Counter extends BaseComponent
+{
+    public int $count = 0;
+
+    public function increment()
+    {
+        $this->count++;
+    }
+}
+```
+`Counter.html`
+```html
+<button (click)="increment()">Clicked $count times.</button>
+```
+`Use it as a tag`:
+```html
+<Counter />
+```
+[Live demo](https://viewi.net/)
 
 ### Stage: PoC
 
@@ -16,9 +48,11 @@ Get started
 
 Features
 ----------------
-- Server side rendering
+- Server side rendering (SSR)
 - Perfect page load score
-- Front end rendering
+- Client side rendering (CSR)
+- SEO friendly
+- No "HTML over the wire".
 - Reactive application
 - Easy to use
 - Simple templates syntax, mix of HTML and PHP
