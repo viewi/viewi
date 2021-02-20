@@ -278,10 +278,10 @@ class TreeShakingService
         }
     }
 
-    private function getShakedCss()
+    private function getShakenCss()
     {
         $textCss = '';
-        $identation = '  ';
+        $indentation = '  ';
         foreach ($this->cssTokens as $group) {
             if ($group['valid']) {
                 $groupName = trim($group['scope']);
@@ -296,9 +296,9 @@ class TreeShakingService
                 foreach ($group['rules'] as $rule) {
                     $selector = trim($rule['selector']);
                     if ($rule['valid'] || $group['special']) {
-                        $textCss .= ($blocked ? $identation : '') . $selector . ' {' . PHP_EOL;
-                        $textCss .= $identation . ($blocked ? $identation : '') . trim($rule['content']);
-                        $textCss .= $blocked ?  PHP_EOL . $identation . '}' . PHP_EOL :  PHP_EOL . PHP_EOL . '}' . PHP_EOL . PHP_EOL;
+                        $textCss .= ($blocked ? $indentation : '') . $selector . ' {' . PHP_EOL;
+                        $textCss .= $indentation . ($blocked ? $indentation : '') . trim($rule['content']);
+                        $textCss .= $blocked ?  PHP_EOL . $indentation . '}' . PHP_EOL :  PHP_EOL . PHP_EOL . '}' . PHP_EOL . PHP_EOL;
                     }
                 }
                 if ($blocked) {
@@ -321,6 +321,6 @@ class TreeShakingService
         // echo '<pre>';
         // print_r(self::$selectors);
 
-        return $this->getShakedCss();
+        return $this->getShakenCss();
     }
 }
