@@ -1,6 +1,38 @@
-## Powerful tool for building full-stack and completely reactive user interfaces using PHP
+<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
+<h1 align="center">Viewi</h1>
+<h2 align="center">Powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
 
-Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
+Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome ?
+
+Short example:
+--------
+`Counter.php`
+```php
+<?php
+
+namespace Application\Components\Views\Demo\SimpleComponent;
+
+use Viewi\BaseComponent;
+
+class Counter extends BaseComponent
+{
+    public int $count = 0;
+
+    public function increment()
+    {
+        $this->count++;
+    }
+}
+```
+`Counter.html`
+```html
+<button (click)="increment()">Clicked $count times.</button>
+```
+`Use it as a tag`:
+```html
+<Counter />
+```
+[Live demo](https://viewi.net/)
 
 ### Stage: PoC
 
@@ -12,34 +44,15 @@ Supported versions will be expanded  in the future
 
 Get started
 -----------
-
-### Install Viewi
-
-Run:
-
-`composer require viewi/viewi:dev-master`
-
-`vendor/bin/viewi new`
-
-Make sure that script has been generated for you files in one of these folders: `viewi-app/`, `src/ViewiApp/` or your custom folder if you specified it directly.
-
-Check you index.php. Script should generate for your code to include, usually you just need to uncomment generated code. Also don't forget about `vendor/autoload.php`
-
-```php
-require __DIR__ . '/vendor/autoload.php';
-
-// Viewi application here, uncomment to use as standalone application
-include __DIR__ . '/viewi-app/viewi.php';
-Viewi\App::handle();
-```
-
-And now just run `php -S localhost:8000` and open your browser at `http://localhost:8000/`. If everything is good you should be able to see Viewi demo application.
+[Quick Start](https://viewi.net/docs)
 
 Features
 ----------------
-- Server side rendering
+- Server side rendering (SSR)
 - Perfect page load score
-- Front end rendering
+- Client side rendering (CSR)
+- SEO friendly
+- No "HTML over the wire".
 - Reactive application
 - Easy to use
 - Simple templates syntax, mix of HTML and PHP
@@ -51,9 +64,9 @@ Features
 
 Under the hood Viewi translates view components into the javascript, and uses it for front end reactive application.
 
-## Short documentation
+## Documentation
 
-[PageEngine](/doc/PageEngine.md)
+[https://viewi.net/docs](https://viewi.net/docs)
 
 ## Tests
 
@@ -63,9 +76,11 @@ Run `php test.php backend`
 Support
 --------
 
-We all have full-time jobs and dedicate to this project our free time for over six months now, and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
+We all have full-time jobs and dedicate to this project our free time, and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
 
  - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
+ - Give us a star⭐.
+ - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
  - Any other ideas or proposals ? Please mail me voitovych.ivan.v@gmail.com.
  - Feel welcome to share this project with your friends.
