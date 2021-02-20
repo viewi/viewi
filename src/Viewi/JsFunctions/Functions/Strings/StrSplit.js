@@ -1,5 +1,5 @@
 function str_split (string, splitLength) { 
-  if (splitLength === null) {
+  if (!splitLength) {
     splitLength = 1
   }
   if (string === null || splitLength < 1) {
