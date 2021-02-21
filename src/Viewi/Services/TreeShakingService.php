@@ -238,6 +238,7 @@ class TreeShakingService
 
     private function validateRules()
     {
+        $keepNext = false;
         foreach ($this->cssTokens as &$group) {
             $group['valid'] = false;
             $group['special'] = false;
@@ -249,30 +250,39 @@ class TreeShakingService
             }
             foreach ($group['rules'] as &$rule) {
                 $selector = trim($rule['selector']);
+                $keepCurrent = $keepNext;
+                $keepNext = false;
                 if ($selector === '##comment##') {
                     $rule['valid'] = false;
+                    if (strpos($rule['content'], '@keep') !== false) {
+                        $keepNext = true;
+                    }
                     continue;
                 }
-                $selectors = explode(',', $selector);
-                $validatedSelectors = [];
-                foreach ($selectors as $subSelectorText) {
-                    $subSelector = trim($subSelectorText);
-                    $subSelector = str_replace(['>', '+', '~', ' '], ':', $subSelector);
-                    $specialPos = strpos($subSelector, ':');
-                    if ($specialPos !== false) {
-                        $subSelector = substr($subSelector, 0, $specialPos);
-                    }
-                    if (strpos($subSelector, '.') !== false) {
-                        $parts = explode('.', $subSelector, 3);
-                        $subSelector = trim($parts[0]);
-                        if (!$subSelector) {
-                            $subSelector = trim('.' . $parts[1]);
+                if ($keepCurrent) {
+                    $rule['valid'] = true;
+                } else {
+                    $selectors = explode(',', $selector);
+                    $validatedSelectors = [];
+                    foreach ($selectors as $subSelectorText) {
+                        $subSelector = trim($subSelectorText);
+                        $subSelector = str_replace(['>', '+', '~', ' '], ':', $subSelector);
+                        $specialPos = strpos($subSelector, ':');
+                        if ($specialPos !== false) {
+                            $subSelector = substr($subSelector, 0, $specialPos);
                         }
+                        if (strpos($subSelector, '.') !== false) {
+                            $parts = explode('.', $subSelector, 3);
+                            $subSelector = trim($parts[0]);
+                            if (!$subSelector) {
+                                $subSelector = trim('.' . $parts[1]);
+                            }
+                        }
+                        $validatedSelectors[] = $subSelector;
+                        $rule['valid'] = $rule['valid'] || isset(self::$selectors[$subSelector]);
                     }
-                    $validatedSelectors[] = $subSelector;
-                    $rule['valid'] = $rule['valid'] || isset(self::$selectors[$subSelector]);
+                    $rule['selectors'] = $validatedSelectors;
                 }
-                $rule['selectors'] = $validatedSelectors;
                 $group['valid'] = $group['valid'] || $rule['valid'];
             }
         }
@@ -319,7 +329,7 @@ class TreeShakingService
         $this->validateRules();
 
         // echo '<pre>';
-        // print_r(self::$selectors);
+        // print_r($this->cssTokens);
 
         return $this->getShakenCss();
     }
