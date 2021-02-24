@@ -28,7 +28,7 @@ class Router
             if (is_array($action)) {
                 $instance = new $action[0]();
                 $method = $action[1];
-                $response = $instance->$method($match['params']);
+                $response = $instance->$method(...array_values($match['params']));
             } else {
                 $response = $action(...array_values($match['params']));
             }
