@@ -25,7 +25,13 @@ class Router
         $action = $match['route']->action;
         $response = '';
         if (is_callable($action)) {
-            $response = $action(...array_values($match['params']));
+            if (is_array($action)) {
+                $instance = new $action[0]();
+                $method = $action[1];
+                $response = $instance->$method($match['params']);
+            } else {
+                $response = $action(...array_values($match['params']));
+            }
         } else {
             $instance = new $action();
             $response = $instance($match['params']);
