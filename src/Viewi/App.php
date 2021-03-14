@@ -31,7 +31,7 @@ class App
     {
         $url ??= isset($_SERVER['REDIRECT_URL']) ? $_SERVER['REDIRECT_URL'] : preg_replace('/\?.*/', '', $_SERVER['REQUEST_URI']);
         $method ??= $_SERVER['REQUEST_METHOD'];
-        $response = Router::handle($url, $method);
+        $response = Router::handle($url, $method, $_REQUEST);
         if (is_string($response)) { // html
             header("Content-type: text/html; charset=utf-8");
             echo $response;
