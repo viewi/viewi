@@ -1329,6 +1329,7 @@ function Viewi() {
                         var prevNode = null;
                         var isNumeric = Array.isArray(data);
                         var used = {};
+                        var keepIndexes = {};
                         var newChildren = [];
                         for (var k in data) {
                             var dataKey = isNumeric ? +k : k;
@@ -1347,6 +1348,7 @@ function Viewi() {
                                         prevNode = node.children[i];
                                         node.children[i].scope.data[node.forExpression.key] = dataKey;
                                         newChildren.push(node.children[i]);
+                                        keepIndexes[i] = true;
                                         found = true;
                                         break;
                                     }
@@ -1380,6 +1382,17 @@ function Viewi() {
                             }
                         }
                         // remove dom nodes in unused
+                        if (node.children != null) {
+                            if (newChildren.length > 0) {
+                                for (var i = node.children.length - 1; i >= 0; i--) {
+                                    if (!(i in keepIndexes)) {
+                                        removeDomNodes([node.children[i]]);
+                                    }
+                                }
+                            } else {
+                                removeDomNodes(node.children);
+                            }
+                        }
                         // set new children
                         if (newChildren.length > 0) {
                             node.children = newChildren;
