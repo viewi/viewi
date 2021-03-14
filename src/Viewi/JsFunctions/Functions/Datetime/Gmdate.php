@@ -15,7 +15,9 @@ class Gmdate extends BaseFunctionConverter
         string $identation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Gmdate.js';
+        $jsToInclueDep = __DIR__ . DIRECTORY_SEPARATOR . 'Date.js';
         $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeJsFile('date', $jsToInclueDep);
         return $code . '(';
     }
 }
