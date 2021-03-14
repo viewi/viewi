@@ -3,6 +3,7 @@
 namespace Viewi\Routing;
 
 use Exception;
+use ReflectionMethod;
 
 class Router
 {
@@ -15,9 +16,9 @@ class Router
         );
     }
 
-    public static function handle($url, $method = 'get')
+    public static function handle($url, $method = 'get', $params = [])
     {
-        $match = self::resolve($url, $method);
+        $match = self::resolve(explode('?', $url)[0], $method);
         if ($match === null) {
             throw new Exception('No route was matched!');
         }
@@ -28,9 +29,21 @@ class Router
             if (is_array($action)) {
                 $instance = new $action[0]();
                 $method = $action[1];
-                $response = $instance->$method(...array_values($match['params']));
+
+                $r = new ReflectionMethod($action[0], $method);
+                $arguments = $r->getParameters();
+                // print_r($arguments);
+                $inputs = [];
+                foreach ($arguments as $argument) {
+                    $argName = $argument->getName();;
+                    $inputs[] = isset($match['params'][$argName])
+                        ? $match['params'][$argName]
+                        : (isset($params[$argName]) ? $params[$argName] : $argument->getDefaultValue());
+                }
+                // print_r($params);
+                $response = $instance->$method(...$inputs);
             } else {
-                $response = $action(...array_values($match['params']));
+                $response = $action(...array_values($match['params'] + $params));
             }
         } else {
             $instance = new $action();
