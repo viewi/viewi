@@ -795,7 +795,14 @@ function Viewi() {
                 }
                 attr.listeners[attrName] && elm.removeEventListener(eventName, attr.listeners[attrName]);
                 attr.listeners[attrName] = function ($event) {
-                    actionContent(attr.instance.component, $this, $event);
+                    //actionContent(attr.instance.component, $this, $event);
+                    var args = [attr.instance.component, $this, $event];
+                    if (attr.scope) {
+                        for (var k in attr.scope.stack) {
+                            args.push(attr.scope.data[attr.scope.stack[k]]);
+                        }
+                    }
+                    actionContent.apply(null, args);
                 };
                 elm.addEventListener(eventName, attr.listeners[attrName]);
             } else {
@@ -1687,11 +1694,15 @@ function Viewi() {
                 return content;
             });
             if (copy.attributes) {
-                for (var i in copy.attributes) {
-                    if (copy.attributes[i].call) {
-                        copy.attributes[i].instance = copy.instance;
+                copy.attributes = copy.attributes.select(function (a) {
+                    var aCopy = Object.assign({}, a);
+                    aCopy.parent = copy;
+                    if (aCopy.call) {
+                        aCopy.instance = copy.instance;
                     }
-                }
+                    aCopy.scope = copy.scope;
+                    return aCopy;
+                });
             }
         }
         // console.log(copy.instance);
