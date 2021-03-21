@@ -4,6 +4,7 @@ namespace Viewi\Routing;
 
 use Exception;
 use ReflectionMethod;
+use Viewi\Common\JsonMapper;
 
 class Router
 {
@@ -35,10 +36,21 @@ class Router
                 // print_r($arguments);
                 $inputs = [];
                 foreach ($arguments as $argument) {
-                    $argName = $argument->getName();;
-                    $inputs[] = isset($match['params'][$argName])
+                    $argName = $argument->getName();
+                    $argumentValue = isset($match['params'][$argName])
                         ? $match['params'][$argName]
-                        : (isset($params[$argName]) ? $params[$argName] : $argument->getDefaultValue());
+                        : (isset($params[$argName]) ? $params[$argName] : ($argument->isDefaultValueAvailable() ? $argument->getDefaultValue() : null));
+                    // parse json body
+                    if ($argumentValue === null && $argument->hasType()) {
+                        $typeName = $argument->getType()->getName();
+                        if (class_exists($typeName)) {
+                            $inputJSON = file_get_contents('php://input');
+                            $stdObject = json_decode($inputJSON, false);
+                            $argumentValue = JsonMapper::Instantiate($typeName, $stdObject);
+                            // print_r($argumentValue);
+                        }
+                    }
+                    $inputs[] = $argumentValue;
                 }
                 // print_r($params);
                 $response = $instance->$method(...$inputs);
