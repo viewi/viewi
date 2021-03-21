@@ -15,12 +15,27 @@ class HttpClient
         return $resolver;
     }
 
-    public function post($url, $data)
+    public function request($type, $url, $data)
     {
-        $resolver = new PromiseResolver(function () use ($url, $data) {
-            return Route::handle('post', $url, $data);
+        $resolver = new PromiseResolver(function () use ($type, $url, $data) {
+            return Route::handle($type, $url, $data);
         });
 
         return $resolver;
+    }
+
+    public function post($url, $data)
+    {
+        return $this->request('post', $url, $data);
+    }
+
+    public function put($url, $data)
+    {
+        return $this->request('put', $url, $data);
+    }
+
+    public function delete($url, $data)
+    {
+        return $this->request('delete', $url, $data);
     }
 }

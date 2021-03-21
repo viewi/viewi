@@ -9,4 +9,14 @@ var HttpClient = function () {
         var resolver = ajax.post(url, data);
         return resolver;
     };
+
+    this.put = function (url, data) {
+        var resolver = ajax.put(url, data);
+        return resolver;
+    };
+
+    this.delete = function (url, data) {
+        var resolver = ajax.delete(url, data);
+        return resolver;
+    };
 };
