@@ -39,7 +39,7 @@ var ajax = {
             req.send();
         });
     },
-    post: function (url, data) {
+    request: function (type, url, data) {
         return new OnReady(function (onOk, onError) {
             var req = new XMLHttpRequest();
             req.onreadystatechange = function () {
@@ -57,9 +57,18 @@ var ajax = {
                     }
                 }
             }
-            req.open('POST', url, true);
+            req.open(type.toUpperCase(), url, true);
             req.send(JSON.stringify(data));
         });
+    },
+    post: function (url, data) {
+        return ajax.request('POST', url, data);
+    },
+    put: function (url, data) {
+        return ajax.request('PUT', url, data);
+    },
+    delete: function (url, data) {
+        return ajax.request('DELETE', url, data);
     }
 };
 Object.defineProperty(Array.prototype, 'first', {
