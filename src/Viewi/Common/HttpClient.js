@@ -5,6 +5,11 @@ var HttpClient = function () {
         return resolver;
     };
 
+    this.request = function (type, url, data) {
+        var resolver = ajax.request(type, url, data);
+        return resolver;
+    };
+
     this.post = function (url, data) {
         var resolver = ajax.post(url, data);
         return resolver;
