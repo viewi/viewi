@@ -137,6 +137,7 @@ class JsTranslator
     private $pasteArrayReactivity;
     private array $requestedIncludes = [];
     private int $anonymousCounter = 0;
+    private array $usingList = [];
 
     public function __construct(string $content)
     {
@@ -198,6 +199,11 @@ class JsTranslator
     public function getRequestedIncludes(): array
     {
         return $this->requestedIncludes;
+    }
+
+    public function getUsingList(): array
+    {
+        return $this->usingList;
     }
 
     public function activateReactivity(array $info)
@@ -281,7 +287,7 @@ class JsTranslator
         if ($this->buffer !== null) {
             $declaredProp = $this->isDeclared($this->buffer);
             $conflictName = $this->isDeclared($this->buffer . '@name');
-            if($conflictName != null){
+            if ($conflictName != null) {
                 $this->buffer = $conflictName;
             }
             $varStatement = '';
@@ -725,6 +731,10 @@ class JsTranslator
                                 $propertyName = substr($typeOrName, 1);
                             } else {
                                 // type
+                                // print_r("type: $typeOrName\n");
+                                // if (class_exists($typeOrName)) {
+                                //     print_r("EXISTS: $typeOrName\n");
+                                // }
                                 $name = $this->matchKeyword();
                                 $propertyName = substr($name, 1);
                             }
@@ -1361,7 +1371,19 @@ class JsTranslator
 
     private function processUsing(): string
     {
-        $this->skipToTheSymbol(';');
+        $typeOrName = '';
+        $chunk = $this->matchKeyword();
+        while ($chunk !== ';') {
+            $typeOrName .= $chunk;
+            // print_r("chunk: '$chunk' \n");
+            $chunk = $this->matchKeyword();
+        }
+        // print_r("type: $typeOrName\n");
+        if (class_exists($typeOrName)) {
+            $this->usingList[$typeOrName] = true;
+        }
+
+        // $this->skipToTheSymbol(';');
         $this->newVar = true;
         return '';
     }

@@ -337,7 +337,9 @@ class PageEngine
                         if ($namedType instanceof ReflectionNamedType) {
                             // $this->debug($namedType->getName());
                             // $this->debug($argument->getClass());
-                            $argumentClass = $argument->getClass(); // check if class exists
+                            $argumentClass = $argument->getType() && !$argument->getType()->isBuiltin()
+                                ? new ReflectionClass($argument->getType()->getName())
+                                : null; // check if class exists
                             $dependencies[$argumentName] =
                                 [
                                     'name' => $argumentClass ? $argumentClass->getShortName() : $namedType->getName()
@@ -379,19 +381,31 @@ class PageEngine
             $pathinfo = pathinfo($phpSourceFileName);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $jsSourceFileName = $pathWOext . '.js';
-            $jscode = '';
+            $jsCode = '';
             if (file_exists($jsSourceFileName)) {
-                $jscode = file_get_contents($jsSourceFileName);
+                $jsCode = file_get_contents($jsSourceFileName);
             } else {
                 $raw = file_get_contents($phpSourceFileName);
                 $translator = new JsTranslator($raw);
-                $jscode = $translator->convert();
+                $jsCode = $translator->convert();
                 $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->getRequestedIncludes());
                 $this->componentDependencies += $translator->getVariablePaths();
+                $usingList = $translator->getUsingList();
+                foreach ($usingList as $useClassName => $boolTrue) {
+                    $refClass = new ReflectionClass($useClassName);
+                    if (
+                        $refClass->isUserDefined()
+                        && !$refClass->isInternal()
+                        && $refClass->isInstantiable()
+                        && $refClass->getFileName()
+                    ) {
+                        $this->compileToJs($refClass);
+                    }
+                }
             }
             // $this->debug($className);
-            // $this->debug($translator->getVariablePaths());            
-            $this->compiledJs[$className] = $jscode;
+            // $this->debug($jsCode);            
+            $this->compiledJs[$className] = $jsCode;
         }
     }
 
