@@ -24,7 +24,7 @@ class Counter extends BaseComponent
     }
 }
 ```
-`Counter.html`
+`Counter.html` 
 ```html
 <button (click)="increment()">Clicked $count times.</button>
 ```
