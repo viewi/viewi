@@ -35,19 +35,26 @@ class Router
                 $arguments = $r->getParameters();
                 // print_r($arguments);
                 $inputs = [];
+                $stdObject = null;
+                if (count($arguments) > 0) {
+                    $inputJSON = file_get_contents('php://input');
+                    $stdObject = json_decode($inputJSON, false);
+                }
                 foreach ($arguments as $argument) {
                     $argName = $argument->getName();
                     $argumentValue = isset($match['params'][$argName])
                         ? $match['params'][$argName]
                         : (isset($params[$argName]) ? $params[$argName] : ($argument->isDefaultValueAvailable() ? $argument->getDefaultValue() : null));
                     // parse json body
-                    if ($argumentValue === null && $argument->hasType()) {
-                        $typeName = $argument->getType()->getName();
-                        if (class_exists($typeName)) {
-                            $inputJSON = file_get_contents('php://input');
-                            $stdObject = json_decode($inputJSON, false);
-                            $argumentValue = JsonMapper::Instantiate($typeName, $stdObject);
-                            // print_r($argumentValue);
+                    if ($argumentValue === null && $stdObject !== null) {
+                        if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
+                            $typeName = $argument->getType()->getName();
+                            if (class_exists($typeName)) {
+                                $argumentValue = JsonMapper::Instantiate($typeName, $stdObject);
+                                // print_r($argumentValue);
+                            }
+                        } else if (isset($stdObject->$argName)) {
+                            $argumentValue = $stdObject->$argName;
                         }
                     }
                     $inputs[] = $argumentValue;
