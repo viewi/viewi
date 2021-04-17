@@ -44,7 +44,7 @@ class Router
                     $argName = $argument->getName();
                     $argumentValue = isset($match['params'][$argName])
                         ? $match['params'][$argName]
-                        : (isset($params[$argName]) ? $params[$argName] : ($argument->isDefaultValueAvailable() ? $argument->getDefaultValue() : null));
+                        : (isset($params[$argName]) ? $params[$argName] : null);
                     // parse json body
                     if ($argumentValue === null && $stdObject !== null) {
                         if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
@@ -56,6 +56,9 @@ class Router
                         } else if (isset($stdObject->$argName)) {
                             $argumentValue = $stdObject->$argName;
                         }
+                    }
+                    if ($argumentValue === null && $argument->isDefaultValueAvailable()) {
+                        $argumentValue = $argument->getDefaultValue();
                     }
                     $inputs[] = $argumentValue;
                 }
