@@ -6,16 +6,7 @@ use Viewi\Routing\Route;
 
 class HttpClient
 {
-    public function get($url)
-    {
-        $resolver = new PromiseResolver(function () use ($url) {
-            return Route::handle('get', $url);
-        });
-
-        return $resolver;
-    }
-
-    public function request($type, $url, $data)
+    public function request($type, $url, $data = null, ?array $options = null)
     {
         $resolver = new PromiseResolver(function () use ($type, $url, $data) {
             return Route::handle($type, $url, $data);
@@ -24,18 +15,23 @@ class HttpClient
         return $resolver;
     }
 
-    public function post($url, $data)
+    public function get($url, ?array $options = null)
     {
-        return $this->request('post', $url, $data);
+        return $this->request('get', $url, null, $options);
     }
 
-    public function put($url, $data)
+    public function post($url, $data = null, ?array $options = null)
     {
-        return $this->request('put', $url, $data);
+        return $this->request('post', $url, $data, $options);
     }
 
-    public function delete($url, $data)
+    public function put($url, $data = null, ?array $options = null)
     {
-        return $this->request('delete', $url, $data);
+        return $this->request('put', $url, $data, $options);
+    }
+
+    public function delete($url, $data = null, ?array $options = null)
+    {
+        return $this->request('delete', $url, $data, $options);
     }
 }

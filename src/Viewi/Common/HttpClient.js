@@ -1,26 +1,26 @@
 var HttpClient = function () {
-    this.get = function (url) {
-        var resolver = ajax.get(url);
+    this.get = function (url, options) {
+        var resolver = ajax.get(url, options);
         return resolver;
     };
 
-    this.request = function (type, url, data) {
-        var resolver = ajax.request(type, url, data);
+    this.request = function (type, url, data, options) {
+        var resolver = ajax.request(type, url, data, options);
         return resolver;
     };
 
-    this.post = function (url, data) {
-        var resolver = ajax.post(url, data);
+    this.post = function (url, data, options) {
+        var resolver = ajax.post(url, data, options);
         return resolver;
     };
 
-    this.put = function (url, data) {
-        var resolver = ajax.put(url, data);
+    this.put = function (url, data, options) {
+        var resolver = ajax.put(url, data, options);
         return resolver;
     };
 
-    this.delete = function (url, data) {
-        var resolver = ajax.delete(url, data);
+    this.delete = function (url, data, options) {
+        var resolver = ajax.delete(url, data, options);
         return resolver;
     };
 };
