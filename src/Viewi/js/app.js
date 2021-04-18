@@ -17,29 +17,7 @@ function OnReady(func) {
     );
 }
 var ajax = {
-    get: function (url) {
-        return new OnReady(function (onOk, onError) {
-            var req = new XMLHttpRequest();
-            req.onreadystatechange = function () {
-                if (req.readyState === 4) {
-                    var status = req.status;
-                    if (status === 0 || (status >= 200 && status < 400)) {
-                        var contentType = req.getResponseHeader("Content-Type");
-                        if (contentType.indexOf('application/json') === 0) {
-                            onOk(JSON.parse(req.responseText));
-                        } else {
-                            onOk(req.responseText);
-                        }
-                    } else {
-                        onError();
-                    }
-                }
-            }
-            req.open('GET', url, true);
-            req.send();
-        });
-    },
-    request: function (type, url, data) {
+    request: function (type, url, data, options) {
         return new OnReady(function (onOk, onError) {
             var req = new XMLHttpRequest();
             req.onreadystatechange = function () {
@@ -58,17 +36,27 @@ var ajax = {
                 }
             }
             req.open(type.toUpperCase(), url, true);
-            req.send(JSON.stringify(data));
+            if (options && options.headers) {
+                for (var h in options.headers) {
+                    req.setRequestHeader(h, options.headers[h]);
+                }
+            }
+            data !== null ?
+                req.send(JSON.stringify(data))
+                : req.send();
         });
     },
-    post: function (url, data) {
-        return ajax.request('POST', url, data);
+    get: function (url, options) {
+        return ajax.request('GET', url, null, options);
     },
-    put: function (url, data) {
-        return ajax.request('PUT', url, data);
+    post: function (url, data, options) {
+        return ajax.request('POST', url, data, options);
     },
-    delete: function (url, data) {
-        return ajax.request('DELETE', url, data);
+    put: function (url, data, options) {
+        return ajax.request('PUT', url, data, options);
+    },
+    delete: function (url, data, options) {
+        return ajax.request('DELETE', url, data, options);
     }
 };
 Object.defineProperty(Array.prototype, 'first', {
