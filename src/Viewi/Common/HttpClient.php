@@ -6,11 +6,28 @@ use Viewi\Routing\Route;
 
 class HttpClient
 {
+    public array $interceptors = [];
+    public array $options = [];
+
     public function request($type, $url, $data = null, ?array $options = null)
     {
-        $resolver = new PromiseResolver(function () use ($type, $url, $data) {
+        $onSuccess = function () use ($type, $url, $data) {
             return Route::handle($type, $url, $data);
-        });
+        };
+        $count = count($this->interceptors);
+        if ($count > 0) {
+            for ($i = $count - 1; $i >= 0; $i--) {
+                $httpMiddleware = $this->interceptors[$i][0];
+                $method = $this->interceptors[$i][1];
+                $httpMiddleware->$method($this, function () {
+                    // nothing
+                }, function () {
+                    // nothing
+                });
+            }
+        }
+
+        $resolver = new PromiseResolver($onSuccess);
 
         return $resolver;
     }
@@ -33,5 +50,18 @@ class HttpClient
     public function delete($url, $data = null, ?array $options = null)
     {
         return $this->request('delete', $url, $data, $options);
+    }
+
+    public function with(callable $interceptor)
+    {
+        $client = new HttpClient();
+        $client->interceptors = $this->interceptors;
+        $client->interceptors[] = $interceptor;
+        return $client;
+    }
+
+    public function setOptions(array $options)
+    {
+        $this->options = array_merge_recursive($this->options, $options);
     }
 }
