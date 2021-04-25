@@ -2,19 +2,20 @@
 // load /public/app/build/components.json
 function OnReady(func) {
     var $this = this;
+    this.action = func;
     this.then = function (onOk, onError) {
         this.onOk = onOk;
         this.onError = onError;
+        this.action(function (data) {
+            $this.onOk(data);
+        }, function () {
+            $this.onError();
+        }
+        );
     };
     this.catch = function (onError) {
         this.onError = onError;
     };
-    func(function (data) {
-        $this.onOk(data);
-    }, function () {
-        $this.onError();
-    }
-    );
 }
 var ajax = {
     request: function (type, url, data, options) {
