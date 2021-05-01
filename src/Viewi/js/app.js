@@ -9,7 +9,7 @@ function OnReady(func) {
         this.action(function (data) {
             $this.onOk(data);
         }, function () {
-            $this.onError();
+            $this.onError(data);
         }
         );
     };
@@ -24,15 +24,16 @@ var ajax = {
             req.onreadystatechange = function () {
                 if (req.readyState === 4) {
                     var status = req.status;
+                    var contentType = req.getResponseHeader("Content-Type");
+                    var itsJson = contentType.indexOf('application/json') === 0;
+                    var content = req.responseText;
+                    if (itsJson) {
+                        content = JSON.parse(req.responseText);
+                    }
                     if (status === 0 || (status >= 200 && status < 400)) {
-                        var contentType = req.getResponseHeader("Content-Type");
-                        if (contentType.indexOf('application/json') === 0) {
-                            onOk(JSON.parse(req.responseText));
-                        } else {
-                            onOk(req.responseText);
-                        }
+                        onOk(content);
                     } else {
-                        onError();
+                        onError(content);
                     }
                 }
             }
