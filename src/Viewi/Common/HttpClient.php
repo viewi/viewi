@@ -2,7 +2,9 @@
 
 namespace Viewi\Common;
 
+use Exception;
 use Viewi\Routing\Route;
+use Viewi\WebComponents\Response;
 
 class HttpClient
 {
@@ -12,7 +14,14 @@ class HttpClient
     public function request($type, $url, $data = null, ?array $options = null)
     {
         $onSuccess = function () use ($type, $url, $data) {
-            return Route::handle($type, $url, $data);
+            $data = Route::handle($type, $url, $data);
+            if ($data instanceof Response) {
+                if ($data->StatusCode >= 300 || $data->StatusCode <= 300) {
+                    throw new Exception("Error getting the response");
+                }
+                return $data->Content;
+            }
+            return $data;
         };
         $count = count($this->interceptors);
         if ($count > 0) {
