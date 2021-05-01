@@ -3,6 +3,7 @@
 namespace Viewi;
 
 use Viewi\Routing\Router;
+use Viewi\WebComponents\Response;
 
 class App
 {
@@ -35,6 +36,16 @@ class App
         if (is_string($response)) { // html
             header("Content-type: text/html; charset=utf-8");
             echo $response;
+        } else if ($response instanceof Response) {
+            http_response_code($response->StatusCode);
+            foreach ($response->Headers as $name => $value) {
+                header("$name: $value");
+            }
+            if ($response->Stringify) {
+                echo json_encode($response->Content);
+            } else {
+                echo $response->Content;
+            }
         } else { // json
             header("Content-type: application/json; charset=utf-8");
             echo json_encode($response);
