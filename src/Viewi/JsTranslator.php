@@ -688,8 +688,7 @@ class JsTranslator
                             break;
                         }
                     case 'class': {
-                            if($this->lastKeyword === '::')
-                            {
+                            if ($this->lastKeyword === '::') {
                                 $code = rtrim($code, "\n .");
                                 break;
                             }
@@ -750,9 +749,18 @@ class JsTranslator
                                     $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
                                 }
                                 // $this->debug('property: ' . $variableName);
-                                $code .= $indentation . ($public ? 'this.' : 'var ') . $variableName;
-                                $this->scope[$this->scopeLevel][$propertyName] = $keyword;
-                                $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
+                                if ($static) {
+                                    $staticCode = $this->readCodeBlock(';');
+                                    $this->staticCache[] = substr($indentation, 0, -4) . $this->currentClass . '.' . $variableName . $staticCode;
+                                    $skipLastSaving = true;
+                                    $this->position++;
+                                    $this->putIndentation = true;
+                                    break;
+                                } else {
+                                    $code .= $indentation . ($public ? 'this.' : 'var ') . $variableName;
+                                    $this->scope[$this->scopeLevel][$propertyName] = $keyword;
+                                    $this->scope[$this->scopeLevel][$propertyName . '_this'] = $keyword;
+                                }
                             }
                             $symbol = $this->matchKeyword();
                             $this->lastKeyword = $symbol;
