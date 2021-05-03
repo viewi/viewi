@@ -8,7 +8,7 @@ function OnReady(func) {
         this.onError = onError;
         this.action(function (data) {
             $this.onOk(data);
-        }, function () {
+        }, function (data) {
             $this.onError(data);
         }
         );
