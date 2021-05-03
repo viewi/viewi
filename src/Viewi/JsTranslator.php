@@ -688,6 +688,11 @@ class JsTranslator
                             break;
                         }
                     case 'class': {
+                            if($this->lastKeyword === '::')
+                            {
+                                $code = rtrim($code, "\n .");
+                                break;
+                            }
                             $code .= $indentation . $this->processClass();
                             $skipLastSaving = true;
                             break;
@@ -928,6 +933,7 @@ class JsTranslator
 
     private function processClass(): string
     {
+
         $previousStaticCache = $this->staticCache;
         $this->staticCache = [];
         $className = $this->matchKeyword();
