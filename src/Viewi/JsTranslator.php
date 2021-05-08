@@ -689,7 +689,18 @@ class JsTranslator
                         }
                     case 'class': {
                             if ($this->lastKeyword === '::') {
-                                $code = rtrim($code, "\n .");
+                                $code = rtrim($code, "\n\r .");
+                                // wrap into quote
+                                $codeLen = strlen($code);
+                                $insertTo = $codeLen - 1;
+                                for ($i = $insertTo; $i--; $i >= 0) {
+                                    if (!ctype_alnum($code[$i]) && $code[$i] !== '\\') {
+                                        break;
+                                    }
+                                    $insertTo = $i;
+                                }
+                                $code = substr_replace($code, "'", $insertTo, 0);
+                                $code .= "'";
                                 break;
                             }
                             $code .= $indentation . $this->processClass();
