@@ -2306,12 +2306,35 @@ function Viewi() {
         }
     }
 
-    this.render = function (name, params) {
+    this.render = function (name, params, force) {
         if (!name) {
             throw new Error('Component name is required.');
         }
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
+        }
+        if (!force && window[name] && window[name]._beforeStart) {
+            var middlewareList = window[name]._beforeStart;
+            if (middlewareList.length > 0) {
+                var mI = middlewareList.length - 1;
+                var middlewareName = middlewareList[mI];
+                /**
+                 * @type {{run: (next: Function) => {}}}
+                 */
+                var middleware = resolve(middlewareName);
+                var next = function () {
+                    if (mI > 0) {
+                        mI--;
+                        middlewareName = middlewareList[mI];
+                        middleware = resolve(middlewareName);
+                        middleware.run(next);
+                    } else {
+                        $this.render(name, params, true);
+                    }
+                };
+                middleware.run(next);
+                return;
+            }
         }
         reuseEnabled = false;
         subscribers = {};
@@ -2320,6 +2343,7 @@ function Viewi() {
         currentPage = {};
         currentPage.name = name;
         currentPage.components = [];
+
         var instanceMeta = create(name, null, null, params, true);
         var nodes = instanceMeta.versions['main'];
         currentPage.nodes = nodes;
