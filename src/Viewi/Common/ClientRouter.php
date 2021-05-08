@@ -11,6 +11,7 @@ class ClientRouter
 
     public function navigate(string $url)
     {
-        // client side only
+        // TODO: validate, make helper
+        header('Location: ' . $url);
     }
 }
