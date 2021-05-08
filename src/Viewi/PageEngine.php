@@ -7,6 +7,7 @@ use \ReflectionProperty;
 use \ReflectionNamedType;
 use \Exception;
 use ReflectionException;
+use Viewi\Components\Interfaces\IMiddleware;
 use \Viewi\Routing\Route;
 
 class PageEngine
@@ -1000,6 +1001,33 @@ class PageEngine
             $componentInfo = &$this->components[$componentName];
             // $this->debug($componentInfo);
             // $this->debug('============' . $componentName);
+            $middlewareBreak = false;
+            if ($componentInfo->IsComponent) {
+                $fullClassName = $componentInfo->Namespace . '\\' . $componentInfo->Name;
+                // TODO: allow middleware only for root (first) render, could be redirect
+                if (isset($fullClassName::$_beforeStart)) {
+                    /** @var string[] $actions*/
+                    $middlewareActions = $fullClassName::$_beforeStart;
+                    foreach ($middlewareActions as $beforeAction) {
+                        $beforeActionComponent = strpos($beforeAction, '\\') !== false ?
+                            substr(strrchr($beforeAction, "\\"), 1)
+                            : $beforeAction;
+                        $beforeActionInfo = &$this->components[$beforeActionComponent];
+                        /** @var IMiddleware $beforeActionInstance*/
+                        $beforeActionInstance = $this->resolve($beforeActionInfo, false);
+                        $middlewareBreak = true;
+                        $beforeActionInstance->run(function () use (&$middlewareBreak) {
+                            $middlewareBreak = false;
+                        });
+                        if ($middlewareBreak) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if ($middlewareBreak) {
+                return '';
+            }
             // if(!$componentInfo){
             //     $this->debug($this->components);
             // }
