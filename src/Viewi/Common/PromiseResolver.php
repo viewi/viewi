@@ -11,7 +11,7 @@ class PromiseResolver
     const STATE_FAILURE = 2;
 
     public int $state = self::STATE_PENDING;
-    private Exception $lastException;
+    private $lastError;
     private $result;
     private $action;
 
@@ -20,17 +20,23 @@ class PromiseResolver
         $this->action = $action;
     }
 
-    public function then(callable $success, callable $error = null)
+    public function then(callable $success, callable $catch = null)
     {
         try {
-            $this->result = ($this->action)();
-            $this->state = self::STATE_SUCCESS;
-            $success($this->result);
+            $this->result = ($this->action)(function ($result) use ($success) {
+                $this->state = self::STATE_SUCCESS;
+                $this->result = $result;
+                $success($this->result);
+            }, function ($error) use ($catch) {
+                $this->state = self::STATE_FAILURE;
+                $this->lastError = $error;
+                $catch($error);
+            });
         } catch (Exception $ex) {
-            $this->lastException = $ex;
+            $this->lastError = $ex;
             $this->state = self::STATE_FAILURE;
-            if ($error !== null) {
-                $error($this->lastException);
+            if ($catch !== null) {
+                $catch($this->lastError);
             } else {
                 throw $ex;
             }
