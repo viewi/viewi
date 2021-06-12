@@ -173,7 +173,7 @@ function Viewi() {
             events.onViewiUrlChange = onViewiUrlChange;
         }
         if (typeof ViewiPages !== 'undefined') {
-            $this.components = ViewiPages;
+            $this.components = JSON.parse(ViewiPages);
             startInternal();
         } else {
             ajax.get(this.componentsUrl)

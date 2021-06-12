@@ -615,7 +615,7 @@ class PageEngine
         $copyright = file_get_contents($thisRoot . 'js/copyright.js');
 
 
-        $publicJsonContent = json_encode($publicJson, 0, 1024);
+        $publicJsonContent = json_encode(json_encode($publicJson, 0, 1024));
         $publicJsonContentJs = PHP_EOL . "ViewiPages = $publicJsonContent;" . PHP_EOL . PHP_EOL;
 
         $jsContentToInclude = '';
