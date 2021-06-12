@@ -381,9 +381,12 @@ class PageEngine
             $phpSourceFileName = $reflectionClass->getFileName();
             $pathinfo = pathinfo($phpSourceFileName);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
+            $jsSourceMinFileName = $pathWOext . '.min.js';
             $jsSourceFileName = $pathWOext . '.js';
             $jsCode = '';
-            if (file_exists($jsSourceFileName)) {
+            if ($this->enableMinificationAndGzipping && file_exists($jsSourceMinFileName)) {
+                $jsCode = file_get_contents($jsSourceMinFileName) . PHP_EOL;
+            } else if (file_exists($jsSourceFileName)) {
                 $jsCode = file_get_contents($jsSourceFileName);
             } else {
                 $raw = file_get_contents($phpSourceFileName);
