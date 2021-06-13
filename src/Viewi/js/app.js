@@ -186,6 +186,9 @@ function Viewi() {
         // catch all local A tags click
         document.addEventListener('click', function (e) {
             e = e || window.event;
+            if (e.defaultPrevented) {
+                return;
+            }
             var target = e.target || e.srcElement;
             var aTarget = target;
             if (aTarget.parentNode.tagName === 'A') {
