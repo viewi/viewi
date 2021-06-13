@@ -2341,6 +2341,7 @@ function Viewi() {
         }
         reuseEnabled = false;
         subscribers = {};
+        renderQueue = {};
         parentComponentName = null;
         latestPage = currentPage;
         currentPage = {};
