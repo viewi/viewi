@@ -35,6 +35,7 @@ class HttpClient
                 if ($data->StatusCode >= 400 || $data->StatusCode < 200) {
                     $response->success = false;
                     $reject(new Exception("Error getting the response"));
+                    return;
                 }
                 $resolve($data->Content);
             }
