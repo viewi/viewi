@@ -613,6 +613,7 @@ function Viewi() {
                                     listenTo(copy, a.subs[s]);
                                 }
                             }
+                            copy.origin = a;
                             return copy;
                         }
                     );
@@ -745,7 +746,7 @@ function Viewi() {
         wrapper.isCreated = true;
         if (wrapper.attributes) {
             for (var i = 0; i < wrapper.attributes.length; i++) {
-                wrapper.attributes[i].instance.childComponent = component;
+                wrapper.attributes[i].origin.childComponent = component;
             }
         }
         // console.log('Created', component);
@@ -1771,13 +1772,15 @@ function Viewi() {
     // TODO: on change conditions, insert element if new, remove if not active
     // TODO: try catch
     var reRender = function () {
-        for (var path in renderQueue) {
-            for (var i in renderQueue[path]) {
+        var queue = renderQueue;
+        renderQueue = {};
+        for (var path in queue) {
+            for (var i in queue[path]) {
                 try {
-                    var node = renderQueue[path][i];
+                    var node = queue[path][i];
                     if (node.isAttribute) {
                         node.parent.domNode && renderAttribute(node.parent.domNode, node);
-                        if (node.parent.type === 'component' && node.instance.childComponent) {
+                        if (node.parent.type === 'component' && node.origin.childComponent) {
                             // reassign property
                             var args = [node.instance.component, $this];
                             if (node.scope) {
@@ -1786,7 +1789,7 @@ function Viewi() {
                                 }
                             }
                             currentValue = node.children[0].propExpression.func.apply(null, args);
-                            node.instance.childComponent[node.content] = currentValue;
+                            node.origin.childComponent[node.content] = currentValue;
                         }
                     } else if (node.isVirtual) {
                         createDomNode(node.parentDomNode, node);
@@ -1798,7 +1801,7 @@ function Viewi() {
                 }
             }
         }
-        renderQueue = {};
+        Object.keys(renderQueue).length > 0 && reRender();
     }
 
     var onChange = function (deps) {
