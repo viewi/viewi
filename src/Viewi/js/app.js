@@ -743,6 +743,11 @@ function Viewi() {
         var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
         wrapper.component = component;
         wrapper.isCreated = true;
+        if (wrapper.attributes) {
+            for (var i = 0; i < wrapper.attributes.length; i++) {
+                wrapper.attributes[i].instance.childComponent = component;
+            }
+        }
         // console.log('Created', component);
         return component;
     }
@@ -1772,6 +1777,17 @@ function Viewi() {
                     var node = renderQueue[path][i];
                     if (node.isAttribute) {
                         node.parent.domNode && renderAttribute(node.parent.domNode, node);
+                        if (node.parent.type === 'component' && node.instance.childComponent) {
+                            // reassign property
+                            var args = [node.instance.component, $this];
+                            if (node.scope) {
+                                for (var k in node.scope.stack) {
+                                    args.push(node.scope.data[node.scope.stack[k]]);
+                                }
+                            }
+                            currentValue = node.children[0].propExpression.func.apply(null, args);
+                            node.instance.childComponent[node.content] = currentValue;
+                        }
                     } else if (node.isVirtual) {
                         createDomNode(node.parentDomNode, node);
                     } else {
