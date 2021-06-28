@@ -1285,7 +1285,13 @@ function Viewi() {
                     if (!node.instance.component) {
                         node.instance.component = createInstance(node.instance);
                     }
-                    node.condition.value = node.condition.func(node.instance.component, $this);
+                    var args = [node.instance.component, $this];
+                    if (node.scope) {
+                        for (var k in node.scope.stack) {
+                            args.push(node.scope.data[node.scope.stack[k]]);
+                        }
+                    }
+                    node.condition.value = node.condition.func.apply(null, args);
                     elm = parent;
                     node.parentDomNode = parent;
                     node.condition.previousValue = node.condition.value;
@@ -1298,8 +1304,14 @@ function Viewi() {
                     if (!node.instance.component) {
                         node.instance.component = createInstance(node.instance);
                     }
+                    var args = [node.instance.component, $this];
+                    if (node.scope) {
+                        for (var k in node.scope.stack) {
+                            args.push(node.scope.data[node.scope.stack[k]]);
+                        }
+                    }
                     node.condition.value = !node.previousNode.condition.value
-                        && node.condition.func(node.instance.component, $this);
+                        && node.condition.func.apply(null, args);
                     node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
                     elm = parent;
                     node.parentDomNode = parent;
