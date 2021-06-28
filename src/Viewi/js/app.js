@@ -509,6 +509,7 @@ function Viewi() {
                         codeChild = specialType.children[0];
                         for (var s in codeChild.subs) {
                             listenTo(node, codeChild.subs[s]);
+                            // TODO: listen on each item after list is created (dom element create, foreach type)
                         }
                         node.forExpression = {};
                         var arguments = ['_component', 'app'].concat(currentScope);
