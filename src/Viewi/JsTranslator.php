@@ -301,6 +301,7 @@ class JsTranslator
                 }
                 $this->latestVariablePath = $varStatement;
                 // $this->debug('VAR: ' . $varStatement . $this->buffer);
+                // $this->debug('VARst: ' . $this->buffer);
             } else if ($this->newVar) {
                 if ($declaredProp === null) {
                     $this->scope[$this->scopeLevel][$this->buffer] = 'private';
@@ -331,13 +332,15 @@ class JsTranslator
                 if ($replace !== null) {
                     $this->buffer = $replace;
                 }
+                $this->latestVariablePath = '';
             }
             // $this->debug($this->buffer);
             $code .= $this->bufferIndentation
                 . $varStatement
                 . $this->buffer;
+            // $this->debug('LB: ' . $this->latestVariablePath);
             $this->latestVariablePath .= $this->buffer;
-            // $this->debug($varStatement . $this->buffer);
+            // $this->debug('LV: ' . $this->latestVariablePath);
             $this->buffer = null;
         }
         // echo 'GetVariable:  ' . $code . PHP_EOL;
@@ -467,6 +470,7 @@ class JsTranslator
                 }
 
                 $this->latestVariablePath = $varName;
+                // $this->debug($varName);
                 if ($this->expressionScope && !$this->collectVariablePath) {
                     $this->collectVariablePath = true;
                     $this->currentVariablePath = $varName;
@@ -626,6 +630,7 @@ class JsTranslator
                                 // $this->debug($this->pasteArrayReactivity);
                                 // $this->debug($this->latestVariablePath);
                                 if ($this->pasteArrayReactivity[0] === null) {
+                                    // $this->debug($this->latestVariablePath);
                                     $this->pasteArrayReactivity[0] = $this->latestVariablePath;
                                 }
                                 $code .= $this->currentIndentation .
