@@ -5,7 +5,7 @@ namespace Viewi\DOM\Events;
 abstract class DOMEvent
 {
     public abstract function type();
-    public abstract function target();
+    public $target;
     public abstract function currentTarget();
     public abstract function eventPhase();
     public abstract function bubbles();
