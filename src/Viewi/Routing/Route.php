@@ -30,8 +30,8 @@ class Route
     public static function handle(string $method, string $url, $data = null)
     {
         return self::$adapter
-            ? self::$adapter->handle($method, $url)
-            : Router::handle($url, $method);
+            ? self::$adapter->handle($method, $url, $data)
+            : Router::handle($url, $method, $data);
     }
 
     public static function add(string $method, string $url, $component, ?array $defaults = null)
