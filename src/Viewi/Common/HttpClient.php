@@ -26,8 +26,16 @@ class HttpClient
         // }
         $response = new HttpResponse();
         $requestResolver = function (callable $resolve, callable $reject) use ($type, $url, $data, $response) {
+            $query = parse_url($url, PHP_URL_QUERY);
+            if ($query) {
+                $queryData = [];
+                parse_str($query, $queryData);
+                if ($data === null) {
+                    $data = [];
+                }
+                $data = array_merge($data, $queryData);
+            }
             $data = Route::handle($type, $url, $data);
-
             if ($data instanceof Response) {
                 $response->content = $data->Content;
                 $response->headers = $data->Headers;
