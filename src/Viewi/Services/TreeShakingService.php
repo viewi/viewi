@@ -45,16 +45,20 @@ class TreeShakingService
                                 $id = self::getChildrenText($tag);
                                 self::$selectors["#$id"] = true; // #id
                             }
-                            if ($tag->OriginContent !== null && strpos($tag->OriginContent, '.') !== false) {
-                                $parts = explode('.', $tag->OriginContent, 2);
-                                // self::$selectors["[{$parts[0]}]"] = true; // [attribute]
-                                if ($parts[0] === 'class') {
-                                    $values = explode(' ', $parts[1]);
-                                    foreach ($values as $class) {
-                                        self::$selectors[".$class"] = true; // .class
+                            if ($tag->OriginContents !== null) {
+                                foreach ($tag->OriginContents as $originContent) {
+                                    if (strpos($originContent, '.') !== false) {
+                                        $parts = explode('.', $originContent, 2);
+                                        // self::$selectors["[{$parts[0]}]"] = true; // [attribute]
+                                        if ($parts[0] === 'class') {
+                                            $values = explode(' ', $parts[1]);
+                                            foreach ($values as $class) {
+                                                self::$selectors[".$class"] = true; // .class
+                                            }
+                                        } else if ($parts[0] === 'id') {
+                                            self::$selectors["#{$parts[1]}"] = true; // #id
+                                        }
                                     }
-                                } else if ($parts[0] === 'id') {
-                                    self::$selectors["#{$parts[1]}"] = true; // #id
                                 }
                             }
                             break;

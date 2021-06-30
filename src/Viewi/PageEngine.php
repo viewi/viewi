@@ -1658,7 +1658,7 @@ class PageEngine
                                     $this->compileExpression($newChild, ['$event' => true]);
                                 }
                             }
-
+                            $originContent = $attributeName;
                             if (strpos($attributeName, '.') !== false) {
                                 $childTag->OriginContent = $attributeName;
                                 $parts = explode('.', $attributeName, 2);
@@ -1669,10 +1669,15 @@ class PageEngine
                             }
                             if (isset($newChildren[$attributeName])) { // merge values
                                 $firstTime = true;
+                                if ($newChildren[$attributeName]->OriginContents == null) {
+                                    $newChildren[$attributeName]->OriginContents = [];
+                                }
                                 foreach ($mergeValues as &$attrValueItem) {
+
                                     if ($valueToReplace !== false) {
                                         $attrValueItem->Content = "{$attrValueItem->Content} ? ' $valueToReplace' : ''";
                                         $newChildren[$attributeName]->addChild($attrValueItem);
+                                        $newChildren[$attributeName]->OriginContents[] = $originContent;
                                         // $this->debug($attrValueItem->Content);
                                         // $this->debug($attrValueItem->ItsExpression);
                                         break;
@@ -1685,13 +1690,18 @@ class PageEngine
                                             $firstTime = false;
                                         }
                                         $newChildren[$attributeName]->addChild($attrValueItem);
-                                    }
+                                        $newChildren[$attributeName]->OriginContents[] = $originContent;
+                                    }                                    
                                 }
                             } else {
                                 if ($valueToReplace !== false) {
                                     $mergeValues[0]->Content = "{$mergeValues[0]->Content} ? '$valueToReplace' : ''";
                                 }
                                 $newChildren[$attributeName] = $childTag;
+                                if ($newChildren[$attributeName]->OriginContents == null) {
+                                    $newChildren[$attributeName]->OriginContents = [];
+                                }
+                                $newChildren[$attributeName]->OriginContents[] = $originContent;
                             }
                         } else {
                             $newChildren[] = $childTag;

@@ -5,6 +5,7 @@ namespace Viewi;
 class TagItem
 {
     public ?string $OriginContent = null;
+    public ?array $OriginContents = null;
     public ?string $Content = null;
     public TagItemType $Type;
     public bool $ItsExpression = false;
