@@ -214,11 +214,16 @@ class TreeShakingService
                         }
                     }
                 case '@': {
-                        // new group, ex: @media, @animation, @font-face
-                        $group = $this->readGroupName();
-                        $this->newTokensGroup($group);
-                        $this->selector = '';
-                        break;
+                        if ($this->i - 1 >= 0 && $this->css[$this->i - 1] !== '\\') {
+                            // new group, ex: @media, @animation, @font-face
+                            $group = $this->readGroupName();
+                            $this->newTokensGroup($group);
+                            $this->selector = '';
+                            break;
+                        } else {
+                            $this->selector .= $this->css[$this->i];
+                            break;
+                        }
                     }
                 case '{': {
                         // rule content
@@ -271,6 +276,7 @@ class TreeShakingService
                     foreach ($selectors as $subSelectorText) {
                         $subSelector = trim($subSelectorText);
                         $subSelector = str_replace(['>', '+', '~', ' '], ':', $subSelector);
+                        $subSelector = str_replace('\\', '', $subSelector);
                         $specialPos = strpos($subSelector, ':');
                         if ($specialPos !== false) {
                             $subSelector = substr($subSelector, 0, $specialPos);
@@ -331,10 +337,9 @@ class TreeShakingService
         $this->newTokensGroup();
         $this->shakeCssContent();
         $this->validateRules();
-
         // echo '<pre>';
         // print_r($this->cssTokens);
-
+        // print_r(self::$selectors);
         return $this->getShakenCss();
     }
 }
