@@ -275,7 +275,7 @@ class TreeShakingService
                     $validatedSelectors = [];
                     foreach ($selectors as $subSelectorText) {
                         $subSelector = trim($subSelectorText);
-                        $subSelector = str_replace(['>', '+', '~', ' '], ':', $subSelector);
+                        $subSelector = str_replace(['>', '+', '~', ' ', '['], ':', $subSelector);
                         $subSelector = str_replace('\\', '', $subSelector);
                         $specialPos = strpos($subSelector, ':');
                         if ($specialPos !== false) {
@@ -289,7 +289,10 @@ class TreeShakingService
                             }
                         }
                         $validatedSelectors[] = $subSelector;
-                        $rule['valid'] = $rule['valid'] || isset(self::$selectors[$subSelector]);
+                        // if ($subSelector && $subSelector[0] == '[') {
+                        //     print_r($subSelector . ' - ');
+                        // }
+                        $rule['valid'] = $rule['valid'] || !$subSelector || isset(self::$selectors[$subSelector]);
                     }
                     $rule['selectors'] = $validatedSelectors;
                 }
