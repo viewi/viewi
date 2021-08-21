@@ -275,7 +275,7 @@ class TreeShakingService
                     $validatedSelectors = [];
                     foreach ($selectors as $subSelectorText) {
                         $subSelector = trim($subSelectorText);
-                        $subSelector = str_replace(['>', '+', '~', ' ', '['], ':', $subSelector);
+                        $subSelector = str_replace(['>', '+', '~', ' ', '[', '*'], ':', $subSelector);
                         $subSelector = str_replace('\\', '', $subSelector);
                         $specialPos = strpos($subSelector, ':');
                         if ($specialPos !== false) {
