@@ -750,7 +750,7 @@ function Viewi() {
                 wrapper.attributes[i].origin.childComponent = component;
             }
         }
-        // console.log('Created', component);
+        onRenderedTracker[wrapper.name] = wrapper;
         return component;
     }
 
@@ -1629,9 +1629,11 @@ function Viewi() {
             }
             if (nodes[k].origin) {
                 for (var oi in nodes[k].origin) {
-                    nodes[k].origin[oi].skipIteration = false;
-                    nodes[k].origin[oi].domNode = null;
-                    nodes[k].origin[oi] = null;
+                    if (nodes[k].origin[oi]) {
+                        nodes[k].origin[oi].skipIteration = false;
+                        nodes[k].origin[oi].domNode = null;
+                        nodes[k].origin[oi] = null;
+                    }
                 }
             }
         }
@@ -2341,6 +2343,8 @@ function Viewi() {
         }
     }
 
+    var onRenderedTracker = {};
+
     this.render = function (name, params, force) {
         if (!name) {
             throw new Error('Component name is required.');
@@ -2348,6 +2352,7 @@ function Viewi() {
         if (!(name in this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
         }
+        onRenderedTracker = {};
         if (!force && window[name] && window[name]._beforeStart) {
             var middlewareList = window[name]._beforeStart;
             if (middlewareList.length > 0) {
@@ -2390,6 +2395,15 @@ function Viewi() {
         createInstance(instanceMeta.wrapper);
         mountInstance(instanceMeta.wrapper);
         instantiateChildren(instanceMeta.root);
+        for (var i = 0; i < latestPage.components.length; i++) {
+            var componentBuild = latestPage.components[i];
+            if (componentBuild.instanceWrapper
+                && componentBuild.instanceWrapper.component
+                && componentBuild.instanceWrapper.component.__destroy
+            ) {
+                componentBuild.instanceWrapper.component.__destroy();
+            }
+        }
         createDOM(target, nodes, false);
         // hydrate && console.log(target);
         var nodeToHydrate = nodes[1];
@@ -2398,6 +2412,11 @@ function Viewi() {
             nodeToHydrate = nodes[0].children[0].children[1];
         }
         hydrate && hydrateDOM(nodeToHydrate, document.documentElement);
+        for (var wrapperName in onRenderedTracker) {
+            onRenderedTracker[wrapperName].component.__rendered
+                && onRenderedTracker[wrapperName].component.__rendered();
+        }
+        onRenderedTracker = {};
         cleanRender = false;
         hydrate = false;
     };
