@@ -147,10 +147,12 @@ class PageEngine
     private int $forIterationKey = 0;
     private array $config;
     private array $_slots = [];
+    public static ?array $publicConfig = null;
 
-    public function __construct(array $config)
+    public function __construct(array $config, ?array $publicConfig = null)
     {
         $this->config = $config;
+        self::$publicConfig = $publicConfig;
         $this->sourcePath = $config[self::SOURCE_DIR]; // $sourcePath;
         $this->buildPath = $config[self::SERVER_BUILD_DIR]; // $buildPath;
         $this->publicRootPath = $config[self::PUBLIC_ROOT_DIR]; // $publicRootPath;
@@ -592,6 +594,7 @@ class PageEngine
                 $publicJson['_routes'][] = $asocRoute;
             }
         }
+        $publicJson['_config'] = self::$publicConfig;
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
@@ -1691,7 +1694,7 @@ class PageEngine
                                         }
                                         $newChildren[$attributeName]->addChild($attrValueItem);
                                         $newChildren[$attributeName]->OriginContents[] = $originContent;
-                                    }                                    
+                                    }
                                 }
                             } else {
                                 if ($valueToReplace !== false) {
