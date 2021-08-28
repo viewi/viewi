@@ -137,6 +137,7 @@ function Viewi() {
     this.components = {};
     var htmlElementA = document.createElement('a');
     var hydrate = false;
+    var config = null;
 
     var getPathName = function (href) {
         htmlElementA.href = href;
@@ -162,10 +163,15 @@ function Viewi() {
         $this.components._routes.each(function (x) {
             router.register(x.method, x.url, x.component);
         });
+        config = $this.components._config;
         cacheResources();
         hydrate = true;
         $this.go(location.href, false);
     };
+
+    this.getConfig = function () {
+        return config;
+    }
 
     this.start = function () {
         if (typeof onViewiUrlChange !== 'undefined'
