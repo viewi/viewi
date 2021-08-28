@@ -11,11 +11,14 @@ class App
 
     public static array $config;
 
-    public static function init(array $config)
+    public static ?array $publicConfig = null;
+
+    public static function init(array $config, ?array $publicConfig = null)
     {
         $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
         self::$config = $config;
-        self::$engine = new PageEngine(self::$config);
+        self::$publicConfig = $publicConfig;
+        self::$engine = new PageEngine(self::$config, self::$publicConfig);
     }
 
     public static function run(string $component, array $params)
