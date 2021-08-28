@@ -866,6 +866,19 @@ class JsTranslator
         return $code;
     }
 
+    public function includeFunction(string $functionName): string
+    {
+        if (isset(self::$functionConverters[$functionName])) {
+            $code = self::$functionConverters[$functionName]::convert(
+                $this,
+                $functionName,
+                ''
+            );
+            return $code;
+        }
+        return '';
+    }
+
     public function isPhpVariable(string $string): bool
     {
         return ctype_alnum(str_replace('_', '', str_replace('$', '', $string)));
