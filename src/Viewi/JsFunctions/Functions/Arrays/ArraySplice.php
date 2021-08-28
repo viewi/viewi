@@ -15,6 +15,7 @@ class ArraySplice extends BaseFunctionConverter
         string $identation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArraySplice.js';
+        $translator->includeFunction('is_int');
         $translator->includeJsFile(self::$name, $jsToInclue);
         return $code . '(';
     }
