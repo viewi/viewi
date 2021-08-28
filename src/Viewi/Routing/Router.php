@@ -55,6 +55,8 @@ class Router
                             }
                         } else if (isset($stdObject->$argName)) {
                             $argumentValue = $stdObject->$argName;
+                        } else if ($argName === 'data') {
+                            $argumentValue = $stdObject;
                         }
                     }
                     if ($argumentValue === null && $argument->isDefaultValueAvailable()) {
@@ -62,7 +64,6 @@ class Router
                     }
                     $inputs[] = $argumentValue;
                 }
-                // print_r($params);
                 $response = $instance->$method(...$inputs);
             } else {
                 $response = $action(...array_values($match['params'] + $params));
