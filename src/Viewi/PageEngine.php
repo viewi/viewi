@@ -98,7 +98,7 @@ class PageEngine
         'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' .
         'output,progress,select,textarea,' .
         'polygon,polyline,details,dialog,menu,menuitem,summary,' .
-        'content,element,shadow,template,blockquote,iframe,tfoot' .
+        'content,element,shadow,template,blockquote,iframe,tfoot,' .
         'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' .
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
         'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotcontent';
