@@ -254,7 +254,11 @@ function Viewi() {
             if (itsEvent || item.setter) {
                 args.push('event');
             }
-            args = args.concat(currentScope);
+            if (item.scope) {
+                args = args.concat(item.scope.stack);
+            } else {
+                args = args.concat(currentScope);
+            }
             item.code = item.code.replace(trimExpr, '');
             item.code = item.code.replace(trimSemicolonExpr, '');
             if (item.setter) {
@@ -890,16 +894,24 @@ function Viewi() {
                         if (!attr.instance.component) {
                             attr.instance.component = createInstance(attr.instance);
                         }
+                        var args = [attr.instance.component, $this];
+                        var scopeArgs = [];
+                        if (attr.scope) {
+                            for (var k in attr.scope.stack) {
+                                scopeArgs.push(attr.scope.data[attr.scope.stack[k]]);
+                            }
+                        }
                         attr.valueExpression = getDataExpression({
                             code: attr.children[0].contentExpression.code,
                             expression: true,
                             setter: true,
                             isChecked: isChecked,
-                            isMultiple: isMultiple
+                            isMultiple: isMultiple,
+                            scope: attr.scope
                         }, attr.instance);
                         var actionContent = attr.valueExpression.func;
                         attr.listeners[eventName] = function ($event) {
-                            actionContent(attr.parent.instance.component, $this, $event);
+                            actionContent.apply(null, args.concat([$event]).concat(scopeArgs));
                         };
 
                     }
