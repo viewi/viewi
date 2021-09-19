@@ -405,7 +405,7 @@ class JsTranslator
 
             if ($keyword === '' && $this->position === $this->length) {
                 break;
-            }
+            }            
             // $this->debug($code);
             $indentation = '';
             if ($this->putIndentation) {
@@ -666,7 +666,7 @@ class JsTranslator
                             break;
                         }
                     case '[': {
-                            $code .= $this->readArray(']');
+                            $code .= $this->readArray(']'). ' '; // TODO: improve white spacing
                             if ($this->skipVariableKey) {
                                 $this->collectVariablePath = true;
                                 $this->skipVariableKey = false;
