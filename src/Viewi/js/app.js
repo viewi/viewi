@@ -17,6 +17,17 @@ function OnReady(func) {
         this.onError = onError;
     };
 }
+function isFile(data) {
+    if ('File' in window && data instanceof File)
+        return true;
+    else return false;
+}
+
+function isBlob(data) {
+    if ('Blob' in window && data instanceof Blob)
+        return true;
+    else return false;
+}
 var ajax = {
     request: function (type, url, data, options) {
         return new OnReady(function (onOk, onError) {
@@ -44,7 +55,7 @@ var ajax = {
                 }
             }
             data !== null ?
-                req.send(JSON.stringify(data))
+                req.send(isBlob(data) ? data : JSON.stringify(data))
                 : req.send();
         });
     },
@@ -465,7 +476,8 @@ function Viewi() {
                 domNode: null, // DOM node if rendered
                 parent: parentNode, // TODO: make immutable
                 instance: instance,
-                previousNode: previousNode
+                previousNode: previousNode,
+                subs: item.subs
             };
             if (item.raw) {
                 node.type = 'raw';
@@ -505,7 +517,7 @@ function Viewi() {
                     for (var s in usedSubscriptions) {
                         listenTo(node, s);
                     }
-                    if (specialType.children && specialType.children[0].subs) { // TOD: subscribe all if-else group to each sub changes
+                    if (specialType.children && specialType.children[0].subs) { // TODO: subscribe all if-else group to each sub changes
                         for (var s in specialType.children[0].subs) {
                             listenTo(node, specialType.children[0].subs[s]);
                             usedSubscriptions[specialType.children[0].subs[s]] = true;
@@ -530,7 +542,7 @@ function Viewi() {
                         currentScope.push(codeChild.forKey);
                         currentScope.push(codeChild.forItem);
                         node.scope = {
-                            stack: currentScope.slice(),
+                            stack: [], //currentScope.slice(),
                             data: {}
                         }
                         // console.log(node, node.forExpression, currentScope);
@@ -1367,7 +1379,11 @@ function Viewi() {
                             node.instance.component = createInstance(node.instance);
                         }
                         var args = [node.instance.component, $this];
-                        // args = args.concat(currentScope); // TODO concat with scope values
+                        if (node.scope) {
+                            for (var k in node.scope.stack) {
+                                args.push(node.scope.data[node.scope.stack[k]]);
+                            }
+                        }
                         var data = node.forExpression.data.apply(null, args);
                         // if (data && data.length > 0) {
                         //     node.children = [];
@@ -1414,13 +1430,15 @@ function Viewi() {
                                 };
                                 wrapperNode.scope = {
                                     parentScope: node.scope,
-                                    data: {},
-                                    stack: node.scope.stack
+                                    data: Object.assign({}, node.scope.data),
+                                    stack: node.scope.stack.slice()
                                 }
                                 if (prevNode) {
                                     prevNode.nextNode = wrapperNode;
                                 }
                                 prevNode = wrapperNode;
+                                wrapperNode.scope.stack.push(node.forExpression.key);
+                                wrapperNode.scope.stack.push(node.forExpression.value);
                                 wrapperNode.scope.data[node.forExpression.key] = dataKey;
                                 wrapperNode.scope.data[node.forExpression.value] = data[k];
                                 scopeNodes(wrapperNode, node.itemChilds);
