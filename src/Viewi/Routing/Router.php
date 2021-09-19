@@ -26,48 +26,55 @@ class Router
         // print_r($match);
         $action = $match['route']->action;
         $response = '';
-        if (is_callable($action)) {
-            if (is_array($action)) {
-                $instance = new $action[0]();
-                $method = $action[1];
+        if (is_array($action)) {
+            $instance = new $action[0]();
+            $method = $action[1];
 
-                $r = new ReflectionMethod($action[0], $method);
-                $arguments = $r->getParameters();
-                // print_r($arguments);
-                $inputs = [];
-                $stdObject = null;
-                if (count($arguments) > 0) {
-                    $inputJSON = file_get_contents('php://input');
-                    $stdObject = json_decode($inputJSON, false);
+            $r = new ReflectionMethod($action[0], $method);
+            $arguments = $r->getParameters();
+            // print_r($arguments);
+            $inputs = [];
+            $stdObject = null;
+            $binaryData = false;
+            $inputContent = null;
+            if (count($arguments) > 0) {
+                $inputContent = file_get_contents('php://input');
+                $stdObject = json_decode($inputContent, false);
+
+                if ($inputContent && $stdObject === null) {
+                    // binary data
+                    $binaryData = true;
                 }
-                foreach ($arguments as $argument) {
-                    $argName = $argument->getName();
-                    $argumentValue = isset($match['params'][$argName])
-                        ? $match['params'][$argName]
-                        : (isset($params[$argName]) ? $params[$argName] : null);
-                    // parse json body
-                    if ($argumentValue === null && $stdObject !== null) {
-                        if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
-                            $typeName = $argument->getType()->getName();
-                            if (class_exists($typeName)) {
-                                $argumentValue = JsonMapper::Instantiate($typeName, $stdObject);
-                                // print_r($argumentValue);
-                            }
-                        } else if (isset($stdObject->$argName)) {
-                            $argumentValue = $stdObject->$argName;
-                        } else if ($argName === 'data') {
-                            $argumentValue = $stdObject;
-                        }
-                    }
-                    if ($argumentValue === null && $argument->isDefaultValueAvailable()) {
-                        $argumentValue = $argument->getDefaultValue();
-                    }
-                    $inputs[] = $argumentValue;
-                }
-                $response = $instance->$method(...$inputs);
-            } else {
-                $response = $action(...array_values($match['params'] + $params));
             }
+            foreach ($arguments as $argument) {
+                $argName = $argument->getName();
+                $argumentValue = isset($match['params'][$argName])
+                    ? $match['params'][$argName]
+                    : (isset($params[$argName]) ? $params[$argName] : null);
+                // parse json body
+                if ($argumentValue === null && $stdObject !== null) {
+                    if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
+                        $typeName = $argument->getType()->getName();
+                        if (class_exists($typeName)) {
+                            $argumentValue = JsonMapper::Instantiate($typeName, $stdObject);
+                            // print_r($argumentValue);
+                        }
+                    } else if (isset($stdObject->$argName)) {
+                        $argumentValue = $stdObject->$argName;
+                    } else if ($argName === 'data') {
+                        $argumentValue = $stdObject;
+                    }
+                }
+                if ($argumentValue === null && $binaryData && $argName === 'data') {
+                    $argumentValue = $inputContent;
+                } else if ($argumentValue === null && $argument->isDefaultValueAvailable()) {
+                    $argumentValue = $argument->getDefaultValue();
+                }
+                $inputs[] = $argumentValue;
+            }
+            $response = $instance->$method(...$inputs);
+        } else if (is_callable($action)) {
+            $response = $action(...array_values($match['params'] + $params));
         } else {
             $instance = new $action();
             $response = $instance($match['params']);
