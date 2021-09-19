@@ -35,6 +35,16 @@ class Response
         return $response;
     }
 
+    static function File($data, $mimeType = null)
+    {
+        $response = new Response();
+        $response->Content = $data;
+        if ($mimeType !== null) {
+            $response->Headers['Content-type'] = $mimeType;
+        }
+        return $response;
+    }
+
     function WithCode(int $code)
     {
         $this->StatusCode = $code;
@@ -76,7 +86,7 @@ class Response
 
     function WithContentType(string $contentType)
     {
-       $this->Headers['Content-type'] = $contentType;
+        $this->Headers['Content-type'] = $contentType;
         return $this;
     }
 }
