@@ -8,12 +8,13 @@ use ReflectionClass;
 
 class JsonMapper
 {
-    public static function Instantiate(string $type, object $stdObject)
+    // TODO: bulk mapper, cache type
+    public static function Instantiate(string $type, object $stdObject, $instance = null)
     {
         if ($type === 'DateTime') {
             return new DateTime($stdObject->date, new DateTimeZone($stdObject->timezone));
         }
-        $instance = new $type;
+        $instance = $instance ?? new $type;
         foreach ($stdObject as $key => $value) {
             if (property_exists($instance, $key)) {
                 if (is_object($value)) {
@@ -22,7 +23,7 @@ class JsonMapper
                     $propertyType = $property->getType();
                     if ($propertyType != null) {
                         $typeName = $propertyType->getName();
-                        $instance->$key = self::Instantiate($typeName, $value);
+                        $instance->$key = self::Instantiate($typeName, $value, $instance->$key);
                     } else {
                         $instance->$key = $value;
                     }
