@@ -2,10 +2,12 @@
 
 namespace Viewi\DOM\Events;
 
+use Viewi\DOM\Elements\FileInputElement;
+
 abstract class DOMEvent
 {
     public abstract function type();
-    public $target;
+    public FileInputElement $target;
     public abstract function currentTarget();
     public abstract function eventPhase();
     public abstract function bubbles();
