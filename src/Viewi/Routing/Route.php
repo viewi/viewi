@@ -31,7 +31,7 @@ class Route
     {
         return self::$adapter
             ? self::$adapter->handle($method, $url, $data)
-            : Router::handle($url, $method, $data);
+            : Router::handle($url, $method, $data ?? []);
     }
 
     public static function add(string $method, string $url, $component, ?array $defaults = null)
