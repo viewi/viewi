@@ -78,7 +78,6 @@ Support
 
 We all have full-time jobs and dedicate to this project our free time, and we would really appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider to support:
 
- - Become a backer or sponsor via [Patreon](https://www.patreon.com/ivanvoitovych).
  - Give us a star⭐.
  - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
