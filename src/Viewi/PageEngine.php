@@ -821,6 +821,10 @@ class PageEngine
                 $newExpression .= $spaces[$i] . $keyword;
             }
         }
+        // $this->debug($expression);
+        // $this->debug($newExpression);
+        // $this->debug($this->componentArguments);
+        // $this->debug('----------------------');
         return $newExpression;
     }
 
@@ -1267,7 +1271,6 @@ class PageEngine
         //$this->debug($foreachAsParts);
         foreach ($foreachAsParts as $foreachArgument) {
             $argument = trim($foreachArgument);
-            $this->componentArguments[$argument] = $argument;
             $foreachArguments[$argument] = $argument;
         }
         $html .= ($this->renderReturn ? '' : "<?php") . PHP_EOL . $this->indentation .
@@ -1477,6 +1480,12 @@ class PageEngine
                     $foreach = $this->combineChildren($childTag, true, [], true);
                     if (!$firstFound) {
                         $firstFound = 'foreach';
+                    }
+                    $foreachParts = explode(' as ', $foreach, 2);
+                    $foreachAsParts = explode('=>', $foreachParts[1]);
+                    foreach ($foreachAsParts as $foreachArgument) {
+                        $argument = trim($foreachArgument);
+                        $this->componentArguments[$argument] = $argument;
                     }
                     continue;
                 }
