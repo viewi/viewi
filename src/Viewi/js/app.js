@@ -2135,13 +2135,13 @@ function Viewi() {
         var instanceWrapper = null;
         // if (parentComponentName === currentPage.name) {
         // reuse wrapper components
-        var same = latestPage.components.first(function (x) {
-            return x.name === name;
-        }, true);
-        if (same) {
-            latestPage.components.splice(same[1], 1);
-            builtNodes = same[0].build;
-            if (reuseEnabled) {
+        if (reuseEnabled) {
+            var same = latestPage.components.first(function (x) {
+                return x.name === name;
+            }, true);
+            if (same) {
+                latestPage.components.splice(same[1], 1);
+                builtNodes = same[0].build;
                 instanceWrapper = same[0].instanceWrapper; // TODO: default values restore
                 instanceWrapper.isMounted = false;
                 instanceWrapper.attributes = attributes;
