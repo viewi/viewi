@@ -455,6 +455,7 @@ function Viewi() {
             ) {
                 node.contents.push(getDataExpression(item, instance));
                 if (item.subs) {
+                    node.subs = (node.subs || []).concat(item.subs);
                     for (var s in item.subs) {
                         listenTo(node, item.subs[s]);
                     }
@@ -623,6 +624,7 @@ function Viewi() {
 
                                         valCopy.content = v.content; // keep it for slots
                                         if (v.subs && !itsEvent) {
+                                            valCopy.subs = (valCopy.subs || []).concat(v.subs);
                                             for (var s in v.subs) {
                                                 listenTo(copy, v.subs[s]);
                                             }
@@ -632,6 +634,7 @@ function Viewi() {
                                 );
                             }
                             if (a.subs && !itsEvent) {
+                                copy.subs = (copy.subs || []).concat(a.subs);
                                 for (var s in a.subs) {
                                     listenTo(copy, a.subs[s]);
                                 }
@@ -1760,6 +1763,19 @@ function Viewi() {
                         aCopy.instance = copy.instance;
                     }
                     aCopy.scope = copy.scope;
+                    // TODO: don not listen every time, listen on origin, and check children
+                    if (a.subs) {
+                        for (var s in a.subs) {
+                            listenTo(aCopy, a.subs[s]);
+                        }
+                    }
+                    a.children.each(function (av) {
+                        if (av.subs) {
+                            for (var s in av.subs) {
+                                listenTo(aCopy, av.subs[s]);
+                            }
+                        }
+                    });
                     return aCopy;
                 });
             }
@@ -1769,6 +1785,12 @@ function Viewi() {
         // copy.instance.component = null;
         if (node.children) {
             copyNodes(copy, node.children)
+        }
+        // TODO: don not listen every time, listen on origin, and check children
+        if (copy.subs) {
+            for (var s in copy.subs) {
+                listenTo(copy, copy.subs[s]);
+            }
         }
         return copy;
     };
