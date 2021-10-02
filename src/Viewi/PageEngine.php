@@ -126,6 +126,7 @@ class PageEngine
     private TagItem $previousItem;
     private bool $development;
     private array $componentArguments = [];
+    private array $componentScopeVariables = [];
     private bool $compiled = false;
     private bool $waitingComponents = true;
     private JsTranslator $expressionsTranslator;
@@ -137,6 +138,7 @@ class PageEngine
     private bool $renderReturn;
     private string $_CompileComponentName = '$_component';
     private string $_CompileExpressionPrefix;
+    private string $_CompileExpressionJsPrefix;
     private bool $enableMinificationAndGzipping;
     private bool $combineJs;
     /**
@@ -431,6 +433,7 @@ class PageEngine
         $this->combineJs = $this->config[self::COMBINE_JS] ?? false;
         $this->slotCounterMap = [];
         $this->_CompileExpressionPrefix = $this->_CompileComponentName . '->';
+        $this->_CompileExpressionJsPrefix = str_replace('$', '', $this->_CompileComponentName . '.');
         $this->expressionsTranslator = new JsTranslator('');
         $this->expressionsTranslator->setOuterScope();
         $this->compiledJs = [];
@@ -868,13 +871,31 @@ class PageEngine
             $this->expressionsTranslator->getRequestedIncludes()
         );
         if (isset($detectedReferences['global'])) {
+            // $this->debug($detectedReferences);
+            // $this->debug($this->componentScopeVariables);
+            // $this->debug($this->_CompileExpressionPrefix);
             $subscriptions = array_map(
                 function ($item) {
-                    return 'this' . substr($item, strlen($this->_CompileExpressionPrefix) - 3);
+                    $parts = explode('.', $item, 2);
+                    $varPath = '';
+                    if (count($parts) > 1) {
+                        $varPath = '.' . $parts[1];
+                    }
+                    $rootVariable = $parts[0];
+                    if (isset($this->componentScopeVariables[$rootVariable])) {
+                        $rootVariable = $this->componentScopeVariables[$rootVariable];
+                    }
+                    return str_replace($this->_CompileExpressionJsPrefix, 'this.', $rootVariable . $varPath);
                 },
                 array_keys($detectedReferences['global']['function'])
             );
+            // $this->debug(['XXX' => $tagItem->Subscriptions]);
+            // $this->debug($subscriptions);
             if ($subscriptions) {
+                // if ($tagItem->Subscriptions) {
+                //     $this->debug($tagItem->Subscriptions);
+                //     $this->debug($subscriptions);
+                // }
                 $tagItem->Subscriptions = $subscriptions;
                 // merge with dependent subscriptions
                 $componentName = $this->latestPageTemplate->ComponentInfo->ComponentName;
@@ -1278,7 +1299,7 @@ class PageEngine
             PHP_EOL . $this->indentation . ($this->renderReturn ? '' : "?>");
     }
 
-    function endForeach($foreach, $foreachArguments, &$html, string &$codeToAppend)
+    function endForeach($foreach, ?DataExpression $foreachExpression, $foreachArguments, &$html, string &$codeToAppend)
     {
         if ($foreach) {
             $this->flushBuffer($html, $codeToAppend);
@@ -1288,6 +1309,7 @@ class PageEngine
             foreach ($foreachArguments as $argument) {
                 unset($this->componentArguments[$argument]);
             }
+            unset($this->componentScopeVariables[$foreachExpression->ForItem]);
             // $this->debug($foreach);
             // $this->debug($foreachArguments);
             // $this->debug($this->componentArguments);
@@ -1459,6 +1481,7 @@ class PageEngine
     function buildTag(TagItem &$tagItem, string &$html, string &$codeToAppend): void
     {
         $foreach = false;
+        $foreachExpression = null;
         $ifExpression = false;
         $closeIfTag = true;
         $elseIfExpression = false;
@@ -1482,6 +1505,16 @@ class PageEngine
                         $firstFound = 'foreach';
                     }
                     $foreachParts = explode(' as ', $foreach, 2);
+                    $dataExpression = $childTag->getChildren()[0]->DataExpression;
+                    $foreachExpression = $dataExpression;
+                    $forDataExpression = $dataExpression->ForData;
+                    $forDataExpressionParts = explode('.', $forDataExpression, 2);
+                    $forDataExpressionRoot = $forDataExpressionParts[0];
+                    if (isset($this->componentScopeVariables[$forDataExpressionRoot])) {
+                        $forDataExpressionRoot = $this->componentScopeVariables[$forDataExpressionRoot];
+                    }
+                    $this->componentScopeVariables[$dataExpression->ForItem] = $forDataExpressionRoot . '.' . $forDataExpressionParts[1] . '[key]';
+                    // $this->debug($dataExpression);
                     $foreachAsParts = explode('=>', $foreachParts[1]);
                     foreach ($foreachAsParts as $foreachArgument) {
                         $argument = trim($foreachArgument);
@@ -2080,7 +2113,7 @@ class PageEngine
         if ($ifExpression && $firstFound === 'if') {
             $this->closeIf($ifExpression, $html, $codeToAppend, $closeIfTag);
         }
-        $this->endForeach($foreach, $foreachArguments, $html, $codeToAppend);
+        $this->endForeach($foreach, $foreachExpression, $foreachArguments, $html, $codeToAppend);
         if ($ifExpression && $firstFound !== 'if') {
             $this->closeIf($ifExpression, $html, $codeToAppend, $closeIfTag);
         }
