@@ -1769,13 +1769,15 @@ function Viewi() {
                             listenTo(aCopy, a.subs[s]);
                         }
                     }
-                    a.children.each(function (av) {
-                        if (av.subs) {
-                            for (var s in av.subs) {
-                                listenTo(aCopy, av.subs[s]);
+                    if (a.children) {
+                        a.children.each(function (av) {
+                            if (av.subs) {
+                                for (var s in av.subs) {
+                                    listenTo(aCopy, av.subs[s]);
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                     return aCopy;
                 });
             }
@@ -2402,6 +2404,9 @@ function Viewi() {
     }
 
     var onRenderedTracker = {};
+    var renderInProgress = false;
+    var setAbort = false;
+    var abortRender = false;
 
     this.render = function (name, params, force) {
         if (!name) {
@@ -2434,6 +2439,10 @@ function Viewi() {
                 return;
             }
         }
+        if (renderInProgress) {
+            setAbort = true;
+        }
+        renderInProgress = true;
         reuseEnabled = false;
         subscribers = {};
         renderQueue = {};
@@ -2451,8 +2460,12 @@ function Viewi() {
         cleanRender = !hydrate;
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createInstance(instanceMeta.wrapper);
+        // console.log('renderInProgress, setAbort, abortRender', renderInProgress, setAbort, abortRender);
+        if (abortRender) { abortRender = false; return; }
         mountInstance(instanceMeta.wrapper);
+        if (abortRender) { abortRender = false; return; }
         instantiateChildren(instanceMeta.root);
+        if (abortRender) { abortRender = false; return; }
         for (var i = 0; i < latestPage.components.length; i++) {
             var componentBuild = latestPage.components[i];
             if (componentBuild.instanceWrapper
@@ -2473,6 +2486,11 @@ function Viewi() {
         for (var wrapperName in onRenderedTracker) {
             onRenderedTracker[wrapperName].component.__rendered
                 && onRenderedTracker[wrapperName].component.__rendered();
+        }
+        renderInProgress = false;
+        if (setAbort) { // TODO: improve abort scenarios
+            setAbort = false;
+            abortRender = true;
         }
         onRenderedTracker = {};
         cleanRender = false;
