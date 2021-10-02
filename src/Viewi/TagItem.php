@@ -16,7 +16,7 @@ class TagItem
     public ?string $PhpExpression = null;
     public ?array $Subscriptions = null;
     public bool $RawHtml = false;
-    public ?DataExpression $DataExpression;
+    public ?DataExpression $DataExpression = null;
     /** @var TagItem[] */
     private ?array $Children;
 
