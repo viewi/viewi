@@ -766,7 +766,14 @@ function Viewi() {
     }
 
     var createInstance = function (wrapper) {
-        if (wrapper.component) return;
+        if (wrapper.component) {
+            if (wrapper.attributes) {
+                for (var i = 0; i < wrapper.attributes.length; i++) {
+                    wrapper.attributes[i].origin.childComponent = wrapper.component;
+                }
+            }
+            return;
+        }
         var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
         wrapper.component = component;
         wrapper.isCreated = true;
