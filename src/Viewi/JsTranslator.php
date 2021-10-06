@@ -371,15 +371,20 @@ class JsTranslator
         }
     }
 
-    public function readCodeBlock(...$breakOnConditios): string
+    public function readCodeBlock(...$breakOnConditions): string
     {
         //BreakCondition
         $breakConditions = [];
         $breakOn = array_reduce(
-            $breakOnConditios,
+            $breakOnConditions,
             function ($a, $item) use (&$breakConditions) {
                 if (is_string($item)) {
                     $a[] = $item;
+                    if ($item === ')') {
+                        $breakConditions[$item] = new BreakCondition();
+                        $breakConditions[$item]->Keyword = $item;
+                        $breakConditions[$item]->ParenthesisNormal = 0;
+                    }
                 } else if ($item instanceof BreakCondition) {
                     if ($item->Keyword !== null) {
                         $a[] = $item->Keyword;
@@ -405,7 +410,7 @@ class JsTranslator
 
             if ($keyword === '' && $this->position === $this->length) {
                 break;
-            }            
+            }
             // $this->debug($code);
             $indentation = '';
             if ($this->putIndentation) {
@@ -666,7 +671,7 @@ class JsTranslator
                             break;
                         }
                     case '[': {
-                            $code .= $this->readArray(']'). ' '; // TODO: improve white spacing
+                            $code .= $this->readArray(']') . ' '; // TODO: improve white spacing
                             if ($this->skipVariableKey) {
                                 $this->collectVariablePath = true;
                                 $this->skipVariableKey = false;
@@ -924,7 +929,7 @@ class JsTranslator
         $this->skipToTheSymbol('(');
         $this->newVar = true;
         while ($this->lastBreak !== ')') {
-            $part = $this->readCodeBlock(';', ')', '(');
+            $part = $this->readCodeBlock(';', ')');
             $this->lastKeyword = ';';
             $this->position++;
             $loop .= $separator . $part;
