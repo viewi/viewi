@@ -389,9 +389,9 @@ class PageEngine
             $jsSourceFileName = $pathWOext . '.js';
             $jsCode = '';
             if ($this->enableMinificationAndGzipping && file_exists($jsSourceMinFileName)) {
-                $jsCode = file_get_contents($jsSourceMinFileName) . PHP_EOL;
+                $jsCode = file_get_contents($jsSourceMinFileName) . PHP_EOL . PHP_EOL;
             } else if (file_exists($jsSourceFileName)) {
-                $jsCode = file_get_contents($jsSourceFileName);
+                $jsCode = file_get_contents($jsSourceFileName) . PHP_EOL . PHP_EOL;
             } else {
                 $raw = file_get_contents($phpSourceFileName);
                 $translator = new JsTranslator($raw);
