@@ -2359,6 +2359,10 @@ function Viewi() {
                             nodesToRemove.push(i + shiftDOM);
                         }
                     }
+                    // append the rest of it
+                    for (var i = count; i + s < vCount; i++) {
+                        node.domNode.appendChild(vNodes[i + s].domNode);
+                    }
                     if (nodesToRemove.length > 0) {
                         // var oldTotal = node.children ? node.children.length : 0;
                         for (var k = nodesToRemove.length - 1; k >= 0; k--) {
