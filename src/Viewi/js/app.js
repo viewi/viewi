@@ -2361,7 +2361,10 @@ function Viewi() {
                     }
                     // append the rest of it
                     for (var i = count; i + s < vCount; i++) {
-                        node.domNode.appendChild(vNodes[i + s].domNode);
+                        // can be null
+                        if (vNodes[i + s].domNode) { // TODO: merge text nodes
+                            node.domNode.appendChild(vNodes[i + s].domNode);
+                        }
                     }
                     if (nodesToRemove.length > 0) {
                         // var oldTotal = node.children ? node.children.length : 0;
