@@ -12,6 +12,12 @@ class HttpClient
     public array $options = [];
     private $resolve;
     private $reject;
+    private $scopeResponses = [];
+
+    public function getScopeResponses()
+    {
+        return $this->scopeResponses;
+    }
 
     public function request($type, $url, $data = null, ?array $options = null)
     {
@@ -24,8 +30,10 @@ class HttpClient
         //                           $next(); 
         //                           });
         // }
+        $dataKey = json_encode($data);
+        $requestKey = "{$type}_{$url}_$dataKey";
         $response = new HttpResponse();
-        $requestResolver = function (callable $resolve, callable $reject) use ($type, $url, $data, $response) {
+        $requestResolver = function (callable $resolve, callable $reject) use ($type, $url, $data, $response, $requestKey) {
             $query = parse_url($url, PHP_URL_QUERY);
             if ($query) {
                 $queryData = [];
@@ -45,11 +53,14 @@ class HttpClient
                     $reject(new Exception("Error getting the response"));
                     return;
                 }
+                $this->scopeResponses[$requestKey] = $data->Content;
                 $resolve($data->Content);
+                return;
             }
             // echo " == request $type $url == \n<br>";
             $response->status = 200;
             $response->content = $data;
+            $this->scopeResponses[$requestKey] = $data;
             $resolve($data);
         };
 
@@ -105,33 +116,6 @@ class HttpClient
         }
 
         $resolver = new PromiseResolver($requestResolver);
-
-        return $resolver;
-
-        $onSuccess = function () use ($type, $url, $data) {
-            $data = Route::handle($type, $url, $data);
-            if ($data instanceof Response) {
-                if ($data->StatusCode >= 400 || $data->StatusCode < 200) {
-                    throw new Exception("Error getting the response");
-                }
-                return $data->Content;
-            }
-            return $data;
-        };
-
-
-        if ($count > 0) {
-            for ($i = $count - 1; $i >= 0; $i--) {
-                $httpMiddleware = $this->interceptors[$i][0];
-                $method = $this->interceptors[$i][1];
-                $httpHandler = new HttpHandler($onSuccess);
-                $httpHandler->httpClient = $this;
-                $httpMiddleware->$method($httpHandler);
-                // if called next - continue
-            }
-        }
-
-        $resolver = new PromiseResolver($onSuccess);
 
         return $resolver;
     }

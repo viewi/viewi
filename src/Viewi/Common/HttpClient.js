@@ -6,6 +6,16 @@ var HttpClient = function () {
 
     this.request = function (type, url, data, options) {
         this.setOptions(options);
+        if (typeof viewiScopeData !== 'undefined') {
+            var requestKey = type.toLowerCase() + '_' + url + '_' + JSON.stringify(data);
+            if(requestKey in viewiScopeData)
+            {
+                return new OnReady(function (onOk, onError) {
+                    onOk(viewiScopeData[requestKey]);
+                    delete viewiScopeData[requestKey];
+                });
+            }
+        }
         var resolver = ajax.request(type, url, data, this.options);
         if (this.interceptors.length > 0) {
             var nextHandler = null;
