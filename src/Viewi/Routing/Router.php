@@ -74,6 +74,7 @@ class Router
             }
             $response = $instance->$method(...$inputs);
         } else if (is_callable($action)) {
+            // TODO: match params by name
             $response = $action(...array_values($match['params'] + $params));
         } else {
             $instance = new $action();

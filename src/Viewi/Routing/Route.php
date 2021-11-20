@@ -62,7 +62,7 @@ class Route
 
     public static function get(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'get',
             $url,
             $component,
@@ -72,7 +72,7 @@ class Route
 
     public static function post(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'post',
             $url,
             $component,
@@ -82,7 +82,7 @@ class Route
 
     public static function put(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'put',
             $url,
             $component,
@@ -92,7 +92,7 @@ class Route
 
     public static function delete(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'delete',
             $url,
             $component,
@@ -102,7 +102,7 @@ class Route
 
     public static function patch(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'patch',
             $url,
             $component,
@@ -112,7 +112,7 @@ class Route
 
     public static function options(string $url, string $component, ?array $defaults = null)
     {
-        self::add(
+        return self::add(
             'options',
             $url,
             $component,
