@@ -573,6 +573,13 @@ class JsTranslator
                             $parenthesisNormal--;
                             break;
                         }
+                        // case ':': {
+                        //         if ($callFunction !== null) {
+                        //             // TODO: improve
+                        //             // throw new Exception("Named arguments are not supported!");
+                        //         }
+                        //         break;
+                        //     }
                     case '(': {
                             if (
                                 $callFunction !== null
@@ -587,8 +594,10 @@ class JsTranslator
                                 );
                             } else {
                                 // TODO: put ' ' after if, else, switch, etc.
-                                $code .= $indentation . ($callFunction !== null ? '' : '') . '(';
+                                $code .= $indentation . '(';
                             }
+                            // . ($callFunction !== null ? '' : '')
+                            // $this->debug("Call '$callFunction'");
                             $parenthesisNormal++;
                             break;
                         }
@@ -836,7 +845,7 @@ class JsTranslator
                             $code .=  $before . $keyword . $after;
                             // $this->position++;
                         } else if (ctype_alnum(str_replace('_', '', $keyword))) {
-                            // $this->debug($keyword);
+                            // $this->debug("Named '{$this->lastKeyword}' '$callFunction' '$keyword'");
                             if (
                                 isset(self::$functionConverters[$keyword])
                                 && self::$functionConverters[$keyword]::$directive
