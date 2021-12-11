@@ -1110,8 +1110,7 @@ function Viewi() {
                     if (insert) {
                         // look up for previous text to append or insert after first tag
                         if (nodeBefore == null) {
-                            return;
-                            break; // throw error ??
+                            return; // throw error ??
                         }
                     }
                     if (!skip) {
@@ -1123,7 +1122,9 @@ function Viewi() {
                             }
                         } else {
                             if (node.domNode !== null && node.domNode.parentNode === parent) {
-                                node.domNode.nodeValue = val;
+                                if (node.domNode.nodeValue !== val) {
+                                    node.domNode.nodeValue = val;
+                                }
                                 elm = node.domNode;
                             } else {
                                 elm = document.createTextNode(val);
@@ -2246,6 +2247,7 @@ function Viewi() {
             }
         }
     }
+    var trimWhitespaceRegex = /^\s+|\s+$/;
     /**
      * 
      * @param {vNode} node 
@@ -2258,7 +2260,7 @@ function Viewi() {
         var same = node.domNode.nodeType === domElement.nodeType;
         if (same) {
             if (node.domNode.nodeType === 3 || node.domNode.nodeType == 8) {
-                same = node.domNode.nodeValue == domElement.nodeValue;
+                same = node.domNode.nodeValue.replace(trimWhitespaceRegex, '') == domElement.nodeValue.replace(trimWhitespaceRegex, '');
                 if (same) {
                     node.domNode = domElement;
                 }
