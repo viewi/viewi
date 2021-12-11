@@ -763,7 +763,7 @@ class JsTranslator
                                 $name = $this->matchKeyword();
                                 while ($name === '|' || $name === '&') {
                                     // union type
-                                    $typeOrName = $this->matchKeyword();
+                                    $typeOrName .= $name . $this->matchKeyword();
                                     $name = $this->matchKeyword();
                                     // $this->debug("Union: $keyword $typeOrName '$name'");
                                 }
