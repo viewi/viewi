@@ -761,7 +761,14 @@ class JsTranslator
                                 //     print_r("EXISTS: $typeOrName\n");
                                 // }
                                 $name = $this->matchKeyword();
+                                while ($name === '|' || $name === '&') {
+                                    // union type
+                                    $typeOrName = $this->matchKeyword();
+                                    $name = $this->matchKeyword();
+                                    // $this->debug("Union: $keyword $typeOrName '$name'");
+                                }
                                 $propertyName = substr($name, 1);
+                                // $this->debug("$keyword $typeOrName '$name' '$propertyName'");
                             }
                             if ($propertyName) {
                                 $variableName = $propertyName;
