@@ -2376,7 +2376,14 @@ function Viewi() {
                             //     // replace
                             //     domElement.replaceChild(node.children[nodeIndex].domNode, domElement.childNodes[nodeIndex]);
                             // } else {
-                            domElement.removeChild(domElement.childNodes[nodeIndex]);
+                            if (['BODY', 'HEAD'].includes(domElement.childNodes[nodeIndex].nodeName)) {
+                                // unexpected output from the server, replace rendered
+                                domElement.replaceChild(node.children.first(
+                                    function (x) { return x.domNode.nodeName && x.domNode.nodeName === domElement.childNodes[nodeIndex].nodeName; }
+                                ).domNode, domElement.childNodes[nodeIndex]);
+                            } else {
+                                domElement.removeChild(domElement.childNodes[nodeIndex]);
+                            }
                             // }
                         }
                     }
