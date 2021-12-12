@@ -117,7 +117,7 @@ class JsTranslator
     public $lastKeyword = '';
     private bool $thisMatched = false;
     private ?string $callFunction = null;
-
+    private bool $namedArguments = false;
     private static bool $staticInitiated = false;
     /**
      * 
@@ -259,7 +259,19 @@ class JsTranslator
                 $this->jsCode .= $this->readCodeBlock();
             }
         } catch (Exception $exc) {
-            $this->debug($exc->getMessage());
+            // $this->debug($exc->getMessage());
+            $codeBlockStart = max(0, $this->position - 100);
+            $codeBlockEnd = min($this->position + 100, $this->length);
+
+            $codeErrorPart =
+                '...'
+                . substr($this->phpCode, $codeBlockStart, $this->position - $codeBlockStart)
+                . ' ~~! HERE !~~ '
+                . substr($this->phpCode, $this->position, $codeBlockEnd)
+                . '...';
+            $this->debug($exc->getMessage() . " at position: {$this->position}" . PHP_EOL . $codeErrorPart . PHP_EOL);
+            throw $exc;
+            return json_encode('Error: ' . $exc->getMessage()) . ";\n\n";
         }
         // $this->jsCode .= ' <PHP> ';
         while ($this->position < $this->length) {
@@ -433,6 +445,8 @@ class JsTranslator
             $this->lastBreak = null;
             $thisMatched = $this->thisMatched;
             $callFunction = $this->callFunction;
+            $namedArguments = $this->namedArguments;
+            $this->namedArguments = false;
             $this->callFunction = null;
             $skipLastSaving = false;
             // $this->debug('Keyword: ' . $keyword);
@@ -573,13 +587,13 @@ class JsTranslator
                             $parenthesisNormal--;
                             break;
                         }
-                        // case ':': {
-                        //         if ($callFunction !== null) {
-                        //             // TODO: improve
-                        //             // throw new Exception("Named arguments are not supported!");
-                        //         }
-                        //         break;
-                        //     }
+                    case ':': {
+                            $code .= ':';
+                            if ($namedArguments) {
+                                throw new Exception("Named arguments are not supported in current implementation!");
+                            }
+                            break;
+                        }
                     case '(': {
                             if (
                                 $callFunction !== null
@@ -595,6 +609,10 @@ class JsTranslator
                             } else {
                                 // TODO: put ' ' after if, else, switch, etc.
                                 $code .= $indentation . '(';
+                            }
+                            if ($callFunction !== null || $namedArguments) {
+                                $this->namedArguments = true;
+                                // $this->debug("Call '$callFunction'");
                             }
                             // . ($callFunction !== null ? '' : '')
                             // $this->debug("Call '$callFunction'");
@@ -863,6 +881,9 @@ class JsTranslator
                                 // $this->debug($keyword);
                                 //}
                                 // $this->debug($this->lastKeyword . ' ' . $keyword);
+                                if ($namedArguments) {
+                                    $this->namedArguments = true;
+                                }
                                 $this->thisMatched = false;
                                 if ($thisMatched) {
                                     $this->buffer = $keyword;

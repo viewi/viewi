@@ -184,7 +184,7 @@ class PageEngine
             substr(strrchr($component, "\\"), 1)
             : $component;
         if ($this->development) {
-            set_time_limit(5);
+            set_time_limit(10);
             $this->compile($component);
         } else {
             if ($this->waitingComponents) {
@@ -395,7 +395,16 @@ class PageEngine
             } else {
                 $raw = file_get_contents($phpSourceFileName);
                 $translator = new JsTranslator($raw);
-                $jsCode = $translator->convert();
+                try {
+                    $jsCode = $translator->convert();
+                } catch (Exception $error) {
+                    $this->debug("An error has occurred while converting to javascript!"
+                        . PHP_EOL
+                        . 'Class name: ' . $className
+                        . PHP_EOL
+                        . $phpSourceFileName);
+                    throw $error;
+                }
                 $this->requestedIncludes = array_merge($this->requestedIncludes, $translator->getRequestedIncludes());
                 $this->componentDependencies += $translator->getVariablePaths();
                 $usingList = $translator->getUsingList();
@@ -453,7 +462,7 @@ class PageEngine
         // $this->debug($pages);
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
-            if ($pathinfo['extension'] === 'php') {
+            if (isset($pathinfo['extension']) && $pathinfo['extension'] === 'php') {
                 include_once $filename;
             }
         }
@@ -839,7 +848,9 @@ class PageEngine
         if ($expression[0] === '{' && $expression[strlen($expression) - 1] === '}') {
             // raw html
             $code = $this->renderReturn ? '' : '<?=';
+
             $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
+
             $code .= $phpCode;
             $code .= $this->renderReturn ? '' : '?>';
             $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
