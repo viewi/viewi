@@ -30,7 +30,8 @@ class JsTranslator
         'a' => ['and'], 'o' => ['or'], 'x' => ['xor'], '&' => ['&&'], '|' => ['||'],
         '.' => ['.', '.='], '?' => ['?', '??', '?->'], ':' => [':', '::'], ')' => [')'], '{' => ['{'], '}' => ['}'], "'" => ["'"], '"' => ['"'],
         '[' => ['[', '[]'], ']' => [']'], ',' => [','], '(' => ['('],
-        '&' => ['&']
+        '&' => ['&'],
+        '#' => ['#[']
     ];
     /** array<string,array<string,string>>
      * [0 => '', 1 => ' ']
@@ -699,6 +700,13 @@ class JsTranslator
                     case '<<<': {
                             // $this->debug('<<< detected');
                             $code .= $indentation . $this->readHereDocString();
+                            break;
+                        }
+                    case '#[': {
+                            $attributeCode = $this->readCodeBlock(']');
+                            $this->position += strlen($this->lastBreak);
+                            // ignore attributes; throw an error ??
+                            // $this->debug($attributeCode);
                             break;
                         }
                     case '[': {
