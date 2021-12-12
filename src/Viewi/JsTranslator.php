@@ -284,9 +284,12 @@ class JsTranslator
         return $this->jsCode;
     }
 
-    private function isDeclared(string $varName): ?string
+    private function isDeclared(string $varName, int $maxLevel = 9999): ?string
     {
-        foreach ($this->scope as $scope) {
+        foreach ($this->scope as $level => $scope) {
+            if ($level > $maxLevel) {
+                break;
+            }
             if (isset($scope[$varName])) {
                 return $scope[$varName];
             }
@@ -299,7 +302,7 @@ class JsTranslator
         $code = '';
         if ($this->buffer !== null) {
             $declaredProp = $this->isDeclared($this->buffer);
-            $conflictName = $this->isDeclared($this->buffer . '@name');
+            $conflictName = $this->isDeclared($this->buffer . '@name', $thisMatched ? $this->scopeLevel - 1 : $this->scopeLevel);
             if ($conflictName != null) {
                 $this->buffer = $conflictName;
             }
@@ -779,7 +782,7 @@ class JsTranslator
                     case 'protected':
                     case 'public': {
                             // $keyword = 'public'; // no private/protected in js
-                            $public = $keyword === 'public';
+                            $public = $keyword !== 'private';
                             $typeOrName = $this->matchKeyword();
                             $static = false;
                             $propertyName = false;
@@ -1090,6 +1093,7 @@ class JsTranslator
         $constructor = $functionName === '__construct';
         $anonymous = $functionName === '(';
         $functionCode = '';
+        $promotesCode = '';
         $staticIdentation = $static ? substr($this->currentIndentation, 0, -4) : $this->currentIndentation;
         if ($anonymous) { // anonymous function
             $functionCode .= 'function (';
@@ -1109,9 +1113,11 @@ class JsTranslator
         $this->scope[$this->scopeLevel] = [];
         // read function arguments
         $arguments = $this->readArguments($anonymous);
-        // echo 'F arguments:  "' . print_r($arguments, true) . '"' . PHP_EOL;
-        $functionCode .= $arguments['arguments'] . ') ';
+        $body = '';
 
+        // echo 'F arguments:  "' . print_r($arguments, true) . '"' . PHP_EOL;
+        // $functionCode .= $arguments['arguments'] . ') ';
+        $params = [];
         // read function body
         $this->skipToTheSymbol('{');
         $this->lastKeyword = '{';
@@ -1120,16 +1126,71 @@ class JsTranslator
             $this->currentIndentation .= $this->indentation;
         }
         $this->putIndentation = true;
-        $body = '';
+
         // default arguments
         $index = 0;
-        foreach ($arguments['defaults'] as $name => $value) {
-            if ($value !== false) {
-                $body .= "{$this->currentIndentation}var $name = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
-                $this->scope[$this->scopeLevel][$name] = 'private';
+        // foreach ($arguments['defaults'] as $name => $value) {
+        //     if ($value !== false) {
+        //         $body .= "{$this->currentIndentation}var $name = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
+        //         $this->scope[$this->scopeLevel][$name] = 'private';
+        //     }
+        //     $index++;
+        // }
+        // $this->debug($arguments);
+        // promotes
+
+        foreach ($arguments['promotes'] as $propertyName => $visibility) {
+            if ($visibility) {
+                $public = $visibility !== 'private';
+                $variableName = $propertyName;
+                if (!$public && isset(self::$reservedGlobalNames[$propertyName])) {
+                    $variableName = '_' . $variableName;
+                    $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
+                }
+                $propertyCode = $staticIdentation . ($public ? 'this.' : 'var ') . $variableName
+                    . ($arguments['defaults'][$propertyName] ? ' = ' . $arguments['defaults'][$propertyName] . ';' : ' = null;')
+                    . PHP_EOL;
+                $promotesCode .= $propertyCode;
+                $this->scope[$this->scopeLevel - 1][$propertyName] = $visibility;
+                $this->scope[$this->scopeLevel - 1][$propertyName . '_this'] = $visibility;
+                // check parent scopes var name if private
+                $declaredVisibility = $this->isDeclared($propertyName, $this->scopeLevel - 1);
+                if ($declaredVisibility === 'private') {
+                    // $this->debug("Conflict $declaredVisibility $propertyName");
+                    $variableName = '_' . $propertyName;
+                    $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
+                }
+                // $this->debug($propertyCode);
+                if ($arguments['defaults'][$propertyName]) {
+                    $value = $arguments['defaults'][$propertyName];
+                    $variableName = $this->isDeclared($propertyName . '@name') ?? $propertyName;
+                    $body .= "{$this->currentIndentation}var $variableName = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
+                    $this->scope[$this->scopeLevel][$propertyName] = 'private';
+                } else {
+                    $params[] = $variableName;
+                }
+                $body .= $staticIdentation . $this->indentation . ($public ? 'this.' : '') . $propertyName . ' = ' . $variableName . ';' . PHP_EOL;
+            } else {
+                $declaredVisibility = $this->isDeclared($propertyName, $this->scopeLevel - 1);
+                $variableName = $propertyName;
+                if ($declaredVisibility === 'private') {
+                    // $this->debug("Conflict $declaredVisibility $propertyName");
+                    $variableName = '_' . $propertyName;
+                    $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
+                }
+                if ($arguments['defaults'][$propertyName]) {
+                    $value = $arguments['defaults'][$propertyName];
+                    $body .= "{$this->currentIndentation}var $variableName = arguments.length > $index ? arguments[$index] : $value;" . PHP_EOL;
+                    $this->scope[$this->scopeLevel][$propertyName] = 'private';
+                } else {
+                    $params[] = $variableName;
+                }
             }
             $index++;
         }
+        // $this->debug($this->scope);
+        $arguments['arguments'] = implode(', ', $params);
+        $functionCode .= $arguments['arguments'] . ') ';
         $this->newVar = true;
         $body .= $this->readCodeBlock();
         // echo 'F body:  "' . $body . '"' . PHP_EOL;
@@ -1153,7 +1214,7 @@ class JsTranslator
             $this->staticCache[] = $functionCode;
             return PHP_EOL;
         }
-        return $functionCode;
+        return $promotesCode . $functionCode;
     }
 
     private function readArguments(bool $anonymous): array
@@ -1166,33 +1227,53 @@ class JsTranslator
         $matchValue = false;
         $key = false;
         $value = false;
-
+        $promote = false;
+        $promotes = [];
         $lastIdentation = $this->currentIndentation;
         $this->currentIndentation .= $this->indentation;
 
         while ($this->position < $this->length) {
             $keyword = $this->matchKeyword();
-            if ($keyword === ')') {
-                if ($key !== false) {
-                    $object[$key] = $value;
-                }
-                break;
-            } else if ($keyword === ',') {
-                if ($key !== false) {
-                    $object[$key] = $value;
-                }
-                $key = false;
-                $value = false;
-                $matchValue = false;
-            } else if ($keyword === '?') {
-                continue; // js doesn't have nullable
-            } else if ($keyword === '=') {
-                $value = $this->readCodeBlock(',', ')');
-                // $this->debug('arg Val ' . $key . ' = '  . $value);
-            } else {
-                if ($keyword[0] === '$') {
-                    $key = substr($keyword, 1);
-                }
+            // $this->debug($keyword);
+            switch ($keyword) {
+                case 'private':
+                case 'protected':
+                case 'public': {
+                        // create property/variable
+                        // $this->debug($keyword);
+                        $promote = $keyword;
+                        break;
+                    }
+                case ')': {
+                        if ($key !== false) {
+                            $object[$key] = $value;
+                            $promotes[$key] = $promote;
+                        }
+                        break 2;
+                    }
+                case ',': {
+                        if ($key !== false) {
+                            $object[$key] = $value;
+                            $promotes[$key] = $promote;
+                        }
+                        $key = false;
+                        $value = false;
+                        $promote = false;
+                        $matchValue = false;
+                        break;
+                    }
+                case '?': {
+                        break; // js doesn't have nullable
+                    }
+                case '=': {
+                        $value = $this->readCodeBlock(',', ')');
+                        break;
+                    }
+                default: {
+                        if ($keyword[0] === '$') {
+                            $key = substr($keyword, 1);
+                        }
+                    }
             }
         }
         // echo 'F arguments:  "' . print_r($object, true) . '"' . PHP_EOL;
@@ -1216,7 +1297,7 @@ class JsTranslator
             $this->scope[$this->scopeLevel][$key] = 'private';
         }
         $arguments .= $newLineFormat ? PHP_EOL . $lastIdentation : '';
-        return ['arguments' => $arguments, 'defaults' => $object];
+        return ['arguments' => $arguments, 'defaults' => $object, 'promotes' => $promotes];
     }
 
     private function readArray(string $closing): string
