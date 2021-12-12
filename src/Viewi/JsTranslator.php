@@ -96,7 +96,7 @@ class JsTranslator
         'insteadof', 'interface', 'isset', 'list', 'namespace', 'new', 'or',
         'print', 'private', 'protected', 'public', 'require', 'require_once',
         'return', 'static', 'switch', 'throw', 'trait', 'try', 'unset', 'use',
-        'var', 'while', 'xor'
+        'var', 'while', 'xor', 'match'
     ];
 
     private array $phpConstants = [
@@ -587,6 +587,9 @@ class JsTranslator
                             $code .= ')';
                             $parenthesisNormal--;
                             break;
+                        }
+                    case 'match': {
+                            throw new Exception("'match' is not supported in current implementation!");
                         }
                     case ':': {
                             $code .= ':';
