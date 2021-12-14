@@ -774,6 +774,12 @@ class JsTranslator
                             $skipLastSaving = true;
                             break;
                         }
+                    case 'catch': {
+                            $arguments = $this->readArguments(false);
+                            $code .= $indentation . 'catch ' . ($arguments['arguments'] ? '(' . $arguments['arguments'] . ') ' : '');
+                            $skipLastSaving = true;
+                            break;
+                        }
                     case 'function':
                         // echo 'Code before function:  ' . $code . PHP_EOL;
                         $code .= $this->readFunction('public');
