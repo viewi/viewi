@@ -713,6 +713,8 @@ class JsTranslator
                             $this->position += strlen($this->lastBreak);
                             // ignore attributes; throw an error ??
                             // $this->debug($attributeCode);
+                            $skipLastSaving = true;
+                            $this->putIndentation = true;
                             break;
                         }
                     case '[': {
@@ -774,7 +776,7 @@ class JsTranslator
                         }
                     case 'function':
                         // echo 'Code before function:  ' . $code . PHP_EOL;
-                        $code .= $indentation . $this->readFunction('public');
+                        $code .= $this->readFunction('public');
                         // echo 'Code after function:  ' . $code . PHP_EOL;
                         $skipLastSaving = true;
                         break;
@@ -1147,7 +1149,7 @@ class JsTranslator
                     $variableName = '_' . $variableName;
                     $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
                 }
-                $propertyCode = $staticIdentation . ($public ? 'this.' : 'var ') . $variableName
+                $propertyCode = $lastIdentation . ($public ? 'this.' : 'var ') . $variableName
                     . ($arguments['defaults'][$propertyName] ? ' = ' . $arguments['defaults'][$propertyName] . ';' : ' = null;')
                     . PHP_EOL;
                 $promotesCode .= $propertyCode;
@@ -1267,6 +1269,12 @@ class JsTranslator
                     }
                 case '=': {
                         $value = $this->readCodeBlock(',', ')');
+                        break;
+                    }
+                case '#[': {
+                        $attributeCode = $this->readCodeBlock(']');
+                        $this->position += strlen($this->lastBreak);
+                        // ignore attributes; throw an error ??
                         break;
                     }
                 default: {
