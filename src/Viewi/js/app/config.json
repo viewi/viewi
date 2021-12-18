@@ -1,0 +1,11 @@
+{
+    "includes": [
+        "copyright.js",
+        "router.js",
+        "BUNDLE",
+        "VIEWI_PATH",
+        "VIEWI_VERSION",
+        "renderer.js",
+        "app.js"
+    ]
+}

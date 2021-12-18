@@ -627,7 +627,7 @@ class PageEngine
         $publicAppJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR
             . ($this->enableMinificationAndGzipping ? 'app.min.js' : 'app.js');
         // $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
-        $copyright = file_get_contents($thisRoot . 'js/copyright.js');
+        $copyright = file_get_contents($thisRoot . 'js/app/copyright.js');
 
 
         $publicJsonContent = json_encode($publicJson, 0, 1024);
@@ -640,16 +640,48 @@ class PageEngine
         }
         $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
 
-        $appJsContent = $copyright
-            . ($this->enableMinificationAndGzipping ?
-                file_get_contents($thisRoot . 'js/router.min.js') :
-                file_get_contents($thisRoot . 'js/router.js'))
-            . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
-            . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";'
-            . PHP_EOL . 'var VIEWI_VERSION = "' . ($this->development ? '' : '?v=' . date('ymdHis')) . '";' . PHP_EOL
-            . ($this->enableMinificationAndGzipping ?
-                file_get_contents($thisRoot . 'js/app.min.js') :
-                file_get_contents($thisRoot . 'js/app.js'));
+        $jsAppConfig = json_decode(file_get_contents($thisRoot . 'js/app/config.json'), true);
+
+        $appJsContent = '';
+        foreach ($jsAppConfig['includes'] as $file) {
+            switch ($file) {
+                case 'VIEWI_PATH': {
+                        $appJsContent .= 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";' . PHP_EOL;
+                        break;
+                    }
+                case 'VIEWI_VERSION': {
+                        $appJsContent .= 'var VIEWI_VERSION = "' . ($this->development ? '' : '?v=' . date('ymdHis')) . '";' . PHP_EOL;
+                        break;
+                    }
+                case 'BUNDLE': {
+                        $appJsContent .= $this->combineJs ? $publicBundleJs . $publicJsonContentJs : '';
+                        break;
+                    }
+                default: {
+                        $pathinfo = pathinfo($file);
+                        $pathWOext = $pathinfo['filename'];
+                        $minFileName = ($pathinfo['dirname'] && $pathinfo['dirname'] !== '.' ? $pathinfo['dirname'] . DIRECTORY_SEPARATOR : '') . $pathinfo['filename'] . '.min' . '.' . $pathinfo['extension'];
+                        $minFilePath = "{$thisRoot}js/app/$minFileName";
+                        if ($this->enableMinificationAndGzipping && file_exists($minFilePath)) {
+                            $appJsContent .= file_get_contents($minFilePath) . PHP_EOL;                            
+                        } else {
+                            $appJsContent .= file_get_contents("{$thisRoot}js/app/$file") . PHP_EOL;
+                        }
+                        break;
+                    }
+            }
+        }
+
+        // $appJsContent = $copyright
+        //     . ($this->enableMinificationAndGzipping ?
+        //         file_get_contents($thisRoot . 'js/app/router.min.js') :
+        //         file_get_contents($thisRoot . 'js/app/router.js'))
+        //     . ($this->combineJs ? $publicBundleJs . $publicJsonContentJs : '')
+        //     . PHP_EOL . 'var VIEWI_PATH = "' . $this->config[PageEngine::PUBLIC_BUILD_DIR] . '";'
+        //     . PHP_EOL . 'var VIEWI_VERSION = "' . ($this->development ? '' : '?v=' . date('ymdHis')) . '";' . PHP_EOL
+        //     . ($this->enableMinificationAndGzipping ?
+        //         file_get_contents($thisRoot . 'js/app/app.min.js') :
+        //         file_get_contents($thisRoot . 'js/app/app.js'));
 
         $publicBundleJs = $copyright . $publicBundleJs;
 
@@ -696,7 +728,7 @@ class PageEngine
 
     /**
      * 
-     * @param ComponentInfo[] $componentsInfo 
+     * @param array $componentsInfo 
      * @return void 
      */
     function setComponentsInfo(array $componentsInfo): void
