@@ -493,7 +493,7 @@ function Viewi() {
             previousNode = node;
             if (item.type === 'tag' && item.expression) {
                 node.type = 'dynamic';
-                node.componentChilds = item.children;
+                node.componentChildren = item.children;
                 node.isVirtual = true;
             }
             if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
@@ -694,15 +694,15 @@ function Viewi() {
                     ? currentNodeList[currentNodeList.length - 1]
                     : null;
                 // if (currentNodeList.length > 0
-                //     && componenNodes.length > 0) {
-                //     componenNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
-                //     currentNodeList[currentNodeList.length - 1].nextNode = componenNodes[0];
+                //     && componentNodes.length > 0) {
+                //     componentNodes[0].previousNode = currentNodeList[currentNodeList.length - 1];
+                //     currentNodeList[currentNodeList.length - 1].nextNode = componentNodes[0];
                 // }
-                // currentNodeList = currentNodeList.concat(componenNodes);
+                // currentNodeList = currentNodeList.concat(componentNodes);
             } else {
                 if (childNodes) {
                     if (node.type === 'dynamic' || node.type === 'raw') {
-                        node.itemChilds = childNodes;
+                        node.itemChildren = childNodes;
                     } else {
                         node.children = childNodes;
                     }
@@ -958,16 +958,16 @@ function Viewi() {
                 parent = false;
                 if (nodeBefore.isVirtual) {
                     // go down
-                    var potencialNode = nodeBefore;
-                    while (potencialNode !== null && !potencialNode.domNode) {
-                        if (potencialNode.isVirtual && potencialNode.children) {
-                            potencialNode = potencialNode.children[potencialNode.children.length - 1];
+                    var potentialNode = nodeBefore;
+                    while (potentialNode !== null && !potentialNode.domNode) {
+                        if (potentialNode.isVirtual && potentialNode.children) {
+                            potentialNode = potentialNode.children[potentialNode.children.length - 1];
                         } else {
-                            potencialNode = null;
+                            potentialNode = null;
                         }
                     }
-                    if (potencialNode) {
-                        nodeBefore = potencialNode;
+                    if (potentialNode) {
+                        nodeBefore = potentialNode;
                     }
                 }
             } else {
@@ -1128,9 +1128,9 @@ function Viewi() {
                                 elm = node.domNode;
                             } else {
                                 elm = document.createTextNode(val);
-                                var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                                if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                    nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                                var nextSibling = nodeBefore.node.domNode.nextSibling;
+                                if (!nodeBefore.itsParent && nextSibling !== null) {
+                                    nextSibling.parentNode.insertBefore(elm, nextSibling);
                                 } else if (nodeBefore.itsParent) {
                                     if (nodeBefore.node.domNode.childNodes.length > 0) {
                                         nodeBefore.node.domNode.insertBefore(elm, nodeBefore.node.domNode.childNodes[0]);
@@ -1138,7 +1138,7 @@ function Viewi() {
                                         nodeBefore.node.domNode.appendChild(elm);
                                     }
                                 } else {
-                                    nodeBefore.node.domNode.parentNode.appendChild(elm);
+                                    (nodeBefore.node.domNode.parentNode || parent).appendChild(elm);
                                 }
                                 node.domNode = elm;
                             }
@@ -1158,7 +1158,7 @@ function Viewi() {
                         // create to compare
                         var newNode = elm = document.createElement(val);
                         node.domNode = elm;
-                        createDOM(newNode, node.children, nextInsert, skipGroup);
+                        createDOM(newNode, node, node.children, nextInsert, skipGroup);
                         if (node.attributes) {
                             for (var a in node.attributes) {
                                 renderAttribute(newNode, node.attributes[a]);
@@ -1177,9 +1177,9 @@ function Viewi() {
                             // console.log('Reusing from DOM', equalNode[0]);
                             // put in correct order
                             var nodeBefore = getFirstBefore(node);
-                            var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                            if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                nextSibiling.parentNode.insertBefore(equalNode[0], nextSibiling);
+                            var nextSibling = nodeBefore.node.domNode.nextSibling;
+                            if (!nodeBefore.itsParent && nextSibling !== null) {
+                                nextSibling.parentNode.insertBefore(equalNode[0], nextSibling);
                             } else if (nodeBefore.itsParent) {
                                 nodeBefore.node.domNode.appendChild(equalNode[0]);
                             } else {
@@ -1200,9 +1200,9 @@ function Viewi() {
                                 // console.log('Reusing from cache', equalNode);
                                 // put in correct order
                                 var nodeBefore = getFirstBefore(node);
-                                var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                                if (!nodeBefore.itsParent && nextSibiling !== null) {
-                                    nextSibiling.parentNode.insertBefore(equalNode, nextSibiling);
+                                var nextSibling = nodeBefore.node.domNode.nextSibling;
+                                if (!nodeBefore.itsParent && nextSibling !== null) {
+                                    nextSibling.parentNode.insertBefore(equalNode, nextSibling);
                                 } else if (nodeBefore.itsParent) {
                                     nodeBefore.node.domNode.appendChild(equalNode);
                                 } else {
@@ -1228,7 +1228,7 @@ function Viewi() {
                         break;
                     }
 
-                    var existenElm = cleanRender ? currentLevelDomArray.first(
+                    var existentElm = cleanRender ? currentLevelDomArray.first(
                         /**
                          * 
                          * @param {Node} x 
@@ -1240,17 +1240,17 @@ function Viewi() {
                         true
                     ) : null;
 
-                    if (existenElm && existenElm[0].parentNode) {
-                        takenDomArray[existenElm[1]] = true;
-                        if (currentElemPosition == existenElm[1]) {
+                    if (existentElm && existentElm[0].parentNode) {
+                        takenDomArray[existentElm[1]] = true;
+                        if (currentElemPosition == existentElm[1]) {
                             // reuse
                             // TODO: clear attributes
-                            elm = existenElm[0];
+                            elm = existentElm[0];
                             node.domNode = elm;
                             break;
                         }
-                        else if (!(existenElm[1] in takenDomArray)) {
-                            existenElm[0].parentNode.removeChild(existenElm[0]);
+                        else if (!(existentElm[1] in takenDomArray)) {
+                            existentElm[0].parentNode.removeChild(existentElm[0]);
                         }
                     }
                     elm = document.createElement(val);
@@ -1264,9 +1264,9 @@ function Viewi() {
                             return;
                             break; // throw error ??
                         }
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        var nextSibling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibling !== null) {
+                            nextSibling.parentNode.insertBefore(elm, nextSibling);
                         } else if (nodeBefore.itsParent) {
                             // nodeBefore.node.domNode.appendChild(elm);
                             if (nodeBefore.node.domNode.childNodes.length > 0) {
@@ -1275,7 +1275,7 @@ function Viewi() {
                                 nodeBefore.node.domNode.appendChild(elm);
                             }
                         } else {
-                            nodeBefore.node.domNode.parentNode.appendChild(elm);
+                            (nodeBefore.node.domNode.parentNode || parent).appendChild(elm);
                         }
                     }
                     node.domNode = elm;
@@ -1301,9 +1301,9 @@ function Viewi() {
                             return;
                             break; // throw error ??
                         }
-                        var nextSibiling = nodeBefore.node.domNode.nextSibling;
-                        if (!nodeBefore.itsParent && nextSibiling !== null) {
-                            nextSibiling.parentNode.insertBefore(elm, nextSibiling);
+                        var nextSibling = nodeBefore.node.domNode.nextSibling;
+                        if (!nodeBefore.itsParent && nextSibling !== null) {
+                            nextSibling.parentNode.insertBefore(elm, nextSibling);
                         } else if (nodeBefore.itsParent) {
                             if (nodeBefore.node.domNode.childNodes.length > 0) {
                                 nodeBefore.node.domNode.insertBefore(elm, nodeBefore.node.domNode.childNodes[0]);
@@ -1321,7 +1321,7 @@ function Viewi() {
                     break;
                 }
                 case 'if': {
-                    // TODO: check conditon
+                    // TODO: check condition
                     // TODO: if false remove node if exists
                     // TODO: if true create element
                     if (!node.instance.component) {
@@ -1381,8 +1381,8 @@ function Viewi() {
                     // console.log('foreach');
                     if (elm) {
                         // create n nodes (copy of children) and render
-                        if (!node.itemChilds) { // TODO: bug, need to rewrite
-                            node.itemChilds = node.children;
+                        if (!node.itemChildren) { // TODO: bug, need to rewrite
+                            node.itemChildren = node.children;
                         }
                         // removeDomNodes(node.children);
                         // node.children = null;
@@ -1452,7 +1452,7 @@ function Viewi() {
                                 wrapperNode.scope.stack.push(node.forExpression.value);
                                 wrapperNode.scope.data[node.forExpression.key] = dataKey;
                                 wrapperNode.scope.data[node.forExpression.value] = data[k];
-                                scopeNodes(wrapperNode, node.itemChilds);
+                                scopeNodes(wrapperNode, node.itemChildren);
                                 newChildren.push(wrapperNode);
                             }
                         }
@@ -1474,7 +1474,7 @@ function Viewi() {
                         } else {
                             node.children = null;
                         }
-                        // TODO: resubscribe for changes, remove subscriptions for itemChilds
+                        // TODO: resubscribe for changes, remove subscriptions for itemChildren
 
                     }
                     // console.log(node, data);
@@ -1499,14 +1499,14 @@ function Viewi() {
                             instance: node.instance,
                             domNode: null
                         };
-                        if (node.itemChilds) {
-                            copyNodes(wrapperNode, node.itemChilds);
+                        if (node.itemChildren) {
+                            copyNodes(wrapperNode, node.itemChildren);
                         }
                         if (val in availableTags) { // it's a tag
                             wrapperNode.type = 'tag';
                         } else {
                             // build component
-                            // componentChilds
+                            // componentChildren
                             var dynamicNodes = create(val, wrapperNode.children, node.attributes);
                             createInstance(dynamicNodes.wrapper);
                             mountInstance(dynamicNodes.wrapper);
@@ -1529,6 +1529,11 @@ function Viewi() {
                     elm = parent;
                     nextInsert = true;
                     if (node.latestHtml === val) {
+                        if (node.rawNodes) {
+                            for (var i = 0; i < node.rawNodes.length; i++) {
+                                node.rawNodes[i].domNode.usedByRenderer = true;
+                            }
+                        }
                         return;
                     }
                     node.latestHtml = val;
@@ -1567,11 +1572,11 @@ function Viewi() {
                                     domNode: vdom.childNodes[startI]
                                 });
                             }
-                            var nextSibiling = firstClosest.node.domNode.nextSibling;
+                            var nextSibling = firstClosest.node.domNode.nextSibling;
                             if (newNodes.length > 0) {
                                 for (var i = 0; i < newNodes.length; i++) {
-                                    if (!firstClosest.itsParent && nextSibiling) {
-                                        nextSibiling.parentNode.insertBefore(newNodes[i].domNode, nextSibiling);
+                                    if (!firstClosest.itsParent && nextSibling) {
+                                        nextSibling.parentNode.insertBefore(newNodes[i].domNode, nextSibling);
                                     } else if (firstClosest.itsParent) {
                                         firstClosest.node.domNode.appendChild(newNodes[i].domNode);
                                     } else {
@@ -1591,13 +1596,21 @@ function Viewi() {
                             }
                         }
                     }
+                    if (node.rawNodes) {
+                        for (var i = 0; i < node.rawNodes.length; i++) {
+                            node.rawNodes[i].domNode.usedByRenderer = true;
+                        }
+                    }
                     return; // do not run children
                 }
                 default:
                     throw new Error('Node type \'' + node.type + '\' is not implemented.');
             }
         }
-        elm && createDOM(elm, node.children, nextInsert, skipGroup);
+        if (elm) {
+            elm.usedByRenderer = true;
+        }
+        elm && createDOM(elm, node, node.children, nextInsert, skipGroup);
     }
 
     var currentParent = null;
@@ -1606,11 +1619,18 @@ function Viewi() {
     var cleanRender = false;
     var currentElemPosition = 0;
 
-    var createDOM = function (parent, nodes, insert, skipGroup) {
+    var createDOM = function (parent, node, nodes, insert, skipGroup) {
         var previousParent = currentParent;
         var previousLevelDomArray = currentLevelDomArray;
         var previousTakenDomArray = takenDomArray;
         currentParent = parent;
+
+        if (parent.childNodes && !node.isVirtual) {
+            for (var i = 0; i < parent.childNodes.length; i++) {
+                parent.childNodes[i].usedByRenderer = false;
+            }
+        }
+
         if (cleanRender && parent !== previousParent) {
             currentLevelDomArray = Array.prototype.slice.call(currentParent.childNodes);
             takenDomArray = {};
@@ -1642,6 +1662,13 @@ function Viewi() {
             //         x.parentNode.removeChild(x);
             //     }
             // });
+        }
+        if (parent.childNodes && !node.isVirtual) {
+            for (var i = parent.childNodes.length - 1; i >= 0; i--) {
+                if (!parent.childNodes[i].usedByRenderer) {
+                    parent.removeChild(parent.childNodes[i]);
+                }
+            }
         }
         currentParent = previousParent;
         currentLevelDomArray = previousLevelDomArray;
@@ -2408,6 +2435,10 @@ function Viewi() {
                     }
                 }
             }
+            if(node.domNode)
+            {
+                node.domNode.usedByRenderer = true;
+            }
         }
         return same;
     }
@@ -2498,7 +2529,7 @@ function Viewi() {
                 componentBuild.instanceWrapper.component.__destroy();
             }
         }
-        createDOM(target, nodes, false);
+        createDOM(target, {}, nodes, false);
         // hydrate && console.log(target);
         var nodeToHydrate = nodes[1];
         if (!nodeToHydrate && nodes[0].type === 'dynamic') {
