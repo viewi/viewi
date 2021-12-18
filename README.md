@@ -4,6 +4,8 @@
 
 Imagine Vue js or Angular but in PHP world with the similar user-friendly html templates and components, the application that acts like frontend framework and backend template engine at the same time and renders identical contents on both sides. And you don't even need Node js. Isn't it awesome ?
 
+Works with limited subset of PHP, but even then it is still more than enough for building progressive web applications.
+
 Short example:
 --------
 `Counter.php`
@@ -38,7 +40,7 @@ class Counter extends BaseComponent
 
 Not production ready yet, as it's in development and still needs a lot of work
 
-#### *Requirements: php 7.4 or 8.0+*
+#### *Requirements: php 7.4+*
 
 Supported versions will be expanded  in the future
 
@@ -71,6 +73,7 @@ Under the hood Viewi translates view components into the javascript, and uses it
 ## Tests
 
 Got to `tests` folder
+
 Run `php test.php backend`
 
 Support
