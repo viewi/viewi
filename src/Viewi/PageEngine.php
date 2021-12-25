@@ -29,12 +29,12 @@ class PageEngine
     const PUBLIC_ROOT_DIR = 'PUBLIC_ROOT_DIR';
 
     /**
-     * Target directory of compiled public assets (javascripts, etc.)
+     * Target directory of compiled public assets (javascript files, etc.)
      */
     const PUBLIC_BUILD_DIR = 'PUBLIC_BUILD_DIR';
 
     /**
-     * Url path of compiled public assets (javascripts, etc.), for ex: /build or /public/build
+     * Url path of compiled public assets (javascript files, etc.), for ex: /build or /public/build
      */
     const PUBLIC_URL_PATH = 'PUBLIC_URL_PATH';
 
@@ -331,10 +331,10 @@ class PageEngine
             ? $reflectionClass->getMethod('__init')
             : $reflectionClass->getConstructor();
         if ($constructor !== null) {
-            $construcorArgs = $constructor->getParameters();
-            if (!empty($construcorArgs)) {
+            $constructorArgs = $constructor->getParameters();
+            if (!empty($constructorArgs)) {
 
-                foreach ($construcorArgs as $argument) {
+                foreach ($constructorArgs as $argument) {
                     $argumentName = $argument->name;
                     if ($argument->hasType()) {
                         /** @var ReflectionNamedType $namedType */
@@ -1253,9 +1253,9 @@ class PageEngine
             // $dynamicTagCode = '';
             // if ($componentName[0] === '$') {
             //     $dynamicTagCode = "\$pageEngine->isTag($componentName)" .
-            //         "{$eol}{$this->identation}? \$pageEngine->RenderDynamicTag($componentName," .
+            //         "{$eol}{$this->indentation}? \$pageEngine->RenderDynamicTag($componentName," .
             //         " $slotsExpression, \$_component, \$pageEngine, \$slots, ...\$scope)" .
-            //         "{$eol}{$this->identation}: ";
+            //         "{$eol}{$this->indentation}: ";
             // }
 
             $html .= $codeBegin .
@@ -1420,20 +1420,20 @@ class PageEngine
     function getCloseIfTag(TagItem &$tagItem): bool
     {
         $closeIfTag = true;
-        $parentChilds = $tagItem->parent()->getChildren();
+        $parentChildren = $tagItem->parent()->getChildren();
         $startLookingForElif = false;
         $textsToSkip = [];
-        foreach ($parentChilds as $key => &$parentChildren) {
-            if ($parentChildren === $tagItem) {
+        foreach ($parentChildren as $key => &$parentChild) {
+            if ($parentChild === $tagItem) {
                 $startLookingForElif = true;
                 continue;
             }
             if ($startLookingForElif) {
                 if (
-                    $parentChildren->Type->Name == TagItemType::Tag
-                    || $parentChildren->Type->Name == TagItemType::Component
+                    $parentChild->Type->Name == TagItemType::Tag
+                    || $parentChild->Type->Name == TagItemType::Component
                 ) {
-                    $elifChildren = $parentChildren->getChildren();
+                    $elifChildren = $parentChild->getChildren();
                     foreach ($elifChildren as &$elifChild) {
                         if (
                             $elifChild->Type->Name == TagItemType::Attribute
@@ -1442,17 +1442,17 @@ class PageEngine
                             $closeIfTag = false;
                             foreach ($textsToSkip as $index => &$textItem) {
                                 $textItem->Skip = true;
-                                unset($parentChilds[$index]);
+                                unset($parentChildren[$index]);
                             }
                         }
                     }
                     break;
-                } elseif ($parentChildren->Type->Name === TagItemType::TextContent) {
-                    $textsToSkip[$key] = &$parentChildren;
+                } elseif ($parentChild->Type->Name === TagItemType::TextContent) {
+                    $textsToSkip[$key] = &$parentChild;
                 }
             }
         }
-        // $tagItem->parent()->setChildren($parentChilds);
+        // $tagItem->parent()->setChildren($parentChildren);
         return $closeIfTag;
     }
 
@@ -1873,7 +1873,7 @@ class PageEngine
                         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             var_export($codeToAppend, true) . ";";
                         $html .=  PHP_EOL . $this->indentation . "if ({$tagItem->PhpExpression}[0] !== '(') {";
-                        // TODO: fix identation
+                        // TODO: fix indentation
                         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             $content . ";";
                         $codeToAppend = '';
@@ -1923,7 +1923,7 @@ class PageEngine
                     }
                     // if ($codeToAppend) {
                     //     if ($this->renderReturn) {
-                    //         $html .= PHP_EOL . $this->identation . "\$_content .= " .
+                    //         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                     //             var_export($codeToAppend, true) . ";";
                     //     } else {
                     //         $html .= $codeToAppend;
@@ -2146,7 +2146,7 @@ class PageEngine
         // =========================================================================
         // if ($codeToAppend) {
         //     if ($this->renderReturn) {
-        //         $html .= PHP_EOL . $this->identation . "\$_content .= " .
+        //         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
         //             var_export($codeToAppend, true) . ";";
         //     } else {
         //         $html .= $codeToAppend;
