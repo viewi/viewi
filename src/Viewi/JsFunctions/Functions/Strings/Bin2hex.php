@@ -12,7 +12,7 @@ class Bin2hex extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Bin2hex.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

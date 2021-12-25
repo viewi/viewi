@@ -12,7 +12,7 @@ class ArrayIntersectUassoc extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayIntersectUassoc.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

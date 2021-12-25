@@ -12,7 +12,7 @@ class Gmdate extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Gmdate.js';
         $jsToInclueDep = __DIR__ . DIRECTORY_SEPARATOR . 'Date.js';

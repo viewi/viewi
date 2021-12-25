@@ -12,7 +12,7 @@ class IsInfinite extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'IsInfinite.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

@@ -12,7 +12,7 @@ class Ip2long extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Ip2long.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

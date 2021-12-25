@@ -12,7 +12,7 @@ class Ltrim extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Ltrim.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

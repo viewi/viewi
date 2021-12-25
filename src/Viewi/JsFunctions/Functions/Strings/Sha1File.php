@@ -12,7 +12,7 @@ class Sha1File extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Sha1File.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

@@ -12,7 +12,7 @@ class I18nLocSetDefault extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'I18nLocSetDefault.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

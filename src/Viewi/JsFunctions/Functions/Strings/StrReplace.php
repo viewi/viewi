@@ -12,7 +12,7 @@ class StrReplace extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'StrReplace.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

@@ -12,7 +12,7 @@ class Nl2br extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Nl2br.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

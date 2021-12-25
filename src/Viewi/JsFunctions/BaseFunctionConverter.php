@@ -13,6 +13,6 @@ abstract class BaseFunctionConverter
     public abstract static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string;
 }

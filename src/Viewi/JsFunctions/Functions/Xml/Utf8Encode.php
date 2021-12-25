@@ -12,7 +12,7 @@ class Utf8Encode extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Utf8Encode.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

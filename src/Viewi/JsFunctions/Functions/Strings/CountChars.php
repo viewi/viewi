@@ -12,7 +12,7 @@ class CountChars extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CountChars.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

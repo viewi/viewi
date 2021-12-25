@@ -12,7 +12,7 @@ class ArrayValues extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayValues.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

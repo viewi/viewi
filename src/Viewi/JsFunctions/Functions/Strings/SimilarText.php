@@ -12,7 +12,7 @@ class SimilarText extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'SimilarText.js';
         $translator->includeJsFile(self::$name, $jsToInclue);

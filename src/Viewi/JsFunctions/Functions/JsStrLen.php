@@ -13,7 +13,7 @@ class JsStrLen extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $code = substr($code, 0, -6);
 

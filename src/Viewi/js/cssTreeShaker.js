@@ -184,7 +184,7 @@ var cssTreeShaker = function () {
 
     this.getShakedCss = function () {
         var textCss = '';
-        var identation = '  ';
+        var indentation = '  ';
         for (var t = 0; t < cssTokens.length; t++) {
             var group = cssTokens[t];
             if (group.valid) {
@@ -197,9 +197,9 @@ var cssTreeShaker = function () {
                     var rule = group.rules[r];
                     var selector = rule.selector.replace(/^\s+|\s+$/g, '');
                     if (rule.valid) {
-                        textCss += (blocked ? identation : '') + selector + ' {\n';
-                        textCss += identation + (blocked ? identation : '') + rule.content.replace(/^\s+|\s+$/g, '');
-                        textCss += blocked ? '\n' + identation + '}\n' : '\n}\n\n';
+                        textCss += (blocked ? indentation : '') + selector + ' {\n';
+                        textCss += indentation + (blocked ? indentation : '') + rule.content.replace(/^\s+|\s+$/g, '');
+                        textCss += blocked ? '\n' + indentation + '}\n' : '\n}\n\n';
                     }
                 }
                 if (blocked) {

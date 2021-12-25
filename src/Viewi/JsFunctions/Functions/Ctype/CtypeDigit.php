@@ -12,7 +12,7 @@ class CtypeDigit extends BaseFunctionConverter
     public static function convert(
         JsTranslator $translator,
         string $code,
-        string $identation
+        string $indentation
     ): string {
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CtypeDigit.js';
         $translator->includeJsFile(self::$name, $jsToInclue);
