@@ -498,13 +498,13 @@ class JsTranslator
                     $this->collectVariablePath = true;
                     $this->currentVariablePath = $varName;
                 }
-                // $code .= $identation . $varName;
+                // $code .= $indentation . $varName;
                 // if ($keyword === '$this') {
                 //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')']);
                 //     // $this->debug($expression);
                 //     $closing = $this->lastBreak === ';' ? '' : '';
-                //     $code .= $identation . 'this' . $expression . $closing;
-                //     $this->putIdentation = $closing !== '';
+                //     $code .= $indentation . 'this' . $expression . $closing;
+                //     $this->putindentation = $closing !== '';
                 // } else {
                 //     $varName = substr($keyword, 1);
                 //     $expression = $this->ReadCodeBlock(...$breakOn + [';', ')', '=']);
@@ -513,8 +513,8 @@ class JsTranslator
                 //         $varName = 'var '.$varName;
                 //     }
                 //     $closing = $this->lastBreak === ';' ? '' : '';
-                //     $code .= $identation . $varName . $expression . $closing;
-                //     $this->putIdentation = $closing !== '';
+                //     $code .= $indentation . $varName . $expression . $closing;
+                //     $this->putindentation = $closing !== '';
                 // }
             } else if (ctype_digit($keyword)) {
                 if ($this->isPhpVariable($this->lastKeyword)) {
@@ -657,7 +657,7 @@ class JsTranslator
                                 $this->lastKeyword = $keyword;
                                 break 2;
                             }
-                            $this->currentIndentation = // $lastIdentation;
+                            $this->currentIndentation = // $lastindentation;
                                 substr($this->currentIndentation, 0, -strlen($this->indentation));
                             $code .= $this->currentIndentation . '}' . PHP_EOL;
                             $this->putIndentation = true;
@@ -1020,7 +1020,7 @@ class JsTranslator
         } else {
             $this->position += 1;
         }
-
+        $this->scope[$this->scopeLevel][$var] = 'private';
         $loop .= "(var $index in $target) {" . PHP_EOL;
         $this->skipToTheSymbol('{');
         $lastIndentation = $this->currentIndentation;
@@ -1060,7 +1060,7 @@ class JsTranslator
         $lastClass = $this->currentClass;
         $this->currentClass = $className;
 
-        $lastIdentation = $this->currentIndentation;
+        $lastindentation = $this->currentIndentation;
         $this->currentIndentation .= $this->indentation;
         $this->putIndentation = true;
         $this->newVar = true;
@@ -1083,7 +1083,7 @@ class JsTranslator
         $this->lastKeyword = '}';
         $this->scope = $previousScope;
         $this->scopeLevel = $previousScopeLevel;
-        $this->currentIndentation = $lastIdentation;
+        $this->currentIndentation = $lastindentation;
 
         foreach ($this->staticCache as $static) {
             $classHead .= PHP_EOL . $this->currentIndentation . $static;
@@ -1102,13 +1102,13 @@ class JsTranslator
         $anonymous = $functionName === '(';
         $functionCode = '';
         $promotesCode = '';
-        $staticIdentation = $static ? substr($this->currentIndentation, 0, -4) : $this->currentIndentation;
+        $staticindentation = $static ? substr($this->currentIndentation, 0, -4) : $this->currentIndentation;
         if ($anonymous) { // anonymous function
             $functionCode .= 'function (';
             $functionName = 'anonymousFn' . (++$this->anonymousCounter);
             $private = true;
         } else {
-            $functionCode = PHP_EOL . $staticIdentation . ($static
+            $functionCode = PHP_EOL . $staticindentation . ($static
                 ? $this->currentClass . '.'
                 : ($private ? 'var ' : 'this.'))
                 . $functionName . ' = function (';
@@ -1129,7 +1129,7 @@ class JsTranslator
         // read function body
         $this->skipToTheSymbol('{');
         $this->lastKeyword = '{';
-        $lastIdentation = $this->currentIndentation;
+        $lastindentation = $this->currentIndentation;
         if (!$static) {
             $this->currentIndentation .= $this->indentation;
         }
@@ -1155,7 +1155,7 @@ class JsTranslator
                     $variableName = '_' . $variableName;
                     $this->scope[$this->scopeLevel][$propertyName . '@name'] = $variableName;
                 }
-                $propertyCode = $lastIdentation . ($public ? 'this.' : 'var ') . $variableName
+                $propertyCode = $lastindentation . ($public ? 'this.' : 'var ') . $variableName
                     . ($arguments['defaults'][$propertyName] ? ' = ' . $arguments['defaults'][$propertyName] . ';' : ' = null;')
                     . PHP_EOL;
                 $promotesCode .= $propertyCode;
@@ -1177,7 +1177,7 @@ class JsTranslator
                 } else {
                     $params[] = $variableName;
                 }
-                $body .= $staticIdentation . $this->indentation . ($public ? 'this.' : '') . $propertyName . ' = ' . $variableName . ';' . PHP_EOL;
+                $body .= $staticindentation . $this->indentation . ($public ? 'this.' : '') . $propertyName . ' = ' . $variableName . ';' . PHP_EOL;
             } else {
                 $declaredVisibility = $this->isDeclared($propertyName, $this->scopeLevel - 1);
                 $variableName = $propertyName;
@@ -1207,9 +1207,9 @@ class JsTranslator
         unset($this->scope[$this->scopeLevel]);
         $this->scopeLevel--;
 
-        $this->currentIndentation = $lastIdentation;
+        $this->currentIndentation = $lastindentation;
 
-        $functionCode .= '{' . PHP_EOL . $body . $staticIdentation .
+        $functionCode .= '{' . PHP_EOL . $body . $staticindentation .
             ($anonymous ? '}' :   '};' . PHP_EOL);
         // echo 'F lastKeyword:  "' . $this->lastKeyword . '"' . PHP_EOL;
         $this->lastKeyword = '}';
@@ -1237,7 +1237,7 @@ class JsTranslator
         $value = false;
         $promote = false;
         $promotes = [];
-        $lastIdentation = $this->currentIndentation;
+        $lastindentation = $this->currentIndentation;
         $this->currentIndentation .= $this->indentation;
 
         while ($this->position < $this->length) {
@@ -1291,8 +1291,8 @@ class JsTranslator
             }
         }
         // echo 'F arguments:  "' . print_r($object, true) . '"' . PHP_EOL;
-        $this->currentIndentation = $lastIdentation;
-        $valueIdentation = $lastIdentation . $this->indentation;
+        $this->currentIndentation = $lastindentation;
+        $valueindentation = $lastindentation . $this->indentation;
         // $this->debug($object);
         $totalLength = 0;
         foreach ($object as $key => $val) {
@@ -1301,16 +1301,16 @@ class JsTranslator
         // $this->debug($totalLength);
         $newLineFormat = $totalLength > 90;
 
-        $comma = $newLineFormat ? PHP_EOL . $valueIdentation : '';
+        $comma = $newLineFormat ? PHP_EOL . $valueindentation : '';
         foreach ($object as $key => $value) {
             if ($value !== false) {
                 continue;
             }
             $arguments .= $comma . $key;
-            $comma = $newLineFormat ? ', ' . PHP_EOL . $valueIdentation : ', ';
+            $comma = $newLineFormat ? ', ' . PHP_EOL . $valueindentation : ', ';
             $this->scope[$this->scopeLevel][$key] = 'private';
         }
-        $arguments .= $newLineFormat ? PHP_EOL . $lastIdentation : '';
+        $arguments .= $newLineFormat ? PHP_EOL . $lastindentation : '';
         return ['arguments' => $arguments, 'defaults' => $object, 'promotes' => $promotes];
     }
 
@@ -1322,11 +1322,11 @@ class JsTranslator
         $index = 0;
         $key = $index;
 
-        $lastIdentation = $this->currentIndentation;
+        $lastindentation = $this->currentIndentation;
         $this->currentIndentation .= $this->indentation;
         $this->lastKeyword = '[';
         while ($this->position < $this->length) {
-            $item = $this->readCodeBlock(',', '=>', $closing, '(', ';');
+            $item = $this->readCodeBlock(',', '=>', $closing, ';');
             $this->lastKeyword = $this->lastBreak;
             if ($this->lastBreak === ';') {
                 break;
@@ -1360,8 +1360,8 @@ class JsTranslator
             continue;
         }
 
-        $this->currentIndentation = $lastIdentation;
-        $valueIdentation = $lastIdentation . $this->indentation;
+        $this->currentIndentation = $lastindentation;
+        $valueindentation = $lastindentation . $this->indentation;
         // var_dump($object);
         $totalLength = 0;
         foreach ($object as $key => $val) {
@@ -1371,17 +1371,17 @@ class JsTranslator
         $newLineFormat = $totalLength > 90;
         if ($isObject) {
             $elements .= '{';
-            $comma = $newLineFormat ? PHP_EOL . $valueIdentation : ' ';
+            $comma = $newLineFormat ? PHP_EOL . $valueindentation : ' ';
             foreach ($object as $key => $value) {
                 $elements .= $comma . $key . ': ' . $value;
-                $comma = $newLineFormat ? ',' . PHP_EOL . $valueIdentation : ', ';
+                $comma = $newLineFormat ? ',' . PHP_EOL . $valueindentation : ', ';
             }
-            $elements .= count($object) > 0 ? ($newLineFormat ? PHP_EOL . $lastIdentation . '}'  : ' }') :  '}';
+            $elements .= count($object) > 0 ? ($newLineFormat ? PHP_EOL . $lastindentation . '}'  : ' }') :  '}';
             return $elements;
         }
         if ($newLineFormat) {
-            $elements = implode(',' . PHP_EOL . $valueIdentation, $object);
-            return '[' . PHP_EOL . $valueIdentation . $elements . PHP_EOL . $lastIdentation . ']';
+            $elements = implode(',' . PHP_EOL . $valueindentation, $object);
+            return '[' . PHP_EOL . $valueindentation . $elements . PHP_EOL . $lastindentation . ']';
         } else {
             $elements = implode(', ', $object);
         }
@@ -1402,7 +1402,7 @@ class JsTranslator
             $this->position++;
         }
         $inlineJs = false;
-        $identation = false;
+        $indentation = false;
         if ($stopWord === 'javascript' || $stopWord === "'javascript'") {
             $inlineJs = true;
             if ($stopWord[0] === "'") {
@@ -1418,17 +1418,17 @@ class JsTranslator
                 $buffer = '';
                 $word = '';
                 $break = false;
-                $catchIdentation = false;
-                if ($identation === false) {
-                    $catchIdentation = true;
-                    $identation = '';
+                $catchindentation = false;
+                if ($indentation === false) {
+                    $catchindentation = true;
+                    $indentation = '';
                 }
                 while ($this->position < $this->length) {
-                    if ($catchIdentation) {
+                    if ($catchindentation) {
                         if ($this->parts[$this->position] === ' ') {
-                            $identation .= ' ';
+                            $indentation .= ' ';
                         } else if (!ctype_space($this->parts[$this->position])) {
-                            $catchIdentation = false;
+                            $catchindentation = false;
                         }
                     }
                     if (ctype_alpha($this->parts[$this->position])) {
@@ -1462,14 +1462,14 @@ class JsTranslator
         }
         if (!$inlineJs) {
             // $this->debug($code);
-            $code = preg_replace("/^$identation/m", '', $code);
+            $code = preg_replace("/^$indentation/m", '', $code);
             $code = preg_replace('/^[\n\r]+/', '', $code);
             // $this->debug($code);
             $code = str_replace('\\$', '$', $code);
             $code = str_replace('\\', '\\\\', $code);
             $code = '"' . str_replace('"', '\\"', $code) . '"';
             $code = str_replace("\r", '', $code);
-            $code = str_replace("\n", "\\n\" +\n$identation\"", $code);
+            $code = str_replace("\n", "\\n\" +\n$indentation\"", $code);
             // $this->debug($code);
         }
         return $code;
