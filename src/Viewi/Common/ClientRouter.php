@@ -14,4 +14,9 @@ class ClientRouter
         // TODO: validate, make helper
         header('Location: ' . $url);
     }
+
+    public function getUrl(): string
+    {
+        return isset($_SERVER['REDIRECT_URL']) ? $_SERVER['REDIRECT_URL'] : preg_replace('/\?.*/', '', $_SERVER['REQUEST_URI']);
+    }
 }

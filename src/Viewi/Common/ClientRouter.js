@@ -9,4 +9,8 @@ var ClientRouter = function () {
          */
         app.go(url, true);
     }
+
+    this.getUrl = function () {
+        return location.pathname;
+    }
 };
