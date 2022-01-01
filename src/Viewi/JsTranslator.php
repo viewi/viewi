@@ -756,8 +756,13 @@ class JsTranslator
                                     }
                                     $insertTo = $i;
                                 }
-                                $code = substr_replace($code, "'", $insertTo, 0);
-                                $code .= "'";
+                                $className = substr($code, $insertTo, $codeLen);
+                                if($className === "self"){
+                                    $className = $this->currentClass;
+                                }
+                                // $this->debug("'".substr($code, $insertTo, $codeLen)."'");                                
+                                $code = substr($code, 0, $insertTo) . "'" . $className . "'";
+                                // $this->debug($code);
                                 break;
                             }
                             $code .= $indentation . $this->processClass();
