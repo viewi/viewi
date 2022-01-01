@@ -507,8 +507,10 @@ class PageEngine
         }
         //$this->debug($this->sourcePath);
         //$this->debug($this->buildPath);
+        $lazyContent = [];
         $publicJson = [];
         foreach ($this->components as $className => &$componentInfo) {
+            $fullClassName = $componentInfo->Namespace . '\\' . $componentInfo->Name;
             if (isset($componentInfo->HasVersions) && $componentInfo->HasVersions) {
                 $this->templates[$className] = $this->compileTemplate($componentInfo); // compile just for selectors
                 // print_r($this->templates[$className]);
@@ -530,7 +532,17 @@ class PageEngine
                     }
                 };
                 if ($componentInfo->IsComponent) {
-                    $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    if (isset($fullClassName::$_lazyLoadGroup)) {
+                        $lazyLoadGroup = $fullClassName::$_lazyLoadGroup;
+                        $publicJson[$className]['lazyLoad'] = $lazyLoadGroup;
+                        if (!isset($lazyContent[$lazyLoadGroup])) {
+                            $lazyContent[$lazyLoadGroup] = [];
+                        }
+                        $lazyContent[$lazyLoadGroup][$className] = [];
+                        $lazyContent[$lazyLoadGroup][$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    } else {
+                        $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    }
                 } else {
                     $publicJson[$className]['service'] = true;
                 }
@@ -629,8 +641,9 @@ class PageEngine
         // $publicAppMiniJsFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . 'app.min.js';
         $copyright = file_get_contents($thisRoot . 'js/app/copyright.js');
 
+        // $this->debug($lazyContent);
 
-        $publicJsonContent = json_encode($publicJson, 0, 1024);
+        $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         $publicJsonStringContent = json_encode($publicJsonContent);
         $publicJsonContentJs = PHP_EOL . "ViewiPages = $publicJsonStringContent;" . PHP_EOL . PHP_EOL;
 
@@ -663,7 +676,7 @@ class PageEngine
                         $minFileName = ($pathinfo['dirname'] && $pathinfo['dirname'] !== '.' ? $pathinfo['dirname'] . DIRECTORY_SEPARATOR : '') . $pathinfo['filename'] . '.min' . '.' . $pathinfo['extension'];
                         $minFilePath = "{$thisRoot}js/app/$minFileName";
                         if ($this->enableMinificationAndGzipping && file_exists($minFilePath)) {
-                            $appJsContent .= file_get_contents($minFilePath) . PHP_EOL;                            
+                            $appJsContent .= file_get_contents($minFilePath) . PHP_EOL;
                         } else {
                             $appJsContent .= file_get_contents("{$thisRoot}js/app/$file") . PHP_EOL;
                         }
@@ -694,6 +707,13 @@ class PageEngine
         file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
         file_put_contents($publicFilePath . '.gz', gzencode($publicJsonContent, 5));
         //$this->debug($this->components);
+        // build lazyContent
+        foreach ($lazyContent as $groupName => &$group) {
+            $lazyGroupFilePath = $this->publicBuildPath . DIRECTORY_SEPARATOR . $groupName . '.group.json';
+            $lazyGroupJsonContent = json_encode($group, 0, 1024 * 32);
+            file_put_contents($lazyGroupFilePath, $lazyGroupJsonContent);
+            file_put_contents($lazyGroupFilePath . '.gz', gzencode($lazyGroupJsonContent, 5));
+        }
     }
 
     function minify($js)
