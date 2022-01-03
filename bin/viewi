@@ -3,17 +3,24 @@
 
 $cliTool = new ViewiCLITool();
 $cliTool->exec($argv);
+
 class ViewiCLITool
 {
-
     static array $commands = [
         'new' => [
             'description' => 'Initialize Viewi application.',
             'arguments' => [
                 'directory' => [
+                    'key' => '-d',
                     'optional' => true,
-                    'default' => 'viewi',
-                    'description' => 'Directory for Viewi components'
+                    'default' => 'viewi-app',
+                    'description' => 'Directory for Viewi components.'
+                ],
+                'example' => [
+                    'key' => '-e',
+                    'optional' => true,
+                    'default' => '',
+                    'description' => 'Generate an example app.'
                 ]
             ],
             'action' => 'createNew'
@@ -68,8 +75,20 @@ class ViewiCLITool
         echo "Starting setting up View for you.\n";
         // create directory
         $projectDir = getcwd();
-        $viewiDir = isset($inputs[1]) && trim($inputs[1], ' \\/') ?
-            trim($inputs[1], ' \\/') :
+        $inputsMap = [];
+        $lastKey = null;
+        foreach ($inputs as $index => $input) {
+            if ($index === 0) continue;
+
+            if ($input[0] === '-') {
+                $inputsMap[$input] = null;
+                $lastKey = $input;
+            } else {
+                $inputsMap[$lastKey] = $input;
+            }
+        }
+        $viewiDir = isset($inputsMap['-d']) && trim($inputsMap['-d'], ' \\/') ?
+            trim($inputsMap['-d'], ' \\/') :
             'viewi-app';
 
         if ($viewiDir === 'viewi-app' && file_exists("$projectDir/src")) {
@@ -99,7 +118,10 @@ class ViewiCLITool
             $publicPath = 'www/';
         }
         // copy contents
-        $newAppStubs = 'vendor/viewi/viewi/stubs/new-app';
+        $newAppStubs =
+            array_key_exists('-e', $inputsMap)
+            ? 'vendor/viewi/viewi/stubs/example-app'
+            : 'vendor/viewi/viewi/stubs/new-app';
         $newAppStubsPath = "$projectDir/$newAppStubs";
         echo "Copying files..\n";
         if (file_exists($newAppStubsPath)) {
