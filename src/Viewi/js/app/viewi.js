@@ -1282,7 +1282,7 @@ function Viewi() {
                             var found = false;
                             if (node.children) {
                                 for (var i = 0; i < node.children.length; i++) {
-                                    if (k in used) {
+                                    if (k in used || i in keepIndexes) {
                                         continue;
                                     }
                                     if (node.children[i].foreachData === data[k]) {
