@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>
+        $title | Viewi
+    </title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <CssBundle link="https://cdn.muicss.com/mui-0.10.3/css/mui.min.css" />
+    <style>
+        /**
+        * Sidebar CSS
+        */
+
+        #sidebar {
+            background-color: #E57373;
+            padding: 15px;
+        }
+
+        #content {
+            padding: 26px;
+        }
+
+        @media (min-width: 768px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                width: 180px;
+                height: 100%;
+                padding-top: 30px;
+            }
+
+            #content {
+                margin-left: 240px;
+                padding: 0 26px 0 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <MenuBar />
+    </div>
+    <div id="content">
+        <slot></slot>
+    </div>
+    <ViewiScripts />
+</body>
+
+</html>
