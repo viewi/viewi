@@ -1,5 +1,5 @@
 function array_slice (arr, offst, lgth, preserveKeys) { 
-  var isInt = require('../var/is_int')
+  var isInt = is_int
   var key = ''
   if (Object.prototype.toString.call(arr) !== '[object Array]' || (preserveKeys && offst !== 0)) {
     var lgt = 0

@@ -8,12 +8,13 @@ use Viewi\JsTranslator;
 class ArraySlice extends BaseFunctionConverter
 {
     public static string $name = 'array_slice';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
+        $translator->includeFunction('is_int');
         $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArraySlice.js';
         $translator->includeJsFile(self::$name, $jsToInclue);
         return $code . '(';
