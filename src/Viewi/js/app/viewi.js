@@ -1210,7 +1210,7 @@ function Viewi() {
                     elm = parent;
                     node.parentDomNode = parent;
                     node.condition.previousValue = node.condition.value;
-                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    node.topRealPreviousNode = (node.parent && node.parent.topRealPreviousNode) || node.previousNode;
                     nextInsert = true;
                     break;
                 }
@@ -1230,7 +1230,7 @@ function Viewi() {
                     node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
                     elm = parent;
                     node.parentDomNode = parent;
-                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    node.topRealPreviousNode = (node.parent && node.parent.topRealPreviousNode) || node.previousNode;
                     nextInsert = true;
                     break;
                 }
@@ -1239,7 +1239,7 @@ function Viewi() {
                     node.condition.value = !node.previousNode.condition.previousValue;
                     elm = parent;
                     node.parentDomNode = parent;
-                    node.topRealPreviousNode = node.parent.topRealPreviousNode || node.previousNode;
+                    node.topRealPreviousNode = (node.parent && node.parent.topRealPreviousNode) || node.previousNode;
                     nextInsert = true;
                     break;
                 }
@@ -1785,7 +1785,13 @@ function Viewi() {
                                     args.push(node.scope.data[node.scope.stack[k]]);
                                 }
                             }
-                            currentValue = node.children[0].propExpression.func.apply(null, args);
+                            currentValue = null;
+                            for (var childIndex = 0; childIndex < node.children.length; childIndex++) {
+                                var contentValue = node.children[childIndex].propExpression.call
+                                    ? node.children[childIndex].propExpression.func.apply(null, args)
+                                    : node.children[childIndex].propExpression.content;
+                                currentValue = childIndex === 0 ? contentValue : currentValue + contentValue;
+                            }
                             node.origin.childComponent[node.content] = currentValue;
                         }
                     } else if (node.isVirtual) {
