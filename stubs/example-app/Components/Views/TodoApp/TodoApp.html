@@ -1,0 +1,10 @@
+<form (submit)="handleSubmit($event)">
+    <div class="mui-textfield mui-textfield--float-label">
+        <input type="text" model="$text" autocomplete="off">
+        <label>What needs to be done?</label>
+    </div>
+    <button class="mui-btn mui-btn--raised">
+        Add #{count($items) + 1}
+    </button>
+</form>
+<TodoList items="$items" />

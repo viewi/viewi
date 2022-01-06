@@ -120,8 +120,8 @@ class ViewiCLITool
         // copy contents
         $newAppStubs =
             array_key_exists('-e', $inputsMap)
-            ? 'vendor/viewi/viewi/src/Viewi/stubs/example-app'
-            : 'vendor/viewi/viewi/src/Viewi/stubs/new-app';
+            ? 'vendor/viewi/viewi/stubs/example-app'
+            : 'vendor/viewi/viewi/stubs/new-app';
         $newAppStubsPath = "$projectDir/$newAppStubs";
         echo "Copying files..\n";
         if (file_exists($newAppStubsPath)) {
