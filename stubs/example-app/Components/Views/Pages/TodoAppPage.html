@@ -1,0 +1,21 @@
+<Layout title="Todo">
+    <h1>Todo</h1>
+    <div class="mui-container-fluid">
+        <div class="mui-row">
+            <div class="mui-col-lg-6">
+                <h2>Regular Todo</h2>
+                <TodoApp />
+            </div>
+            <div class="mui-col-lg-6">
+                <h2>Todo with shared state</h2>
+                <StatefulTodoApp />
+                <div class="mui--text-dark mui--text-subhead">
+                    Unlike the regular todo, this one remembers its state for
+                    further use. No matter how you change the todo list, it will keep it in reducer. And foremore - you
+                    can use it in different places (share with another component for example) and the list will be the
+                    same.
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
