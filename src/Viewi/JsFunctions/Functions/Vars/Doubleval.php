@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Doubleval extends BaseFunctionConverter
 {
     public static string $name = 'doubleval';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Doubleval.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('floatval');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Doubleval.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

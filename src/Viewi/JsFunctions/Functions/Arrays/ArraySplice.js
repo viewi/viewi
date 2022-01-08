@@ -1,4 +1,5 @@
-function array_splice(arr, offst, lgth, replacement) {
+function array_splice (arr, offst, lgth, replacement) { 
+  var isInt = is_int
   var _checkToUpIndices = function (arr, ct, key) {
     if (arr[ct] !== undefined) {
       var tmp = ct
@@ -37,7 +38,7 @@ function array_splice(arr, offst, lgth, replacement) {
     for (key in arr) {
       ct += 1
       if (ct < offst) {
-        if (is_int(key)) {
+        if (isInt(key)) {
           intCt += 1
           if (parseInt(key, 10) === intCt) {
             continue
@@ -48,7 +49,7 @@ function array_splice(arr, offst, lgth, replacement) {
         }
         continue
       }
-      if (returnArr && is_int(key)) {
+      if (returnArr && isInt(key)) {
         rmvd.push(arr[key])
         rmvdObj[rmvdCt++] = arr[key]
       } else {

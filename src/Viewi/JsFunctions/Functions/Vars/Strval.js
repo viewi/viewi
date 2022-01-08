@@ -1,5 +1,5 @@
 function strval (str) {
-  var gettype = require('../var/gettype')
+  var gettype = gettype
   var type = ''
   if (str === null) {
     return ''

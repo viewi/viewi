@@ -1,4 +1,4 @@
 function is_real (mixedVar) { 
-  var _isFloat = require('../var/is_float')
+  var _isFloat = is_float
   return _isFloat(mixedVar)
 }

@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class ConvertUuencode extends BaseFunctionConverter
 {
     public static string $name = 'convert_uuencode';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ConvertUuencode.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('is_scalar');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'ConvertUuencode.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

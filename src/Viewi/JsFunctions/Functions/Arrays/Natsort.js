@@ -1,5 +1,5 @@
 function natsort (inputArr) {
-  var strnatcmp = require('../strings/strnatcmp')
+  var strnatcmp = strnatcmp
   var valArr = []
   var k
   var i

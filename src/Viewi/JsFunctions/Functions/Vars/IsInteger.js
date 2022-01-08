@@ -1,4 +1,4 @@
 function is_integer (mixedVar) { 
-  var _isInt = require('../var/is_int')
+  var _isInt = is_int
   return _isInt(mixedVar)
 }

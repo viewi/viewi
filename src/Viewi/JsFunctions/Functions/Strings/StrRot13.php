@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class StrRot13 extends BaseFunctionConverter
 {
     public static string $name = 'str_rot13';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'StrRot13.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'StrRot13.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

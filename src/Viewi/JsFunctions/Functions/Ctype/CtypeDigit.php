@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class CtypeDigit extends BaseFunctionConverter
 {
     public static string $name = 'ctype_digit';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CtypeDigit.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('setlocale');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'CtypeDigit.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

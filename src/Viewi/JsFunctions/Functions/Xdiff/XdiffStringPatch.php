@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class XdiffStringPatch extends BaseFunctionConverter
 {
     public static string $name = 'xdiff_string_patch';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'XdiffStringPatch.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'XdiffStringPatch.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

@@ -1,7 +1,7 @@
 function substr (input, start, len) {
-  var _php_cast_string = require('../_helpers/_phpCastString') 
+  var _php_cast_string = _phpCastString
   input = _php_cast_string(input)
-  var ini_get = require('../info/ini_get') 
+  var ini_get = ini_get
   var multibyte = ini_get('unicode.semantics') === 'on'
   if (multibyte) {
     input = input.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\s\S]/g) || []

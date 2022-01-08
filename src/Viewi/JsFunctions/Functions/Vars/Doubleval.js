@@ -1,4 +1,4 @@
 function doubleval (mixedVar) {
-  var floatval = require('../var/floatval')
+  var floatval = floatval
   return floatval(mixedVar)
 }

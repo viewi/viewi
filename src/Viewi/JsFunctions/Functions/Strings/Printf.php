@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Printf extends BaseFunctionConverter
 {
     public static string $name = 'printf';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Printf.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('sprintf');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Printf.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

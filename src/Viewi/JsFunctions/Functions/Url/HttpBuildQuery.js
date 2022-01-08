@@ -2,11 +2,11 @@ function http_build_query (formdata, numericPrefix, argSeparator, encType) {
   var encodeFunc
   switch (encType) {
     case 'PHP_QUERY_RFC3986':
-      encodeFunc = require('../url/rawurlencode')
+      encodeFunc = rawurlencode
       break
     case 'PHP_QUERY_RFC1738':
     default:
-      encodeFunc = require('../url/urlencode')
+      encodeFunc = urlencode
       break
   }
   var value

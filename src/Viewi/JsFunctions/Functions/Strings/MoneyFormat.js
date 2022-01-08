@@ -1,5 +1,5 @@
 function money_format (format, number) { 
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   if (typeof number !== 'number') {
     return null
   }

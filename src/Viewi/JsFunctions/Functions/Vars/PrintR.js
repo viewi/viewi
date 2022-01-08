@@ -1,5 +1,5 @@
 function print_r (array, returnVal) { 
-  var echo = require('../strings/echo')
+  var echo = console.log
   var output = ''
   var padChar = ' '
   var padVal = 4

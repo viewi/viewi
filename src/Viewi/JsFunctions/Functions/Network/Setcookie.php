@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Setcookie extends BaseFunctionConverter
 {
     public static string $name = 'setcookie';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Setcookie.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('setrawcookie');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Setcookie.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

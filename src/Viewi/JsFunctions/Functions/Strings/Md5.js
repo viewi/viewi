@@ -1,7 +1,7 @@
 function md5 (str) {
   var hash
   try {
-    var crypto = require('crypto')
+    var crypto = crypto
     var md5sum = crypto.createHash('md5')
     md5sum.update(str)
     hash = md5sum.digest('hex')
@@ -11,7 +11,7 @@ function md5 (str) {
   if (hash !== undefined) {
     return hash
   }
-  var utf8Encode = require('../xml/utf8_encode')
+  var utf8Encode = utf8_encode
   var xl
   var _rotateLeft = function (lValue, iShiftBits) {
     return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits))

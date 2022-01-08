@@ -1,5 +1,5 @@
 function gettype (mixedVar) {
-  var isFloat = require('../var/is_float')
+  var isFloat = is_float
   var s = typeof mixedVar
   var name
   var _getFuncName = function (fn) {

@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class QuotedPrintableDecode extends BaseFunctionConverter
 {
     public static string $name = 'quoted_printable_decode';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'QuotedPrintableDecode.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'QuotedPrintableDecode.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

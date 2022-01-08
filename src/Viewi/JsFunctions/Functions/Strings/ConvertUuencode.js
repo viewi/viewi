@@ -1,5 +1,5 @@
 function convert_uuencode (str) { 
-  var isScalar = require('../var/is_scalar')
+  var isScalar = is_scalar
   var chr = function (c) {
     return String.fromCharCode(c)
   }

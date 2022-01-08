@@ -1,4 +1,4 @@
 function join (glue, pieces) {
-  var implode = require('../strings/implode')
+  var implode = implode
   return implode(glue, pieces)
 }

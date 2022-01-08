@@ -1,4 +1,4 @@
 function pos (arr) {
-  var current = require('../array/current')
+  var current = current
   return current(arr)
 }

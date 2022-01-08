@@ -1,4 +1,4 @@
 function chop (str, charlist) {
-  var rtrim = require('../strings/rtrim')
+  var rtrim = rtrim
   return rtrim(str, charlist)
 }

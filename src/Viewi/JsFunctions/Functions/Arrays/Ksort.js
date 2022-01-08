@@ -1,6 +1,6 @@
 function ksort (inputArr, sortFlags) {
-  var i18nlgd = require('../i18n/i18n_loc_get_default')
-  var strnatcmp = require('../strings/strnatcmp')
+  var i18nlgd = i18n_loc_get_default
+  var strnatcmp = strnatcmp
   var tmpArr = {}
   var keys = []
   var sorter

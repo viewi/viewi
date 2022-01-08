@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class StripTags extends BaseFunctionConverter
 {
     public static string $name = 'strip_tags';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'StripTags.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('_phpCastString');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'StripTags.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

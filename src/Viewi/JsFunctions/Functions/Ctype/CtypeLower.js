@@ -1,5 +1,5 @@
 function ctype_lower (text) { 
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   if (typeof text !== 'string') {
     return false
   }

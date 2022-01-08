@@ -8,16 +8,15 @@ use Viewi\JsTranslator;
 class Gmdate extends BaseFunctionConverter
 {
     public static string $name = 'gmdate';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Gmdate.js';
-        $jsToInclueDep = __DIR__ . DIRECTORY_SEPARATOR . 'Date.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
-        $translator->includeJsFile('date', $jsToInclueDep);
+        $translator->includeFunction('date');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Gmdate.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

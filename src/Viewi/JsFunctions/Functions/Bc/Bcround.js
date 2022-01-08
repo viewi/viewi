@@ -1,5 +1,5 @@
 function bcround (val, precision) {
-  var _bc = require('../_helpers/_bc')
+  var _bc = _bc
   var libbcmath = _bc()
   var temp, result, digit
   var rightOperand

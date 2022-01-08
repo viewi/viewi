@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Split extends BaseFunctionConverter
 {
     public static string $name = 'split';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Split.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('explode');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Split.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

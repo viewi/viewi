@@ -1,5 +1,5 @@
 function bcadd (leftOperand, rightOperand, scale) {
-  var bc = require('../_helpers/_bc')
+  var bc = _bc
   var libbcmath = bc()
   var first, second, result
   if (typeof scale === 'undefined') {

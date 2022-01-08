@@ -1,5 +1,5 @@
 function setlocale (category, locale) {
-  var getenv = require('../info/getenv')
+  var getenv = getenv
   var categ = ''
   var cats = []
   var i = 0

@@ -1,5 +1,5 @@
 function ctype_graph (text) { 
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   if (typeof text !== 'string') {
     return false
   }

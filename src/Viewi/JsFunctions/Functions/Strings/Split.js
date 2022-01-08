@@ -1,4 +1,4 @@
 function split (delimiter, string) {
-  var explode = require('../strings/explode')
+  var explode = explode
   return explode(delimiter, string)
 }

@@ -14,8 +14,8 @@ class ArrayPop extends BaseFunctionConverter
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayPop.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayPop.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         $translator->activateReactivity([null, "'pop'"]);
         return $code . '(';
     }

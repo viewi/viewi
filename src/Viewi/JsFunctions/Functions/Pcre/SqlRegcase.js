@@ -1,5 +1,5 @@
 function sql_regcase (str) { 
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   var i = 0
   var upper = ''
   var lower = ''

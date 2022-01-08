@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class ArrayUdiff extends BaseFunctionConverter
 {
     public static string $name = 'array_udiff';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayUdiff.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayUdiff.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

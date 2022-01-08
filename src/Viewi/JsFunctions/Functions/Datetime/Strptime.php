@@ -8,14 +8,16 @@ use Viewi\JsTranslator;
 class Strptime extends BaseFunctionConverter
 {
     public static string $name = 'strptime';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Strptime.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('setlocale');
+        $translator->includeFunction('array_map');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Strptime.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

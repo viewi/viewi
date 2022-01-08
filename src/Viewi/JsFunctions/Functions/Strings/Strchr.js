@@ -1,4 +1,4 @@
 function strchr (haystack, needle, bool) {
-  var strstr = require('../strings/strstr')
+  var strstr = strstr
   return strstr(haystack, needle, bool)
 }

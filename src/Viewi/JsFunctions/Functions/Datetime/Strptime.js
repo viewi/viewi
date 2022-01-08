@@ -1,6 +1,6 @@
 function strptime (dateStr, format) {
-  var setlocale = require('../strings/setlocale')
-  var arrayMap = require('../array/array_map')
+  var setlocale = setlocale
+  var arrayMap = array_map
   var retObj = {
     tm_sec: 0,
     tm_min: 0,

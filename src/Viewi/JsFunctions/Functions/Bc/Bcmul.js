@@ -1,5 +1,5 @@
 function bcmul (leftOperand, rightOperand, scale) {
-  var _bc = require('../_helpers/_bc')
+  var _bc = _bc
   var libbcmath = _bc()
   var first, second, result
   if (typeof scale === 'undefined') {

@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class ArrayWalk extends BaseFunctionConverter
 {
     public static string $name = 'array_walk';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayWalk.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'ArrayWalk.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

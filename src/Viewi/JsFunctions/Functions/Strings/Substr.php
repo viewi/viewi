@@ -8,14 +8,16 @@ use Viewi\JsTranslator;
 class Substr extends BaseFunctionConverter
 {
     public static string $name = 'substr';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Substr.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('_phpCastString');
+        $translator->includeFunction('ini_get');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Substr.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

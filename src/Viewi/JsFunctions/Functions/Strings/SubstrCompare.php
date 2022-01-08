@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class SubstrCompare extends BaseFunctionConverter
 {
     public static string $name = 'substr_compare';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'SubstrCompare.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'SubstrCompare.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

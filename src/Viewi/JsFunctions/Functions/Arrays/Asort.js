@@ -1,6 +1,6 @@
 function asort (inputArr, sortFlags) {
-  var strnatcmp = require('../strings/strnatcmp')
-  var i18nlgd = require('../i18n/i18n_loc_get_default')
+  var strnatcmp = strnatcmp
+  var i18nlgd = i18n_loc_get_default
   var valArr = []
   var valArrLen = 0
   var k

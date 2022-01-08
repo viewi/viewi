@@ -1,5 +1,5 @@
 function strftime (fmt, timestamp) {
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   var $global = (typeof window !== 'undefined' ? window : global)
   $global.$locutus = $global.$locutus || {}
   var $locutus = $global.$locutus

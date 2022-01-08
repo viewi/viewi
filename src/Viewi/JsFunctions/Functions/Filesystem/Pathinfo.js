@@ -1,5 +1,5 @@
 function pathinfo (path, options) {
-  var basename = require('../filesystem/basename')
+  var basename = basename
   var opt = ''
   var realOpt = ''
   var optName = ''

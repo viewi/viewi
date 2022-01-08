@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class CallUserFuncArray extends BaseFunctionConverter
 {
     public static string $name = 'call_user_func_array';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'CallUserFuncArray.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'CallUserFuncArray.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

@@ -1,6 +1,6 @@
 function realpath (path) {
   if (typeof window === 'undefined') {
-    var nodePath = require('path')
+    var nodePath = path
     return nodePath.normalize(path)
   }
   var p = 0

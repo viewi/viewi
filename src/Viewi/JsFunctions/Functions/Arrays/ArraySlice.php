@@ -15,8 +15,8 @@ class ArraySlice extends BaseFunctionConverter
         string $indentation
     ): string {
         $translator->includeFunction('is_int');
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'ArraySlice.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'ArraySlice.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

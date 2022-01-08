@@ -1,5 +1,5 @@
 function var_export (mixedExpression, boolReturn) { 
-  var echo = require('../strings/echo')
+  var echo = console.log
   var retstr = ''
   var iret = ''
   var value

@@ -1,6 +1,6 @@
 function strtr (str, trFrom, trTo) {
-  var krsort = require('../array/krsort')
-  var iniSet = require('../info/ini_set')
+  var krsort = krsort
+  var iniSet = ini_set
   var fr = ''
   var i = 0
   var j = 0

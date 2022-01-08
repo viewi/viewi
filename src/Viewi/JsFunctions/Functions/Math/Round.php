@@ -8,14 +8,16 @@ use Viewi\JsTranslator;
 class Round extends BaseFunctionConverter
 {
     public static string $name = 'round';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Round.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('_php_cast_float');
+        $translator->includeFunction('_php_cast_int');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Round.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

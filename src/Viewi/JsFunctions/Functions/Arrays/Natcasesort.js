@@ -1,5 +1,5 @@
 function natcasesort (inputArr) {
-  var strnatcasecmp = require('../strings/strnatcasecmp')
+  var strnatcasecmp = strnatcasecmp
   var valArr = []
   var k
   var i

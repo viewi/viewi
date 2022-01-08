@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Sort extends BaseFunctionConverter
 {
     public static string $name = 'sort';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Sort.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('i18n_loc_get_default');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Sort.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

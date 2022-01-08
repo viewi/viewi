@@ -1,5 +1,5 @@
 function sort (inputArr, sortFlags) {
-  var i18nlgd = require('../i18n/i18n_loc_get_default')
+  var i18nlgd = i18n_loc_get_default
   var sorter
   var i
   var k

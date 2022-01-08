@@ -1,5 +1,5 @@
 function html_entity_decode (string, quoteStyle) { 
-  var getHtmlTranslationTable = require('../strings/get_html_translation_table')
+  var getHtmlTranslationTable = get_html_translation_table
   var tmpStr = ''
   var entity = ''
   var symbol = ''

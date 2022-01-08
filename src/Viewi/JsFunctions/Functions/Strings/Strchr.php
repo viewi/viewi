@@ -8,14 +8,15 @@ use Viewi\JsTranslator;
 class Strchr extends BaseFunctionConverter
 {
     public static string $name = 'strchr';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'Strchr.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $translator->includeFunction('strstr');
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Strchr.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

@@ -1,5 +1,5 @@
 function nl_langinfo (item) { 
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   setlocale('LC_ALL', 0) 
   var $global = (typeof window !== 'undefined' ? window : global)
   $global.$locutus = $global.$locutus || {}

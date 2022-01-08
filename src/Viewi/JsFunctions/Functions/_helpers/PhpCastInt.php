@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class PhpCastInt extends BaseFunctionConverter
 {
     public static string $name = '_php_cast_int';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . 'PhpCastInt.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'PhpCastInt.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);
         return $code . '(';
     }
 }

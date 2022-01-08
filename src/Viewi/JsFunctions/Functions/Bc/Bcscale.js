@@ -1,5 +1,5 @@
 function bcscale (scale) {
-  var _bc = require('../_helpers/_bc')
+  var _bc = _bc
   var libbcmath = _bc()
   scale = parseInt(scale, 10)
   if (isNaN(scale)) {

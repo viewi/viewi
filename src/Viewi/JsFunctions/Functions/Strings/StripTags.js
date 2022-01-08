@@ -1,5 +1,5 @@
 function strip_tags (input, allowed) { 
-  var _phpCastString = require('../_helpers/_phpCastString')
+  var _phpCastString = _phpCastString
   allowed = (((allowed || '') + '').toLowerCase().match(/<[a-z][a-z0-9]*>/g) || []).join('')
   var tags = /<\/?([a-z0-9]*)\b[^>]*>?/gi
   var commentsAndPhpTags = /<!--[\s\S]*?-->|<\?(?:php)?[\s\S]*?\?>/gi

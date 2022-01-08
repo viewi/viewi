@@ -1,5 +1,5 @@
 function gmstrftime (format, timestamp) {
-  var strftime = require('../datetime/strftime')
+  var strftime = strftime
   var _date = (typeof timestamp === 'undefined')
     ? new Date()
     : (timestamp instanceof Date)

@@ -1,5 +1,5 @@
 function date_parse (date) { 
-  var strtotime = require('../datetime/strtotime')
+  var strtotime = strtotime
   var ts
   try {
     ts = strtotime(date)

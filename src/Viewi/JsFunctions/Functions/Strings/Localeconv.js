@@ -1,5 +1,5 @@
 function localeconv () {
-  var setlocale = require('../strings/setlocale')
+  var setlocale = setlocale
   var arr = {}
   var prop = ''
   setlocale('LC_ALL', 0)
