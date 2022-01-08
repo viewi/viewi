@@ -79,6 +79,7 @@ foreach ($files as $fileName => $poof) {
         foreach ($matches['assignment'] as $index => $assignment) {
             $path = explode('/', $matches['path'][$index]);
             $replacementName = $path[count($path) - 1];
+            $replacementName = str_replace(['"', "'"], '', $replacementName);
             $replacementCode = "= $replacementName";
             echo "Replacing $replacementName in $fileName.." . PHP_EOL;
             if ($replacementName === 'echo') {
