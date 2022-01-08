@@ -8,14 +8,14 @@ use Viewi\JsTranslator;
 class ##class## extends BaseFunctionConverter
 {
     public static string $name = '##function##';
-    
+
     public static function convert(
         JsTranslator $translator,
         string $code,
         string $indentation
     ): string {
-        $jsToInclue = __DIR__ . DIRECTORY_SEPARATOR . '##class##.js';
-        $translator->includeJsFile(self::$name, $jsToInclue);##watchLatest##
+##dependencies##        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . '##class##.js';
+        $translator->includeJsFile(self::$name, $jsToInclude);##watchLatest##
         return $code . '(';
     }
 }

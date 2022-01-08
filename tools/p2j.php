@@ -1,5 +1,7 @@
 <?php
 
+// php tools/p2j.php
+
 $path = __DIR__ . '/../../../locutus-master\locutus-master\src\php';
 $target = __DIR__ . '/../src/Viewi/JsFunctions/Functions';
 $namespace = 'Viewi\JsFunctions\Functions';
@@ -15,8 +17,6 @@ $builder = new PHP2JsBuilder();
 $files = $builder->getDirContents($path);
 
 echo 'Found ' . count($files) . ' files' . PHP_EOL;
-// print_r($files);
-// C:\Users\Ivan\source\repos\pageless.local.com\locutus-master\locutus-master\src\php\array\array_unique.js
 
 $exportContent = file_get_contents($exportFile);
 $exportContentParts = explode($exportMark, $exportContent);
@@ -41,7 +41,7 @@ foreach ($files as $fileName => $poof) {
     }
     $dir = str_replace('-', '', $dir);
     $class = $builder->pascalToCamelCase($pathInfo['filename']);
-    if ($class === 'Echo') {
+    if (in_array($class, ['Echo', 'StrSplit', 'Htmlentities', 'CtypeAlnum', 'CtypeSpace', 'CtypeUpper'])) {
         echo "Skipping.. $function" . PHP_EOL;
         continue;
     }
@@ -64,15 +64,38 @@ foreach ($files as $fileName => $poof) {
         mkdir($targetDir, 0777, true);
     }
     $jsContent = file_get_contents($fileName);
-    // remove connents
+    // remove unnecessary things
     $jsContent = preg_replace('/(?:(?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:(?<!\:|\\\|\'|\")\/\/.*))/', '', $jsContent);
     $jsContent = preg_replace('/\n\s*\n/', PHP_EOL, $jsContent);
     $jsContent = preg_replace('/module.exports\s*=\s*/', '', $jsContent);
+    // $jsContent = preg_replace('/[^\n\r]*require\([^\n\r]*/', '', $jsContent);
+    // dependencies
+
+    $matches = [];
+    // preg_match("/[^\n\r]*require\([^\n\r']*('|\")([/\w.]+)[^\n\r]*/", $jsContent, $matches);
+    $dependencies = '';
+    preg_match_all("/.*(?<assignment>=\s*require\((?<path>[^)]*)('|\").*)/", $jsContent, $matches);
+    if (isset($matches['assignment'])) {
+        foreach ($matches['assignment'] as $index => $assignment) {
+            $path = explode('/', $matches['path'][$index]);
+            $replacementName = $path[count($path) - 1];
+            $replacementCode = "= $replacementName";
+            echo "Replacing $replacementName in $fileName.." . PHP_EOL;
+            if ($replacementName === 'echo') {
+                $replacementCode = "= console.log";
+                $jsContent = str_replace($assignment, $replacementCode, $jsContent);
+                continue;
+            }
+            $jsContent = str_replace($assignment, $replacementCode, $jsContent);
+            $dependencies .= "        \$translator->includeFunction('$replacementName');" . PHP_EOL;
+        }
+    }
     $content = $template;
     $content = str_replace('##namespace##', $targetNamespace, $content);
     $content = str_replace('##class##', $class, $content);
     $content = str_replace('##function##', $function, $content);
     $content = str_replace('##watchLatest##', $watchLatest ? $watchLatestCode : '', $content);
+    $content = str_replace('##dependencies##', $dependencies, $content);
     file_put_contents($targetFilePHP, $content);
     file_put_contents($targetFileJS, $jsContent);
     $exportContent .= "require 'Functions/$dir/$class.php';" . PHP_EOL;
