@@ -1,5 +1,5 @@
 function crc32 (str) {
-  var utf8Encode = utf8_encode
+  var utf8Encode = window.utf8_encode
   str = utf8Encode(str)
   var table = [
     '00000000',

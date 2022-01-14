@@ -1,5 +1,5 @@
 function bcdiv (leftOperand, rightOperand, scale) {
-  var _bc = _bc
+  var _bc = window._bc
   var libbcmath = _bc()
   var first, second, result
   if (typeof scale === 'undefined') {

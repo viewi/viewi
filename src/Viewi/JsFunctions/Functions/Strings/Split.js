@@ -1,4 +1,4 @@
 function split (delimiter, string) {
-  var explode = explode
+  var explode = window.explode
   return explode(delimiter, string)
 }

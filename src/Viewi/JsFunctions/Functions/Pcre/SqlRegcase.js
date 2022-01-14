@@ -1,5 +1,5 @@
 function sql_regcase (str) { 
-  var setlocale = setlocale
+  var setlocale = window.setlocale
   var i = 0
   var upper = ''
   var lower = ''

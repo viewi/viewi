@@ -1,5 +1,5 @@
 function strval (str) {
-  var gettype = gettype
+  var gettype = window.gettype
   var type = ''
   if (str === null) {
     return ''

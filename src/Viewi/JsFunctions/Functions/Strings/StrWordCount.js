@@ -1,5 +1,5 @@
 function str_word_count (str, format, charlist) { 
-  var ctypeAlpha = ctype_alpha
+  var ctypeAlpha = window.ctype_alpha
   var len = str.length
   var cl = charlist && charlist.length
   var chr = ''

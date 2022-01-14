@@ -1,5 +1,5 @@
 function gmdate (format, timestamp) {
-  var date = date
+  var date = window.date
   var dt = typeof timestamp === 'undefined' ? new Date() 
     : timestamp instanceof Date ? new Date(timestamp) 
     : new Date(timestamp * 1000) 

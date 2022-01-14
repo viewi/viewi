@@ -1,5 +1,5 @@
 function strnatcmp (a, b) {
-  var _phpCastString = _phpCastString
+  var _phpCastString = window._phpCastString
   var leadingZeros = /^0+(?=\d)/
   var whitespace = /^\s/
   var digit = /^\d/

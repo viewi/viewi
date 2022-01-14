@@ -1,5 +1,5 @@
 function pathinfo (path, options) {
-  var basename = basename
+  var basename = window.basename
   var opt = ''
   var realOpt = ''
   var optName = ''

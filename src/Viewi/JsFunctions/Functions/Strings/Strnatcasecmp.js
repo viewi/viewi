@@ -1,6 +1,6 @@
 function strnatcasecmp (a, b) {
-  var strnatcmp = strnatcmp
-  var _phpCastString = _phpCastString
+  var strnatcmp = window.strnatcmp
+  var _phpCastString = window._phpCastString
   if (arguments.length !== 2) {
     return null
   }

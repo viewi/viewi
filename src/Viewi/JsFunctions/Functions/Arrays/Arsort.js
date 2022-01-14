@@ -1,6 +1,6 @@
 function arsort (inputArr, sortFlags) {
-  var i18lgd = i18n_loc_get_default
-  var strnatcmp = strnatcmp
+  var i18lgd = window.i18n_loc_get_default
+  var strnatcmp = window.strnatcmp
   var valArr = []
   var valArrLen = 0
   var k

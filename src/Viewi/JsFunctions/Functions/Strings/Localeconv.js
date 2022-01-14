@@ -1,5 +1,5 @@
 function localeconv () {
-  var setlocale = setlocale
+  var setlocale = window.setlocale
   var arr = {}
   var prop = ''
   setlocale('LC_ALL', 0)

@@ -1,5 +1,5 @@
 function gmstrftime (format, timestamp) {
-  var strftime = strftime
+  var strftime = window.strftime
   var _date = (typeof timestamp === 'undefined')
     ? new Date()
     : (timestamp instanceof Date)

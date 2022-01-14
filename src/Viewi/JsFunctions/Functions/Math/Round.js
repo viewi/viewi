@@ -9,8 +9,8 @@ function roundToInt (value, mode) {
   return value < 0 ? -tmp : tmp
 }
 function round (value, precision = 0, mode = 'PHP_ROUND_HALF_UP') {
-  var floatCast = _php_cast_float
-  var intCast = _php_cast_int
+  var floatCast = window._php_cast_float
+  var intCast = window._php_cast_int
   var p
   value = floatCast(value)
   precision = intCast(precision)

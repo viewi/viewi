@@ -1,5 +1,5 @@
 function array_merge_recursive (arr1, arr2) { 
-  var arrayMerge = array_merge
+  var arrayMerge = window.array_merge
   var idx = ''
   if (arr1 && Object.prototype.toString.call(arr1) === '[object Array]' &&
     arr2 && Object.prototype.toString.call(arr2) === '[object Array]') {

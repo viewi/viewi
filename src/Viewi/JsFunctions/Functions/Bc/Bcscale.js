@@ -1,5 +1,5 @@
 function bcscale (scale) {
-  var _bc = _bc
+  var _bc = window._bc
   var libbcmath = _bc()
   scale = parseInt(scale, 10)
   if (isNaN(scale)) {

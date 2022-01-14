@@ -1,5 +1,5 @@
 function bcround (val, precision) {
-  var _bc = _bc
+  var _bc = window._bc
   var libbcmath = _bc()
   var temp, result, digit
   var rightOperand

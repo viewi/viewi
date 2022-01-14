@@ -1,5 +1,5 @@
 function ctype_punct (text) { 
-  var setlocale = setlocale
+  var setlocale = window.setlocale
   if (typeof text !== 'string') {
     return false
   }

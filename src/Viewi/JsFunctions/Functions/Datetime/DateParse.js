@@ -1,5 +1,5 @@
 function date_parse (date) { 
-  var strtotime = strtotime
+  var strtotime = window.strtotime
   var ts
   try {
     ts = strtotime(date)

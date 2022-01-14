@@ -1,5 +1,5 @@
 function strftime (fmt, timestamp) {
-  var setlocale = setlocale
+  var setlocale = window.setlocale
   var $global = (typeof window !== 'undefined' ? window : global)
   $global.$locutus = $global.$locutus || {}
   var $locutus = $global.$locutus

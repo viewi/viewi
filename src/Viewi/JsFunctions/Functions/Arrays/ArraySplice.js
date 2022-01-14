@@ -1,5 +1,5 @@
 function array_splice (arr, offst, lgth, replacement) { 
-  var isInt = is_int
+  var isInt = window.is_int
   var _checkToUpIndices = function (arr, ct, key) {
     if (arr[ct] !== undefined) {
       var tmp = ct

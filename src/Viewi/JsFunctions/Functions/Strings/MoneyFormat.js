@@ -1,5 +1,5 @@
 function money_format (format, number) { 
-  var setlocale = setlocale
+  var setlocale = window.setlocale
   if (typeof number !== 'number') {
     return null
   }

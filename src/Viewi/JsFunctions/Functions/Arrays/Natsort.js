@@ -1,5 +1,5 @@
 function natsort (inputArr) {
-  var strnatcmp = strnatcmp
+  var strnatcmp = window.strnatcmp
   var valArr = []
   var k
   var i

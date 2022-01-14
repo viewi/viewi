@@ -1,4 +1,4 @@
 function strchr (haystack, needle, bool) {
-  var strstr = strstr
+  var strstr = window.strstr
   return strstr(haystack, needle, bool)
 }

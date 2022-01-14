@@ -1,5 +1,5 @@
 function setlocale (category, locale) {
-  var getenv = getenv
+  var getenv = window.getenv
   var categ = ''
   var cats = []
   var i = 0

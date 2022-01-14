@@ -1,6 +1,6 @@
 function strptime (dateStr, format) {
-  var setlocale = setlocale
-  var arrayMap = array_map
+  var setlocale = window.setlocale
+  var arrayMap = window.array_map
   var retObj = {
     tm_sec: 0,
     tm_min: 0,

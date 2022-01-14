@@ -1,6 +1,6 @@
 function krsort (inputArr, sortFlags) {
-  var i18nlgd = i18n_loc_get_default
-  var strnatcmp = strnatcmp
+  var i18nlgd = window.i18n_loc_get_default
+  var strnatcmp = window.strnatcmp
   var tmpArr = {}
   var keys = []
   var sorter

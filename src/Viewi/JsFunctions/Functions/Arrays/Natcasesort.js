@@ -1,5 +1,5 @@
 function natcasesort (inputArr) {
-  var strnatcasecmp = strnatcasecmp
+  var strnatcasecmp = window.strnatcasecmp
   var valArr = []
   var k
   var i

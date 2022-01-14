@@ -1,4 +1,4 @@
 function vsprintf (format, args) {
-  var sprintf = sprintf
+  var sprintf = window.sprintf
   return sprintf.apply(this, [format].concat(args))
 }

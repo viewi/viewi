@@ -1,4 +1,4 @@
 function join (glue, pieces) {
-  var implode = implode
+  var implode = window.implode
   return implode(glue, pieces)
 }

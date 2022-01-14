@@ -1,4 +1,4 @@
 function chop (str, charlist) {
-  var rtrim = rtrim
+  var rtrim = window.rtrim
   return rtrim(str, charlist)
 }

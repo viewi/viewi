@@ -1,4 +1,4 @@
 function doubleval (mixedVar) {
-  var floatval = floatval
+  var floatval = window.floatval
   return floatval(mixedVar)
 }

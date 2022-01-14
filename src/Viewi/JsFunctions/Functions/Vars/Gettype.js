@@ -1,5 +1,5 @@
 function gettype (mixedVar) {
-  var isFloat = is_float
+  var isFloat = window.is_float
   var s = typeof mixedVar
   var name
   var _getFuncName = function (fn) {

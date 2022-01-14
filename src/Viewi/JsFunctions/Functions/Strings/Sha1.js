@@ -1,7 +1,7 @@
 function sha1 (str) {
   var hash
   try {
-    var crypto = crypto
+    var crypto = window.crypto
     var sha1sum = crypto.createHash('sha1')
     sha1sum.update(str)
     hash = sha1sum.digest('hex')

@@ -1,5 +1,5 @@
 function bccomp (leftOperand, rightOperand, scale) {
-  var bc = _bc
+  var bc = window._bc
   var libbcmath = bc()
   var first, second
   if (typeof scale === 'undefined') {
