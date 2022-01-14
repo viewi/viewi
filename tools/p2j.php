@@ -1,7 +1,7 @@
 <?php
 
 // php tools/p2j.php
-
+// regex for replacing same names: \s+(var|let|const)\s+([a-zA-Z_]+)\s*=\s+\2(\n|\s)
 $path = __DIR__ . '/../../../locutus-master\locutus-master\src\php';
 $target = __DIR__ . '/../src/Viewi/JsFunctions/Functions';
 $namespace = 'Viewi\JsFunctions\Functions';
@@ -80,7 +80,7 @@ foreach ($files as $fileName => $poof) {
             $path = explode('/', $matches['path'][$index]);
             $replacementName = $path[count($path) - 1];
             $replacementName = str_replace(['"', "'"], '', $replacementName);
-            $replacementCode = "= $replacementName";
+            $replacementCode = "= window.$replacementName";
             echo "Replacing $replacementName in $fileName.." . PHP_EOL;
             if ($replacementName === 'echo') {
                 $replacementCode = "= console.log";
