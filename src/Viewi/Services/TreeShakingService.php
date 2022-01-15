@@ -3,60 +3,67 @@
 namespace Viewi\Services;
 
 use Viewi\App;
+use Viewi\PageEngine;
 use Viewi\TagItem;
 use Viewi\TagItemType;
 
 class TreeShakingService
 {
-    private static array $selectors;
-    private static bool $inited = false;
+    private array $selectors;
+    private bool $inited = false;
+    private PageEngine $pageEngine;
 
-    private static function init()
+    public function __construct(PageEngine $pageEngine)
     {
-        if (!self::$inited) {
-            self::$inited = true;
-            self::$selectors = [];
-            $templates = App::getEngine()->getTemplates();
+        $this->pageEngine = $pageEngine;
+    }
+
+    private function init()
+    {
+        if (!$this->inited) {
+            $this->inited = true;
+            $this->selectors = [];
+            $templates = $this->pageEngine->getTemplates();
             foreach ($templates as $pageTemplate) {
-                self::processNode($pageTemplate->RootTag);
+                $this->processNode($pageTemplate->RootTag);
             }
             // echo '<pre>';
-            // print_r(self::$selectors);
+            // print_r($this->selectors);
         }
     }
 
-    private static function processNode(TagItem $node)
+    private function processNode(TagItem $node)
     {
         foreach ($node->getChildren() as &$tag) {
             if (!$tag->ItsExpression) {
                 switch ($tag->Type->Name) {
                     case TagItemType::Tag: {
-                            self::$selectors[$tag->Content] = true; // tag
+                            $this->selectors[$tag->Content] = true; // tag
                             break;
                         }
                     case TagItemType::Attribute: {
-                            self::$selectors["[{$tag->Content}]"] = true; // [attribute]
+                            $this->selectors["[{$tag->Content}]"] = true; // [attribute]
                             if ($tag->Content === 'class') {
-                                $values = self::getChildrenValues($tag);
+                                $values = $this->getChildrenValues($tag);
                                 foreach ($values as $class) {
-                                    self::$selectors[".$class"] = true; // .class
+                                    $this->selectors[".$class"] = true; // .class
                                 }
                             } else if ($tag->Content === 'id') {
-                                $id = self::getChildrenText($tag);
-                                self::$selectors["#$id"] = true; // #id
+                                $id = $this->getChildrenText($tag);
+                                $this->selectors["#$id"] = true; // #id
                             }
                             if ($tag->OriginContents !== null) {
                                 foreach ($tag->OriginContents as $originContent) {
                                     if (strpos($originContent, '.') !== false) {
                                         $parts = explode('.', $originContent, 2);
-                                        // self::$selectors["[{$parts[0]}]"] = true; // [attribute]
+                                        // $this->selectors["[{$parts[0]}]"] = true; // [attribute]
                                         if ($parts[0] === 'class') {
                                             $values = explode(' ', $parts[1]);
                                             foreach ($values as $class) {
-                                                self::$selectors[".$class"] = true; // .class
+                                                $this->selectors[".$class"] = true; // .class
                                             }
                                         } else if ($parts[0] === 'id') {
-                                            self::$selectors["#{$parts[1]}"] = true; // #id
+                                            $this->selectors["#{$parts[1]}"] = true; // #id
                                         }
                                     }
                                 }
@@ -68,11 +75,11 @@ class TreeShakingService
                         }
                 }
             }
-            self::processNode($tag);
+            $this->processNode($tag);
         }
     }
 
-    private static function getChildrenText(TagItem $node)
+    private function getChildrenText(TagItem $node)
     {
         $text = '';
         foreach ($node->getChildren() as &$tag) {
@@ -83,7 +90,7 @@ class TreeShakingService
         return $text;
     }
 
-    private static function getChildrenValues(TagItem $node)
+    private function getChildrenValues(TagItem $node)
     {
         $values = [];
         foreach ($node->getChildren() as &$tag) {
@@ -292,7 +299,7 @@ class TreeShakingService
                         // if ($subSelector && $subSelector[0] == '[') {
                         //     print_r($subSelector . ' - ');
                         // }
-                        $rule['valid'] = $rule['valid'] || !$subSelector || isset(self::$selectors[$subSelector]);
+                        $rule['valid'] = $rule['valid'] || !$subSelector || isset($this->selectors[$subSelector]);
                     }
                     $rule['selectors'] = $validatedSelectors;
                 }
@@ -334,7 +341,7 @@ class TreeShakingService
 
     public function shakeCss(string $cssText): string
     {
-        self::init();
+        $this->init();
         $this->css = $cssText;
         $this->reset();
         $this->newTokensGroup();
@@ -342,7 +349,7 @@ class TreeShakingService
         $this->validateRules();
         // echo '<pre>';
         // print_r($this->cssTokens);
-        // print_r(self::$selectors);
+        // print_r($this->selectors);
         return $this->getShakenCss();
     }
 }

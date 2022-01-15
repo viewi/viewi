@@ -29,7 +29,7 @@ class AssetsManager
         return $scripts;
     }
 
-    public static function getViewiStylesHtml(CssBundle $bundle): string
+    public static function getViewiStylesHtml(CssBundle $bundle, PageEngine $_pageEngine): string
     {
         $html = '';
         $rootDir = App::$config[PageEngine::PUBLIC_ROOT_DIR];
@@ -39,7 +39,7 @@ class AssetsManager
         $version = $dev ? '' : '?v=' . date('ymdHis');
         $componentVersion = $bundle->__version();
         $minifyService = new MinifyService();
-        $treeShakeService = new TreeShakingService();
+        $treeShakeService = new TreeShakingService($_pageEngine);
         if ($bundle->link) {
             $cssName = $bundle->link;
             $cssContent = ($bundle->combine || $bundle->minify || $bundle->shakeTree) ? file_get_contents($rootDir . $cssName) : '';
