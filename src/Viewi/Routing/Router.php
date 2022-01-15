@@ -83,6 +83,12 @@ class Router
         return $response;
     }
 
+    /**
+     * 
+     * @param mixed $url 
+     * @param string $method 
+     * @return array{route: RouteItem, params: array} 
+     */
     public static function resolve($url, $method = 'get'): ?array
     {
         if (!$url) {
