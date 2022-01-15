@@ -127,7 +127,7 @@ class PageEngine
     private bool $development;
     private array $componentArguments = [];
     private array $componentScopeVariables = [];
-    private bool $compiled = false;
+    private static bool $compiled = false;
     private bool $waitingComponents = true;
     private JsTranslator $expressionsTranslator;
     private array $requestedIncludes = [];
@@ -137,6 +137,7 @@ class PageEngine
      */
     private bool $renderReturn;
     private string $_CompileComponentName = '$_component';
+    private string $_engineName = '$_pageEngine';
     private string $_CompileExpressionPrefix;
     private string $_CompileExpressionJsPrefix;
     private bool $enableMinificationAndGzipping;
@@ -184,18 +185,16 @@ class PageEngine
             substr(strrchr($component, "\\"), 1)
             : $component;
         if ($this->development) {
-            set_time_limit(10);
+            // set_time_limit(10); // TODO: fix it for ReactPHP, Swoole, etc
             $this->compile($component);
-        } else {
-            if ($this->waitingComponents) {
-                $this->waitingComponents = false;
-                // include component infos
-                $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
-                include_once $componentsPath;
-                ReadComponentsInfo($this);
-            }
         }
-
+        if ($this->waitingComponents) {
+            $this->waitingComponents = false;
+            // include component infos
+            $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+            include_once $componentsPath;
+            ReadComponentsInfo($this);
+        }
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
@@ -435,7 +434,7 @@ class PageEngine
      */
     function compile(string $initialComponent = null): void
     {
-        if ($this->compiled) {
+        if (self::$compiled) {
             return;
         }
         $this->enableMinificationAndGzipping = $this->config[self::MINIFY] ?? false;
@@ -447,7 +446,7 @@ class PageEngine
         $this->expressionsTranslator->setOuterScope();
         $this->compiledJs = [];
         $this->componentDependencies = [];
-        $this->compiled = true;
+        self::$compiled = true;
         $this->templateVersions = [];
         $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
         $this->removeDirectory($this->buildPath);
@@ -601,6 +600,7 @@ class PageEngine
             unset($versionComponentInfo->RenderFunction);
             $versionComponentInfo->Versions = $templates;
         }
+        $this->waitingComponents = false;
         $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
 
         // mate info
@@ -860,7 +860,12 @@ class PageEngine
                 $newExpression .= $spaces[$i] . $keyword;
             } else if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
-                    if (isset($this->componentArguments[$keyword]) || $newVariables || $keyword == $this->_CompileComponentName) {
+                    if (
+                        isset($this->componentArguments[$keyword])
+                        || $newVariables
+                        || $keyword == $this->_CompileComponentName
+                        || $keyword == $this->_engineName
+                    ) {
                         $newExpression .= $spaces[$i] . $keyword;
                     } else {
                         $newExpression .= $spaces[$i] . $this->_CompileExpressionPrefix . substr($keyword, 1);
@@ -913,7 +918,8 @@ class PageEngine
             $tagItem->ItsExpression = false;
             $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
             // $this->debug($phpCode);
-            $_component = $this->currentComponentInstance ?? null; // use for version
+            $_component = $this->currentComponentInstance ?? null; // keep it for version eval
+            $_pageEngine = $this; // keep it for version eval
             $tagItem->Content = eval('return ' . $phpCode . ';');
             $code .= $tagItem->Content;
             $tagItem->RawHtml = true;

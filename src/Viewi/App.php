@@ -7,8 +7,6 @@ use Viewi\WebComponents\Response;
 
 class App
 {
-    private static PageEngine $engine;
-
     public static array $config;
 
     public static ?array $publicConfig = null;
@@ -18,17 +16,16 @@ class App
         $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
         self::$config = $config;
         self::$publicConfig = $publicConfig;
-        self::$engine = new PageEngine(self::$config, self::$publicConfig);
     }
 
     public static function run(string $component, array $params)
     {
-        return self::$engine->render($component, $params);
+        return self::getEngine()->render($component, $params);
     }
 
     public static function getEngine(): PageEngine
     {
-        return self::$engine;
+        return new PageEngine(self::$config, self::$publicConfig);
     }
 
     public static function handle(?string $url = null, string $method = null)
