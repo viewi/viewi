@@ -44,6 +44,10 @@ class HttpClient
                 $data = array_merge($data, $queryData);
             }
             $data = Route::handle($type, $url, $data);
+            if ($data instanceof PromiseResolver) {
+                $data->then($resolve, $reject);
+                return;
+            }
             if ($data instanceof Response) {
                 $response->content = $data->Content;
                 $response->headers = $data->Headers;
@@ -114,9 +118,7 @@ class HttpClient
                 $onHandle();
             });
         }
-
         $resolver = new PromiseResolver($requestResolver);
-
         return $resolver;
     }
 
