@@ -63,8 +63,6 @@ class PageEngine
      */
     const RETURN_OUTPUT = 'RETURN_OUTPUT';
 
-
-
     private string $sourcePath;
     private string $buildPath;
     private string $publicRootPath;
@@ -201,6 +199,7 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
+        // default dependencies
         $dependencies = [
             IHttpContext::class => new HttpContext()
         ];
