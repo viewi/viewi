@@ -2,6 +2,7 @@
 
 namespace Viewi;
 
+use Viewi\DI\IContainer;
 use Viewi\Routing\Router;
 use Viewi\WebComponents\Response;
 
@@ -18,9 +19,9 @@ class App
         self::$publicConfig = $publicConfig;
     }
 
-    public static function run(string $component, array $params)
+    public static function run(string $component, array $params, ?IContainer $container = null)
     {
-        return self::getEngine()->render($component, $params);
+        return self::getEngine()->render($component, $params, $container);
     }
 
     public static function getEngine(): PageEngine
