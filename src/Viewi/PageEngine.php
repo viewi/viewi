@@ -8,7 +8,10 @@ use \ReflectionNamedType;
 use \Exception;
 use ReflectionException;
 use Viewi\Components\Interfaces\IMiddleware;
+use Viewi\DI\IContainer;
 use \Viewi\Routing\Route;
+use Viewi\WebComponents\HttpContext;
+use Viewi\WebComponents\IHttpContext;
 
 class PageEngine
 {
@@ -179,7 +182,7 @@ class PageEngine
      * @throws ReflectionException 
      * @throws Exception Component is missing
      */
-    function render(string $component, array $params = [])
+    function render(string $component, array $params = [], ?IContainer $container = null)
     {
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
@@ -197,6 +200,34 @@ class PageEngine
         }
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
+        }
+        $dependencies = [
+            IHttpContext::class => new HttpContext()
+        ];
+        if ($container != null) {
+            $dependencies = $container->getAll();
+        }
+        foreach ($dependencies as $type => $instance) {
+            $namespace = '';
+            $name = $type;
+            $lastTokenLocation = strrpos($type, "\\");
+            if ($lastTokenLocation !== false) {
+                $name = substr($type, $lastTokenLocation + 1);
+                $namespace = substr($type, 0, $lastTokenLocation);
+            }
+            if (!isset($this->components[$name])) {
+                $componentInfo = new ComponentInfo();
+                $componentInfo->Name = $name;
+                $componentInfo->Namespace = $namespace;
+                $componentInfo->IsComponent = false;
+                $componentInfo->HasInit = false;
+                $componentInfo->HasMounted = false;
+                $componentInfo->HasBeforeMount = false;
+                $componentInfo->Instance = $instance;
+                $this->components[$name] = $componentInfo;
+            } else {
+                $this->components[$name]->Instance = $instance;
+            }
         }
         $content = $this->renderComponent($component, $params, null, [], []);
         return $content;
@@ -361,7 +392,7 @@ class PageEngine
                             if ($namedType->allowsNull()) {
                                 $dependencies[$argumentName]['null'] = 1;
                             }
-                            if (!is_null($argumentClass)) {
+                            if (!is_null($argumentClass) && $argumentClass->isInstantiable()) {
                                 $this->buildDependencies($argumentClass);
                                 $className = $argumentClass->getShortName();
                                 $this->compileToJs($argumentClass);
@@ -1007,6 +1038,9 @@ class PageEngine
 
     function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false, array $params = [])
     {
+        if (isset($componentInfo->Instance)) {
+            return $componentInfo->Instance;
+        }
         // cache service instances or parent components for slots
         // do not cache component instances
         // $this->debug($componentInfo);
