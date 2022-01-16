@@ -1925,6 +1925,9 @@ function Viewi() {
     var resolve = function (name, params, id) {
         // TODO: check scope and/or cache
         var info = $this.components[name];
+        if (!info) {
+            return null;
+        }
         var dependencies = info.dependencies;
         var cache = info.service;
         if (cache && name in injectionCache) {
@@ -2470,14 +2473,6 @@ function Viewi() {
 
     this.htmlentities = function (html) {
         return html;
-        return typeof html === 'string' ?
-            html
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;")
-            : html;
     }
 
     var encoder = document.createElement('textarea');
