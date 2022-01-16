@@ -69,4 +69,10 @@ class ComponentInfo
      * @var array<string,array>
      */
     public array $Versions;
+
+    /**
+     * 
+     * @var mixed Instance from IContainer
+     */
+    public $Instance;
 }
