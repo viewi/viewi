@@ -81,7 +81,7 @@ function Viewi() {
             }
             var target = e.target || e.srcElement;
             var aTarget = target;
-            if (aTarget.parentNode.tagName === 'A') {
+            if (aTarget.parentNode && aTarget.parentNode.tagName === 'A') {
                 aTarget = aTarget.parentNode;
             }
             if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
