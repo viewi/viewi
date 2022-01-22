@@ -8,6 +8,7 @@ use \ReflectionNamedType;
 use \Exception;
 use ReflectionException;
 use Viewi\Components\Interfaces\IMiddleware;
+use Viewi\Components\Services\AsyncStateManager;
 use Viewi\DI\IContainer;
 use \Viewi\Routing\Route;
 use Viewi\WebComponents\HttpContext;
@@ -151,6 +152,14 @@ class PageEngine
     private int $forIterationKey = 0;
     private array $config;
     private array $_slots = [];
+    /**
+     * 
+     * @var callable(string)
+     */
+    private $callback = null;
+    private array $renderQueue = [];
+    private int $renderQueueIndex = 0;
+    private AsyncStateManager $asyncStateManager;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -180,8 +189,10 @@ class PageEngine
      * @throws ReflectionException 
      * @throws Exception Component is missing
      */
-    function render(string $component, array $params = [], ?IContainer $container = null)
+    function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback)
     {
+        $this->callback = $callback;
+        $this->asyncStateManager = new AsyncStateManager();
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
@@ -199,12 +210,13 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
-        // default dependencies
+        // default dependencies        
         $dependencies = [
-            IHttpContext::class => new HttpContext()
+            IHttpContext::class => new HttpContext(),
+            AsyncStateManager::class => $this->asyncStateManager
         ];
         if ($container != null) {
-            $dependencies = $container->getAll();
+            $dependencies = array_merge($dependencies, $container->getAll());
         }
         foreach ($dependencies as $type => $instance) {
             $namespace = '';
@@ -229,6 +241,10 @@ class PageEngine
             }
         }
         $content = $this->renderComponent($component, $params, null, [], []);
+        if ($this->callback != null) {
+            ($this->callback)($content);
+            return;
+        }
         return $content;
     }
 
@@ -313,8 +329,8 @@ class PageEngine
 
     function updateComponentPath(ComponentInfo $componentInfo, string $fullPath): void
     {
-        $componentInfo->Fullpath = $this->getRelativeSourcePath($fullPath);
-        $componentInfo->Relative = $componentInfo->Fullpath !== $fullPath;
+        $componentInfo->FullPath = $this->getRelativeSourcePath($fullPath);
+        $componentInfo->Relative = $componentInfo->FullPath !== $fullPath;
     }
 
     /**
@@ -1046,9 +1062,9 @@ class PageEngine
         $cache = true;
         $relative = $componentInfo->Relative;
         if ($relative) {
-            include_once $this->sourcePath . $componentInfo->Fullpath;
+            include_once $this->sourcePath . $componentInfo->FullPath;
         } else {
-            include_once $componentInfo->Fullpath;
+            include_once $componentInfo->FullPath;
         }
         if ($componentInfo->IsComponent) {
             // always new instance
@@ -1109,6 +1125,7 @@ class PageEngine
                 $instance = new $class(...$arguments);
             }
         }
+
         // always cache for slots
         $this->Dependencies[$class] = $instance;
         return $instance;
@@ -1117,7 +1134,7 @@ class PageEngine
     function renderDynamicTag($tagName, $slotName, ...$args)
     {
         $tagInfo = &$this->components[$slotName];
-        include_once $this->sourcePath . $tagInfo->Fullpath;
+        include_once $this->sourcePath . $tagInfo->FullPath;
         include_once $this->buildPath . $tagInfo->BuildPath;
         return ($tagInfo->RenderFunction)(...$args);
     }
@@ -1132,6 +1149,9 @@ class PageEngine
     ) {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
+            // initiate a new state
+            $this->asyncStateManager->initiateState();
+            // $this->debug($this->asyncStateManager->initiateContext());
             $componentInfo = &$this->components[$componentName];
             // $this->debug($componentInfo);
             // $this->debug('============' . $componentName);
@@ -1199,6 +1219,18 @@ class PageEngine
                     include_once $this->buildPath . $componentInfo->BuildPath;
                 }
             }
+            if ($this->asyncStateManager->pending()) {
+                echo "$componentName Pending state: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                $this->asyncStateManager->all(
+                    function () use ($renderFunction, $classInstance, $slotsQueue, $slotArguments) {
+                        $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
+                        echo "All resolved, callback called: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                        echo "Content: $content" . PHP_EOL;
+                    }
+                );
+                $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
+                return "## PENDING {$this->asyncStateManager->getState()} $componentName ##";
+            }
             // $this->debug(func_get_args());
             $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
             $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
@@ -1264,12 +1296,12 @@ class PageEngine
             $slotPageTemplate->ComponentInfo->Namespace = $this->latestPageTemplate->ComponentInfo->Namespace;
             $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
             //$this->debug($this->latestPageTemplate->ComponentInfo);
-            $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->Fullpath);
+            $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->FullPath);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $componentBaseName;
             $phpPath = $pathWOext . '.php';
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $this->getRelativeSourcePath($htmlPath);
-            $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
+            $slotPageTemplate->ComponentInfo->FullPath = $this->latestPageTemplate->ComponentInfo->FullPath;
             $slotPageTemplate->ComponentInfo->Relative = $this->latestPageTemplate->ComponentInfo->Relative;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
@@ -2088,9 +2120,9 @@ class PageEngine
                             $componentInfo = $this->components[$tagItem->Content];
                             $className = $componentInfo->Namespace . '\\' . $componentInfo->Name;
                             if ($this->components[$tagItem->Content]->Relative) {
-                                include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+                                include_once $this->sourcePath . $this->components[$tagItem->Content]->FullPath;
                             } else {
-                                include_once $this->components[$tagItem->Content]->Fullpath;
+                                include_once $this->components[$tagItem->Content]->FullPath;
                             }
                         }
                         // if ($tagItem->Content == 'HelloMessage') {
