@@ -18,7 +18,7 @@ class AsyncStateManager
     public function initiateState(): int
     {
         $this->currentStateId = ++$this->stateIdIndex;
-        echo "State initiated: {$this->currentStateId}" . PHP_EOL;
+        // echo "State initiated: {$this->currentStateId}" . PHP_EOL;
         return $this->currentStateId;
     }
 
@@ -30,7 +30,7 @@ class AsyncStateManager
     public function setState(int $id): void
     {
         $this->currentStateId = $id;
-        echo "State restored: {$this->currentStateId}" . PHP_EOL;
+        // echo "State restored: {$this->currentStateId}" . PHP_EOL;
     }
 
     /**
@@ -48,9 +48,9 @@ class AsyncStateManager
         if (!isset($this->queueMap[$stateId])) {
             $this->queueMap[$stateId] = 1;
         }
-        echo "Promise scheduled: {$stateId}" . PHP_EOL;
+        // echo "Promise scheduled: {$stateId}" . PHP_EOL;
         $promise->always(function () use ($stateId) {
-            echo "Promise resolved: {$stateId}" . PHP_EOL;
+            // echo "Promise resolved: {$stateId}" . PHP_EOL;
             // Restore state id
             $this->setState($stateId);
             $this->queueMap[$stateId]--;
