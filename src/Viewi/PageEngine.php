@@ -163,6 +163,7 @@ class PageEngine
      */
     private array $renderQueue = [];
     private int $pendingQueueItems = 0;
+    private bool $renderScheduled = false;
     private AsyncStateManager $asyncStateManager;
     public static ?array $publicConfig = null;
 
@@ -245,6 +246,11 @@ class PageEngine
             }
         }
         $this->renderComponent($component, $params, null, [], []);
+        $this->renderScheduled = true;
+        if (!$this->asyncStateManager->pendingByType('http')) {
+            // echo "Emitting httpReady from root render" . PHP_EOL;
+            $this->asyncStateManager->emit('httpReady');
+        }
         if ($this->callback != null && $this->pendingQueueItems == 0) {
             $this->publishRendered();
             return;
@@ -1243,8 +1249,13 @@ class PageEngine
                         // echo "All resolved, callback called: {$this->asyncStateManager->getState()}" . PHP_EOL;
                         // echo "Content: $content" . PHP_EOL;
                         $this->pendingQueueItems--;
-                        if ($this->pendingQueueItems === 0 && $this->callback !== null) {
-                            $this->publishRendered();
+                        if ($this->renderScheduled) {
+                            if ($this->pendingQueueItems === 0 && $this->callback !== null) {
+                                $this->publishRendered();
+                            } else if (!$this->asyncStateManager->pendingByType('http')) {
+                                // echo "Emitting httpReady from pending" . PHP_EOL;            
+                                $this->asyncStateManager->emit('httpReady');
+                            }
                         }
                     }
                 );
