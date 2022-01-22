@@ -157,8 +157,12 @@ class PageEngine
      * @var callable(string)
      */
     private $callback = null;
+    /**
+     * 
+     * @var ?string[]
+     */
     private array $renderQueue = [];
-    private int $renderQueueIndex = 0;
+    private int $pendingQueueItems = 0;
     private AsyncStateManager $asyncStateManager;
     public static ?array $publicConfig = null;
 
@@ -189,7 +193,7 @@ class PageEngine
      * @throws ReflectionException 
      * @throws Exception Component is missing
      */
-    function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback)
+    function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback = null)
     {
         $this->callback = $callback;
         $this->asyncStateManager = new AsyncStateManager();
@@ -240,12 +244,19 @@ class PageEngine
                 $this->components[$name]->Instance = $instance;
             }
         }
-        $content = $this->renderComponent($component, $params, null, [], []);
-        if ($this->callback != null) {
-            ($this->callback)($content);
+        $this->renderComponent($component, $params, null, [], []);
+        if ($this->callback != null && $this->pendingQueueItems == 0) {
+            $this->publishRendered();
             return;
         }
+        $content = implode('', $this->renderQueue);
         return $content;
+    }
+
+    function publishRendered()
+    {
+        $content = implode('', $this->renderQueue);
+        ($this->callback)($content);
     }
 
     function removeDirectory($path, $removeRoot = false)
@@ -1220,22 +1231,37 @@ class PageEngine
                 }
             }
             if ($this->asyncStateManager->pending()) {
-                echo "$componentName Pending state: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                $this->pendingQueueItems++;
+                // echo "$componentName Pending state: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                $pendingContent = "## PENDING {$this->asyncStateManager->getState()} $componentName ##";
+                $this->renderQueue[] = $pendingContent;
+                $queueIndex = count($this->renderQueue) - 1;
                 $this->asyncStateManager->all(
-                    function () use ($renderFunction, $classInstance, $slotsQueue, $slotArguments) {
+                    function () use ($renderFunction, $classInstance, $slotsQueue, $slotArguments, $queueIndex) {
                         $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
-                        echo "All resolved, callback called: {$this->asyncStateManager->getState()}" . PHP_EOL;
-                        echo "Content: $content" . PHP_EOL;
+                        $this->renderQueue[$queueIndex] = $content;
+                        // echo "All resolved, callback called: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                        // echo "Content: $content" . PHP_EOL;
+                        $this->pendingQueueItems--;
+                        if ($this->pendingQueueItems === 0 && $this->callback !== null) {
+                            $this->publishRendered();
+                        }
                     }
                 );
                 $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
-                return "## PENDING {$this->asyncStateManager->getState()} $componentName ##";
+                return $pendingContent;
             }
             // $this->debug(func_get_args());
             $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
             $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
+            $this->renderQueue[] = $content;
             return $content;
         }
+    }
+
+    function putInQueue(string $content)
+    {
+        $this->renderQueue[] = $content;
     }
 
     function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null, array $inputArguments = []): void
@@ -1318,7 +1344,7 @@ class PageEngine
         }
         $eol = PHP_EOL;
         $codeBegin = $this->renderReturn ? $eol : ($lastLineIsSpace ? $eol : '') . "<?php$eol";
-        $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
+        $codeMiddle = $this->renderReturn ? "\$pageEngine->putInQueue(\$_content);" : '';
         $codeEnd = $this->renderReturn ? '' : '?>';
 
         if ($slotContentNameExpr) {
@@ -1351,7 +1377,8 @@ class PageEngine
 
             $html .= $codeBegin .
                 $this->indentation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->indentation . "{$codeMiddle}\$pageEngine->renderComponent(" .
+                PHP_EOL . $this->indentation . "{$codeMiddle}" .
+                PHP_EOL . $this->indentation . "\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "[], " .
                 "{$this->_CompileComponentName}, " .
@@ -1359,6 +1386,7 @@ class PageEngine
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
                 PHP_EOL . $this->indentation . "\$slotContents = [];" .
+                PHP_EOL . $this->indentation . "\$_content = \"\";" .
                 $codeEnd;
         }
     }
@@ -1396,9 +1424,9 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content .=" : "<?php";
-            $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
+            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$pageEngine->putInQueue(\$_content);" . PHP_EOL . $this->indentation : "<?php";
+            $codeEnd = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content = \"\";" : '?>';
+            $html .= $codeBegin . "\$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
         }
     }
 
