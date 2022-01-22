@@ -1424,7 +1424,7 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$pageEngine->putInQueue(\$_content);" . PHP_EOL . $this->indentation : "<?php";
+            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$pageEngine->putInQueue(\$_content);" . PHP_EOL . $this->indentation : "<?php ";
             $codeEnd = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content = \"\";" : '?>';
             $html .= $codeBegin . "\$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
         }
