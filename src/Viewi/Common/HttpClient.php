@@ -52,7 +52,10 @@ class HttpClient
             }
             $data = Route::handle($type, $url, $data);
             if ($data instanceof PromiseResolver) {
-                $data->then($resolve, $reject);
+                $data->then(function ($data) use ($resolve, $requestKey) {
+                    $this->scopeResponses[$requestKey] = $data;
+                    $resolve($data);
+                }, $reject);
                 return;
             }
             if ($data instanceof Response) {
@@ -125,9 +128,9 @@ class HttpClient
                 $onHandle();
             });
         }
-        
+
         // ?? track automatically all promises ??
-        return $this->asyncStateManager->track(new PromiseResolver($requestResolver));
+        return $this->asyncStateManager->track(new PromiseResolver($requestResolver), 'http');
     }
 
     public function get($url, ?array $options = null)
