@@ -7,10 +7,11 @@ use Viewi\Common\PromiseResolver;
 class AsyncStateManager
 {
     private array $queueMap = [];
+    private array $pendingTypes = [];
     private array $callbacksMap = [];
     private int $stateIdIndex = 0;
     private int $currentStateId = 0;
-
+    private array $events = [];
     /**
      * Initiate State
      * @return int State Id
@@ -42,18 +43,24 @@ class AsyncStateManager
         return $this->currentStateId;
     }
 
-    public function track(PromiseResolver $promise): PromiseResolver
+    public function track(PromiseResolver $promise, string $type = 'any'): PromiseResolver
     {
         $stateId = $this->currentStateId;
         if (!isset($this->queueMap[$stateId])) {
-            $this->queueMap[$stateId] = 1;
+            $this->queueMap[$stateId] = 0;
         }
-        // echo "Promise scheduled: {$stateId}" . PHP_EOL;
-        $promise->always(function () use ($stateId) {
+        $this->queueMap[$stateId]++;
+        if (!isset($this->pendingTypes[$type])) {
+            $this->pendingTypes[$type] = 0;
+        }
+        $this->pendingTypes[$type]++;
+        // echo "Promise scheduled: {$type} {$stateId}" . PHP_EOL;
+        $promise->always(function () use ($stateId, $type) {
             // echo "Promise resolved: {$stateId}" . PHP_EOL;
             // Restore state id
             $this->setState($stateId);
             $this->queueMap[$stateId]--;
+            $this->pendingTypes[$type]--;
             if ($this->queueMap[$stateId] == 0) {
                 unset($this->queueMap[$stateId]);
                 if (isset($this->callbacksMap[$stateId])) {
@@ -74,5 +81,29 @@ class AsyncStateManager
     {
         // call callback once everything is done
         $this->callbacksMap[$this->currentStateId] = $callback;
+    }
+
+    public function pendingByType(string $type): bool
+    {
+        return isset($this->pendingTypes[$type]) && $this->pendingTypes[$type] !== 0;
+    }
+
+    public function subscribe(string $eventName): PromiseResolver
+    {
+        return $this->track(new PromiseResolver(function ($resolve, $reject) use ($eventName) {
+            if (!isset($this->events[$eventName])) {
+                $this->events[$eventName] = [];
+            }
+            $this->events[$eventName][] = $resolve;
+        }));
+    }
+
+    public function emit(string $eventName, $data = null)
+    {
+        if (isset($this->events[$eventName])) {
+            foreach ($this->events[$eventName] as $resolve) {
+                $resolve($data);
+            }
+        }
     }
 }
