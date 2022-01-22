@@ -64,8 +64,9 @@ class AsyncStateManager
             if ($this->queueMap[$stateId] == 0) {
                 unset($this->queueMap[$stateId]);
                 if (isset($this->callbacksMap[$stateId])) {
-                    ($this->callbacksMap[$stateId])();
+                    $callback = $this->callbacksMap[$stateId];
                     unset($this->callbacksMap[$stateId]);
+                    $callback();
                 }
             }
         });
@@ -101,7 +102,9 @@ class AsyncStateManager
     public function emit(string $eventName, $data = null)
     {
         if (isset($this->events[$eventName])) {
-            foreach ($this->events[$eventName] as $resolve) {
+            $events = $this->events[$eventName];
+            unset($this->events[$eventName]);
+            foreach ($events as $resolve) {
                 $resolve($data);
             }
         }
