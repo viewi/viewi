@@ -3,6 +3,7 @@
 namespace Viewi\Common;
 
 use Exception;
+use Viewi\Components\Services\AsyncStateManager;
 use Viewi\Routing\Route;
 use Viewi\WebComponents\Response;
 
@@ -13,6 +14,12 @@ class HttpClient
     private $resolve;
     private $reject;
     private $scopeResponses = [];
+    private AsyncStateManager $asyncStateManager;
+
+    public function __construct(AsyncStateManager $asyncStateManager)
+    {
+        $this->asyncStateManager = $asyncStateManager;
+    }
 
     public function getScopeResponses()
     {
@@ -118,8 +125,9 @@ class HttpClient
                 $onHandle();
             });
         }
-        $resolver = new PromiseResolver($requestResolver);
-        return $resolver;
+        
+        // ?? track automatically all promises ??
+        return $this->asyncStateManager->track(new PromiseResolver($requestResolver));
     }
 
     public function get($url, ?array $options = null)
@@ -144,7 +152,7 @@ class HttpClient
 
     public function with(callable $interceptor)
     {
-        $client = new HttpClient();
+        $client = new HttpClient($this->asyncStateManager);
         $client->interceptors = $this->interceptors;
         $client->interceptors[] = $interceptor;
         return $client;
