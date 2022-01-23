@@ -52,6 +52,7 @@ var HttpClient = function () {
                     handle: makeRequest,
                     onHandle: entryCall,
                     httpClient: $this,
+                    reject: finalReject,
                     after: function () {
                         // console.log('empty after');
                     },
@@ -98,6 +99,7 @@ var HttpClient = function () {
             return new OnReady(function (resolve, reject) {
                 finalResolve = resolve;
                 finalReject = reject;
+                handler.reject = reject;
                 handler.onHandle(handler);
             });
             // OLD

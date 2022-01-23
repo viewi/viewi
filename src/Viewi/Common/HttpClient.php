@@ -11,8 +11,8 @@ class HttpClient
 {
     public array $interceptors = [];
     public array $options = [];
-    private $resolve;
-    private $reject;
+    private $httpResolve;
+    private $httpReject;
     private $scopeResponses = [];
     private AsyncStateManager $asyncStateManager;
 
@@ -50,37 +50,119 @@ class HttpClient
                 }
                 $data = array_merge($data, $queryData);
             }
-            $data = Route::handle($type, $url, $data);
-            if ($data instanceof PromiseResolver) {
-                $data->then(function ($data) use ($resolve, $requestKey) {
-                    $this->scopeResponses[$requestKey] = $data;
-                    $resolve($data);
-                }, $reject);
-                return;
-            }
-            if ($data instanceof Response) {
-                $response->content = $data->Content;
-                $response->headers = $data->Headers;
-                $response->status = $data->StatusCode;
-                if ($data->StatusCode >= 400 || $data->StatusCode < 200) {
-                    $response->success = false;
-                    $reject(new Exception("Error getting the response"));
+            $handledResponse = Route::handle($type, $url, $data);
+
+            $responseResolver = function ($data) use ($resolve, $requestKey, $response, $reject) {
+                if ($data instanceof Response) {
+                    $response->content = $data->Content;
+                    $response->headers = $data->Headers;
+                    $response->status = $data->StatusCode;
+                    if ($data->StatusCode >= 400 || $data->StatusCode < 200) {
+                        $response->success = false;
+                        $reject(new Exception("Error getting the response"));
+                        return;
+                    }
+                    $this->scopeResponses[$requestKey] = $data->Content;
+                    $resolve($data->Content);
                     return;
                 }
-                $this->scopeResponses[$requestKey] = $data->Content;
-                $resolve($data->Content);
+                // echo " == request $type $url == \n<br>";
+                $response->status = 200;
+                $response->content = $data;
+                $this->scopeResponses[$requestKey] = $data;
+                $resolve($data);
+            };
+
+            if ($handledResponse instanceof PromiseResolver) {
+                $handledResponse->then($responseResolver, $reject);
                 return;
             }
-            // echo " == request $type $url == \n<br>";
-            $response->status = 200;
-            $response->content = $data;
-            $this->scopeResponses[$requestKey] = $data;
-            $resolve($data);
+            $responseResolver($handledResponse);
         };
 
         $count = count($this->interceptors);
         if ($count > 0) {
 
+            // intercept(HttpHandler $handler) {
+            //      $handler->handle(
+            //          function ($next) use ($handler) {
+            //              $next(); // next interceptor or http call -> promise(mainResolve, mainReject)
+            //      $handler->reject($error); // main reject()
+            // -- NEW ASYNC INTERCEPTORS --
+
+            $mainResolve = null;
+            $mainReject = null;
+
+            $handlerIndex = -1;
+            $handleIteration = null;
+
+            $afterIndex = -2;
+            $afters = [];
+            $handleAfters = null;
+            $handleAfters = function () use (&$mainReject, &$mainResolve, $requestResolver, &$afters, &$afterIndex, &$handleAfters, $response) {
+                $afterIndex++;
+                // echo "Handling after $afterIndex\n";
+                
+                if ($afterIndex === -1) {
+                    $requestResolver(
+                        //$mainResolve
+                        function () use ($handleAfters) {
+                        // echo "Request call resolved, calling afters chain\n";
+                        // print_r($handleAfters);
+                        $handleAfters();
+                    }
+                    , $mainReject);
+                } else if ($afterIndex < count($afters)) {
+                    // echo "Calling after $afterIndex\n";
+                    $afterFunction = $afters[$afterIndex];
+                    $afterFunction($handleAfters);
+                } else {
+                    // echo "Calling main resolve reject\n";
+                    // print_r($response);
+                    if ($response->success) {
+                        $mainResolve($response->content);
+                    } else {
+                        $mainReject($response->content);
+                    }
+                }
+            };
+
+            $handleIteration = function () use (&$handlerIndex, $response, &$mainReject, &$mainResolve, &$handleIteration, &$afters, $handleAfters) {
+                $handlerIndex++;
+                $count = count($this->interceptors);
+                if ($handlerIndex < $count) {
+                    // call down
+                    $httpHandler = new HttpHandler();
+                    $httpHandler->response = $response;
+                    $httpHandler->httpClient = $this;
+                    $httpHandler->onHandle = function () use ($handleIteration, $httpHandler, &$afters) {
+                        $afters[] = $httpHandler->after;
+                        $handleIteration();
+                    };
+                    $httpHandler->onReject = function ($error) use ($mainReject) {
+                        $mainReject($error);
+                    };
+
+                    $interceptor = $this->interceptors[$handlerIndex][0];
+                    $method = $this->interceptors[$handlerIndex][1];
+                    $interceptor->$method($httpHandler);
+                } else {
+                    // call http, call up
+                    // print_r(['simulate http request', !!$mainResolve, !!$mainReject]);
+                    // chain afters
+                    $afters = array_reverse($afters);
+                    $handleAfters();
+                }
+            };
+
+            return $this->asyncStateManager->track(new PromiseResolver(function (callable $resolve, callable $reject) use (&$mainResolve, &$mainReject, $handleIteration) {
+                $mainResolve = $resolve;
+                $mainReject = $reject;
+                // print_r(['track handleIteration', !!$mainResolve, !!$mainReject]);
+                $handleIteration();
+            }));
+
+            // -- OLD --
             $onHandle = function () use ($requestResolver) {
                 $requestResolver(function () {
                 }, function () {
@@ -97,7 +179,6 @@ class HttpClient
                 $httpHandler->httpClient = $this;
 
                 $httpHandler->onHandle = $onHandle;
-
                 $interceptor = $this->interceptors[$i][0];
                 $method = $this->interceptors[$i][1];
 
@@ -105,6 +186,8 @@ class HttpClient
                 // $handler->handle(...)
                 // next handler or request => response
                 $onHandle = function () use ($httpHandler, $interceptor, $method) {
+                    // echo "handle called\n";
+                    $httpHandler->onReject = $this->httpReject;
                     $interceptor->$method($httpHandler);
 
                     if ($httpHandler->after !== null && ($httpHandler->previousHandler === null || $httpHandler->previousHandler->continue)) {
@@ -113,20 +196,20 @@ class HttpClient
                             if ($httpHandler->top) {
                                 // echo ' --RESOLVING TOP-- ';
                                 if ($httpHandler->response->success) {
-                                    ($this->resolve)($httpHandler->response->content);
+                                    ($this->httpResolve)($httpHandler->response->content);
                                 } else {
-                                    ($this->reject)($httpHandler->response->content);
+                                    ($this->httpReject)($httpHandler->response->content);
                                 }
                             }
-                        });
+                        }, $this->httpReject);
                     }
                 };
             }
-            return new PromiseResolver(function (callable $resolve, callable $reject) use ($onHandle) {
-                $this->resolve = $resolve;
-                $this->reject = $reject;
+            return $this->asyncStateManager->track(new PromiseResolver(function (callable $resolve, callable $reject) use ($onHandle) {
+                $this->httpResolve = $resolve;
+                $this->httpReject = $reject;
                 $onHandle();
-            });
+            }));
         }
 
         // ?? track automatically all promises ??
@@ -158,6 +241,7 @@ class HttpClient
         $client = new HttpClient($this->asyncStateManager);
         $client->interceptors = $this->interceptors;
         $client->interceptors[] = $interceptor;
+        $client->scopeResponses = &$this->scopeResponses;
         return $client;
     }
 
