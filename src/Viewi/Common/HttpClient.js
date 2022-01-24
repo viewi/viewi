@@ -3,13 +3,17 @@ var HttpClient = function () {
     this.interceptors = [];
     this.options = {};
     var $this = this;
+    var isObject = function (variable) {
+        return typeof variable === 'object' &&
+            !Array.isArray(variable) &&
+            variable !== null
+    };
 
     this.request = function (type, url, data, options) {
         this.setOptions(options);
         if (typeof viewiScopeData !== 'undefined') {
             var requestKey = type.toLowerCase() + '_' + url + '_' + JSON.stringify(data);
-            if(requestKey in viewiScopeData)
-            {
+            if (requestKey in viewiScopeData) {
                 return new OnReady(function (onOk, onError) {
                     onOk(viewiScopeData[requestKey]);
                     delete viewiScopeData[requestKey];
@@ -87,6 +91,7 @@ var HttpClient = function () {
                     handler.handle = (function (nextHandler) {
                         return function (after) {
                             nextHandler.previousHandler.after = after;
+                            nextHandler.reject = nextHandler.previousHandler.reject;                    
                             nextHandler.onHandle(nextHandler);
                             // console.log('after', nextHandler);
                         };
@@ -147,12 +152,22 @@ var HttpClient = function () {
         var client = new HttpClient();
         client.interceptors = this.interceptors.slice();
         client.interceptors.push(interceptor);
+        client.options = Object.assign({}, this.options); // TODO: deep clone
+        for (var k in client.options) {
+            if (isObject(client.options[k])) {
+                client.options[k] = Object.assign({}, client.options[k]);
+            }
+        }
         return client;
     }
 
     this.setOptions = function (options) {
         for (var k in options) {
-            this.options[k] = options[k];
+            if (k === 'headers') {
+                this.options[k] = Object.assign(this.options[k] || {}, options[k]);
+            } else {
+                this.options[k] = options[k];
+            }
         }
     }
 };
