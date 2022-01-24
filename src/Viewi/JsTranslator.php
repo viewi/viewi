@@ -718,7 +718,7 @@ class JsTranslator
                             break;
                         }
                     case 'final': {
-                        $this->position += strlen($this->lastBreak);
+                        $skipLastSaving = true;
                         break;
                     }
                     case '[': {
