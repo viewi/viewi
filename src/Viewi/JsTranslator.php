@@ -717,6 +717,10 @@ class JsTranslator
                             $this->putIndentation = true;
                             break;
                         }
+                    case 'final': {
+                        $skipLastSaving = true;
+                        break;
+                    }
                     case '[': {
                             $code .= $this->readArray(']') . ' '; // TODO: improve white spacing
                             if ($this->skipVariableKey) {
