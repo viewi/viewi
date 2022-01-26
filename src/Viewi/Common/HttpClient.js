@@ -10,6 +10,9 @@ var HttpClient = function () {
     };
 
     this.request = function (type, url, data, options) {
+        if (typeof data === 'undefined') {
+            data = null;
+        }
         this.setOptions(options);
         if (typeof viewiScopeData !== 'undefined') {
             var requestKey = type.toLowerCase() + '_' + url + '_' + JSON.stringify(data);
@@ -91,7 +94,7 @@ var HttpClient = function () {
                     handler.handle = (function (nextHandler) {
                         return function (after) {
                             nextHandler.previousHandler.after = after;
-                            nextHandler.reject = nextHandler.previousHandler.reject;                    
+                            nextHandler.reject = nextHandler.previousHandler.reject;
                             nextHandler.onHandle(nextHandler);
                             // console.log('after', nextHandler);
                         };
