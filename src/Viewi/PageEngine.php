@@ -166,6 +166,7 @@ class PageEngine
     private bool $renderScheduled = false;
     private int $middlewareIndex = -1;
     private AsyncStateManager $asyncStateManager;
+    private bool $async = false;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -198,7 +199,9 @@ class PageEngine
     function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback = null)
     {
         $this->callback = $callback;
+        $this->async = $this->callback != null;
         $this->asyncStateManager = new AsyncStateManager();
+        $this->asyncStateManager->setAsync($this->async);
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
@@ -247,13 +250,17 @@ class PageEngine
                 $this->components[$name]->Instance = $instance;
             }
         }
+        if(!$this->async)
+        {
+            $this->asyncStateManager->emit('httpReady');
+        }
         $this->renderComponent($component, $params, null, [], []);
         $this->renderScheduled = true;
-        if (!$this->asyncStateManager->pendingByType('http')) {
+        if ($this->async && !$this->asyncStateManager->pendingByType('http')) {
             // echo "Emitting httpReady from root render" . PHP_EOL;
             $this->asyncStateManager->emit('httpReady');
         }
-        if ($this->callback != null && $this->pendingQueueItems == 0) {
+        if ($this->async && $this->pendingQueueItems == 0) {
             $this->publishRendered();
             return;
         }
@@ -1261,7 +1268,7 @@ class PageEngine
                     include_once $this->buildPath . $componentInfo->BuildPath;
                 }
             }
-            if ($this->asyncStateManager->pending()) {
+            if ($this->async && $this->asyncStateManager->pending()) {
                 $this->pendingQueueItems++;
                 // echo "$componentName Pending state: {$this->asyncStateManager->getState()}" . PHP_EOL;
                 $pendingContent = "## PENDING {$this->asyncStateManager->getState()} $componentName ##";
@@ -1639,10 +1646,19 @@ class PageEngine
         $count = count($attrValues);
         $newValueContent = '';
         $glue = '';
+        $isolate = $concat;
+        // if (!$foreach) {
+        //     foreach ($attrValues as $attrValue) {
+        //         $isolate = $isolate || !$attrValue->ItsExpression;
+        //         if ($isolate) {
+        //             break;
+        //         }
+        //     }
+        // }
         foreach ($attrValues as $attrValue) {
             $newValueContent .= $glue .
                 (!$concat || $attrValue->ItsExpression
-                    ? $attrValue->Content
+                    ? (!$isolate || ctype_alnum(str_replace(['$', '_', '->', ' '], '', $attrValue->Content)) ? $attrValue->Content : '(' . $attrValue->Content . ')')
                     : var_export($attrValue->Content, true));
             if ($concat) {
                 $glue = ' . ';
@@ -2237,6 +2253,7 @@ class PageEngine
                                 //     $inputValue = "'$inputValue'";
                                 // }
                                 // $this->debug($inputValue);
+                                // echo "$inputValue \n";
                                 $inputValue = $this->convertExpressionToCode($inputValue);
                                 // $this->debug($inputValue);
                                 if ($inputValue === "'true'") {
