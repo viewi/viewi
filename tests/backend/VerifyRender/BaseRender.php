@@ -3,6 +3,8 @@
 use Viewi\App;
 use Viewi\BaseComponent;
 use Viewi\PageEngine;
+use Viewi\Routing\Router;
+use Viewi\WebComponents\Response;
 
 include_once '../src/Viewi/autoload.php';
 
@@ -58,10 +60,10 @@ class BaseRenderingTest extends BaseTest
             'class' => ConditionalAttributesComponent::class,
             'expected' => 'CanRenderConditionalAttributes.expected.html'
         ];
-        $this->TestCases->ConditonalAndForeachRendering = [
-            'path' => 'ConditonalAndForeachRendering',
-            'class' => ConditonalAndForeachRenderingComponent::class,
-            'expected' => 'ConditonalAndForeachRendering.expected.html'
+        $this->TestCases->ConditionalAndForeachRendering = [
+            'path' => 'ConditionalAndForeachRendering',
+            'class' => ConditionalAndForeachRenderingComponent::class,
+            'expected' => 'ConditionalAndForeachRendering.expected.html'
         ];
         $this->TestCases->CanRenderTemplates = [
             'path' => 'CanRenderTemplates',
@@ -87,6 +89,31 @@ class BaseRenderingTest extends BaseTest
             'path' => 'HelloWorld',
             'class' => HelloWorldComponent::class,
             'expected' => 'HelloWorld.expected.html'
+        ];
+        $this->TestCases->TestInterceptors = [
+            'path' => 'TestInterceptors',
+            'class' => TestInterceptorsComponent::class,
+            'expected' => 'TestInterceptors.expected.html'
+        ];
+        $this->TestCases->TestInterceptorsUnauthorized = [
+            'path' => 'TestInterceptorsUnauthorized',
+            'class' => TestInterceptorsComponent::class,
+            'expected' => 'TestInterceptorsUnauthorized.expected.html'
+        ];
+        $this->TestCases->TestMiddleware = [
+            'path' => 'TestMiddleware',
+            'class' => TestMiddlewareComponent::class,
+            'expected' => 'TestMiddleware.expected.html'
+        ];
+        $this->TestCases->TestMiddlewareUnauthorized = [
+            'path' => 'TestMiddlewareUnauthorized',
+            'class' => TestMiddlewareComponent::class,
+            'expected' => 'TestMiddleware.expected.html'
+        ];
+        $this->TestCases->TestHttpClient = [
+            'path' => 'TestHttpClient',
+            'class' => TestHttpClientComponent::class,
+            'expected' => 'TestHttpClient.expected.html'
         ];
     }
     protected function TestComponent(
@@ -191,9 +218,9 @@ class BaseRenderingTest extends BaseTest
         $this->TestAppInFolder($this->TestCases->CanRenderConditionalAttributes, $T);
     }
 
-    public function ConditonalAndForeachRendering(UnitTestScope $T)
+    public function ConditionalAndForeachRendering(UnitTestScope $T)
     {
-        $this->TestAppInFolder($this->TestCases->ConditonalAndForeachRendering, $T);
+        $this->TestAppInFolder($this->TestCases->ConditionalAndForeachRendering, $T);
     }
 
     public function CanRenderTemplates(UnitTestScope $T)
@@ -220,6 +247,123 @@ class BaseRenderingTest extends BaseTest
     {
         $this->TestAppInFolder($this->TestCases->HelloWorldExample, $T);
     }
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest HttpClientTest
+    public function HttpClientTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestHttpClient['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestHttpClient\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing HttpClient';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        $this->TestAppInFolder($this->TestCases->TestHttpClient, $T);
+    }
+
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest InterceptorsTest
+    public function InterceptorsTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestInterceptors['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestInterceptors\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing Interceptors';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
+            if(!$valid) {
+                $response = new Response();
+                $response->Content = '';
+                $response->WithCode(401);
+                return $response;
+            }
+            return ['token' => 'base64string'];
+        });
+        Router::register('post', '/api/authorization/session', function () {
+            return ['session' => '000-1111-2222'];
+        });
+        $this->TestAppInFolder($this->TestCases->TestInterceptors, $T);
+    }
+
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest InterceptorsUnauthorizedTest
+    public function InterceptorsUnauthorizedTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestInterceptorsUnauthorized['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestInterceptors\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing Interceptors';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        Router::register('post', '/api/authorization/token/{valid}', function (int $valid) {
+            if(!$valid) {                
+                $response = new Response();
+                $response->Content = '';
+                $response->WithCode(401);
+                return $response;
+            }
+            return ['token' => 'base64string'];
+        });
+        Router::register('post', '/api/authorization/session', function () {
+            return ['session' => '000-1111-2222'];
+        });
+        $this->TestAppInFolder($this->TestCases->TestInterceptorsUnauthorized, $T);
+    }
+
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest MiddlewareTest
+    public function MiddlewareTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestMiddleware['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestMiddleware\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing Middleware';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
+            if(!$valid) {
+                $response = new Response();
+                $response->Content = '';
+                $response->WithCode(401);
+                return $response;
+            }
+            return ['token' => 'base64string'];
+        });
+        Router::register('post', '/api/authorization/session', function () {
+            return ['session' => '000-1111-2222'];
+        });
+        $this->TestAppInFolder($this->TestCases->TestMiddleware, $T);
+    }
+
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest MiddlewareUnauthorizedTest
+    public function MiddlewareUnauthorizedTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestMiddlewareUnauthorized['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestMiddleware\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing Middleware';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
+            if(!$valid) {
+                $response = new Response();
+                $response->Content = '';
+                $response->WithCode(401);
+                return $response;
+            }
+            return ['token' => 'base64string'];
+        });
+        Router::register('post', '/api/authorization/session', function () {
+            return ['session' => '000-1111-2222'];
+        });
+        $this->TestAppInFolder($this->TestCases->TestMiddlewareUnauthorized, $T);
+    }
 }
 
 class RenderTestCases
@@ -233,10 +377,15 @@ class RenderTestCases
     public array $CanRenderNamedSlots;
     public array $CanPassAttributesAsComponentInputs;
     public array $CanRenderConditionalAttributes;
-    public array $ConditonalAndForeachRendering;
+    public array $ConditionalAndForeachRendering;
     public array $CanRenderTemplates;
     public array $EscapingAndExpressions;
     public array $ComplexTest;
     public array $DependencyInjectionWorks;
     public array $HelloWorldExample;
+    public array $TestHttpClient;
+    public array $TestInterceptors;
+    public array $TestInterceptorsUnauthorized;
+    public array $TestMiddleware;
+    public array $TestMiddlewareUnauthorized;
 }
