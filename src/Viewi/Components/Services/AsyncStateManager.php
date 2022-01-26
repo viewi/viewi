@@ -12,6 +12,18 @@ class AsyncStateManager
     private int $stateIdIndex = 0;
     private int $currentStateId = 0;
     private array $events = [];
+    private bool $async = false;
+
+    /**
+     * 
+     * @param bool $async async
+     * @return void 
+     */
+    public function setAsync(bool $async): void
+    {
+        $this->async = $async;
+    }
+
     /**
      * Initiate State
      * @return int State Id
@@ -92,6 +104,10 @@ class AsyncStateManager
     public function subscribe(string $eventName): PromiseResolver
     {
         return $this->track(new PromiseResolver(function ($resolve, $reject) use ($eventName) {
+            if (!$this->async) {
+                $resolve(null);
+                return;
+            }
             if (!isset($this->events[$eventName])) {
                 $this->events[$eventName] = [];
             }
