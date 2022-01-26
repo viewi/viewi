@@ -164,6 +164,7 @@ class PageEngine
     private array $renderQueue = [];
     private int $pendingQueueItems = 0;
     private bool $renderScheduled = false;
+    private int $middlewareIndex = -1;
     private AsyncStateManager $asyncStateManager;
     public static ?array $publicConfig = null;
 
@@ -215,6 +216,7 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
+        $this->middlewareIndex = -1;
         // default dependencies        
         $dependencies = [
             IHttpContext::class => new HttpContext(),
@@ -1179,7 +1181,9 @@ class PageEngine
                 if (isset($fullClassName::$_beforeStart)) {
                     /** @var string[] $actions*/
                     $middlewareActions = $fullClassName::$_beforeStart;
-                    foreach ($middlewareActions as $beforeAction) {
+                    $this->middlewareIndex++;
+                    if ($this->middlewareIndex < count($middlewareActions)) {
+                        $beforeAction = $middlewareActions[$this->middlewareIndex];
                         $beforeActionComponent = strpos($beforeAction, '\\') !== false ?
                             substr(strrchr($beforeAction, "\\"), 1)
                             : $beforeAction;
@@ -1187,12 +1191,33 @@ class PageEngine
                         /** @var IMiddleware $beforeActionInstance*/
                         $beforeActionInstance = $this->resolve($beforeActionInfo, false);
                         $middlewareBreak = true;
-                        $beforeActionInstance->run(function () use (&$middlewareBreak) {
-                            $middlewareBreak = false;
-                        });
-                        if ($middlewareBreak) {
-                            break;
-                        }
+                        $this->pendingQueueItems++;
+                        $beforeActionInstance->run(
+                            function (bool $continue = true) use (
+                                $componentName,
+                                $params,
+                                $parentComponent,
+                                $slots,
+                                $componentArguments,
+                                $slotArguments
+                            ) {
+                                $this->pendingQueueItems--;
+                                if ($continue) {
+                                    $this->renderComponent(
+                                        $componentName,
+                                        $params,
+                                        $parentComponent,
+                                        $slots,
+                                        $componentArguments,
+                                        ...$slotArguments
+                                    );
+                                }
+                                if ($this->pendingQueueItems === 0 && $this->callback !== null) {
+                                    $this->publishRendered();
+                                }
+                            }
+                        );
+                        return '';
                     }
                 }
             }
