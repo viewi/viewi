@@ -3,7 +3,7 @@
 use Viewi\BaseComponent;
 class ConditionalAttributesComponent extends BaseComponent
 {
-    public string $title = 'Testing conditonal attributes';
+    public string $title = 'Testing Conditional attributes';
     public string $className = 'my-item';
     public bool $disabled = true;
     public bool $checked = false;
