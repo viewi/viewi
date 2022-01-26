@@ -1,0 +1,13 @@
+<Layout title="$title {$post ? $post->Title : 'new'} post">
+    <h1>$title {$post ? $post->Title : 'new'} post</h1>
+    <div><strong>Data from the Server:</strong> {json_encode($post)}</div>
+    <div if="$post">
+        <h2>$post->Title</h2>
+        <div>
+            <strong>Id: $post->Id</strong>
+        </div>
+        <div>
+            {{$post->Body}}
+        </div>
+    </div>
+</Layout>
