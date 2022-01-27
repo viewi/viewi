@@ -198,6 +198,7 @@ class PageEngine
      */
     function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback = null)
     {
+        $this->renderQueue = [];
         $this->callback = $callback;
         $this->async = $this->callback != null;
         $this->asyncStateManager = new AsyncStateManager();
@@ -250,8 +251,7 @@ class PageEngine
                 $this->components[$name]->Instance = $instance;
             }
         }
-        if(!$this->async)
-        {
+        if (!$this->async) {
             $this->asyncStateManager->emit('httpReady');
         }
         $this->renderComponent($component, $params, null, [], []);
