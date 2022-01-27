@@ -8,7 +8,7 @@ class CanRenderTagComponent extends BaseComponent
 
     function getFullName(): string
     {
-        return 'Jhon Doe';
+        return 'John Doe';
     }
 
     function __init()
