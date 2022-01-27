@@ -21,7 +21,7 @@ class HomeComponent extends BaseComponent
     
     function getFullName(): string
     {
-        return 'Jhon Doe';
+        return 'John Doe';
     }
 
     function getOccupation(): string
@@ -40,7 +40,7 @@ template: *app/home.html*
 **Result:**
 ```html
 <h1>My awesome application</h1>
-<p>Name: Jhon Doe</p>
+<p>Name: John Doe</p>
 <p>Occupation: Web developer</p>
 ```
 
