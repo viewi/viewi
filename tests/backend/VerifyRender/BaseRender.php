@@ -121,7 +121,8 @@ class BaseRenderingTest extends BaseTest
         string $path,
         string $expectedResultFile,
         UnitTestScope $T,
-        bool $echoRendered = false
+        bool $echoRendered = false,
+        bool $async = false
     ) {
         App::init([
             PageEngine::SOURCE_DIR => __DIR__ . DIRECTORY_SEPARATOR . $path,
@@ -132,22 +133,28 @@ class BaseRenderingTest extends BaseTest
         ]);
         $page = App::getEngine();
         $html = null;
-        if ($this->returnRendering) {
-            $html = $page->render($component);
+        if ($async) {
+            $page->render($component, [], null, function ($content) use (&$html) {
+                $html = $content;
+            });
         } else {
-            ob_start();
-            $page->render($component);
-            $html = ob_get_contents();
-            ob_end_clean();
+            if ($this->returnRendering) {
+                $html = $page->render($component);
+            } else {
+                ob_start();
+                $page->render($component);
+                $html = ob_get_contents();
+                ob_end_clean();
+            }
         }
-        $expectetd = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $path
+        $expected = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $path
             . DIRECTORY_SEPARATOR . $expectedResultFile);
         if ($echoRendered) {
             var_dump($html);
-            var_dump($expectetd);
+            var_dump($expected);
 
             $r = str_split($html);
-            $e = str_split($expectetd);
+            $e = str_split($expected);
             for ($i = 0; $i < min(count($r), count($e)); $i++) {
                 if ($r[$i] !== $e[$i]) {
                     var_dump($i);
@@ -160,17 +167,17 @@ class BaseRenderingTest extends BaseTest
             }
         }
         try {
-            $T->this($html)->equalsToHtml($expectetd);
+            $T->this($html)->equalsToHtml($expected);
         } catch (Throwable $error) {
             var_dump($html);
-            var_dump($expectetd);
+            var_dump($expected);
             throw $error;
         }
     }
 
-    protected function TestAppInFolder(array $testCase, UnitTestScope $T, bool $echoResult = false)
+    protected function TestAppInFolder(array $testCase, UnitTestScope $T, bool $echoResult = false, bool $async = false)
     {
-        $this->TestComponent($testCase['class'], $testCase['path'], $testCase['expected'], $T, $echoResult);
+        $this->TestComponent($testCase['class'], $testCase['path'], $testCase['expected'], $T, $echoResult, $async);
     }
 
     public function CanRenderTag(UnitTestScope $T)
@@ -273,7 +280,7 @@ class BaseRenderingTest extends BaseTest
             return $post;
         });
         Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
-            if(!$valid) {
+            if (!$valid) {
                 $response = new Response();
                 $response->Content = '';
                 $response->WithCode(401);
@@ -299,7 +306,7 @@ class BaseRenderingTest extends BaseTest
             return $post;
         });
         Router::register('post', '/api/authorization/token/{valid}', function (int $valid) {
-            if(!$valid) {                
+            if (!$valid) {
                 $response = new Response();
                 $response->Content = '';
                 $response->WithCode(401);
@@ -325,7 +332,7 @@ class BaseRenderingTest extends BaseTest
             return $post;
         });
         Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
-            if(!$valid) {
+            if (!$valid) {
                 $response = new Response();
                 $response->Content = '';
                 $response->WithCode(401);
@@ -351,7 +358,7 @@ class BaseRenderingTest extends BaseTest
             return $post;
         });
         Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
-            if(!$valid) {
+            if (!$valid) {
                 $response = new Response();
                 $response->Content = '';
                 $response->WithCode(401);

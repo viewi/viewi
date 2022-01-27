@@ -3,6 +3,8 @@
 use Viewi\App;
 use Viewi\BaseComponent;
 use Viewi\PageEngine;
+use Viewi\Routing\Router;
+use Viewi\WebComponents\Response;
 
 include_once 'BaseRender.php';
 
@@ -14,7 +16,7 @@ class ReturnRenderingTest extends BaseRenderingTest
         $this->returnRendering = true;
     }
 
-    private function PerfrmanceTest(UnitTestScope $T, $component, $path, $iterations = 500)
+    private function PerformanceTest(UnitTestScope $T, $component, $path, $iterations = 500)
     {
 
         $startedAt = microtime(true);
@@ -59,13 +61,39 @@ class ReturnRenderingTest extends BaseRenderingTest
     {
         $component = ComplexTestComponent::class;
         $path = 'PerformanceTest';
-        $this->PerfrmanceTest($T, $component, $path);
+        $this->PerformanceTest($T, $component, $path);
     }
 
+    // php test.php run backend\\VerifyRender\\ReturnRender.test.php ReturnRenderingTest ReturnRenderHelloWorldPerformance
     public function ReturnRenderHelloWorldPerformance(UnitTestScope $T)
     {
         $component = HelloWorldComponent::class;
         $path = 'HelloWorld';
-        $this->PerfrmanceTest($T, $component, $path, 1000);
+        $this->PerformanceTest($T, $component, $path, 1000);
+    }
+
+    public function AsyncRenderTest(UnitTestScope $T)
+    {
+        include_once __DIR__ . DIRECTORY_SEPARATOR . $this->TestCases->TestInterceptors['path'] . DIRECTORY_SEPARATOR . 'PostModel.php';
+        Router::register('get', '/api/posts/{id}', function (int $id) {
+            $post = new TestInterceptors\PostModel();
+            $post->Id = $id;
+            $post->Title = 'Testing Interceptors';
+            $post->Body = '<p>My post content</p><div>Something interesting</div>';
+            return $post;
+        });
+        Router::register('post', '/api/authorization/token/{valid}', function (bool $valid) {
+            if (!$valid) {
+                $response = new Response();
+                $response->Content = '';
+                $response->WithCode(401);
+                return $response;
+            }
+            return ['token' => 'base64string'];
+        });
+        Router::register('post', '/api/authorization/session', function () {
+            return ['session' => '000-1111-2222'];
+        });
+        $this->TestAppInFolder($this->TestCases->TestInterceptors, $T, false, true);
     }
 }
