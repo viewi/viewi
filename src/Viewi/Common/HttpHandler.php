@@ -10,6 +10,7 @@ class HttpHandler
     public bool $top = false;
     public $onHandle;
     public $after = null;
+    public $onReject;
     public bool $continue = false;
 
     public function handle(callable $after)
@@ -17,5 +18,10 @@ class HttpHandler
         // echo ' ||handle|| ';
         $this->after = $after;
         ($this->onHandle)();
+    }
+
+    public function reject($error)
+    {
+        ($this->onReject)($error);
     }
 }

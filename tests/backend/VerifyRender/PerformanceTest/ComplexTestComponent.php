@@ -1,6 +1,7 @@
 <?php
 
 use Viewi\BaseComponent;
+
 class ComplexTestComponent extends BaseComponent
 {
     public string $about = 'This is php/js page engine';
@@ -18,7 +19,7 @@ class ComplexTestComponent extends BaseComponent
         $letters = 'abcdefghijklmnopqrstuvwxyz';
         for ($i = 0; $i < 5; $i++) {
             $user = new User();
-            $user->Name = 'Jhon' . $letters[25 - $i] . ' Doe' . $letters[$i];
+            $user->Name = 'John' . $letters[25 - $i] . ' Doe' . $letters[$i];
             $user->Age = 30 + $i;
             $this->users['ID-' . $i] = $user;
         }
@@ -26,7 +27,7 @@ class ComplexTestComponent extends BaseComponent
 
     function getFullName(): string
     {
-        return 'Jhon Doe';
+        return 'John Doe';
     }
 
     function getOccupation(): string

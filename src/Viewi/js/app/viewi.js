@@ -2400,13 +2400,16 @@ function Viewi() {
                  */
                 var middleware = resolve(middlewareName);
                 var next = function () {
-                    if (mI > 0) {
-                        mI--;
-                        middlewareName = middlewareList[mI];
-                        middleware = resolve(middlewareName);
-                        middleware.run(next);
-                    } else {
-                        $this.render(name, params, true);
+                    var runNext = arguments.length > 0 ? arguments[0] : true; // true by default
+                    if (runNext) {
+                        if (mI > 0) {
+                            mI--;
+                            middlewareName = middlewareList[mI];
+                            middleware = resolve(middlewareName);
+                            middleware.run(next);
+                        } else {
+                            $this.render(name, params, true);
+                        }
                     }
                 };
                 middleware.run(next);

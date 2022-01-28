@@ -9,7 +9,7 @@ class ComponentInfo
         $this->Name = $item['Name'];
         $this->Namespace = $item['Namespace'];
         $this->IsComponent = $item['IsComponent'];
-        $this->Fullpath = $item['Fullpath'];
+        $this->FullPath = $item['FullPath'];
         $this->Inputs = $item['Inputs'] ?? [];
         $this->Dependencies = $item['Dependencies'] ?? [];
         $this->Versions = $item['Versions'] ?? [];
@@ -40,7 +40,7 @@ class ComponentInfo
     public string $Namespace;
     public string $ComponentName;
     public string $Tag;
-    public string $Fullpath;
+    public string $FullPath;
     public string $TemplatePath;
     public string $BuildPath;
     public string $RenderFunction;

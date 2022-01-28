@@ -34,7 +34,7 @@ var ajax = {
                 if (req.readyState === 4) {
                     var status = req.status;
                     var contentType = req.getResponseHeader("Content-Type");
-                    var itsJson = contentType.indexOf('application/json') === 0;
+                    var itsJson = contentType && contentType.indexOf('application/json') === 0;
                     var content = req.responseText;
                     if (itsJson) {
                         content = JSON.parse(req.responseText);

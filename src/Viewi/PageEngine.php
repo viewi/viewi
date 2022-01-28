@@ -8,6 +8,7 @@ use \ReflectionNamedType;
 use \Exception;
 use ReflectionException;
 use Viewi\Components\Interfaces\IMiddleware;
+use Viewi\Components\Services\AsyncStateManager;
 use Viewi\DI\IContainer;
 use \Viewi\Routing\Route;
 use Viewi\WebComponents\HttpContext;
@@ -151,6 +152,21 @@ class PageEngine
     private int $forIterationKey = 0;
     private array $config;
     private array $_slots = [];
+    /**
+     * 
+     * @var callable(string)
+     */
+    private $callback = null;
+    /**
+     * 
+     * @var ?string[]
+     */
+    private array $renderQueue = [];
+    private int $pendingQueueItems = 0;
+    private bool $renderScheduled = false;
+    private int $middlewareIndex = -1;
+    private AsyncStateManager $asyncStateManager;
+    private bool $async = false;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -180,8 +196,13 @@ class PageEngine
      * @throws ReflectionException 
      * @throws Exception Component is missing
      */
-    function render(string $component, array $params = [], ?IContainer $container = null)
+    function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback = null)
     {
+        $this->renderQueue = [];
+        $this->callback = $callback;
+        $this->async = $this->callback != null;
+        $this->asyncStateManager = new AsyncStateManager();
+        $this->asyncStateManager->setAsync($this->async);
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
@@ -199,12 +220,14 @@ class PageEngine
         if (!isset($this->components[$component])) {
             throw new Exception("Component {$component} is missing!");
         }
-        // default dependencies
+        $this->middlewareIndex = -1;
+        // default dependencies        
         $dependencies = [
-            IHttpContext::class => new HttpContext()
+            IHttpContext::class => new HttpContext(),
+            AsyncStateManager::class => $this->asyncStateManager
         ];
         if ($container != null) {
-            $dependencies = $container->getAll();
+            $dependencies = array_merge($dependencies, $container->getAll());
         }
         foreach ($dependencies as $type => $instance) {
             $namespace = '';
@@ -228,8 +251,27 @@ class PageEngine
                 $this->components[$name]->Instance = $instance;
             }
         }
-        $content = $this->renderComponent($component, $params, null, [], []);
+        if (!$this->async) {
+            $this->asyncStateManager->emit('httpReady');
+        }
+        $this->renderComponent($component, $params, null, [], []);
+        $this->renderScheduled = true;
+        if ($this->async && !$this->asyncStateManager->pendingByType('http')) {
+            // echo "Emitting httpReady from root render" . PHP_EOL;
+            $this->asyncStateManager->emit('httpReady');
+        }
+        if ($this->async && $this->pendingQueueItems == 0) {
+            $this->publishRendered();
+            return;
+        }
+        $content = implode('', $this->renderQueue);
         return $content;
+    }
+
+    function publishRendered()
+    {
+        $content = implode('', $this->renderQueue);
+        ($this->callback)($content);
     }
 
     function removeDirectory($path, $removeRoot = false)
@@ -313,8 +355,8 @@ class PageEngine
 
     function updateComponentPath(ComponentInfo $componentInfo, string $fullPath): void
     {
-        $componentInfo->Fullpath = $this->getRelativeSourcePath($fullPath);
-        $componentInfo->Relative = $componentInfo->Fullpath !== $fullPath;
+        $componentInfo->FullPath = $this->getRelativeSourcePath($fullPath);
+        $componentInfo->Relative = $componentInfo->FullPath !== $fullPath;
     }
 
     /**
@@ -1046,9 +1088,9 @@ class PageEngine
         $cache = true;
         $relative = $componentInfo->Relative;
         if ($relative) {
-            include_once $this->sourcePath . $componentInfo->Fullpath;
+            include_once $this->sourcePath . $componentInfo->FullPath;
         } else {
-            include_once $componentInfo->Fullpath;
+            include_once $componentInfo->FullPath;
         }
         if ($componentInfo->IsComponent) {
             // always new instance
@@ -1109,6 +1151,7 @@ class PageEngine
                 $instance = new $class(...$arguments);
             }
         }
+
         // always cache for slots
         $this->Dependencies[$class] = $instance;
         return $instance;
@@ -1117,7 +1160,7 @@ class PageEngine
     function renderDynamicTag($tagName, $slotName, ...$args)
     {
         $tagInfo = &$this->components[$slotName];
-        include_once $this->sourcePath . $tagInfo->Fullpath;
+        include_once $this->sourcePath . $tagInfo->FullPath;
         include_once $this->buildPath . $tagInfo->BuildPath;
         return ($tagInfo->RenderFunction)(...$args);
     }
@@ -1132,6 +1175,9 @@ class PageEngine
     ) {
         //$this->debug($this->templates[$componentName]->ComponentInfo);
         if ($componentName) {
+            // initiate a new state
+            $this->asyncStateManager->initiateState();
+            // $this->debug($this->asyncStateManager->initiateContext());
             $componentInfo = &$this->components[$componentName];
             // $this->debug($componentInfo);
             // $this->debug('============' . $componentName);
@@ -1142,7 +1188,9 @@ class PageEngine
                 if (isset($fullClassName::$_beforeStart)) {
                     /** @var string[] $actions*/
                     $middlewareActions = $fullClassName::$_beforeStart;
-                    foreach ($middlewareActions as $beforeAction) {
+                    $this->middlewareIndex++;
+                    if ($this->middlewareIndex < count($middlewareActions)) {
+                        $beforeAction = $middlewareActions[$this->middlewareIndex];
                         $beforeActionComponent = strpos($beforeAction, '\\') !== false ?
                             substr(strrchr($beforeAction, "\\"), 1)
                             : $beforeAction;
@@ -1150,12 +1198,33 @@ class PageEngine
                         /** @var IMiddleware $beforeActionInstance*/
                         $beforeActionInstance = $this->resolve($beforeActionInfo, false);
                         $middlewareBreak = true;
-                        $beforeActionInstance->run(function () use (&$middlewareBreak) {
-                            $middlewareBreak = false;
-                        });
-                        if ($middlewareBreak) {
-                            break;
-                        }
+                        $this->pendingQueueItems++;
+                        $beforeActionInstance->run(
+                            function (bool $continue = true) use (
+                                $componentName,
+                                $params,
+                                $parentComponent,
+                                $slots,
+                                $componentArguments,
+                                $slotArguments
+                            ) {
+                                $this->pendingQueueItems--;
+                                if ($continue) {
+                                    $this->renderComponent(
+                                        $componentName,
+                                        $params,
+                                        $parentComponent,
+                                        $slots,
+                                        $componentArguments,
+                                        ...$slotArguments
+                                    );
+                                }
+                                if ($this->pendingQueueItems === 0 && $this->callback !== null) {
+                                    $this->publishRendered();
+                                }
+                            }
+                        );
+                        return '';
                     }
                 }
             }
@@ -1199,11 +1268,43 @@ class PageEngine
                     include_once $this->buildPath . $componentInfo->BuildPath;
                 }
             }
+            if ($this->async && $this->asyncStateManager->pending()) {
+                $this->pendingQueueItems++;
+                // echo "$componentName Pending state: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                $pendingContent = "## PENDING {$this->asyncStateManager->getState()} $componentName ##";
+                $this->renderQueue[] = $pendingContent;
+                $queueIndex = count($this->renderQueue) - 1;
+                $this->asyncStateManager->all(
+                    function () use ($renderFunction, $classInstance, $slotsQueue, $slotArguments, $queueIndex) {
+                        $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
+                        $this->renderQueue[$queueIndex] = $content;
+                        // echo "All resolved, callback called: {$this->asyncStateManager->getState()}" . PHP_EOL;
+                        // echo "Content: $content" . PHP_EOL;
+                        $this->pendingQueueItems--;
+                        if ($this->renderScheduled) {
+                            if ($this->pendingQueueItems === 0 && $this->callback !== null) {
+                                $this->publishRendered();
+                            } else if (!$this->asyncStateManager->pendingByType('http')) {
+                                // echo "Emitting httpReady from pending" . PHP_EOL;            
+                                $this->asyncStateManager->emit('httpReady');
+                            }
+                        }
+                    }
+                );
+                $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
+                return $pendingContent;
+            }
             // $this->debug(func_get_args());
             $content = $renderFunction($classInstance, $this, $slotsQueue, ...$slotArguments);
             $this->_slots[$componentInfo->ComponentName] = $slotsBefore;
+            $this->renderQueue[] = $content;
             return $content;
         }
+    }
+
+    function putInQueue(string $content)
+    {
+        $this->renderQueue[] = $content;
     }
 
     function compileComponentExpression(TagItem $tagItem, string &$html, ?string $slotName = null, array $inputArguments = []): void
@@ -1264,12 +1365,12 @@ class PageEngine
             $slotPageTemplate->ComponentInfo->Namespace = $this->latestPageTemplate->ComponentInfo->Namespace;
             $slotPageTemplate->ComponentInfo->Tag = $componentBaseName;
             //$this->debug($this->latestPageTemplate->ComponentInfo);
-            $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->Fullpath);
+            $pathinfo = pathinfo($this->latestPageTemplate->ComponentInfo->FullPath);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $componentBaseName;
             $phpPath = $pathWOext . '.php';
             $htmlPath = $pathWOext . '.html';
             $slotPageTemplate->ComponentInfo->TemplatePath = $this->getRelativeSourcePath($htmlPath);
-            $slotPageTemplate->ComponentInfo->Fullpath = $this->latestPageTemplate->ComponentInfo->Fullpath;
+            $slotPageTemplate->ComponentInfo->FullPath = $this->latestPageTemplate->ComponentInfo->FullPath;
             $slotPageTemplate->ComponentInfo->Relative = $this->latestPageTemplate->ComponentInfo->Relative;
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
@@ -1286,7 +1387,7 @@ class PageEngine
         }
         $eol = PHP_EOL;
         $codeBegin = $this->renderReturn ? $eol : ($lastLineIsSpace ? $eol : '') . "<?php$eol";
-        $codeMiddle = $this->renderReturn ? "\$_content .= " : '';
+        $codeMiddle = $this->renderReturn ? "\$pageEngine->putInQueue(\$_content);" : '';
         $codeEnd = $this->renderReturn ? '' : '?>';
 
         if ($slotContentNameExpr) {
@@ -1319,7 +1420,8 @@ class PageEngine
 
             $html .= $codeBegin .
                 $this->indentation . "\$slotContents[0] = $slotsExpression;" .
-                PHP_EOL . $this->indentation . "{$codeMiddle}\$pageEngine->renderComponent(" .
+                PHP_EOL . $this->indentation . "{$codeMiddle}" .
+                PHP_EOL . $this->indentation . "\$pageEngine->renderComponent(" .
                 "$componentName, " .
                 "[], " .
                 "{$this->_CompileComponentName}, " .
@@ -1327,6 +1429,7 @@ class PageEngine
                 "$inputArgumentsCode" .
                 "$scopeArguments);" .
                 PHP_EOL . $this->indentation . "\$slotContents = [];" .
+                PHP_EOL . $this->indentation . "\$_content = \"\";" .
                 $codeEnd;
         }
     }
@@ -1364,9 +1467,9 @@ class PageEngine
             }
         }
         if (!$defaultContent) {
-            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content .=" : "<?php";
-            $codeEnd = $this->renderReturn ? '' : '?>';
-            $html .= "$codeBegin \$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
+            $codeBegin = $this->renderReturn ? PHP_EOL . $this->indentation . "\$pageEngine->putInQueue(\$_content);" . PHP_EOL . $this->indentation : "<?php ";
+            $codeEnd = $this->renderReturn ? PHP_EOL . $this->indentation . "\$_content = \"\";" : '?>';
+            $html .= $codeBegin . "\$pageEngine->renderComponent($componentName, [], {$this->_CompileComponentName}, \$slotContents, [], ...\$scope); $codeEnd";
         }
     }
 
@@ -1543,10 +1646,19 @@ class PageEngine
         $count = count($attrValues);
         $newValueContent = '';
         $glue = '';
+        $isolate = $concat;
+        // if (!$foreach) {
+        //     foreach ($attrValues as $attrValue) {
+        //         $isolate = $isolate || !$attrValue->ItsExpression;
+        //         if ($isolate) {
+        //             break;
+        //         }
+        //     }
+        // }
         foreach ($attrValues as $attrValue) {
             $newValueContent .= $glue .
                 (!$concat || $attrValue->ItsExpression
-                    ? $attrValue->Content
+                    ? (!$isolate || ctype_alnum(str_replace(['$', '_', '->', ' '], '', $attrValue->Content)) ? $attrValue->Content : '(' . $attrValue->Content . ')')
                     : var_export($attrValue->Content, true));
             if ($concat) {
                 $glue = ' . ';
@@ -2088,9 +2200,9 @@ class PageEngine
                             $componentInfo = $this->components[$tagItem->Content];
                             $className = $componentInfo->Namespace . '\\' . $componentInfo->Name;
                             if ($this->components[$tagItem->Content]->Relative) {
-                                include_once $this->sourcePath . $this->components[$tagItem->Content]->Fullpath;
+                                include_once $this->sourcePath . $this->components[$tagItem->Content]->FullPath;
                             } else {
-                                include_once $this->components[$tagItem->Content]->Fullpath;
+                                include_once $this->components[$tagItem->Content]->FullPath;
                             }
                         }
                         // if ($tagItem->Content == 'HelloMessage') {
@@ -2141,6 +2253,7 @@ class PageEngine
                                 //     $inputValue = "'$inputValue'";
                                 // }
                                 // $this->debug($inputValue);
+                                // echo "$inputValue \n";
                                 $inputValue = $this->convertExpressionToCode($inputValue);
                                 // $this->debug($inputValue);
                                 if ($inputValue === "'true'") {

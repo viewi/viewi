@@ -14,10 +14,16 @@ class PromiseResolver
     private $lastError;
     private $result;
     private $action;
+    private $always = null;
 
     function __construct(callable $action)
     {
         $this->action = $action;
+    }
+
+    public function always(callable $always)
+    {
+        $this->always = $always;
     }
 
     public function then(callable $success, callable $catch = null)
@@ -27,17 +33,29 @@ class PromiseResolver
                 $this->state = self::STATE_SUCCESS;
                 $this->result = $result;
                 $success($this->result);
+                if ($this->always != null) {
+                    ($this->always)();
+                }
             }, function ($error) use ($catch) {
                 $this->state = self::STATE_FAILURE;
                 $this->lastError = $error;
                 $catch($error);
+                if ($this->always != null) {
+                    ($this->always)();
+                }
             });
         } catch (Exception $ex) {
             $this->lastError = $ex;
             $this->state = self::STATE_FAILURE;
             if ($catch !== null) {
                 $catch($this->lastError);
+                if ($this->always != null) {
+                    ($this->always)();
+                }
             } else {
+                if ($this->always != null) {
+                    ($this->always)();
+                }
                 throw $ex;
             }
         }
