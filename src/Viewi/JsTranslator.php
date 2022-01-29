@@ -1577,7 +1577,7 @@ class JsTranslator
     {
         $typeOrName = '';
         $chunk = $this->matchKeyword();
-        while ($chunk !== ';') {
+        while ($chunk && $chunk !== ';') {
             $typeOrName .= $chunk;
             // print_r("chunk: '$chunk' \n");
             $chunk = $this->matchKeyword();
