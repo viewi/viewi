@@ -2192,9 +2192,11 @@ class PageEngine
                     // compile props
                     $values = $childTag->getChildren();
                     foreach ($values as $propValue) {
-                        $this->compileExpression($propValue);
+                        if ($propValue->ItsExpression) {
+                            $this->compileExpression($propValue);
+                        }
                     }
-                    // $this->debug($tagItem->Content);                    
+                    // $this->debug($tagItem->Content);
                     if ($dynamicTagDetected || isset($this->components[$tagItem->Content])) {
                         if (!$dynamicTagDetected) {
                             $componentInfo = $this->components[$tagItem->Content];
@@ -2232,10 +2234,9 @@ class PageEngine
                                     $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
                                 }
                                 //$inputValue = $this->getChildValues($childTag);
-
                                 $inputValue = $this->combineChildren(
                                     $childTag,
-                                    $values[0]->ItsExpression || count($values) > 1,
+                                    ($values && $values[0]->ItsExpression) || count($values) > 1,
                                     [],
                                     false,
                                     true,
@@ -2253,8 +2254,10 @@ class PageEngine
                                 //     $inputValue = "'$inputValue'";
                                 // }
                                 // $this->debug($inputValue);
-                                // echo "$inputValue \n";
                                 $inputValue = $this->convertExpressionToCode($inputValue);
+                                if (!$inputValue) {
+                                    $inputValue = "''";
+                                }
                                 // $this->debug($inputValue);
                                 if ($inputValue === "'true'") {
                                     $inputValue = 'true';
