@@ -1,6 +1,10 @@
+# Outdated
+
+Please read the documentation here: [https://viewi.net/docs](https://viewi.net/docs)
+
 # Viewi Page Engine
 
-This is the shortened version of how to use the avaliable features. A more detailed documentation is in progress.
+This is the shortened version of how to use the available features. A more detailed documentation is in progress.
 
 ##### *Requirements: php 7.4, 8+*
 
