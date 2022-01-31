@@ -55,7 +55,7 @@ Features
 - Easy to use
 - Simple templates syntax, mix of HTML and PHP
 - The same code for backend and frontend, without need to duplicate the logic in javascript.
-- Web, mobile, desktop support (planned)
+- Web, mobile, desktop applications support (planned)
 - Does not require Node js
 
 ## How does it work ?
@@ -65,6 +65,10 @@ Under the hood Viewi translates view components into the javascript, and uses it
 ## Documentation
 
 [https://viewi.net/docs](https://viewi.net/docs)
+
+[Discussions (Forum)](https://github.com/viewi/viewi/discussions)
+
+[Frameworks Integration](https://viewi.net/docs/integrations)
 
 ## Tests
 
