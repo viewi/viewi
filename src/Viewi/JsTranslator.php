@@ -718,9 +718,9 @@ class JsTranslator
                             break;
                         }
                     case 'final': {
-                        $skipLastSaving = true;
-                        break;
-                    }
+                            $skipLastSaving = true;
+                            break;
+                        }
                     case '[': {
                             $code .= $this->readArray(']') . ' '; // TODO: improve white spacing
                             if ($this->skipVariableKey) {
@@ -761,7 +761,7 @@ class JsTranslator
                                     $insertTo = $i;
                                 }
                                 $className = substr($code, $insertTo, $codeLen);
-                                if($className === "self"){
+                                if ($className === "self") {
                                     $className = $this->currentClass;
                                 }
                                 // $this->debug("'".substr($code, $insertTo, $codeLen)."'");                                
@@ -786,6 +786,17 @@ class JsTranslator
                     case 'catch': {
                             $arguments = $this->readArguments(false);
                             $code .= $indentation . 'catch ' . ($arguments['arguments'] ? '(' . $arguments['arguments'] . ') ' : '');
+                            $skipLastSaving = true;
+                            break;
+                        }
+                    case 'fn': {
+                            $arguments = $this->readArguments(false);
+                            $code .= '(' . $arguments['arguments'] . ') ';
+                            $arrowOrNot = $this->matchKeyword();
+                            while ($arrowOrNot && $arrowOrNot !== '=>') {
+                                $arrowOrNot = $this->matchKeyword();
+                            }
+                            $code .= '=> ';
                             $skipLastSaving = true;
                             break;
                         }
