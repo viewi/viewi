@@ -451,9 +451,9 @@ class PageEngine
 
     function compileToJs(ReflectionClass $reflectionClass): void
     {
-        $className = $reflectionClass->getShortName();
-        if (!isset($this->compiledJs[$className])) {
-            $phpSourceFileName = $reflectionClass->getFileName();
+        $fileName = $reflectionClass->getFileName();
+        if (!isset($this->compiledJs[$fileName])) {
+            $phpSourceFileName = $fileName;
             $pathinfo = pathinfo($phpSourceFileName);
             $pathWOext = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'];
             $jsSourceMinFileName = $pathWOext . '.min.js';
@@ -464,6 +464,7 @@ class PageEngine
             } else if (file_exists($jsSourceFileName)) {
                 $jsCode = file_get_contents($jsSourceFileName) . PHP_EOL . PHP_EOL;
             } else {
+                $className = $reflectionClass->getShortName();
                 $raw = file_get_contents($phpSourceFileName);
                 $translator = new JsTranslator($raw);
                 try {
@@ -493,7 +494,7 @@ class PageEngine
             }
             // $this->debug($className);
             // $this->debug($jsCode);            
-            $this->compiledJs[$className] = $jsCode;
+            $this->compiledJs[$fileName] = $jsCode;
         }
     }
 
@@ -723,6 +724,7 @@ class PageEngine
         foreach ($this->requestedIncludes as $path) {
             $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
         }
+        // print_r(array_keys($this->compiledJs));
         $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
 
         $jsAppConfig = json_decode(file_get_contents($thisRoot . 'js/app/config.json'), true);
