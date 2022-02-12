@@ -2419,11 +2419,25 @@ function Viewi() {
         if (renderInProgress) {
             setAbort = true;
         }
+        var destroy = function () {
+            for (var i = 0; i < latestPage.components.length; i++) {
+                var componentBuild = latestPage.components[i];
+                if (componentBuild.instanceWrapper
+                    && componentBuild.instanceWrapper.component
+                    && componentBuild.instanceWrapper.component.__destroy
+                ) {
+                    componentBuild.instanceWrapper.component.__destroy();
+                }
+            }
+        };
         renderInProgress = true;
         reuseEnabled = false;
         subscribers = {};
         renderQueue = {};
         parentComponentName = null;
+        if (setAbort) {
+            destroy();
+        }
         latestPage = currentPage;
         currentPage = {};
         currentPage.name = name;
@@ -2438,20 +2452,13 @@ function Viewi() {
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createInstance(instanceMeta.wrapper);
         // console.log('renderInProgress, setAbort, abortRender', renderInProgress, setAbort, abortRender);
-        if (abortRender) { abortRender = false; return; }
+
+        if (abortRender) { destroy(); abortRender = false; return; }
         mountInstance(instanceMeta.wrapper);
-        if (abortRender) { abortRender = false; return; }
+        if (abortRender) { destroy(); abortRender = false; return; }
         instantiateChildren(instanceMeta.root);
-        if (abortRender) { abortRender = false; return; }
-        for (var i = 0; i < latestPage.components.length; i++) {
-            var componentBuild = latestPage.components[i];
-            if (componentBuild.instanceWrapper
-                && componentBuild.instanceWrapper.component
-                && componentBuild.instanceWrapper.component.__destroy
-            ) {
-                componentBuild.instanceWrapper.component.__destroy();
-            }
-        }
+        if (abortRender) { destroy(); abortRender = false; return; }
+        destroy();
         createDOM(target, {}, nodes, false);
         // hydrate && console.log(target);
         var nodeToHydrate = nodes[1];
