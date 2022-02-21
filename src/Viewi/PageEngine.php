@@ -1002,7 +1002,7 @@ class PageEngine
             $code = ($this->renderReturn ? '' : '<?=') . 'htmlentities(';
             $phpCode = $this->convertExpressionToCode($expression, $reserved);
             $code .= $phpCode;
-            $code .= ')' . ($this->renderReturn ? '' : '?>');
+            $code .= ' ?? \'\')' . ($this->renderReturn ? '' : '?>');
             $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
             // $this->debug($phpCode . $tagItem->JsExpression);
         }
