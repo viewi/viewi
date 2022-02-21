@@ -602,6 +602,24 @@ class JsTranslator
                             break;
                         }
                     case '(': {
+                            // type conversion
+                            $resetPos = $this->position;
+                            $nextKeyword = $this->matchKeyword();
+                            if ($nextKeyword !== '' && ctype_alnum($nextKeyword)) {
+                                // possible type casting
+                                $closingParenthesis = $this->matchKeyword();
+                                if ($closingParenthesis !== '' && $closingParenthesis === ')') {
+                                    $resetAfterCasting = $this->position;
+                                    $variableOrConst = $this->matchKeyword();
+                                    if ($variableOrConst !== '' && ($variableOrConst[0] === '$' || ctype_alpha($variableOrConst[0]))) {
+                                        // $this->debug("Found type casting $nextKeyword");
+                                        $this->position = $resetAfterCasting;
+                                        break;
+                                    }
+                                }
+                            }
+                            // reset position
+                            $this->position = $resetPos;
                             if (
                                 $callFunction !== null
                                 && isset(self::$functionConverters[$callFunction])
