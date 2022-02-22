@@ -605,17 +605,17 @@ class JsTranslator
                             // type conversion
                             $resetPos = $this->position;
                             $nextKeyword = $this->matchKeyword();
-                            if ($nextKeyword !== '' && ctype_alnum($nextKeyword)) {
+                            if ($nextKeyword !== '' && ctype_alnum($nextKeyword) && !$this->isPhpVariable($this->lastKeyword) && $this->lastKeyword !== ')') {
                                 // possible type casting
                                 $closingParenthesis = $this->matchKeyword();
                                 if ($closingParenthesis !== '' && $closingParenthesis === ')') {
-                                    $resetAfterCasting = $this->position;
-                                    $variableOrConst = $this->matchKeyword();
-                                    if ($variableOrConst !== '' && ($variableOrConst[0] === '$' || ctype_alpha($variableOrConst[0]))) {
-                                        // $this->debug("Found type casting $nextKeyword");
-                                        $this->position = $resetAfterCasting;
-                                        break;
-                                    }
+                                    //$resetAfterCasting = $this->position;
+                                    // $variableOrConst = $this->matchKeyword();
+                                    // if ($variableOrConst !== '' && ($variableOrConst[0] === '$' || ctype_alpha($variableOrConst[0]))) {
+                                    // $this->debug("Found type casting {$this->lastKeyword}($nextKeyword) Code: \n $code \n");
+                                    //$this->position = $resetAfterCasting;
+                                    break;
+                                    // }
                                 }
                             }
                             // reset position
