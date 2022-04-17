@@ -2228,6 +2228,29 @@ class PageEngine
                                 }
                             }
                             $inputArgument = $childTag->Content;
+                            if ($inputArgument[0] === '(' || $inputArgument === 'model' || $childTag->ItsExpression) { // event
+                                $childTag->Skip = !$childTag->ItsExpression;
+                                $attrValues = $values;
+                                $newValueContent = '';
+                                foreach ($attrValues as $attrValue) {
+                                    $newValueContent .= $attrValue->Content;
+                                }
+
+                                if ($childTag->ItsExpression) {
+                                    $dynamicEventTag = new TagItem();
+                                    $dynamicEventTag->ItsExpression = true;
+                                    $dynamicEventTag->Content = $newValueContent;
+                                    $this->compileExpression($dynamicEventTag, ['$event' => true]);
+                                    $childTag->DynamicChild = $dynamicEventTag;
+                                } else {
+                                    // replace children with one expression
+                                    $newChild = $attrValues[0];
+                                    $newChild->Content = $newValueContent;
+                                    $childTag->setChildren([$newChild]);
+                                    $newChild->ItsExpression = true;
+                                    $this->compileExpression($newChild, ['$event' => true]);
+                                }
+                            }
                             if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
                                 if (
                                     !$dynamicTagDetected
