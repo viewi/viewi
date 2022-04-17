@@ -9,6 +9,7 @@
         "ajax.js",
         "arrayExtensions.js",
         "viewi.js",
-        "app.js"
+        "app.js",
+        "component.js"
     ]
 }
