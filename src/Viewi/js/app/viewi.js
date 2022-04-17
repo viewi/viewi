@@ -590,8 +590,46 @@ function Viewi() {
         if (wrapper.isMounted) return;
         wrapper.component.__beforeMount && wrapper.component.__beforeMount();
         if (wrapper.attributes) {
+            // console.log('mount', wrapper);
             for (var ai in wrapper.attributes) {
                 var attr = wrapper.attributes[ai];
+                // console.log('attribute', attr, wrapper.component);
+                // TODO: DRY (attribute event)
+                if (attr.content[0] === '(') { // event emitter
+                    var attrName = attr.content;
+                    var eventName = attrName.substring(1, attrName.length - 1);
+                    var actionContent = null;
+                    if (attr.dynamic) {
+                        if (!attr.eventExpression) {
+                            if (!attr.instance.component) {
+                                attr.instance.component = createInstance(attr.instance);
+                            }
+                            attr.eventExpression = getDataExpression(attr.dynamic, attr.instance, true);
+                            // console.log(attr.eventExpression);
+                        }
+                        actionContent = attr.eventExpression.func;
+                    } else {
+                        actionContent = attr.children[0].contentExpression.func;
+                    }
+                    if (!attr.listeners) {
+                        attr.listeners = {};
+                    }
+                    attr.listeners[attrName] && elm.removeEventListener(eventName, attr.listeners[attrName]);
+                    attr.listeners[attrName] = function ($event) {
+                        //actionContent(attr.instance.component, $this, $event);
+                        var args = [attr.instance.component, $this, $event];
+                        if (attr.scope) {
+                            for (var k in attr.scope.stack) {
+                                args.push(attr.scope.data[attr.scope.stack[k]]);
+                            }
+                        }
+                        actionContent.apply(null, args);
+                    };
+                    if (!wrapper.component.$_callbacks) {
+                        wrapper.component.$_callbacks = {};
+                    }
+                    wrapper.component.$_callbacks[eventName] = attr.listeners[attrName];
+                }
                 if (attr.content in wrapper.component) {
                     var propValue = null;
                     var currentValue = null;
@@ -2452,7 +2490,7 @@ function Viewi() {
         var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
         createInstance(instanceMeta.wrapper);
         // console.log('renderInProgress, setAbort, abortRender', renderInProgress, setAbort, abortRender);
-
+        // TODO: rewrite with cycle/recursion consideration
         if (abortRender) { destroy(); abortRender = false; return; }
         mountInstance(instanceMeta.wrapper);
         if (abortRender) { destroy(); abortRender = false; return; }
