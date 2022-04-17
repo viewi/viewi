@@ -1104,6 +1104,8 @@ class JsTranslator
         $this->newVar = true;
         $classCode = $this->currentIndentation . 'var $this = this;'
             . PHP_EOL;
+        $classCode .= $this->currentIndentation . '$base(this);'
+            . PHP_EOL;
         $classCode .= $this->readCodeBlock();
         $this->newVar = true;
         $this->currentClass = $lastClass;
