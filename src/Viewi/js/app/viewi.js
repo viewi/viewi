@@ -590,7 +590,6 @@ function Viewi() {
         if (wrapper.isMounted) return;
         wrapper.component.__beforeMount && wrapper.component.__beforeMount();
         if (wrapper.attributes) {
-            // console.log('mount', wrapper);
             for (var ai in wrapper.attributes) {
                 var attr = wrapper.attributes[ai];
                 // console.log('attribute', attr, wrapper.component);
@@ -1709,9 +1708,24 @@ function Viewi() {
                 copy.attributes = copy.attributes.select(function (a) {
                     var aCopy = Object.assign({}, a);
                     aCopy.parent = copy;
-                    if (aCopy.call) {
-                        aCopy.instance = copy.instance;
+
+                    if (!aCopy.instance.component) {
+                        if (aCopy.instance.__id in instancesScope) {
+                            aCopy.instance = instancesScope[aCopy.instance.__id]
+                        } else {
+                            aCopy.instance = Object.assign({}, node.instance);
+                            instancesScope[aCopy.instance.__id] = aCopy.instance;
+                            aCopy.instance.__id = ++nextInstanceId;
+                            instancesScope[aCopy.instance.__id] = aCopy.instance;
+                            // console.log(instancesScope);
+                            aCopy.instance.attributes = aCopy.instance.attributes.select(function (x) {
+                                var attr = Object.assign({}, x);
+                                attr.scope = aCopy.scope;
+                                return attr;
+                            });
+                        }
                     }
+
                     aCopy.scope = copy.scope;
                     // TODO: don not listen every time, listen on origin, and check children
                     if (a.subs) {
