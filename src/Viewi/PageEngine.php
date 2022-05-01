@@ -905,7 +905,7 @@ class PageEngine
         foreach ($pageTemplate->RootTag->getChildren() as &$tag) {
             $this->buildTag($tag, $html, $codeToAppend);
         }
-        if ($codeToAppend) {
+        if ($codeToAppend !== '') {
             if ($this->renderReturn) {
                 $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                     var_export($codeToAppend, true) . ";";
@@ -1348,10 +1348,12 @@ class PageEngine
             $partialComponentName = $slotContentName ? '_' . ucfirst($slotContentName) : '_Slot';
             $slotFileName = "{$this->latestPageTemplate->ComponentInfo->ComponentName}" .
                 "$partialComponentName";
+            // $nextIndex = 0;
             if (!isset($this->slotCounterMap[$slotFileName])) {
                 $this->slotCounterMap[$slotFileName] = 0;
             } else {
                 $this->slotCounterMap[$slotFileName]++;
+                // $nextIndex = $this->slotCounterMap[$slotFileName];
                 $slotFileName .= $this->slotCounterMap[$slotFileName];
             }
 
@@ -1377,6 +1379,10 @@ class PageEngine
             $slotPageTemplate->Path = $htmlPath;
             $this->templates[$componentBaseName] = $slotPageTemplate;
             $this->components[$componentBaseName] = $slotPageTemplate->ComponentInfo;
+            // if ($nextIndex === 4) {
+            //     $slotPageTemplate->RootTag->cleanParents();
+            //     $this->debug([$slotPageTemplate]);
+            // }
             $this->build($this->templates[$componentBaseName]);
             $this->save($this->templates[$componentBaseName]);
         }
@@ -2307,6 +2313,7 @@ class PageEngine
             }
             //$this->debug($inputArguments, true);
             // compile component
+            // $this->debug([$tagItem->Content, $codeToAppend]);
             if ($codeToAppend) {
                 if ($this->renderReturn) {
                     $html .= PHP_EOL . $this->indentation . "\$_content .= " .
@@ -2316,6 +2323,7 @@ class PageEngine
                 }
                 $codeToAppend = '';
             }
+            // $this->debug([$tagItem->Content, $tagItem]);
             $this->compileComponentExpression($tagItem, $html, null, $inputArguments);
             $this->extraLine = true;
 
