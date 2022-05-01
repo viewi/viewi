@@ -2666,7 +2666,7 @@ class PageEngine
                     if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
                         if (
                             !strpos($content, ':')
-                            && !isset($this->reservedTags[strtolower($content)])
+                            && !isset($this->reservedTags[$content])
                         ) {
                             if (!isset($this->components[$content])) {
                                 throw new Exception("Component `$content` not found.");
@@ -2721,7 +2721,7 @@ class PageEngine
             if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
                 if (
                     !strpos($content, ':')
-                    && !isset($this->reservedTags[strtolower($content)])
+                    && !isset($this->reservedTags[$content])
                 ) {
                     if (!isset($this->components[$content])) {
                         throw new Exception("Component `$content` not found.");
