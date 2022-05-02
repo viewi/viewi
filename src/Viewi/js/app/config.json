@@ -2,6 +2,7 @@
     "includes": [
         "copyright.js",
         "router.js",
+        "component.js",
         "BUNDLE",
         "VIEWI_PATH",
         "VIEWI_VERSION",
@@ -9,7 +10,6 @@
         "ajax.js",
         "arrayExtensions.js",
         "viewi.js",
-        "app.js",
-        "component.js"
+        "app.js"
     ]
 }
