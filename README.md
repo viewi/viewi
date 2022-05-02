@@ -1,4 +1,4 @@
-<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
+<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo-ua.svg" alt="Viewi" height="180"/></a></p>
 <h1 align="center">Viewi</h1>
 <h2 align="center">A powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
 
