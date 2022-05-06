@@ -103,7 +103,7 @@ class PageEngine
         'content,element,shadow,template,blockquote,iframe,tfoot,' .
         'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' .
         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' .
-        'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotcontent';
+        'rect,switch,symbol,text,textpath,tspan,use,view,template,slot,slotContent';
 
     /** @var array<string,string> */
     private array $selfClosingTags;
