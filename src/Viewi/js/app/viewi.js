@@ -1849,7 +1849,12 @@ function Viewi() {
                     } else if (node.isVirtual) {
                         createDomNode(node.parentDomNode, node);
                     } else {
-                        node.domNode && node.domNode.parentNode && createDomNode(node.domNode.parentNode, node);
+                        var parentDomNode = node.domNode && node.domNode.parentNode;
+                        if (!parentDomNode) {
+                            var parentOrBeforeNode = getFirstBefore(node);
+                            parentDomNode = parentOrBeforeNode && parentOrBeforeNode.node.domNode && parentOrBeforeNode.node.domNode.parentNode;
+                        }
+                        parentDomNode && createDomNode(parentDomNode, node);
                     }
                 } catch (error) {
                     console.error(error);
