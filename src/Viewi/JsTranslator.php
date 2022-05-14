@@ -558,6 +558,7 @@ class JsTranslator
                         $this->stopCollectingVariablePath();
                     }
                 }
+                $goDefault = false;
                 switch ($keyword) {
                     case '=': {
                             $code .= $this->getVariable($thisMatched);
@@ -786,6 +787,9 @@ class JsTranslator
                                 $code = substr($code, 0, $insertTo) . "'" . $className . "'";
                                 // $this->debug($code);
                                 break;
+                            } else if ($this->lastKeyword === '->' || $this->lastKeyword === '?->') {
+                                $goDefault = true;
+                                break;
                             }
                             $code .= $indentation . $this->processClass();
                             $skipLastSaving = true;
@@ -898,70 +902,73 @@ class JsTranslator
                             break;
                         }
                     default:
-                        // $this->debug($code);
-                        // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
-                        if (isset($this->processors[$keyword]) || isset($this->spaces[$keyword])) {
-                            // $this->debug($this->lastKeyword . ' ' . $keyword);
-                            if (
-                                $this->isPhpVariable($this->lastKeyword)
-                                && $this->isPhpVariable($keyword)
-                            ) {
-                                $code .= ' ';
-                            }
-                            $before = $indentation;
-                            $after = '';
-                            if (isset($this->spaces[$keyword])) {
-                                if ($indentation === '') {
-                                    $before = $this->spaces[$keyword][0];
-                                }
-                                $after = $this->spaces[$keyword][1];
-                                if ($after !== '') {
-                                    $skipLastSaving = true;
-                                    $this->lastKeyword = ' ';
-                                }
-                            }
-                            $code .=  $before . $keyword . $after;
-                            // $this->position++;
-                        } else if (ctype_alnum(str_replace('_', '', $keyword))) {
-                            // $this->debug("Named '{$this->lastKeyword}' '$callFunction' '$keyword'");
-                            if (
-                                isset(self::$functionConverters[$keyword])
-                                && self::$functionConverters[$keyword]::$directive
-                            ) {
-                                $code = self::$functionConverters[$keyword]::convert(
-                                    $this,
-                                    $code . $keyword,
-                                    $indentation
-                                );
-                                $skipLastSaving = true;
-                            } else {
-                                // $this->debug($keyword . ' after "' . $this->lastKeyword . '"');
-                                // if ($this->lastKeyword !== ' ') {
-                                $this->callFunction = $keyword;
-                                // $this->debug($keyword);
-                                //}
-                                // $this->debug($this->lastKeyword . ' ' . $keyword);
-                                if ($namedArguments) {
-                                    $this->namedArguments = true;
-                                }
-                                $this->thisMatched = false;
-                                if ($thisMatched) {
-                                    $this->buffer = $keyword;
-                                    $this->bufferIndentation = $indentation;
-                                    $code .= $this->getVariable($thisMatched);
-                                } else {
-                                    if ($this->isPhpVariable($this->lastKeyword)) {
-                                        // $this->debug($this->lastKeyword . ' ' . $keyword);
-                                        $code .= ' ';
-                                    }
-                                    $code .= $indentation . $keyword;
-                                }
-                            }
-                        } else {
-                            $this->position++;
-                            $code .= $indentation . "'Undefined keyword `$keyword` at ReadCodeBlock.'";
-                            break 2;
+                        $goDefault = true;
+                }
+                if ($goDefault) {
+                    // $this->debug($code);
+                    // throw new Exception("Undefined keyword `$keyword` at ReadCodeBlock.");
+                    if (isset($this->processors[$keyword]) || isset($this->spaces[$keyword])) {
+                        // $this->debug($this->lastKeyword . ' ' . $keyword);
+                        if (
+                            $this->isPhpVariable($this->lastKeyword)
+                            && $this->isPhpVariable($keyword)
+                        ) {
+                            $code .= ' ';
                         }
+                        $before = $indentation;
+                        $after = '';
+                        if (isset($this->spaces[$keyword])) {
+                            if ($indentation === '') {
+                                $before = $this->spaces[$keyword][0];
+                            }
+                            $after = $this->spaces[$keyword][1];
+                            if ($after !== '') {
+                                $skipLastSaving = true;
+                                $this->lastKeyword = ' ';
+                            }
+                        }
+                        $code .=  $before . $keyword . $after;
+                        // $this->position++;
+                    } else if (ctype_alnum(str_replace('_', '', $keyword))) {
+                        // $this->debug("Named '{$this->lastKeyword}' '$callFunction' '$keyword'");
+                        if (
+                            isset(self::$functionConverters[$keyword])
+                            && self::$functionConverters[$keyword]::$directive
+                        ) {
+                            $code = self::$functionConverters[$keyword]::convert(
+                                $this,
+                                $code . $keyword,
+                                $indentation
+                            );
+                            $skipLastSaving = true;
+                        } else {
+                            // $this->debug($keyword . ' after "' . $this->lastKeyword . '"');
+                            // if ($this->lastKeyword !== ' ') {
+                            $this->callFunction = $keyword;
+                            // $this->debug($keyword);
+                            //}
+                            // $this->debug($this->lastKeyword . ' ' . $keyword);
+                            if ($namedArguments) {
+                                $this->namedArguments = true;
+                            }
+                            $this->thisMatched = false;
+                            if ($thisMatched) {
+                                $this->buffer = $keyword;
+                                $this->bufferIndentation = $indentation;
+                                $code .= $this->getVariable($thisMatched);
+                            } else {
+                                if ($this->isPhpVariable($this->lastKeyword)) {
+                                    // $this->debug($this->lastKeyword . ' ' . $keyword);
+                                    $code .= ' ';
+                                }
+                                $code .= $indentation . $keyword;
+                            }
+                        }
+                    } else {
+                        $this->position++;
+                        $code .= $indentation . "'Undefined keyword `$keyword` at ReadCodeBlock.'";
+                        break;
+                    }
                 }
             }
             if (!$skipLastSaving) {
