@@ -10,6 +10,7 @@ use ReflectionException;
 use Viewi\Components\Interfaces\IMiddleware;
 use Viewi\Components\Services\AsyncStateManager;
 use Viewi\DI\IContainer;
+use Viewi\Packages\ViewiPackage;
 use \Viewi\Routing\Route;
 use Viewi\WebComponents\HttpContext;
 use Viewi\WebComponents\IHttpContext;
@@ -28,12 +29,12 @@ class PageEngine
     const SERVER_BUILD_DIR = 'SERVER_BUILD_DIR';
 
     /**
-     * Public root folder of application (location of index.php)
+     * Public root folder of application (location of index.php) (Ex.: /public)
      */
     const PUBLIC_ROOT_DIR = 'PUBLIC_ROOT_DIR';
 
     /**
-     * Target directory of compiled public assets (javascript files, etc.)
+     * Target directory of compiled public assets (javascript files, etc.) (Ex.: /viewi-build)
      */
     const PUBLIC_BUILD_DIR = 'PUBLIC_BUILD_DIR';
 
@@ -65,7 +66,7 @@ class PageEngine
     const RETURN_OUTPUT = 'RETURN_OUTPUT';
 
     /**
-     * Array of dependencies, packages, Default: null.
+     * Array of dependencies ViewiPackage[], packages, Default: null.
      */
     const INCLUDES = 'INCLUDES';
 
@@ -145,9 +146,14 @@ class PageEngine
     private bool $renderReturn;
     /**
      * 
-     * @var null|string[]
+     * @var null|string[] {className}
      */
     private ?array $includes;
+    /**
+     * 
+     * @var ViewiPackage[]|null
+     */
+    private ?array $includeInstances;
     private string $_CompileComponentName = '$_component';
     private string $_engineName = '$_pageEngine';
     private string $_CompileExpressionPrefix;
@@ -198,6 +204,11 @@ class PageEngine
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
         $this->booleanAttributes = array_flip(explode(',', $this->booleanAttributesString));
+    }
+
+    function getConfig(): array
+    {
+        return $this->config;
     }
 
     /**
@@ -521,6 +532,11 @@ class PageEngine
         if (self::$compiled) {
             return;
         }
+        $this->includeInstances = $this->includes !== null
+            ? array_map(function ($className) {
+                return new $className();
+            }, $this->includes)
+            : null;
         $this->enableMinificationAndGzipping = $this->config[self::MINIFY] ?? false;
         $this->combineJs = $this->config[self::COMBINE_JS] ?? false;
         $this->slotCounterMap = [];
@@ -542,10 +558,16 @@ class PageEngine
         }
         $pages = $this->getDirContents($this->sourcePath)
             + $this->getDirContents($viewiComponentsPath);
-        if ($this->includes !== null) {
-            array_map(function ($path) use (&$pages) {
-                $pages += $this->getDirContents($path);
-            }, $this->includes);
+        if ($this->includeInstances !== null) {
+            array_map(
+                function ($package) use (&$pages) {
+                    /**
+                     * @var ViewiPackage $package
+                     */
+                    $pages += $this->getDirContents($package->getComponentsPath());
+                },
+                $this->includeInstances
+            );
         }
         // $this->debug($this->includes);
         // $this->debug($pages);
@@ -557,10 +579,17 @@ class PageEngine
         }
         $types = $this->getClasses(BaseComponent::class, $this->sourcePath)
             + $this->getClasses(BaseComponent::class, $viewiComponentsPath);
-        if ($this->includes !== null) {
-            array_map(function ($path)  use (&$types) {
-                $types += $this->getClasses(BaseComponent::class, $path);
-            }, $this->includes);
+        if ($this->includeInstances !== null) {
+            array_map(
+                function ($package) use (&$types) {
+                    /**
+                     * @var ViewiPackage $package
+                     */
+                    $types += $this->getClasses(BaseComponent::class, $package->getComponentsPath());
+                    $package->onBuild($this);
+                },
+                $this->includeInstances
+            );
         }
         // $this->debug($this->sourcePath);
         // $this->debug($types);
