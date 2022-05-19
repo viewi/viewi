@@ -19,12 +19,12 @@ class App
         self::$publicConfig = $publicConfig;
     }
 
-    public static function use(string $path)
+    public static function use(string $packageClass)
     {
         if (!isset(self::$config[PageEngine::INCLUDES])) {
             self::$config[PageEngine::INCLUDES] = [];
         }
-        self::$config[PageEngine::INCLUDES][] = $path;
+        self::$config[PageEngine::INCLUDES][] = $packageClass;
     }
 
     public static function run(string $component, array $params, ?IContainer $container = null)
