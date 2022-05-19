@@ -197,7 +197,6 @@ function Viewi() {
         var usedSubscriptions = {};
         for (var i in children) {
             var item = children[i];
-
             if (item.type === 'tag' && item.content === 'slot') {
                 skip = true;
                 var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
@@ -533,36 +532,47 @@ function Viewi() {
                 if (resetReuse) {
                     reuseEnabled = false;
                 }
-                var versions = [];
-                for (var ver in componentNodes.versions) {
-                    var prevNode = currentNodeList.length > 0
-                        ? currentNodeList[currentNodeList.length - 1]
-                        : null;
-                    var toConcat = [];
-                    componentNodes.versions[ver].each(function (x) {
-                        if (prevNode
-                            && prevNode.type === 'text'
-                            && x.type === 'text'
-                            && !x.raw
-                            && !prevNode.raw
-                        ) {
-                            prevNode.contents = prevNode.contents.concat(x.contents);
-                        } else {
-                            x.nextNode = null;
-                            x.parent = parentNode;
-                            x.previousNode = prevNode;
-                            if (prevNode) {
-                                prevNode.nextNode = x;
-                            }
-                            prevNode = x;
-                            toConcat.push(x);
+
+                var currentVersion = 'main';
+                if (componentNodes.wrapper.hasVersions) {
+                    createInstance(componentNodes.wrapper);
+                    mountInstance(componentNodes.wrapper);
+                    currentVersion = componentNodes.wrapper
+                        && componentNodes.wrapper.component.__version
+                        && componentNodes.wrapper.component.__version();
+                    if (!currentVersion) {
+                        throw new Error("Component '" + componentNodes.wrapper.name + "' doesn't support versioning!");
+                    }
+                }
+                if (!(currentVersion in componentNodes.versions)) {
+                    throw new Error("Can't find version '" + currentVersion + "' for component '" + componentNodes.wrapper.name + "'!");
+                }
+
+                var prevNode = currentNodeList.length > 0
+                    ? currentNodeList[currentNodeList.length - 1]
+                    : null;
+                var toConcat = [];
+                componentNodes.versions[currentVersion].each(function (x) {
+                    if (prevNode
+                        && prevNode.type === 'text'
+                        && x.type === 'text'
+                        && !x.raw
+                        && !prevNode.raw
+                    ) {
+                        prevNode.contents = prevNode.contents.concat(x.contents);
+                    } else {
+                        x.nextNode = null;
+                        x.parent = parentNode;
+                        x.previousNode = prevNode;
+                        if (prevNode) {
+                            prevNode.nextNode = x;
                         }
-                    });
-                    versions.push(toConcat);
-                }
-                for (var k in versions) {
-                    currentNodeList = currentNodeList.concat(versions[k]);
-                }
+                        prevNode = x;
+                        toConcat.push(x);
+                    }
+                });
+                currentNodeList = currentNodeList.concat(toConcat);
+
                 previousNode = currentNodeList.length > 0
                     ? currentNodeList[currentNodeList.length - 1]
                     : null;
@@ -861,12 +871,17 @@ function Viewi() {
         var nodeBefore = node;
         var skipCurrent = true;
         var parent = false;
+        var infLoop = false;
         while (!nodeBefore.domNode || skipCurrent) {
             skipCurrent = false;
             if (nodeBefore.previousNode !== null) {
                 nodeBefore = nodeBefore.previousNode;
                 parent = false;
                 if (nodeBefore.isVirtual) {
+                    if (nodeBefore === infLoop) {
+                        throw new Error("Can't find the node before current!");
+                    }
+                    infLoop = nodeBefore;
                     // go down
                     var potentialNode = nodeBefore;
                     while (potentialNode !== null && !potentialNode.domNode) {
@@ -884,6 +899,7 @@ function Viewi() {
                 if (nodeBefore.parent === null) {
                     return null;
                 }
+                // go up
                 nodeBefore = nodeBefore.parent;
                 parent = true;
             }
@@ -2171,6 +2187,7 @@ function Viewi() {
             isMounted: false,
             isCreated: false,
             params: params,
+            hasVersions: page.hasVersions,
             attributes: attributes,
             __id: ++nextInstanceId
         }
@@ -2182,8 +2199,7 @@ function Viewi() {
         };
         if (page.hasVersions) {
             for (var ver in page.versions) {
-                // TODO: ver support
-                newBuild.versions['main'] = build(page.versions[ver], instanceWrapper, childNodes, root, isRoot);
+                newBuild.versions[ver] = build(page.versions[ver], instanceWrapper, childNodes, root, isRoot);
             }
         } else {
             newBuild.versions['main'] = build(page.nodes, instanceWrapper, childNodes, root, isRoot);
