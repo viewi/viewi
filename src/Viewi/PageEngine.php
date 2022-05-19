@@ -64,6 +64,11 @@ class PageEngine
      */
     const RETURN_OUTPUT = 'RETURN_OUTPUT';
 
+    /**
+     * Array of dependencies, packages, Default: null.
+     */
+    const INCLUDES = 'INCLUDES';
+
     private string $sourcePath;
     private string $buildPath;
     private string $publicRootPath;
@@ -138,6 +143,11 @@ class PageEngine
      * @var bool true: return string, false: echo
      */
     private bool $renderReturn;
+    /**
+     * 
+     * @var null|string[]
+     */
+    private ?array $includes;
     private string $_CompileComponentName = '$_component';
     private string $_engineName = '$_pageEngine';
     private string $_CompileExpressionPrefix;
@@ -179,6 +189,7 @@ class PageEngine
         $this->publicBuildDir = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
         $this->publicBuildPath = $this->publicRootPath . $this->publicBuildDir;
         $this->renderReturn = $config[self::RETURN_OUTPUT] ?? true; // $return;
+        $this->includes = $config[self::INCLUDES] ?? null;
         $this->components = [];
         $this->tokens = [];
         $this->templates = [];
@@ -531,6 +542,12 @@ class PageEngine
         }
         $pages = $this->getDirContents($this->sourcePath)
             + $this->getDirContents($viewiComponentsPath);
+        if ($this->includes !== null) {
+            array_map(function ($path) use (&$pages) {
+                $pages += $this->getDirContents($path);
+            }, $this->includes);
+        }
+        // $this->debug($this->includes);
         // $this->debug($pages);
         foreach (array_keys($pages) as $filename) {
             $pathinfo = pathinfo($filename);
@@ -540,6 +557,11 @@ class PageEngine
         }
         $types = $this->getClasses(BaseComponent::class, $this->sourcePath)
             + $this->getClasses(BaseComponent::class, $viewiComponentsPath);
+        if ($this->includes !== null) {
+            array_map(function ($path)  use (&$types) {
+                $types += $this->getClasses(BaseComponent::class, $path);
+            }, $this->includes);
+        }
         // $this->debug($this->sourcePath);
         // $this->debug($types);
         foreach ($types as $filename => &$reflectionClass) {
@@ -1004,7 +1026,7 @@ class PageEngine
             $code .= $phpCode;
             $code .= ' ?? \'\')' . ($this->renderReturn ? '' : '?>');
             $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
-            // $this->debug($phpCode . $tagItem->JsExpression);
+            // $this->debug([$phpCode, $tagItem->JsExpression]);
         }
         $tagItem->PhpExpression = $phpCode;
         $detectedReferences = $this->expressionsTranslator->getVariablePaths();

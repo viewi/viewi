@@ -19,6 +19,14 @@ class App
         self::$publicConfig = $publicConfig;
     }
 
+    public static function use(string $path)
+    {
+        if (!isset(self::$config[PageEngine::INCLUDES])) {
+            self::$config[PageEngine::INCLUDES] = [];
+        }
+        self::$config[PageEngine::INCLUDES][] = $path;
+    }
+
     public static function run(string $component, array $params, ?IContainer $container = null)
     {
         return self::getEngine()->render($component, $params, $container);
