@@ -564,7 +564,10 @@ class PageEngine
                     /**
                      * @var ViewiPackage $package
                      */
-                    $pages += $this->getDirContents($package->getComponentsPath());
+                    $componentsPath = $package->getComponentsPath();
+                    if ($componentsPath !== null) {
+                        $pages += $this->getDirContents($componentsPath);
+                    }
                 },
                 $this->includeInstances
             );
@@ -585,7 +588,15 @@ class PageEngine
                     /**
                      * @var ViewiPackage $package
                      */
-                    $types += $this->getClasses(BaseComponent::class, $package->getComponentsPath());
+                    $componentsPath = $package->getComponentsPath();
+                    $assetsPath = $package->getAssetsPath();
+                    if ($componentsPath !== null) {
+                        $types += $this->getClasses(BaseComponent::class, $componentsPath);
+                    }
+                    if ($assetsPath !== null) {
+                        // copy assets
+                        $this->copyAll($assetsPath, $this->publicRootPath);
+                    }
                     $package->onBuild($this);
                 },
                 $this->includeInstances
@@ -2803,19 +2814,45 @@ class PageEngine
         echo '</pre>';
     }
 
-    function getDirContents($dir, &$results = array())
+    function getDirContents($dir, &$results = array(), $includeFolders = false)
     {
         $files = scandir($dir);
 
         foreach ($files as $key => $value) {
             $path = realpath($dir . DIRECTORY_SEPARATOR . $value);
             if (!is_dir($path)) {
-                $results[$path] = true;
+                $results[$path] = 'file';
             } else if ($value != "." && $value != "..") {
-                $this->getDirContents($path, $results);
+                if ($includeFolders) {
+                    $results[$path] = 'folder';
+                }
+                $this->getDirContents($path, $results, $includeFolders);
             }
         }
-
         return $results;
+    }
+
+    public function copyAll(string $fromPath, string $toPath): void
+    {
+        $resources = [];
+        $this->getDirContents($fromPath, $resources, true);
+        foreach ($resources as $path => $type) {
+            $basePath = str_replace($fromPath, '', $path);
+            $destinationPath = $toPath . $basePath;
+            // $this->debug([$type, $fromPath, $path, $basePath, $toPath, $destinationPath]);
+            switch ($type) {
+                case 'folder': {
+                        if (!file_exists($destinationPath)) {
+                            mkdir($destinationPath, 0777, true);
+                        }
+                        break;
+                    }
+                case 'file':
+                default: {
+                        // file
+                        file_put_contents($destinationPath, file_get_contents($path));
+                    }
+            }
+        }
     }
 }
