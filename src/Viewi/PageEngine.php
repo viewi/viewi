@@ -2091,21 +2091,34 @@ class PageEngine
             if ($tagItem->Type->Name === TagItemType::Attribute) {
                 if (
                     !$noChildren && count($children) == 1 && $children[0]->ItsExpression
-                    && isset($this->booleanAttributes[strtolower($tagItem->Content)])
-                ) { // attribute is boolean, TODO: check argument expression to have boolean type
-                    // compile if based on expression
-                    $condition = $this->convertExpressionToCode($children[0]->Content);
-                    if ($this->renderReturn) {
-                        $this->flushBuffer($html, $codeToAppend);
-                        $html .= PHP_EOL . $this->indentation . "\$_content .= " .
-                            "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
-                    } else {
-                        $html .= $codeToAppend;
-                        $codeToAppend = '';
-                        $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
-                        $this->previousItem = $tagItem;
-                    }
+                ) {
                     $this->compileExpression($children[0]);
+                    $this->previousItem = $tagItem;
+                    // attribute is boolean (Ex.: disabled="$isDisabled"), TODO: check argument expression to have boolean type
+                    // compile if based on expression
+                    if (isset($this->booleanAttributes[strtolower($tagItem->Content)])) {
+                        $condition = $this->convertExpressionToCode($children[0]->Content);
+                        if ($this->renderReturn) {
+                            $this->flushBuffer($html, $codeToAppend);
+                            $html .= PHP_EOL . $this->indentation . "\$_content .= " .
+                                "$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''" . ";";
+                        } else {
+                            $html .= $codeToAppend;
+                            $codeToAppend = '';
+                            $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
+                        }
+                    } else {
+                        // if attribute value is null - do not render attribute
+                        $this->flushBuffer($html, $codeToAppend);
+                        $html .= PHP_EOL . $this->indentation . '$attrValue = ' . $children[0]->PhpExpression . ';';
+                        $html .= PHP_EOL . $this->indentation . 'if ($attrValue !== null) {';
+                        if ($this->renderReturn) {
+                            $html .= PHP_EOL . $this->indentation . "    \$_content .= ' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"';";
+                        } else {
+                            $html .= PHP_EOL . $this->indentation . "    <?=' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"' ?>";
+                        }
+                        $html .= PHP_EOL . $this->indentation . '}';
+                    }
                     return;
                 }
                 $codeToAppend .= ' ';
@@ -2120,7 +2133,7 @@ class PageEngine
                         $codeToAppend = '';
                     } else {
                         $codeToAppend .= '<?php' . PHP_EOL . $this->indentation .
-                            "if ({$tagItem->PhpExpression}[0] !== '(') {" . PHP_EOL . '?>';
+                            "if ({$tagItem->PhpExpression}[0] !== '(') {" . PHP_EOL . '?>'; // not an event, ex.: (click)="handleClick()"
                         $codeToAppend .= $content;
                     }
                 } else {
@@ -2136,11 +2149,19 @@ class PageEngine
                 if ($tagItem->ItsExpression && $this->renderReturn) {
                     $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                         var_export($codeToAppend, true) . ";";
-                    $html .= PHP_EOL . $this->indentation . "\$_content .= " .
-                        $content . ";";
+
+                    $html .= PHP_EOL . $this->indentation . '$temp = ' . $tagItem->PhpExpression . ';';
+                    $html .= PHP_EOL . $this->indentation . 'if ($temp !== null) {';
+                    $html .= PHP_EOL . $this->indentation . "    \$_content .= htmlentities(\$temp);";
+                    $html .= PHP_EOL . $this->indentation . '}';
+
+                    // $html .= PHP_EOL . $this->indentation . "\$_content .= " .
+                    //     $content . ";";
                     $codeToAppend = '';
+                    // $this->debug([$codeToAppend, $content]);
                 } else {
                     $codeToAppend .= $tagItem->ItsExpression ? $content : htmlentities($content);
+                    // $this->debug([$content]);
                 }
             }
             // CHILDREN scope
@@ -2257,7 +2278,7 @@ class PageEngine
                     }
                     $this->compileComponentExpression($childTag, $html);
                 } else if ($childTag->Type->Name === TagItemType::Attribute && !$childTag->Skip) {
-                    $childTag->Skip = true; // component can't have attributes
+                    $childTag->Skip = true; // ~component can't have attributes~ - yes, it can!
                     // pass arguments
                     // compile props
                     $values = $childTag->getChildren();
