@@ -18,5 +18,11 @@
     },
     "bin": [
         "bin/viewi"
+    ],
+    "authors": [
+        {
+            "name": "Ivan Voitovych",
+            "email": "col606v@gmail.com"
+        }
     ]
 }
