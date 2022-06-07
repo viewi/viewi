@@ -678,9 +678,12 @@ function Viewi() {
                         propValue = +propValue;
                     }
                     wrapper.component[attr.content] = propValue;
+                    // console.log(['mount', wrapper.name, attr.content, propValue, wrapper]);
+                    // if(propValue === undefined) debugger;
                 }
             }
         }
+        // console.log(['mount', wrapper.name, wrapper]);
         wrapper.component.__mounted && wrapper.component.__mounted();
         wrapper.isMounted = true;
     }
@@ -702,6 +705,8 @@ function Viewi() {
                 wrapper.attributes[i].origin.childComponent = component;
             }
         }
+        // console.log(['create', wrapper.name, wrapper]);
+        // if(wrapper.name === 'Row') debugger;
         onRenderedTracker[wrapper.name] = wrapper;
         return component;
     }
@@ -804,8 +809,14 @@ function Viewi() {
                 }
                 var isModel = attrName === 'model';
                 var val = texts.join('');
-                !isModel && elm.setAttribute(attrName, val);
-                if (isModel) {
+                if (!isModel) {
+                    if (texts[0] === null) {
+                        elm.removeAttribute(attrName);
+                    } else {
+                        elm.setAttribute(attrName, val);
+                    }
+                } else // isModel
+                {
                     if (hydrate && !eventsOnly) {
                         return; // no events just yet
                     }
@@ -1664,7 +1675,11 @@ function Viewi() {
             }
             return z;
         });
-        parent.children = newChildren;
+        if (!parent.itemChildren) {
+            parent.children = newChildren;
+        } else {
+            parent.itemChildren = newChildren;
+        }
     };
 
     var cloneNode = function (parent, node) {
@@ -1672,7 +1687,7 @@ function Viewi() {
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
-        copy.scope = parent.scope;
+        copy.scope = parent.scope || copy.scope;
         if (cleanInstance) {
             if (!copy.instance.component) {
                 if (copy.instance.__id in instancesScope) {
@@ -1685,7 +1700,7 @@ function Viewi() {
                     // console.log(instancesScope);
                     copy.instance.attributes = copy.instance.attributes.select(function (x) {
                         var attr = Object.assign({}, x);
-                        attr.scope = copy.scope;
+                        attr.scope = copy.scope || attr.scope;
                         return attr;
                     });
                 }
@@ -1704,7 +1719,7 @@ function Viewi() {
                             instancesScope[childInstance.wrapper.__id] = childInstance.wrapper;
                             childInstance.wrapper.attributes = x.wrapper.attributes.select(function (y) {
                                 var attr = Object.assign({}, y);
-                                attr.scope = copy.scope;
+                                attr.scope = copy.scope || attr.scope;
                                 return attr;
                             });
                         }
@@ -1736,13 +1751,13 @@ function Viewi() {
                             // console.log(instancesScope);
                             aCopy.instance.attributes = aCopy.instance.attributes.select(function (x) {
                                 var attr = Object.assign({}, x);
-                                attr.scope = aCopy.scope;
+                                attr.scope = aCopy.scope || attr.scope;
                                 return attr;
                             });
                         }
                     }
 
-                    aCopy.scope = copy.scope;
+                    aCopy.scope = copy.scope || aCopy.scope;
                     // TODO: don not listen every time, listen on origin, and check children
                     if (a.subs) {
                         for (var s in a.subs) {
@@ -1765,8 +1780,8 @@ function Viewi() {
         // console.log(copy.instance);
         // copy.instance = Object.assign({}, node.instance);
         // copy.instance.component = null;
-        if (node.children) {
-            copyNodes(copy, node.children)
+        if (node.children || node.itemChildren) {
+            copyNodes(copy, node.children || node.itemChildren);
         }
         // TODO: don not listen every time, listen on origin, and check children
         if (copy.subs) {
@@ -2200,13 +2215,15 @@ function Viewi() {
         if (page.hasVersions) {
             for (var ver in page.versions) {
                 newBuild.versions[ver] = build(page.versions[ver], instanceWrapper, childNodes, root, isRoot);
+                if (builtNodes) {
+                    mergeNodes(newBuild.versions[ver], builtNodes.versions[ver]);
+                }
             }
         } else {
             newBuild.versions['main'] = build(page.nodes, instanceWrapper, childNodes, root, isRoot);
-        }
-
-        if (builtNodes) {
-            mergeNodes(newBuild.versions['main'], builtNodes.versions['main']);
+            if (builtNodes) {
+                mergeNodes(newBuild.versions['main'], builtNodes.versions['main']);
+            }
         }
         // console.log(instance, newBuild, builtNodes, childNodes, attributes);
         parentComponentName = previousName;
