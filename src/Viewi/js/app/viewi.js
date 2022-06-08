@@ -639,48 +639,49 @@ function Viewi() {
                     }
                     wrapper.component.$_callbacks[eventName] = attr.listeners[attrName];
                 }
+                var propValue = null;
+                var currentValue = null;
+                for (var i in attr.children) {
+                    var propExpression = attr.children[i].propExpression;
+                    if (propExpression.call) {
+                        if (!attr.instance.component) {
+                            attr.instance.component = createInstance(attr.instance);
+                        }
+                        var args = [attr.instance.component, $this];
+                        if (attr.scope) {
+                            for (var k in attr.scope.stack) {
+                                args.push(attr.scope.data[attr.scope.stack[k]]);
+                            }
+                        }
+                        currentValue = propExpression.func.apply(null, args);
+                        if (attr.children[i].subs) {
+                            propsSubs['this.' + attr.content] = {
+                                instance: attr.instance,
+                                subs: attr.children[i].subs
+                            };
+                        }
+                    } else {
+                        currentValue = propExpression.content;
+                    }
+                    if (i > 0) {
+                        propValue += currentValue;
+                    } else {
+                        propValue = currentValue;
+                    }
+                }
+                if (propValue === 'true') {
+                    propValue = true;
+                } else if (propValue === 'false') {
+                    propValue = false;
+                } else if (typeof propValue === 'string' && !isNaN(propValue)) {
+                    propValue = +propValue;
+                }
                 if (attr.content in wrapper.component) {
-                    var propValue = null;
-                    var currentValue = null;
-                    for (var i in attr.children) {
-                        var propExpression = attr.children[i].propExpression;
-                        if (propExpression.call) {
-                            if (!attr.instance.component) {
-                                attr.instance.component = createInstance(attr.instance);
-                            }
-                            var args = [attr.instance.component, $this];
-                            if (attr.scope) {
-                                for (var k in attr.scope.stack) {
-                                    args.push(attr.scope.data[attr.scope.stack[k]]);
-                                }
-                            }
-                            currentValue = propExpression.func.apply(null, args);
-                            if (attr.children[i].subs) {
-                                propsSubs['this.' + attr.content] = {
-                                    instance: attr.instance,
-                                    subs: attr.children[i].subs
-                                };
-                            }
-                        } else {
-                            currentValue = propExpression.content;
-                        }
-                        if (i > 0) {
-                            propValue += currentValue;
-                        } else {
-                            propValue = currentValue;
-                        }
-                    }
-                    if (propValue === 'true') {
-                        propValue = true;
-                    } else if (propValue === 'false') {
-                        propValue = false;
-                    } else if (typeof propValue === 'string' && !isNaN(propValue)) {
-                        propValue = +propValue;
-                    }
                     wrapper.component[attr.content] = propValue;
                     // console.log(['mount', wrapper.name, attr.content, propValue, wrapper]);
                     // if(propValue === undefined) debugger;
                 }
+                wrapper.component._props[attr.content] = propValue;
             }
         }
         // console.log(['mount', wrapper.name, wrapper]);
