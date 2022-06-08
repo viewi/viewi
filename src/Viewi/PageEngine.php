@@ -1298,6 +1298,9 @@ class PageEngine
             // if(!$componentInfo){
             //     $this->debug($this->components);
             // }
+            /**
+             * @var mixed|BaseComponent $classInstance 
+             */
             $classInstance = $this->resolve($componentInfo, false, $params);
             // if ($parentComponent !== null) {
             //$parentClassName = get_class($parentComponent);
@@ -1319,6 +1322,7 @@ class PageEngine
                 if (isset($componentInfo->Inputs[$key])) {
                     $classInstance->{$key} = $inputValue;
                 }
+                $classInstance->_props[$key] = $inputValue;
             }
             $componentInfo->IsComponent && $componentInfo->HasMounted && $classInstance->__mounted();
             $renderFunction = $this->components[$componentName]->RenderFunction ?? '';
@@ -2340,56 +2344,56 @@ class PageEngine
                                     $this->compileExpression($newChild, ['$event' => true]);
                                 }
                             }
-                            if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
-                                if (
-                                    !$dynamicTagDetected
-                                    && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
-                                ) {
-                                    $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
-                                }
-                                //$inputValue = $this->getChildValues($childTag);
-                                $inputValue = $this->combineChildren(
-                                    $childTag,
-                                    ($values && $values[0]->ItsExpression) || count($values) > 1,
-                                    [],
-                                    false,
-                                    true,
-                                    false
-                                );
-
-                                // if (
-                                //     strpos($inputValue, '(') === false
-                                //     && $inputValue[0] !== '$'
-                                //     && !ctype_digit($inputValue)
-                                //     && $inputValue !== 'true'
-                                //     && $inputValue !== 'false'
-                                // ) { // its a string
-                                //     $inputValue = str_replace("'", "\\'", $inputValue);
-                                //     $inputValue = "'$inputValue'";
-                                // }
-                                // $this->debug($inputValue);
-                                $inputValue = $this->convertExpressionToCode($inputValue);
-                                if (!$inputValue) {
-                                    $inputValue = "''";
-                                }
-                                // $this->debug($inputValue);
-                                if ($inputValue === "'true'") {
-                                    $inputValue = 'true';
-                                } else if ($inputValue === "'false'") {
-                                    $inputValue = 'false';
-                                } else if (ctype_digit(str_replace("'", "", $inputValue))) {
-                                    $inputValue = (float)str_replace("'", "", $inputValue);
-                                } else if ($inputValue && substr($inputValue, 0, 2) == '\'[') { // array
-                                    // $this->debug($inputValue);
-                                    $inputValue = str_replace("\\'", "'", substr($inputValue, 1, strlen($inputValue) - 2));
-                                    // $inputValue = eval("return $inputValue;");
-                                    // $this->debug($inputValue);
-                                }
-                                $inputArguments[$inputArgument] = $inputValue;
-                                // $this->debug($inputArgument);
-                                // $this->debug($inputValue);
-                                // $this->debug($propsMap);
+                            //if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
+                            if (
+                                !$dynamicTagDetected
+                                && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
+                            ) {
+                                $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
                             }
+                            //$inputValue = $this->getChildValues($childTag);
+                            $inputValue = $this->combineChildren(
+                                $childTag,
+                                ($values && $values[0]->ItsExpression) || count($values) > 1,
+                                [],
+                                false,
+                                true,
+                                false
+                            );
+
+                            // if (
+                            //     strpos($inputValue, '(') === false
+                            //     && $inputValue[0] !== '$'
+                            //     && !ctype_digit($inputValue)
+                            //     && $inputValue !== 'true'
+                            //     && $inputValue !== 'false'
+                            // ) { // its a string
+                            //     $inputValue = str_replace("'", "\\'", $inputValue);
+                            //     $inputValue = "'$inputValue'";
+                            // }
+                            // $this->debug($inputValue);
+                            $inputValue = $this->convertExpressionToCode($inputValue);
+                            if (!$inputValue) {
+                                $inputValue = "''";
+                            }
+                            // $this->debug($inputValue);
+                            if ($inputValue === "'true'") {
+                                $inputValue = 'true';
+                            } else if ($inputValue === "'false'") {
+                                $inputValue = 'false';
+                            } else if (ctype_digit(str_replace("'", "", $inputValue))) {
+                                $inputValue = (float)str_replace("'", "", $inputValue);
+                            } else if ($inputValue && substr($inputValue, 0, 2) == '\'[') { // array
+                                // $this->debug($inputValue);
+                                $inputValue = str_replace("\\'", "'", substr($inputValue, 1, strlen($inputValue) - 2));
+                                // $inputValue = eval("return $inputValue;");
+                                // $this->debug($inputValue);
+                            }
+                            $inputArguments[$inputArgument] = $inputValue;
+                            // $this->debug($inputArgument);
+                            // $this->debug($inputValue);
+                            // $this->debug($propsMap);
+                            //}
                         }
                     }
                 }
