@@ -604,7 +604,8 @@ function Viewi() {
                 var attr = wrapper.attributes[ai];
                 // console.log('attribute', attr, wrapper.component);
                 // TODO: DRY (attribute event)
-                if (attr.content[0] === '(') { // event emitter
+                var itsEvent = attr.content[0] === '(';
+                if (itsEvent) { // event emitter
                     var attrName = attr.content;
                     var eventName = attrName.substring(1, attrName.length - 1);
                     var actionContent = null;
@@ -653,7 +654,7 @@ function Viewi() {
                                 args.push(attr.scope.data[attr.scope.stack[k]]);
                             }
                         }
-                        currentValue = propExpression.func.apply(null, args);
+                        currentValue = itsEvent ? propExpression.func : propExpression.func.apply(null, args);
                         if (attr.children[i].subs) {
                             propsSubs['this.' + attr.content] = {
                                 instance: attr.instance,
