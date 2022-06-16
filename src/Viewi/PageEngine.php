@@ -1481,6 +1481,11 @@ class PageEngine
                     $inputArgumentsCode .= "'$key' => $expressionCode," . PHP_EOL;
                 }
                 $inputArgumentsCode .= ']';
+
+                // $this->debug([
+                //     '$inputArguments',
+                //     $inputArguments
+                // ]);
             }
             $slotsExpression = $componentBaseName ? "'$componentBaseName'" : 'false';
             // dynamic tag
@@ -2321,7 +2326,8 @@ class PageEngine
                                 }
                             }
                             $inputArgument = $childTag->Content;
-                            if ($inputArgument[0] === '(' || $inputArgument === 'model' || $childTag->ItsExpression) { // event
+                            $itsEvent = $inputArgument[0] === '(';
+                            if ($itsEvent || $inputArgument === 'model' || $childTag->ItsExpression) { // event
                                 $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $values;
                                 $newValueContent = '';
@@ -2389,8 +2395,8 @@ class PageEngine
                                 // $inputValue = eval("return $inputValue;");
                                 // $this->debug($inputValue);
                             }
-                            $inputArguments[$inputArgument] = $inputValue;
-                            // $this->debug($inputArgument);
+                            $inputArguments[$inputArgument] = $itsEvent ? "fn () => $inputValue" : $inputValue;
+                            // $this->debug([$inputArgument, $inputValue]);
                             // $this->debug($inputValue);
                             // $this->debug($propsMap);
                             //}
