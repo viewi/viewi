@@ -322,15 +322,12 @@ function Viewi() {
                 continue;
             }
 
-            if (!item.raw && node && (item.type === 'text' && node.type === 'text')
-                || (item.type === 'comment' && node.type === 'comment')
+            if (!item.raw && node && ((item.type === 'text' && node.type === 'text')
+                || (item.type === 'comment' && node.type === 'comment'))
             ) {
                 node.contents.push(getDataExpression(item, instance));
                 if (item.subs) {
                     node.subs = (node.subs || []).concat(item.subs);
-                    for (var s in item.subs) {
-                        listenTo(node, item.subs[s]);
-                    }
                 }
                 continue;
             }
@@ -387,12 +384,9 @@ function Viewi() {
                     node.condition = specialType.children
                         ? getDataExpression(specialType.children[0], instance)
                         : {};
-                    for (var s in usedSubscriptions) {
-                        listenTo(node, s);
-                    }
                     if (specialType.children && specialType.children[0].subs) { // TODO: subscribe all if-else group to each sub changes
+                        node.subs = specialType.children[0].subs;
                         for (var s in specialType.children[0].subs) {
-                            listenTo(node, specialType.children[0].subs[s]);
                             usedSubscriptions[specialType.children[0].subs[s]] = true;
                         }
                     }
@@ -402,10 +396,6 @@ function Viewi() {
                     // compile foreach expression
                     if (specialType.children) {
                         codeChild = specialType.children[0];
-                        for (var s in codeChild.subs) {
-                            listenTo(node, codeChild.subs[s]);
-                            // TODO: listen on each item after list is created (dom element create, foreach type)
-                        }
                         node.forExpression = {};
                         var arguments = ['_component', 'app'].concat(currentScope);
                         arguments.push('return ' + codeChild.forData + ';');
@@ -448,11 +438,6 @@ function Viewi() {
             }
             if (item.type === 'component') {
                 component = item.content;
-            }
-            if (item.subs) {
-                for (var s in item.subs) {
-                    listenTo(node, item.subs[s]);
-                }
             }
             // children
             childNodes = false;
@@ -497,9 +482,6 @@ function Viewi() {
                                         valCopy.content = v.content; // keep it for slots
                                         if (v.subs && !itsEvent) {
                                             valCopy.subs = (valCopy.subs || []).concat(v.subs);
-                                            for (var s in v.subs) {
-                                                listenTo(copy, v.subs[s]);
-                                            }
                                         }
                                         return valCopy;
                                     }
@@ -507,9 +489,6 @@ function Viewi() {
                             }
                             if (a.subs && !itsEvent) {
                                 copy.subs = (copy.subs || []).concat(a.subs);
-                                for (var s in a.subs) {
-                                    listenTo(copy, a.subs[s]);
-                                }
                             }
                             copy.origin = a;
                             return copy;
@@ -704,7 +683,26 @@ function Viewi() {
         wrapper.isCreated = true;
         if (wrapper.attributes) {
             for (var i = 0; i < wrapper.attributes.length; i++) {
-                wrapper.attributes[i].origin.childComponent = component;
+                var attribute = wrapper.attributes[i];
+                var itsEvent = attribute.expression ? false : attribute.content[0] === '(';
+                attribute.origin.childComponent = component;
+                if (!itsEvent) {
+                    if (attribute.subs) {
+                        for (var s in attribute.subs) {
+                            listenTo(attribute, attribute.subs[s]);
+                        }
+                    }
+                    if (attribute.children) {
+                        for (var acI = 0; acI < attribute.children.length; acI++) {
+                            var attributeChild = attribute.children[acI];
+                            if (attributeChild.subs) {
+                                for (var s in attributeChild.subs) {
+                                    listenTo(attribute, attributeChild.subs[s]);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         // console.log(['create', wrapper.name, wrapper]);
@@ -777,6 +775,12 @@ function Viewi() {
                 if (eventsOnly && attrName !== 'model') {
                     return;
                 }
+                if (attr.subs && !attr.subscribed) {
+                    for (var s in attr.subs) {
+                        listenTo(attr, attr.subs[s]);
+                    }
+                    attr.subscribed = true;
+                }
                 var boolean = false;
                 var exprValue = true;
                 if (attrName in booleanAttributes) {
@@ -784,6 +788,12 @@ function Viewi() {
                 }
                 var texts = [];
                 for (var i in attr.children) {
+                    if (attr.children[i].subs && !attr.children[i].subscribed) {
+                        for (var s in attr.children[i].subs) {
+                            listenTo(attr, attr.children[i].subs[s]);
+                        }
+                        attr.children[i].subscribed = true;
+                    }
                     var contentExpression = attr.children[i].contentExpression;
                     if (contentExpression.call) {
                         if (!attr.instance.component) {
@@ -883,13 +893,13 @@ function Viewi() {
     var getFirstBefore = function (node) {
         var nodeBefore = node;
         var skipCurrent = true;
-        var parent = false;
+        var itsParent = false;
         var infLoop = false;
         while (!nodeBefore.domNode || skipCurrent) {
             skipCurrent = false;
             if (nodeBefore.previousNode !== null) {
                 nodeBefore = nodeBefore.previousNode;
-                parent = false;
+                itsParent = false;
                 if (nodeBefore.isVirtual) {
                     if (nodeBefore === infLoop) {
                         throw new Error("Can't find the node before current!");
@@ -914,10 +924,10 @@ function Viewi() {
                 }
                 // go up
                 nodeBefore = nodeBefore.parent;
-                parent = true;
+                itsParent = true;
             }
         }
-        return { itsParent: parent, node: nodeBefore };
+        return { itsParent: itsParent, node: nodeBefore };
     }
 
     var nextNodeId = 0;
@@ -1263,6 +1273,7 @@ function Viewi() {
                     // TODO: check condition
                     // TODO: if false remove node if exists
                     // TODO: if true create element
+                    usedSubscriptions = {};
                     if (!node.instance.component) {
                         node.instance.component = createInstance(node.instance);
                     }
@@ -1540,6 +1551,12 @@ function Viewi() {
                             node.rawNodes[i].domNode.usedByRenderer = true;
                         }
                     }
+                    if (node.subs && !node.subscribed) {
+                        for (var s in node.subs) {
+                            listenTo(node, node.subs[s]);
+                        }
+                        node.subscribed = true;
+                    }
                     return; // do not run children
                 }
                 default:
@@ -1548,6 +1565,13 @@ function Viewi() {
         }
         if (elm) {
             elm.usedByRenderer = true;
+        }
+        // TODO: cover cases: if, else if, else
+        if (node.subs && !node.subscribed) {
+            for (var s in node.subs) {
+                listenTo(node, node.subs[s]);
+            }
+            node.subscribed = true;
         }
         elm && createDOM(elm, node, node.children, nextInsert, skipGroup);
     }
@@ -1686,6 +1710,9 @@ function Viewi() {
 
     var cloneNode = function (parent, node) {
         var copy = Object.assign({}, node);
+        node.cloned = true;
+        delete copy.cloned;
+        delete copy.subscribed;
         copy.nextNode = null;
         copy.previousNode = null;
         copy.domNode = null;
@@ -1693,19 +1720,20 @@ function Viewi() {
         if (cleanInstance) {
             if (!copy.instance.component) {
                 if (copy.instance.__id in instancesScope) {
-                    copy.instance = instancesScope[copy.instance.__id]
+                    copy.instance = instancesScope[copy.instance.__id];
                 } else {
                     copy.instance = Object.assign({}, node.instance);
                     instancesScope[copy.instance.__id] = copy.instance;
                     copy.instance.__id = ++nextInstanceId;
                     instancesScope[copy.instance.__id] = copy.instance;
-                    // console.log(instancesScope);
-                    copy.instance.attributes = copy.instance.attributes.select(function (x) {
-                        var attr = Object.assign({}, x);
-                        attr.scope = copy.scope || attr.scope;
-                        return attr;
-                    });
                 }
+                copy.instance.attributes = copy.instance.attributes.select(function (x) {
+                    var attr = Object.assign({}, x);
+                    attr.scope = copy.scope || attr.scope;
+                    attr.origin = Object.assign({}, x.origin);
+                    delete attr.origin.childComponent;
+                    return attr;
+                });
             }
             // TODO: new __id for each iteration level, keep instances
             if (node.childInstances) {
@@ -1737,59 +1765,50 @@ function Viewi() {
                 }
                 return content;
             });
-            if (copy.attributes) {
-                copy.attributes = copy.attributes.select(function (a) {
-                    var aCopy = Object.assign({}, a);
-                    aCopy.parent = copy;
-
-                    if (!aCopy.instance.component) {
-                        if (aCopy.instance.__id in instancesScope) {
-                            aCopy.instance = instancesScope[aCopy.instance.__id]
-                        } else {
-                            aCopy.instance = Object.assign({}, node.instance);
-                            instancesScope[aCopy.instance.__id] = aCopy.instance;
-                            aCopy.instance.__id = ++nextInstanceId;
-                            instancesScope[aCopy.instance.__id] = aCopy.instance;
-                            // console.log(instancesScope);
-                            aCopy.instance.attributes = aCopy.instance.attributes.select(function (x) {
-                                var attr = Object.assign({}, x);
-                                attr.scope = aCopy.scope || attr.scope;
-                                return attr;
-                            });
-                        }
-                    }
-
-                    aCopy.scope = copy.scope || aCopy.scope;
-                    // TODO: don not listen every time, listen on origin, and check children
-                    if (a.subs) {
-                        for (var s in a.subs) {
-                            listenTo(aCopy, a.subs[s]);
-                        }
-                    }
-                    if (a.children) {
-                        a.children.each(function (av) {
-                            if (av.subs) {
-                                for (var s in av.subs) {
-                                    listenTo(aCopy, av.subs[s]);
-                                }
-                            }
+        }
+        if (copy.attributes) {
+            copy.attributes = copy.attributes.select(function (a) {
+                var aCopy = Object.assign({}, a);
+                aCopy.parent = copy;
+                a.cloned = true;
+                delete aCopy.cloned;
+                delete aCopy.subscribed;
+                if (cleanInstance && !aCopy.instance.component) {
+                    if (aCopy.instance.__id in instancesScope) {
+                        aCopy.instance = instancesScope[aCopy.instance.__id]
+                    } else {
+                        aCopy.instance = Object.assign({}, node.instance);
+                        instancesScope[aCopy.instance.__id] = aCopy.instance;
+                        aCopy.instance.__id = ++nextInstanceId;
+                        instancesScope[aCopy.instance.__id] = aCopy.instance;
+                        // console.log(instancesScope);
+                        aCopy.instance.attributes = aCopy.instance.attributes.select(function (x) {
+                            var attr = Object.assign({}, x);
+                            attr.scope = aCopy.scope || attr.scope;
+                            return attr;
                         });
                     }
-                    return aCopy;
-                });
-            }
+                }
+
+                aCopy.scope = copy.scope || aCopy.scope;
+                if (a.children) {
+                    a.children = a.children.select(function (attributeChildren) {
+                        var attributeChildrenCopy = Object.assign({}, attributeChildren);
+                        attributeChildrenCopy.parent = copy;
+                        attributeChildren.cloned = true;
+                        delete attributeChildrenCopy.cloned;
+                        delete attributeChildrenCopy.subscribed;
+                        return attributeChildrenCopy;
+                    });
+                }
+                return aCopy;
+            });
         }
         // console.log(copy.instance);
         // copy.instance = Object.assign({}, node.instance);
         // copy.instance.component = null;
         if (node.children || node.itemChildren) {
             copyNodes(copy, node.children || node.itemChildren);
-        }
-        // TODO: don not listen every time, listen on origin, and check children
-        if (copy.subs) {
-            for (var s in copy.subs) {
-                listenTo(copy, copy.subs[s]);
-            }
         }
         return copy;
     };
