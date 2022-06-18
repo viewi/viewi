@@ -396,6 +396,9 @@ function Viewi() {
                     // compile foreach expression
                     if (specialType.children) {
                         codeChild = specialType.children[0];
+                        if (codeChild.subs) {
+                            node.subs = (node.subs || []).concat(codeChild.subs);
+                        }
                         node.forExpression = {};
                         var arguments = ['_component', 'app'].concat(currentScope);
                         arguments.push('return ' + codeChild.forData + ';');
