@@ -1,5 +1,7 @@
 # [Draft] Architecture overview for developers
 
+**Note:** The current Viewi version is `v0.x` and requires much refactoring. This guide is meant to clarify and help you understand the core if you decide to contribute to this project. Hopefully, someday, we will roll out Viewi `v1.x` - a thoroughly tested, much more readable source code and maximum optimized.
+
 ## Component definition
 
 In Viewi, component is a combination of files:
@@ -78,9 +80,67 @@ Global -> MyClass -> Property1
                   // No overheads.
 ```
 
-### Step 2 - Parsing component templates
+### Step 2 - Building dependencies (DI)
+
+For each discovered class (every class, not only component) it collects all dependencies:
+
+```php
+class PageEngine
+...
+function buildDependencies(ReflectionClass $reflectionClass): void
+...
+function getDependencies(ReflectionClass $reflectionClass): array
+```
+
+For example:
+
+```php
+class TestComponent extends BaseComponent
+{
+...
+    public function __init(int $id, HttpClient $http, SessionInterceptor $session, AuthorizationInterceptor $auth)
+    {
+```
+
+Will collect:
+
+```php
+[
+    'id' =>
+    [
+        'name' => 'int',
+        'builtIn' => 1,
+    ],
+    'http' =>
+    [
+        'name' => 'HttpClient',
+    ],
+    'session' =>
+    [
+        'name' => 'SessionInterceptor',
+    ],
+    'auth' =>
+    [
+        'name' => 'AuthorizationInterceptor',
+    ],
+]
+```
+
+
+### Step 3 - Parsing component templates
 
 The engine is searching for components inside of `SOURCE_DIR` folder. That folder is specified in the config.
 
-For each discovered component
+For each discovered component it parses the template (.html)
+
+```php
+class PageEngine
+...
+function compileTemplate(ComponentInfo $componentInfo): PageTemplate
+```
+
+It returns `PageTemplate` object with `TagItem` tree, which represents the DOM/PHP tree.
+
+to be continue..
+
 
