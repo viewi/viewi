@@ -2103,6 +2103,7 @@ class PageEngine
                 ) {
                     $this->compileExpression($children[0]);
                     $this->previousItem = $tagItem;
+                    $itsEvent = $tagItem->Content[0] === '(';
                     // attribute is boolean (Ex.: disabled="$isDisabled"), TODO: check argument expression to have boolean type
                     // compile if based on expression
                     if (isset($this->booleanAttributes[strtolower($tagItem->Content)])) {
@@ -2116,7 +2117,7 @@ class PageEngine
                             $codeToAppend = '';
                             $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
                         }
-                    } else {
+                    } else if (!$itsEvent) {
                         // if attribute value is null - do not render attribute
                         $this->flushBuffer($html, $codeToAppend);
                         $html .= PHP_EOL . $this->indentation . '$attrValue = ' . $children[0]->PhpExpression . ';';
