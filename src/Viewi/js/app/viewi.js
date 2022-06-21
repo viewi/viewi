@@ -1883,7 +1883,8 @@ function Viewi() {
                 try {
                     var node = queue[path][i];
                     if (node.isAttribute) {
-                        node.parent.domNode && renderAttribute(node.parent.domNode, node);
+                        var domNode = node.parent.type === 'dynamic' ? (node.parent.children && node.parent.children.length > 0 && node.parent.children[0].domNode) : node.parent.domNode;
+                        domNode && renderAttribute(domNode, node);
                         if (node.parent.type === 'component' && node.origin.childComponent) {
                             // reassign property
                             var args = [node.instance.component, $this];
