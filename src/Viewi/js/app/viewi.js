@@ -1457,6 +1457,7 @@ function Viewi() {
                         }
                         if (val in availableTags) { // it's a tag
                             wrapperNode.type = 'tag';
+                            wrapperNode.root = node.root;
                         } else {
                             // build component
                             // componentChildren
@@ -1565,6 +1566,9 @@ function Viewi() {
                 default:
                     throw new Error('Node type \'' + node.type + '\' is not implemented.');
             }
+        }
+        if (!node.isVirtual && elm && node.root) {
+            node.instance.component._element = elm;
         }
         if (elm) {
             elm.usedByRenderer = true;
@@ -2250,6 +2254,11 @@ function Viewi() {
                 mergeNodes(newBuild.versions['main'], builtNodes.versions['main']);
             }
         }
+        for (var ver in newBuild.versions) {
+            for (var i = 0; i < newBuild.versions[ver].length; i++) {
+                newBuild.versions[ver][i].root = true;
+            }
+        }
         // console.log(instance, newBuild, builtNodes, childNodes, attributes);
         parentComponentName = previousName;
         // if (parentComponentName === currentPage.name) {
@@ -2307,8 +2316,10 @@ function Viewi() {
                 // 1. tag name
                 same = node.domNode.nodeName == domElement.nodeName;
                 if (same) {
-                    var oldParent = node.domNode;
                     node.domNode = domElement;
+                    if (!node.isVirtual && domElement && node.root && node.instance && node.instance.component) {
+                        node.instance.component._element = domElement;
+                    }
                     var s = 0; // shift for virtual nodes
                     var shiftDOM = 0; // shift for DOM children
                     var count = domElement.childNodes.length;
