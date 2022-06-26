@@ -37,9 +37,9 @@ class App
         return new PageEngine(self::$config, self::$publicConfig);
     }
 
-    public static function handle(?string $url = null, string $method = null)
+    public static function handle(?string $url = null, string $method = null): void
     {
-        $url ??= isset($_SERVER['REDIRECT_URL']) ? $_SERVER['REDIRECT_URL'] : preg_replace('/\?.*/', '', $_SERVER['REQUEST_URI']);
+        $url ??= $_SERVER['REDIRECT_URL'] ?? preg_replace('/\?.*/', '', $_SERVER['REQUEST_URI']);
         $method ??= $_SERVER['REQUEST_METHOD'];
         $response = Router::handle($url, $method, $_REQUEST);
         if (is_string($response)) { // html
