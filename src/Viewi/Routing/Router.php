@@ -48,9 +48,7 @@ class Router
             }
             foreach ($arguments as $argument) {
                 $argName = $argument->getName();
-                $argumentValue = isset($match['params'][$argName])
-                    ? $match['params'][$argName]
-                    : (isset($params[$argName]) ? $params[$argName] : null);
+                $argumentValue = $match['params'][$argName] ?? ($params[$argName] ?? null);
                 // parse json body
                 if ($argumentValue === null && $stdObject !== null) {
                     if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
@@ -84,16 +82,17 @@ class Router
     }
 
     /**
-     * 
-     * @param mixed $url 
-     * @param string $method 
-     * @return array{route: RouteItem, params: array} 
+     *
+     * @param mixed $url
+     * @param string $method
+     * @return array{route: RouteItem, params: array}
      */
-    public static function resolve($url, $method = 'get'): ?array
+    public static function resolve(string $url, string $method = 'get'): ?array
     {
-        if (!$url) {
+        if (empty($url)) {
             $url = '/';
         }
+
         $parts = explode('/', trim($url, '/'));
         $method = strtolower($method);
         $routes = Route::getRoutes();
