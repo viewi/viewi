@@ -2,6 +2,8 @@
 
 namespace Viewi\Routing;
 
+use Exception;
+
 class Route
 {
 
@@ -27,6 +29,9 @@ class Route
         self::$adapter = $adapter;
     }
 
+    /**
+     * @throws Exception
+     */
     public static function handle(string $method, string $url, $data = null)
     {
         return self::$adapter
@@ -34,7 +39,7 @@ class Route
             : Router::handle($url, $method, $data ?? []);
     }
 
-    public static function add(string $method, string $url, $component, ?array $defaults = null)
+    public static function add(string $method, string $url, $component, ?array $defaults = null): RouteItem
     {
         $item = new RouteItem(
             $method,
@@ -60,7 +65,7 @@ class Route
         );
     }
 
-    public static function get(string $url, string $component, ?array $defaults = null)
+    public static function get(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'get',
@@ -70,7 +75,7 @@ class Route
         );
     }
 
-    public static function post(string $url, string $component, ?array $defaults = null)
+    public static function post(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'post',
@@ -80,7 +85,7 @@ class Route
         );
     }
 
-    public static function put(string $url, string $component, ?array $defaults = null)
+    public static function put(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'put',
@@ -90,7 +95,7 @@ class Route
         );
     }
 
-    public static function delete(string $url, string $component, ?array $defaults = null)
+    public static function delete(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'delete',
@@ -100,7 +105,7 @@ class Route
         );
     }
 
-    public static function patch(string $url, string $component, ?array $defaults = null)
+    public static function patch(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'patch',
@@ -110,7 +115,7 @@ class Route
         );
     }
 
-    public static function options(string $url, string $component, ?array $defaults = null)
+    public static function options(string $url, string $component, ?array $defaults = null): RouteItem
     {
         return self::add(
             'options',
