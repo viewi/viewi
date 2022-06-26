@@ -10,7 +10,7 @@ use Viewi\Common\JsonMapper;
 
 class Router
 {
-    public static function register($method, $url, $actionOrController)
+    public static function register(string $method, string $url, $actionOrController)
     {
         return Route::add(
             $method,
@@ -19,15 +19,17 @@ class Router
         );
     }
 
-    public static function handle($url, $method = 'get', $params = [])
+    public static function handle(string $url, string $method = 'get', array $params = [])
     {
         $match = self::resolve(explode('?', $url)[0], $method);
+
         if ($match === null) {
             throw new Exception('No route was matched!');
         }
+
         // print_r($match);
         $action = $match['route']->action;
-        $response = '';
+
         if (is_array($action)) {
             $instance = new $action[0]();
             $method = $action[1];
@@ -87,6 +89,7 @@ class Router
 
             $response = $instance($match['params']);
         }
+
         return $response;
     }
 
