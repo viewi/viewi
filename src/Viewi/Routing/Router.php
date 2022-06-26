@@ -4,6 +4,8 @@ namespace Viewi\Routing;
 
 use Exception;
 use ReflectionMethod;
+use RuntimeException;
+use Viewi\BaseComponent;
 use Viewi\Common\JsonMapper;
 
 class Router
@@ -76,6 +78,13 @@ class Router
             $response = $action(...array_values($match['params'] + $params));
         } else {
             $instance = new $action();
+
+            // Instance must implement Viewi\BaseComponent
+            if (!$instance instanceof BaseComponent) {
+                $classNS = get_class($instance);
+                throw new RuntimeException("Component '$classNS' must implement Viewi\\BaseComponent");
+            }
+
             $response = $instance($match['params']);
         }
         return $response;
