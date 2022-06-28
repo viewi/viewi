@@ -7,6 +7,7 @@ use \ReflectionProperty;
 use \ReflectionNamedType;
 use \Exception;
 use ReflectionException;
+use Throwable;
 use Viewi\Components\Interfaces\IMiddleware;
 use Viewi\Components\Services\AsyncStateManager;
 use Viewi\DI\IContainer;
@@ -183,6 +184,16 @@ class PageEngine
     private int $middlewareIndex = -1;
     private AsyncStateManager $asyncStateManager;
     private bool $async = false;
+    /**
+     * 
+     * @var array<string,bool>
+     */
+    private array $evaluatedSelectors;
+    /**
+     * 
+     * @var callable[]
+     */
+    private array $postProcessingQueue;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -537,6 +548,8 @@ class PageEngine
                 return new $className();
             }, $this->includes)
             : null;
+        $this->evaluatedSelectors = [];
+        $this->postProcessingQueue = [];
         $this->enableMinificationAndGzipping = $this->config[self::MINIFY] ?? false;
         $this->combineJs = $this->config[self::COMBINE_JS] ?? false;
         $this->slotCounterMap = [];
@@ -654,7 +667,7 @@ class PageEngine
                 $this->templates[$className] = $this->compileTemplate($componentInfo);
                 // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
                 $this->build($this->templates[$className]);
-                $this->save($this->templates[$className]);
+                // $this->save($this->templates[$className]);
             }
             if (!isset($componentInfo->IsSlot) || !$componentInfo->IsSlot) {
                 // $publicJson[$className] = $componentInfo;
@@ -666,17 +679,17 @@ class PageEngine
                     }
                 };
                 if ($componentInfo->IsComponent) {
-                    if (isset($fullClassName::$_lazyLoadGroup)) {
-                        $lazyLoadGroup = $fullClassName::$_lazyLoadGroup;
-                        $publicJson[$className]['lazyLoad'] = $lazyLoadGroup;
-                        if (!isset($lazyContent[$lazyLoadGroup])) {
-                            $lazyContent[$lazyLoadGroup] = [];
-                        }
-                        $lazyContent[$lazyLoadGroup][$className] = [];
-                        $lazyContent[$lazyLoadGroup][$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
-                    } else {
-                        $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
-                    }
+                    // if (isset($fullClassName::$_lazyLoadGroup)) {
+                    //     $lazyLoadGroup = $fullClassName::$_lazyLoadGroup;
+                    //     $publicJson[$className]['lazyLoad'] = $lazyLoadGroup;
+                    //     if (!isset($lazyContent[$lazyLoadGroup])) {
+                    //         $lazyContent[$lazyLoadGroup] = [];
+                    //     }
+                    //     $lazyContent[$lazyLoadGroup][$className] = [];
+                    //     // $lazyContent[$lazyLoadGroup][$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    // } else {
+                    //     // $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    // }
                 } else {
                     $publicJson[$className]['service'] = true;
                 }
@@ -724,17 +737,56 @@ class PageEngine
                     ];
                     // $this->debug('HomePage now (compile): ' . $this->templates['HomePage']->RootTag->getChildren()[0]->Content);
                     $this->build($template, $templateKey);
-                    $this->save($template, $templateKey);
-                    $templates[$version]['BuildPath'] = $template->ComponentInfo->BuildPath;
+                    // $this->save($template, $templateKey); // TODO: move save after postProcessing
+                    // $this->debug([$templateKey, $template->PhpHtmlContent]);
+                    // $templates[$version]['BuildPath'] = $template->ComponentInfo->BuildPath;
                     $templates[$version]['RenderFunction'] = $template->ComponentInfo->RenderFunction;
-                    $publicJson[$className]['versions'][$version] = $template->RootTag->getRaw();
+                    $templates[$version]['Template'] = $template;
+                    // $publicJson[$className]['versions'][$version] = $template->RootTag->getRaw(); // TODO: move getRaw after postProcessing
                 }
                 $this->currentComponentInstance = null;
             }
-            unset($versionComponentInfo->BuildPath);
+            // unset($versionComponentInfo->BuildPath);
             unset($versionComponentInfo->RenderFunction);
             $versionComponentInfo->Versions = $templates;
         }
+        $this->buildCssSelectors();
+        // TODO: tree shake for Package components and built-in functions - include only if used
+        // TODO: get selectors -> each component -> create instance -> ?mount() -> try {evaluate each expression content} -> get selectors (classes, attributes, etc.)
+        // TODO: post process queue (CSS tree shake)
+        foreach ($this->postProcessingQueue as $postProcessAction) {
+            $postProcessAction();
+        }
+
+        // post build here
+        foreach ($this->components as $className => &$componentInfo) {
+            if (isset($componentInfo->HasVersions) && $componentInfo->HasVersions) {
+                foreach ($componentInfo->Versions as $version => $templateInfo) {
+                    $template = $templateInfo['Template'];
+                    $this->save($template, $templateInfo['key']);
+                    $componentInfo->Versions[$version]['BuildPath'] = $template->ComponentInfo->BuildPath;
+                    $publicJson[$className]['versions'][$version] = $template->RootTag->getRaw();
+                    unset($template->BuildPath);
+                }
+            } else {
+                if ($componentInfo->IsComponent) {
+                    $fullClassName = $componentInfo->Namespace . '\\' . $componentInfo->Name;
+                    $this->save($this->templates[$className]);
+                    if (isset($fullClassName::$_lazyLoadGroup)) {
+                        $lazyLoadGroup = $fullClassName::$_lazyLoadGroup;
+                        $publicJson[$className]['lazyLoad'] = $lazyLoadGroup;
+                        if (!isset($lazyContent[$lazyLoadGroup])) {
+                            $lazyContent[$lazyLoadGroup] = [];
+                        }
+                        $lazyContent[$lazyLoadGroup][$className] = [];
+                        $lazyContent[$lazyLoadGroup][$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    } else {
+                        $publicJson[$className]['nodes'] = $this->templates[$className]->RootTag->getRaw();
+                    }
+                }
+            }
+        }
+
         $this->waitingComponents = false;
         $thisRoot = __DIR__ . DIRECTORY_SEPARATOR;
 
@@ -882,6 +934,126 @@ class PageEngine
         return $minified;
     }
 
+    function putIntoPostProcessQueue(callable $action): void
+    {
+        $this->postProcessingQueue[] = $action;
+    }
+
+    private function evaluateSelectors(TagItem &$tagItem, BaseComponent $_component)
+    {
+        if ($tagItem->Type->Name === TagItemType::Tag) {
+            if ($tagItem->ItsExpression) {
+                $value = @eval('return ' . $tagItem->PhpExpression . ';');
+                if ($value !== null && !isset($this->evaluatedSelectors[$value])) {
+                    $this->evaluatedSelectors[$value] = true;
+                }
+                // $this->debug(['evaluating', $tagItem->Content, $value]);
+            }
+        } else if ($tagItem->Type->Name === TagItemType::Attribute) {
+            if ($tagItem->ItsExpression) {
+                $value = @eval('return ' . $tagItem->PhpExpression . ';');
+                if ($value !== null && !isset($this->evaluatedSelectors[$value])) {
+                    $this->evaluatedSelectors["[$value]"] = true;
+                }
+            }
+            if ($tagItem->Content[0] !== '(') {
+                $attributeValues = $tagItem->getChildren();
+                if (count($attributeValues) > 0) {
+                    $attributeValue = $attributeValues[0];
+                    if ($attributeValue->ItsExpression !== null) {
+                        $value = @eval('return ' . $attributeValue->PhpExpression . ';');
+                        if ($value !== null && is_string($value)) {
+                            if ($tagItem->Content === 'class') {
+                                $classNames = explode(' ', $value);
+                                foreach ($classNames as $className) {
+                                    $this->evaluatedSelectors[".$className"] = true;
+                                }
+                            }
+                            if ($tagItem->Content === 'id') {
+                                $this->evaluatedSelectors["#$value"] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        foreach ($tagItem->getChildren() as $childTag) {
+            $this->evaluateSelectors($childTag, $_component);
+        }
+    }
+
+    private function processCssSelectorsInternal(TagItem &$tagItem)
+    {
+        if ($tagItem->Type->Name === TagItemType::Component) {
+            $propsChildren = $tagItem->getChildren();
+            $componentInfo = $this->components[$tagItem->Content];
+            /**
+             * @var mixed|BaseComponent $instance
+             */
+            $instance = $this->resolve($componentInfo, false, [], false);
+            foreach ($propsChildren as &$attribute) {
+                if ($attribute->Type->Name === TagItemType::Attribute && $attribute->PropValueExpression !== null) {
+                    // Attributes that have expressions or have children with expressions
+                    $value = @eval('return ' . $attribute->PropValueExpression . ';');
+                    $instance->_props[$attribute->Content] = $value;
+                    if (isset($componentInfo->Inputs[$attribute->Content])) {
+                        try {
+                            $instance->{$attribute->Content} = $value;
+                        } catch (Throwable) {
+                        }
+                    }
+                    // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression, is_callable($value) ? 'fn' : $value]);
+                }
+            }
+            if ($componentInfo->HasMounted) {
+                try {
+                    $instance->__mounted();
+                } catch (Throwable) {
+                }
+            }
+            // if ($tagItem->Content === 'Column') {
+            //     $this->debug([$instance, $this->templates[$componentInfo->Name]->RootTag]);
+            // }
+            foreach ($this->templates[$componentInfo->Name]->RootTag->getChildren() as $childTag) {
+                $this->evaluateSelectors($childTag, $instance);
+            }
+
+            // $instance->_props = ['(removed)'];
+
+            // $this->debug([$tagItem->Content, $instance]);
+        }
+        foreach ($tagItem->getChildren() as $childTag) {
+            $this->processCssSelectorsInternal($childTag);
+        }
+    }
+
+    /**
+     * Build Css selectors for dynamic content
+     * @return void 
+     */
+    function buildCssSelectors(): void
+    {
+        foreach ($this->templates as $name => $template) {
+            foreach ($template->RootTag->getChildren() as $childTag) {
+                $this->processCssSelectorsInternal($childTag);
+            }
+
+            if ($name === 'GridDemo') {
+                // $this->debug($template);
+            }
+        }
+        // $this->debug($this->evaluatedSelectors);
+    }
+
+    /**
+     * Get evaluated selectors
+     * @return array 
+     */
+    function getEvaluatedSelectors(): array
+    {
+        return $this->evaluatedSelectors;
+    }
+
     /**
      * 
      * @param array $componentsInfo 
@@ -920,6 +1092,7 @@ class PageEngine
 
     function build(PageTemplate &$pageTemplate, string $templateKey = ''): void
     {
+        // $this->debug($pageTemplate);
         $this->previousItem = new TagItem();
         $this->previousItem->Type = new TagItemType(TagItemType::TextContent);
         $moduleTemplatePath = __DIR__ . DIRECTORY_SEPARATOR . 'ComponentModuleTemplate.php';
@@ -1141,7 +1314,7 @@ class PageEngine
         return $code;
     }
 
-    function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false, array $params = [])
+    function resolve(ComponentInfo &$componentInfo, bool $defaultCache = false, array $params = [], bool $init = true)
     {
         if (isset($componentInfo->Instance)) {
             return $componentInfo->Instance;
@@ -1174,7 +1347,7 @@ class PageEngine
         $instance = false;
         if (empty($componentInfo->Dependencies)) {
             $instance = new $class();
-            if ($componentInfo->HasInit) {
+            if ($componentInfo->HasInit && $init) {
                 $instance->__init();
             }
         } else {
@@ -1208,7 +1381,7 @@ class PageEngine
                     $arguments[] = $this->resolve($this->components[$type['name']]);
                 }
             }
-            if ($componentInfo->HasInit) {
+            if ($componentInfo->HasInit && $init) {
                 $instance = new $class();
                 $instance->__init(...$arguments);
             } else {
@@ -2353,7 +2526,8 @@ class PageEngine
                             }
                             //if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
                             if (
-                                !$dynamicTagDetected
+                                !$itsEvent
+                                && !$dynamicTagDetected
                                 && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
                             ) {
                                 $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
@@ -2396,7 +2570,9 @@ class PageEngine
                                 // $inputValue = eval("return $inputValue;");
                                 // $this->debug($inputValue);
                             }
-                            $inputArguments[$inputArgument] = $itsEvent ? "fn () => $inputValue" : $inputValue;
+                            $propValue = $itsEvent ? "fn () => $inputValue" : $inputValue;
+                            $inputArguments[$inputArgument] = $propValue;
+                            $childTag->PropValueExpression = $propValue;
                             // $this->debug([$inputArgument, $inputValue]);
                             // $this->debug($inputValue);
                             // $this->debug($propsMap);
