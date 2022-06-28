@@ -14,6 +14,7 @@ class TagItem
     public ?TagItem $DynamicChild;
     public ?string $JsExpression = null;
     public ?string $PhpExpression = null;
+    public ?string $PropValueExpression = null;
     public ?array $Subscriptions = null;
     public bool $RawHtml = false;
     public ?DataExpression $DataExpression = null;
