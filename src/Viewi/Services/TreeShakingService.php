@@ -10,7 +10,7 @@ use Viewi\TagItemType;
 class TreeShakingService
 {
     private array $selectors;
-    private bool $inited = false;
+    private bool $initiated = false;
     private PageEngine $pageEngine;
 
     public function __construct(PageEngine $pageEngine)
@@ -20,13 +20,14 @@ class TreeShakingService
 
     private function init()
     {
-        if (!$this->inited) {
-            $this->inited = true;
-            $this->selectors = [];
+        if (!$this->initiated) {
+            $this->initiated = true;
+            $this->selectors = $this->pageEngine->getEvaluatedSelectors();
             $templates = $this->pageEngine->getTemplates();
             foreach ($templates as $pageTemplate) {
                 $this->processNode($pageTemplate->RootTag);
             }
+
             // echo '<pre>';
             // print_r($this->selectors);
         }
@@ -282,24 +283,34 @@ class TreeShakingService
                     $validatedSelectors = [];
                     foreach ($selectors as $subSelectorText) {
                         $subSelector = trim($subSelectorText);
-                        $subSelector = str_replace(['>', '+', '~', ' ', '[', '*'], ':', $subSelector);
+                        // print_r($subSelector . ' before ' . PHP_EOL);
+                        $subSelector = str_replace(['[', '*'], ':', $subSelector);
+                        $subSelector = str_replace(['>', '+', '~', ' '], '!', $subSelector); // TODO: explode by ['>', '+', '~', ' '], include only valid sub selectors
+                        // print_r($subSelector . ' after ' . PHP_EOL); // TODO: fix browser error when printing debug info
                         $subSelector = str_replace('\\', '', $subSelector);
-                        $specialPos = strpos($subSelector, ':');
-                        if ($specialPos !== false) {
-                            $subSelector = substr($subSelector, 0, $specialPos);
-                        }
-                        if (strpos($subSelector, '.') !== false) {
-                            $parts = explode('.', $subSelector, 3);
-                            $subSelector = trim($parts[0]);
-                            if (!$subSelector) {
-                                $subSelector = trim('.' . $parts[1]);
+
+                        $allValid = true;
+                        $subSelectorParts = explode('!', $subSelector);
+                        foreach ($subSelectorParts as $subSelectorPart) {
+                            $specialPos = strpos($subSelectorPart, ':');
+                            if ($specialPos !== false) {
+                                $subSelectorPart = substr($subSelectorPart, 0, $specialPos);
                             }
+                            if (strpos($subSelectorPart, '.') !== false) {
+                                $parts = explode('.', $subSelectorPart, 3);
+                                $subSelectorPart = trim($parts[0]);
+                                if (!$subSelectorPart) {
+                                    $subSelectorPart = trim('.' . $parts[1]);
+                                }
+                            }
+                            $allValid = $allValid && (!$subSelectorPart || isset($this->selectors[$subSelectorPart]));
+                            $validatedSelectors[] = $subSelectorPart;
                         }
-                        $validatedSelectors[] = $subSelector;
+
                         // if ($subSelector && $subSelector[0] == '[') {
                         //     print_r($subSelector . ' - ');
                         // }
-                        $rule['valid'] = $rule['valid'] || !$subSelector || isset($this->selectors[$subSelector]);
+                        $rule['valid'] = $rule['valid'] || !$subSelector || $allValid;
                     }
                     $rule['selectors'] = $validatedSelectors;
                 }
@@ -311,7 +322,7 @@ class TreeShakingService
     private function getShakenCss()
     {
         $textCss = '';
-        $indentation = '  ';
+        $indentation = '    ';
         foreach ($this->cssTokens as $group) {
             if ($group['valid']) {
                 $groupName = trim($group['scope']);
@@ -328,7 +339,7 @@ class TreeShakingService
                     if ($rule['valid'] || $group['special']) {
                         $textCss .= ($blocked ? $indentation : '') . $selector . ' {' . PHP_EOL;
                         $textCss .= $indentation . ($blocked ? $indentation : '') . trim($rule['content']);
-                        $textCss .= $blocked ?  PHP_EOL . $indentation . '}' . PHP_EOL :  PHP_EOL . PHP_EOL . '}' . PHP_EOL . PHP_EOL;
+                        $textCss .= $blocked ?  PHP_EOL . $indentation . '}' . PHP_EOL :  PHP_EOL . '}' . PHP_EOL . PHP_EOL;
                     }
                 }
                 if ($blocked) {
