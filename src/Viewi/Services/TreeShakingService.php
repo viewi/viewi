@@ -279,18 +279,29 @@ class TreeShakingService
                 if ($keepCurrent) {
                     $rule['valid'] = true;
                 } else {
+                    // wrong
+                    // .uk-nav.uk-nav-divider> :not(.uk-nav-divider)+ :not(.uk-nav-header
+                    // right
+                    // .uk-nav.uk-nav-divider> :not(.uk-nav-divider)+ :not(.uk-nav-header, .uk-nav-divider) {
+                    //     margin-top: 0;
+                    //     padding-top: 0;
+                    //     border-top: 1px solid #e5e5e5;
+                    // }
+                    // fix:
+                    // .uk-breadcrumb> :nth-child(n+2):not(.uk-first-column)::before
                     $selectors = explode(',', $selector);
+                    $takeAll = strpos($selector, '(') !== false;
                     $validatedSelectors = [];
                     foreach ($selectors as $subSelectorText) {
-                        $subSelector = trim($subSelectorText);
-                        // print_r($subSelector . ' before ' . PHP_EOL);
-                        $subSelector = str_replace(['[', '*'], ':', $subSelector);
-                        $subSelector = str_replace(['>', '+', '~', ' '], '!', $subSelector); // TODO: explode by ['>', '+', '~', ' '], include only valid sub selectors
+                        $originalSubSelector = trim($subSelectorText);
+                        // print_r($originalSubSelector . ' before ' . PHP_EOL);
+                        $subSelector = str_replace(['[', '*', '(', ')', 'n+'], ':', $originalSubSelector);
+                        $subSelector = str_replace(['>', '+', '~', ' '], '!', $subSelector);
                         // print_r($subSelector . ' after ' . PHP_EOL); // TODO: fix browser error when printing debug info
                         $subSelector = str_replace('\\', '', $subSelector);
 
                         $allValid = true;
-                        $subSelectorParts = explode('!', $subSelector);
+                        $subSelectorParts = explode('!', $subSelector);                        
                         foreach ($subSelectorParts as $subSelectorPart) {
                             $specialPos = strpos($subSelectorPart, ':');
                             if ($specialPos !== false) {
@@ -303,16 +314,33 @@ class TreeShakingService
                                     $subSelectorPart = trim('.' . $parts[1]);
                                 }
                             }
+                            // if ($originalSubSelector === '.uk-breadcrumb> :nth-child(n+2):not(.uk-first-column)::before') {
+                            //     print_r([
+                            //         $originalSubSelector,
+                            //         $subSelectorParts,
+                            //         $subSelector,
+                            //         $subSelectorPart
+                            //     ]);
+                            // }
                             $allValid = $allValid && (!$subSelectorPart || isset($this->selectors[$subSelectorPart]));
-                            $validatedSelectors[] = $subSelectorPart;
                         }
-
+                        if ($allValid) {
+                            $validatedSelectors[] = $originalSubSelector;
+                        }
                         // if ($subSelector && $subSelector[0] == '[') {
                         //     print_r($subSelector . ' - ');
                         // }
                         $rule['valid'] = $rule['valid'] || !$subSelector || $allValid;
                     }
-                    $rule['selectors'] = $validatedSelectors;
+                    if (!$takeAll) {
+                        $rule['selectors'] = $validatedSelectors;
+                    }
+                    // if ($originalSubSelector === '.uk-navbar-nav') {
+                    //     print_r([
+                    //         $rule,
+                    //         $validatedSelectors
+                    //     ]);
+                    // }
                 }
                 $group['valid'] = $group['valid'] || $rule['valid'];
             }
@@ -335,7 +363,8 @@ class TreeShakingService
                     $textCss .= $groupName . ' {' . PHP_EOL;
                 }
                 foreach ($group['rules'] as $rule) {
-                    $selector = trim($rule['selector']);
+                    $selector = implode(',' . PHP_EOL, $rule['selectors'] ?? [trim($rule['selector'])]); // trim($rule['selector']);
+                    // $selector = trim($rule['selector']); // trim($rule['selector']);
                     if ($rule['valid'] || $group['special']) {
                         $textCss .= ($blocked ? $indentation : '') . $selector . ' {' . PHP_EOL;
                         $textCss .= $indentation . ($blocked ? $indentation : '') . trim($rule['content']);
