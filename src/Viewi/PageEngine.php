@@ -194,6 +194,21 @@ class PageEngine
      * @var callable[]
      */
     private array $postProcessingQueue;
+    /**
+     * 
+     * @var array<string, string[]>
+     */
+    private array $dynamicContentExpressionCache;
+    /**
+     * 
+     * @var array<string, ReflectionClass>
+     */
+    private array $reflectionClasses;
+    /**
+     * 
+     * @var array<string, array>
+     */
+    private array $unknownOptions;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -550,6 +565,8 @@ class PageEngine
             : null;
         $this->evaluatedSelectors = [];
         $this->postProcessingQueue = [];
+        $this->reflectionClasses = [];
+        $this->unknownOptions = [];
         $this->enableMinificationAndGzipping = $this->config[self::MINIFY] ?? false;
         $this->combineJs = $this->config[self::COMBINE_JS] ?? false;
         $this->slotCounterMap = [];
@@ -647,6 +664,7 @@ class PageEngine
                 $this->componentReflectionTypes[$className] = $reflectionClass;
             }
             $this->compileToJs($reflectionClass);
+            $this->reflectionClasses[$className] = $reflectionClass;
         }
         $types = $this->getClasses(null, $this->sourcePath);
         foreach ($types as $filename => &$reflectionClass) {
@@ -939,52 +957,123 @@ class PageEngine
         $this->postProcessingQueue[] = $action;
     }
 
-    private function evaluateSelectors(TagItem &$tagItem, BaseComponent $_component)
+    private function evaluateSelectors(array $expressions, BaseComponent $_component)
+    {
+        foreach ($expressions as $pair) {
+            $value = @eval('return ' . $pair['expression'] . ';');
+            if ($value !== null) {
+                if ($pair['type'] === 'tag') {
+                    if (!isset($this->evaluatedSelectors[$value])) {
+                        $this->evaluatedSelectors[$value] = true;
+                    }
+                } else if ($pair['type'] === 'class') {
+                    $classNames = explode(' ', $value);
+                    foreach ($classNames as $className) {
+                        if (!isset($this->evaluatedSelectors[".$className"])) {
+                            $this->evaluatedSelectors[".$className"] = true;
+                        }
+                    }
+                } else if ($pair['type'] === 'id') {
+                    if (!isset($this->evaluatedSelectors["#$value"])) {
+                        $this->evaluatedSelectors["#$value"] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    private function collectSelectors(TagItem &$tagItem, array &$expressions): void
     {
         if ($tagItem->Type->Name === TagItemType::Tag) {
             if ($tagItem->ItsExpression) {
-                $value = @eval('return ' . $tagItem->PhpExpression . ';');
-                if ($value !== null && !isset($this->evaluatedSelectors[$value])) {
-                    $this->evaluatedSelectors[$value] = true;
-                }
-                // $this->debug(['evaluating', $tagItem->Content, $value]);
+                $expressions[] = ['type' => 'tag', 'expression' => $tagItem->PhpExpression];
             }
         } else if ($tagItem->Type->Name === TagItemType::Attribute) {
             if ($tagItem->ItsExpression) {
-                $value = @eval('return ' . $tagItem->PhpExpression . ';');
-                if ($value !== null && !isset($this->evaluatedSelectors[$value])) {
-                    $this->evaluatedSelectors["[$value]"] = true;
-                }
+                $expressions[] = ['type' => 'attribute', 'expression' => $tagItem->PhpExpression];
             }
             if ($tagItem->Content[0] !== '(') {
                 $attributeValues = $tagItem->getChildren();
                 if (count($attributeValues) > 0) {
                     $attributeValue = $attributeValues[0];
-                    if ($attributeValue->ItsExpression !== null) {
-                        $value = @eval('return ' . $attributeValue->PhpExpression . ';');
-                        if ($value !== null && is_string($value)) {
-                            if ($tagItem->Content === 'class') {
-                                $classNames = explode(' ', $value);
-                                foreach ($classNames as $className) {
-                                    $this->evaluatedSelectors[".$className"] = true;
-                                }
-                            }
-                            if ($tagItem->Content === 'id') {
-                                $this->evaluatedSelectors["#$value"] = true;
-                            }
+                    if ($attributeValue->ItsExpression) {
+                        if ($tagItem->Content === 'class') {
+                            $expressions[] = ['type' => 'class', 'expression' => $attributeValue->PhpExpression];
+                        }
+                        if ($tagItem->Content === 'id') {
+                            $expressions[] = ['type' => 'id', 'expression' => $attributeValue->PhpExpression];
                         }
                     }
                 }
             }
         }
         foreach ($tagItem->getChildren() as $childTag) {
-            $this->evaluateSelectors($childTag, $_component);
+            $this->collectSelectors($childTag, $expressions);
         }
+    }
+    /**
+     * 
+     * @return string[]
+     */
+    private function getContentExpressions(ComponentInfo &$componentInfo): array
+    {
+        if (!isset($this->dynamicContentExpressionCache[$componentInfo->Name])) {
+            $expressions = [];
+            foreach ($this->templates[$componentInfo->Name]->RootTag->getChildren() as $childTag) {
+                $this->collectSelectors($childTag, $expressions);
+            }
+            $this->dynamicContentExpressionCache[$componentInfo->Name] = $expressions;
+        }
+        return $this->dynamicContentExpressionCache[$componentInfo->Name];
+    }
+
+    private function getUnknownPossibleOptions(string $className, string $property)
+    {
+        if (!isset($this->unknownOptions["$className-$property"])) {
+            $options = [];
+            if (isset($this->reflectionClasses[$className])) {
+                $rc = $this->reflectionClasses[$className];
+                if ($rc->hasProperty($property)) {
+                    $rp = $rc->getProperty($property);
+                    $docComment = $rp->getDocComment();
+                    // extract @options
+                    $needle = '@options';
+                    $opPosition = strpos($docComment, $needle);
+                    if ($opPosition !== false) {
+                        $partOne = substr($docComment, $opPosition + strlen($needle));
+                        $endPos = strpos($partOne, ']');
+                        if ($endPos !== false) {
+                            $partTwo = substr($partOne, 0, $endPos + 1);
+                            $final = str_replace('*', '', $partTwo);
+                            // example:
+                            /**
+                             * @options [null, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+                             * @var null|int
+                             */
+                            /**
+                             * @options [true, false]
+                             * @var bool
+                             */
+                            try {
+                                $evaluatedOptions = eval("return $final;");
+                                if (is_array($evaluatedOptions)) {
+                                    $options = $evaluatedOptions;
+                                }
+                            } catch (Throwable) {
+                            }
+                        }
+                    }
+                }
+            }
+            $this->unknownOptions["$className-$property"] = $options;
+        }
+        return $this->unknownOptions["$className-$property"];
     }
 
     private function processCssSelectorsInternal(TagItem &$tagItem)
     {
         if ($tagItem->Type->Name === TagItemType::Component) {
+            $unknownProps = []; // if prop is unknown (eval failed) - we get @options and evaluate them
             $propsChildren = $tagItem->getChildren();
             $componentInfo = $this->components[$tagItem->Content];
             /**
@@ -993,16 +1082,43 @@ class PageEngine
             $instance = $this->resolve($componentInfo, false, [], false);
             foreach ($propsChildren as &$attribute) {
                 if ($attribute->Type->Name === TagItemType::Attribute && $attribute->PropValueExpression !== null) {
-                    // Attributes that have expressions or have children with expressions
-                    $value = @eval('return ' . $attribute->PropValueExpression . ';');
-                    $instance->_props[$attribute->Content] = $value;
-                    if (isset($componentInfo->Inputs[$attribute->Content])) {
+                    $attributeValues = $attribute->getChildren();
+                    if (count($attributeValues) > 0 && $attributeValues[0]->ItsExpression) {
+                        // try different options
+                        // extract @options array from component comments
+                        if ($attribute->Content[0] !== '(') {
+                            if (isset($componentInfo->Inputs[$attribute->Content])) {
+                                $unknownOptions = $this->getUnknownPossibleOptions($tagItem->Content, $attribute->Content);
+                                $unknownProps = array_merge($unknownProps, [$attribute->Content => $unknownOptions]);
+                                //if ($attribute->PropValueExpression === '$_component->loading') {
+                                // $this->debug(['evaluated prop', $tagItem->Content, $attribute->Content, $unknownProps]);
+                                //}
+                            }
+                        }
+                    } else {
+                        // Attributes that have expressions or have children with expressions
                         try {
-                            $instance->{$attribute->Content} = $value;
+                            $value = eval('return ' . $attribute->PropValueExpression . ';');
+                            $instance->_props[$attribute->Content] = $value;
+                            if (isset($componentInfo->Inputs[$attribute->Content])) {
+                                $instance->{$attribute->Content} = $value;
+                            }
                         } catch (Throwable) {
+                            $instance->_props[$attribute->Content] = '(unknown)';
+                            // if (isset($componentInfo->Inputs[$attribute->Content])) {
+                            //     $this->debug(['getting @options', $tagItem->Content, $attribute->Content]);
+                            // }
                         }
                     }
                     // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression, is_callable($value) ? 'fn' : $value]);
+                    // output:
+                    // [0] => Button
+                    // [1] => loading
+                    // [2] => $_component->loading
+                    // [3] => 
+                    // if ($attribute->PropValueExpression === '$_component->loading') {
+                    //     $this->debug($attribute);
+                    // }
                 }
             }
             if ($componentInfo->HasMounted) {
@@ -1014,13 +1130,18 @@ class PageEngine
             // if ($tagItem->Content === 'Column') {
             //     $this->debug([$instance, $this->templates[$componentInfo->Name]->RootTag]);
             // }
-            foreach ($this->templates[$componentInfo->Name]->RootTag->getChildren() as $childTag) {
-                $this->evaluateSelectors($childTag, $instance);
-            }
-
             // $instance->_props = ['(removed)'];
 
             // $this->debug([$tagItem->Content, $instance]);
+            $expressions = $this->getContentExpressions($componentInfo);
+            // $this->debug([$tagItem->Content, $expressions]);
+            $this->evaluateSelectors($expressions, $instance);
+            foreach ($unknownProps as $property => $options) {
+                foreach ($options as $option) {
+                    $instance->{$property} = $option;
+                    $this->evaluateSelectors($expressions, $instance);
+                }
+            }
         }
         foreach ($tagItem->getChildren() as $childTag) {
             $this->processCssSelectorsInternal($childTag);
@@ -1033,16 +1154,17 @@ class PageEngine
      */
     function buildCssSelectors(): void
     {
+        $this->dynamicContentExpressionCache = [];
         foreach ($this->templates as $name => $template) {
             foreach ($template->RootTag->getChildren() as $childTag) {
                 $this->processCssSelectorsInternal($childTag);
             }
 
-            if ($name === 'GridDemo') {
-                // $this->debug($template);
-            }
+            // if ($name === 'GridDemo') {
+            //     // $this->debug($template);
+            // }
         }
-        // $this->debug($this->evaluatedSelectors);
+        //  $this->debug($this->evaluatedSelectors);
     }
 
     /**
