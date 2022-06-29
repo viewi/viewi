@@ -269,36 +269,8 @@ class PageEngine
             throw new Exception("Component {$component} is missing!");
         }
         $this->middlewareIndex = -1;
-        // default dependencies        
-        $dependencies = [
-            IHttpContext::class => new HttpContext(),
-            AsyncStateManager::class => $this->asyncStateManager
-        ];
-        if ($container != null) {
-            $dependencies = array_merge($dependencies, $container->getAll());
-        }
-        foreach ($dependencies as $type => $instance) {
-            $namespace = '';
-            $name = $type;
-            $lastTokenLocation = strrpos($type, "\\");
-            if ($lastTokenLocation !== false) {
-                $name = substr($type, $lastTokenLocation + 1);
-                $namespace = substr($type, 0, $lastTokenLocation);
-            }
-            if (!isset($this->components[$name])) {
-                $componentInfo = new ComponentInfo();
-                $componentInfo->Name = $name;
-                $componentInfo->Namespace = $namespace;
-                $componentInfo->IsComponent = false;
-                $componentInfo->HasInit = false;
-                $componentInfo->HasMounted = false;
-                $componentInfo->HasBeforeMount = false;
-                $componentInfo->Instance = $instance;
-                $this->components[$name] = $componentInfo;
-            } else {
-                $this->components[$name]->Instance = $instance;
-            }
-        }
+        $this->prepareDependencies($container);
+
         if (!$this->async) {
             $this->asyncStateManager->emit('httpReady');
         }
@@ -314,6 +286,41 @@ class PageEngine
         }
         $content = implode('', $this->renderQueue);
         return $content;
+    }
+
+    private function prepareDependencies(?IContainer $container)
+    {
+        // default dependencies        
+        $dependencies = [
+            IHttpContext::class => new HttpContext(),
+            AsyncStateManager::class => $this->asyncStateManager
+        ];
+        if ($container !== null) {
+            $dependencies = array_merge($dependencies, $container->getAll());
+        }
+        foreach ($dependencies as $type => $instance) {
+            $namespace = '';
+            $name = $type;
+            $lastTokenLocation = strrpos($type, "\\");
+            if ($lastTokenLocation !== false) {
+                $name = substr($type, $lastTokenLocation + 1);
+                $namespace = substr($type, 0, $lastTokenLocation);
+            }
+            if (!isset($this->components[$name])) {
+                $componentInfo = new ComponentInfo();
+                $componentInfo->Name = $name;
+                $componentInfo->FullPath = '';
+                $componentInfo->Namespace = $namespace;
+                $componentInfo->IsComponent = false;
+                $componentInfo->HasInit = false;
+                $componentInfo->HasMounted = false;
+                $componentInfo->HasBeforeMount = false;
+                $componentInfo->Instance = $instance;
+                $this->components[$name] = $componentInfo;
+            } else {
+                $this->components[$name]->Instance = $instance;
+            }
+        }
     }
 
     function publishRendered()
@@ -785,6 +792,7 @@ class PageEngine
                     $componentInfo->Versions[$version]['BuildPath'] = $template->ComponentInfo->BuildPath;
                     $publicJson[$className]['versions'][$version] = $template->RootTag->getRaw();
                     unset($template->BuildPath);
+                    unset($componentInfo->Versions[$version]['Template']);
                 }
             } else {
                 if ($componentInfo->IsComponent) {
@@ -827,6 +835,7 @@ class PageEngine
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
+        // $this->debug([$content, json_encode($this->components), $this->components]);
         $componentsInfoTemplate = $thisRoot . 'ComponentsInfoTemplate.php';
         $templateContent = file_get_contents($componentsInfoTemplate);
         $parts = explode("//#content", $templateContent, 2);
@@ -1155,6 +1164,7 @@ class PageEngine
     function buildCssSelectors(): void
     {
         $this->dynamicContentExpressionCache = [];
+        $this->prepareDependencies(null);
         foreach ($this->templates as $name => $template) {
             foreach ($template->RootTag->getChildren() as $childTag) {
                 $this->processCssSelectorsInternal($childTag);
