@@ -46,7 +46,7 @@ class AssetsManager
                          */
                         $template = $templateInfo['Template'];
                         $template->PhpHtmlContent = str_replace($contentKey, $content, $template->PhpHtmlContent);
-                        $template->RootTag->getChildren()[0]->Content = $content;
+                        $template->RootTag->getChildren()[0]->Content = str_replace($contentKey, $content, $template->RootTag->getChildren()[0]->Content);
                     }
                 }
             }
