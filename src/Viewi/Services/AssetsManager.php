@@ -5,9 +5,11 @@ namespace Viewi\Services;
 use Viewi\App;
 use Viewi\Components\Assets\CssBundle;
 use Viewi\PageEngine;
+use Viewi\PageTemplate;
 
 class AssetsManager
 {
+    public static int $queueNumber = 0;
     public static function getViewiScriptsHtml(): string
     {
         $path = App::$config[PageEngine::PUBLIC_URL_PATH] ?? App::$config[PageEngine::PUBLIC_BUILD_DIR];
@@ -27,6 +29,29 @@ class AssetsManager
                 $scripts;
         }
         return $scripts;
+    }
+
+    public static function scheduleStylesProcessing(CssBundle $bundle, PageEngine $_pageEngine): string
+    {
+        $queueNumber = self::$queueNumber++;
+        $contentKey = "### $queueNumber ###";
+        $_pageEngine->putIntoPostProcessQueue(function () use ($bundle, $_pageEngine, $contentKey) {
+            $content = self::getViewiStylesHtml($bundle, $_pageEngine);
+            $templates = $_pageEngine->getTemplates();
+            foreach ($templates as $template) {
+                if ($template->ComponentInfo->Name === 'CssBundle') {
+                    foreach ($template->ComponentInfo->Versions as $version => $templateInfo) {
+                        /**
+                         * @var PageTemplate
+                         */
+                        $template = $templateInfo['Template'];
+                        $template->PhpHtmlContent = str_replace($contentKey, $content, $template->PhpHtmlContent);
+                        $template->RootTag->getChildren()[0]->Content = str_replace($contentKey, $content, $template->RootTag->getChildren()[0]->Content);
+                    }
+                }
+            }
+        });
+        return $contentKey;
     }
 
     public static function getViewiStylesHtml(CssBundle $bundle, PageEngine $_pageEngine): string
