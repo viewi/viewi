@@ -5,7 +5,6 @@ namespace Viewi\Routing;
 use Exception;
 use ReflectionMethod;
 use RuntimeException;
-use Viewi\BaseComponent;
 use Viewi\Common\JsonMapper;
 
 class Router
@@ -83,7 +82,7 @@ class Router
 
             if (!is_callable($instance)) {
                 $classNS = get_class($instance);
-                throw new RuntimeException("Component '$classNS' must be callable or implement Viewi\\BaseComponent");
+                throw new RuntimeException("Component '$classNS' must be callable");
             }
 
             $response = $instance($match['params']);
