@@ -82,7 +82,7 @@ class Router
             $instance = new $action();
 
             // Instance must implement Viewi\BaseComponent
-            if (!is_callable($instance) && !$instance instanceof BaseComponent) {
+            if (!is_callable($instance)) {
                 $classNS = get_class($instance);
                 throw new RuntimeException("Component '$classNS' must be callable or implement Viewi\\BaseComponent");
             }
