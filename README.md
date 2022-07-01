@@ -80,6 +80,7 @@ Support
 We all have full-time jobs and dedicate our free time to this project, and we would appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider supporting:
 
  - Give us a star⭐.
+ - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
  - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
  - Any other ideas or proposals? Please mail me voitovych.ivan.v@gmail.com.
