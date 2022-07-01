@@ -828,7 +828,9 @@ function Viewi() {
                     if (texts[0] === null) {
                         elm.removeAttribute(attrName);
                     } else {
-                        elm.setAttribute(attrName, val);
+                        if (elm.getAttribute(attrName) !== val) {
+                            elm.setAttribute(attrName, val);
+                        }
                     }
                 } else // isModel
                 {
@@ -987,6 +989,11 @@ function Viewi() {
                 }
             }
         }
+        if (node.renderIteration === renderIteration) {
+            // node has been rendered already, skipping
+            return;
+        }
+        node.renderIteration = renderIteration;
         if (insert) {
             // console.log(node.children[0].contents[0].content, node);
             var condition = node.parent && node.parent.condition;
@@ -1882,6 +1889,7 @@ function Viewi() {
     var reRender = function () {
         var queue = renderQueue;
         renderQueue = {};
+        renderIteration++;
         for (var path in queue) {
             for (var i in queue[path]) {
                 try {
@@ -2482,6 +2490,7 @@ function Viewi() {
     var renderInProgress = false;
     var setAbort = false;
     var abortRender = false;
+    var renderIteration = 0;
 
     this.render = function (name, params, force) {
         if (!name) {
@@ -2585,6 +2594,7 @@ function Viewi() {
         instantiateChildren(instanceMeta.root);
         if (abortRender) { destroy(); abortRender = false; return; }
         destroy();
+        renderIteration++;
         createDOM(target, {}, nodes, false);
         // hydrate && console.log(target);
         var nodeToHydrate = nodes[1];
