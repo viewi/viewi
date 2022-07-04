@@ -1293,7 +1293,11 @@ function Viewi() {
                             args.push(node.scope.data[node.scope.stack[k]]);
                         }
                     }
-                    node.condition.value = node.condition.func.apply(null, args);
+                    var nextValue = !!node.condition.func.apply(null, args);
+                    if (node.condition.value !== undefined && nextValue === node.condition.value) {
+                        return; // nothing's changed
+                    }
+                    node.condition.value = nextValue;
                     elm = parent;
                     node.parentDomNode = parent;
                     node.condition.previousValue = node.condition.value;
@@ -1302,7 +1306,6 @@ function Viewi() {
                     break;
                 }
                 case 'else-if': {
-                    // TODO: check condition
                     if (!node.instance.component) {
                         node.instance.component = createInstance(node.instance);
                     }
@@ -1312,9 +1315,14 @@ function Viewi() {
                             args.push(node.scope.data[node.scope.stack[k]]);
                         }
                     }
-                    node.condition.value = !node.previousNode.condition.value
-                        && node.condition.func.apply(null, args);
-                    node.condition.previousValue = node.previousNode.condition.value || node.condition.value;
+                    var nextValue = !node.previousNode.condition.value
+                        && !!node.condition.func.apply(null, args);
+
+                    node.condition.previousValue = node.previousNode.condition.value || nextValue;
+                    if (node.condition.value !== undefined && nextValue === node.condition.value) {
+                        return; // nothing's changed
+                    }
+                    node.condition.value = nextValue;
                     elm = parent;
                     node.parentDomNode = parent;
                     node.topRealPreviousNode = (node.parent && node.parent.topRealPreviousNode) || node.previousNode;
@@ -1322,8 +1330,11 @@ function Viewi() {
                     break;
                 }
                 case 'else': {
-                    // TODO: check condition
-                    node.condition.value = !node.previousNode.condition.previousValue;
+                    var nextValue = !node.previousNode.condition.previousValue;
+                    if (node.condition.value !== undefined && nextValue === node.condition.value) {
+                        return; // nothing's changed
+                    }
+                    node.condition.value = nextValue;
                     elm = parent;
                     node.parentDomNode = parent;
                     node.topRealPreviousNode = (node.parent && node.parent.topRealPreviousNode) || node.previousNode;
@@ -1678,6 +1689,9 @@ function Viewi() {
                     // console.log('Can\'t remove', nodes[k]);
                 }
                 nodes[k].domNode = null;
+            }
+            if (conditionalTypes.includes(nodes[k].type)) {
+                delete nodes[k].condition.value;
             }
             if (nodes[k].skipIteration) {
                 nodes[k].skipIteration = false;
