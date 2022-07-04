@@ -2347,7 +2347,7 @@ function Viewi() {
                     var count = domElement.childNodes.length;
                     var maxNodes = node.children ? node.children.length : 0;
                     //if (count < maxNodes) {
-                    if (node.children) {
+                    if (node.children && node.children.length > 0) {
                         // normalize
                         if (
                             node.children[maxNodes - 1].domNode
