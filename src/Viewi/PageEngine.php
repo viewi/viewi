@@ -969,24 +969,27 @@ class PageEngine
     private function evaluateSelectors(array $expressions, BaseComponent $_component)
     {
         foreach ($expressions as $pair) {
-            $value = @eval('return ' . $pair['expression'] . ';');
-            if ($value !== null) {
-                if ($pair['type'] === 'tag') {
-                    if (!isset($this->evaluatedSelectors[$value])) {
-                        $this->evaluatedSelectors[$value] = true;
-                    }
-                } else if ($pair['type'] === 'class') {
-                    $classNames = explode(' ', $value);
-                    foreach ($classNames as $className) {
-                        if (!isset($this->evaluatedSelectors[".$className"])) {
-                            $this->evaluatedSelectors[".$className"] = true;
+            try {
+                $value = eval('return ' . $pair['expression'] . ';');
+                if ($value !== null) {
+                    if ($pair['type'] === 'tag') {
+                        if (!isset($this->evaluatedSelectors[$value])) {
+                            $this->evaluatedSelectors[$value] = true;
+                        }
+                    } else if ($pair['type'] === 'class') {
+                        $classNames = explode(' ', $value);
+                        foreach ($classNames as $className) {
+                            if (!isset($this->evaluatedSelectors[".$className"])) {
+                                $this->evaluatedSelectors[".$className"] = true;
+                            }
+                        }
+                    } else if ($pair['type'] === 'id') {
+                        if (!isset($this->evaluatedSelectors["#$value"])) {
+                            $this->evaluatedSelectors["#$value"] = true;
                         }
                     }
-                } else if ($pair['type'] === 'id') {
-                    if (!isset($this->evaluatedSelectors["#$value"])) {
-                        $this->evaluatedSelectors["#$value"] = true;
-                    }
                 }
+            } catch (Throwable) {
             }
         }
     }
@@ -1689,8 +1692,17 @@ class PageEngine
         $slotContentNameExpr = false;
         $slotContentName = '';
         $componentBaseName = '';
-        if (!empty($children)) { // has slot(s)
-
+        $hasSlotChildren = false;
+        foreach ($children as &$childTag) {
+            if (
+                $childTag->Type->Name !== TagItemType::Attribute
+                && $childTag->Type->Name !== TagItemType::AttributeValue
+            ) {
+                $hasSlotChildren = true;
+                break;
+            }
+        }
+        if ($hasSlotChildren) { // has slot(s)
             if ($tagItem->Content === 'slotContent') { // <slotContent name=""
                 $defaultTagItem = new TagItem();
                 foreach ($children as &$childTag) {
@@ -1770,7 +1782,6 @@ class PageEngine
         $codeEnd = $this->renderReturn ? '' : '?>';
 
         if ($slotContentNameExpr) {
-
             $html .= "{$codeBegin}{$this->indentation}\$slotContents[$slotContentNameExpr] = '{$componentBaseName}';$eol{$codeEnd}";
         } else {
             $scopeArguments = implode(', ', $this->componentArguments);
@@ -1801,7 +1812,7 @@ class PageEngine
             //         " $slotsExpression, \$_component, \$pageEngine, \$slots, ...\$scope)" .
             //         "{$eol}{$this->indentation}: ";
             // }
-
+            // $this->debug(['slot', $slotsExpression, $componentBaseName, $inputArguments, $componentName]);
             $html .= $codeBegin .
                 $this->indentation . "\$slotContents[0] = $slotsExpression;" .
                 PHP_EOL . $this->indentation . "{$codeMiddle}" .
