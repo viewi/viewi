@@ -145,6 +145,7 @@ class PageEngine
      * @var bool true: return string, false: echo
      */
     private bool $renderReturn;
+    private bool $echoOutput;
     /**
      * 
      * @var null|string[] {className}
@@ -220,7 +221,8 @@ class PageEngine
         $this->publicRootPath = $config[self::PUBLIC_ROOT_DIR]; // $publicRootPath;
         $this->publicBuildDir = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
         $this->publicBuildPath = $this->publicRootPath . $this->publicBuildDir;
-        $this->renderReturn = $config[self::RETURN_OUTPUT] ?? true; // $return;
+        $this->renderReturn = true; // TODO: eliminate
+        $this->echoOutput = !($config[self::RETURN_OUTPUT] ?? true); // $return;
         $this->includes = $config[self::INCLUDES] ?? null;
         $this->components = [];
         $this->tokens = [];
@@ -285,6 +287,10 @@ class PageEngine
             return;
         }
         $content = implode('', $this->renderQueue);
+        if ($this->echoOutput) {
+            echo $content;
+            return;
+        }
         return $content;
     }
 
@@ -293,7 +299,7 @@ class PageEngine
         // default dependencies        
         $dependencies = [
             IHttpContext::class => new HttpContext(),
-            AsyncStateManager::class => $this->asyncStateManager
+            AsyncStateManager::class => $this->asyncStateManager ?? new AsyncStateManager()
         ];
         if ($container !== null) {
             $dependencies = array_merge($dependencies, $container->getAll());
@@ -666,6 +672,10 @@ class PageEngine
             $versionComponentInfo->HasMounted = $reflectionClass->hasMethod('__mounted');
             $versionComponentInfo->HasBeforeMount = $reflectionClass->hasMethod('__beforeMount');
             $versionComponentInfo->HasVersions = $reflectionClass->hasMethod('__version');
+            if ($versionComponentInfo->HasVersions) {
+                $versionComponentInfo->Versions = []; // versions are populated only if component is used
+            }
+
             if (!empty($className)) {
                 $this->components[$className] = $versionComponentInfo;
                 $this->componentReflectionTypes[$className] = $reflectionClass;
@@ -2419,7 +2429,7 @@ class PageEngine
 
             if ($tagItem->Type->Name === TagItemType::Attribute) {
                 if (
-                    !$noChildren && count($children) == 1 && $children[0]->ItsExpression
+                    !$noChildren && count($children) === 1 && $children[0]->ItsExpression
                 ) {
                     $this->compileExpression($children[0]);
                     $this->previousItem = $tagItem;
@@ -2442,10 +2452,18 @@ class PageEngine
                         $this->flushBuffer($html, $codeToAppend);
                         $html .= PHP_EOL . $this->indentation . '$attrValue = ' . $children[0]->PhpExpression . ';';
                         $html .= PHP_EOL . $this->indentation . 'if ($attrValue !== null) {';
-                        if ($this->renderReturn) {
-                            $html .= PHP_EOL . $this->indentation . "    \$_content .= ' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"';";
+                        if ($tagItem->ItsExpression) {
+                            if ($this->renderReturn) {
+                                $html .= PHP_EOL . $this->indentation . "    \$_content .= ' ' . {$content} . '=\"' . htmlentities(\$attrValue) . '\"';";
+                            } else {
+                                $html .= PHP_EOL . $this->indentation . "    <?=' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"' ?>";
+                            }
                         } else {
-                            $html .= PHP_EOL . $this->indentation . "    <?=' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"' ?>";
+                            if ($this->renderReturn) {
+                                $html .= PHP_EOL . $this->indentation . "    \$_content .= ' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"';";
+                            } else {
+                                $html .= PHP_EOL . $this->indentation . "    <?=' {$tagItem->Content}=\"' . htmlentities(\$attrValue) . '\"' ?>";
+                            }
                         }
                         $html .= PHP_EOL . $this->indentation . '}';
                     }
