@@ -858,7 +858,9 @@ class PageEngine
         // $this->debug($lazyContent);
 
         $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
-        $publicJsonStringContent = json_encode($publicJsonContent);
+        // $publicJsonStringContent = json_encode($publicJsonContent);
+        // prepare string '{"property": value}' 
+        $publicJsonStringContent = "'" . str_replace("'", "\\'", substr(str_replace("\u0022", '"', json_encode($publicJsonContent, JSON_HEX_QUOT)), 1, -1)) . "'";
         $publicJsonContentJs = PHP_EOL . "ViewiPages = $publicJsonStringContent;" . PHP_EOL . PHP_EOL;
 
         $jsContentToInclude = '';
@@ -970,7 +972,7 @@ class PageEngine
     {
         foreach ($expressions as $pair) {
             try {
-                $value = eval('return ' . $pair['expression'] . ';');
+                $value = @eval('return ' . $pair['expression'] . ';');
                 if ($value !== null) {
                     if ($pair['type'] === 'tag') {
                         if (!isset($this->evaluatedSelectors[$value])) {
@@ -1067,7 +1069,7 @@ class PageEngine
                              * @var bool
                              */
                             try {
-                                $evaluatedOptions = eval("return $final;");
+                                $evaluatedOptions = @eval("return $final;");
                                 if (is_array($evaluatedOptions)) {
                                     $options = $evaluatedOptions;
                                 }
@@ -1085,6 +1087,7 @@ class PageEngine
     private function processCssSelectorsInternal(TagItem &$tagItem)
     {
         if ($tagItem->Type->Name === TagItemType::Component) {
+            // $this->debug($tagItem);
             $unknownProps = []; // if prop is unknown (eval failed) - we get @options and evaluate them
             $propsChildren = $tagItem->getChildren();
             $componentInfo = $this->components[$tagItem->Content];
@@ -1103,14 +1106,14 @@ class PageEngine
                                 $unknownOptions = $this->getUnknownPossibleOptions($tagItem->Content, $attribute->Content);
                                 $unknownProps = array_merge($unknownProps, [$attribute->Content => $unknownOptions]);
                                 //if ($attribute->PropValueExpression === '$_component->loading') {
-                                // $this->debug(['evaluated prop', $tagItem->Content, $attribute->Content, $unknownProps]);
+                                //$this->debug(['evaluated prop', $tagItem->Content, $attribute->Content, $unknownProps]);
                                 //}
                             }
                         }
                     } else {
                         // Attributes that have expressions or have children with expressions
                         try {
-                            $value = eval('return ' . $attribute->PropValueExpression . ';');
+                            $value = @eval('return ' . $attribute->PropValueExpression . ';');
                             $instance->_props[$attribute->Content] = $value;
                             if (isset($componentInfo->Inputs[$attribute->Content])) {
                                 $instance->{$attribute->Content} = $value;
@@ -1121,6 +1124,7 @@ class PageEngine
                             //     $this->debug(['getting @options', $tagItem->Content, $attribute->Content]);
                             // }
                         }
+                        // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression]);
                     }
                     // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression, is_callable($value) ? 'fn' : $value]);
                     // output:
