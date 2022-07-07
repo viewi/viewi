@@ -1745,6 +1745,13 @@ function Viewi() {
         copy.previousNode = null;
         copy.domNode = null;
         copy.scope = parent.scope || copy.scope;
+        if (node.condition) {
+            if (conditionalTypes.includes(node.type)) {
+                copy.condition = Object.assign({}, node.condition);
+            } else {
+                copy.condition = parent.condition;
+            }
+        }
         if (cleanInstance) {
             if (!copy.instance.component) {
                 if (copy.instance.__id in instancesScope) {
