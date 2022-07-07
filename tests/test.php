@@ -172,7 +172,7 @@ class UnitTestTool
             $instance->$methodName($scope);
         } catch (Throwable $error) {
             $this->FailedCount++;
-            $errorMessage = $error->getMessage() . $error->getTraceAsString();
+            $errorMessage = $error->getMessage() . PHP_EOL . $error->getFile() . ':' . $error->getLine() . PHP_EOL . $error->getTraceAsString();
         } finally {
             $this->TotalCount++;
             $this->removeDirectory($workingDir, true);
