@@ -24,8 +24,9 @@ class TagItem
     public function getRaw(): array
     {
         $node = [];
-
-        $node['content'] = $this->Content;
+        // TODO: optimization, save space
+        // {div:["some text", {}]}
+        $node['content'] = $this->ItsExpression || !$this->Content ? $this->Content : html_entity_decode($this->Content);
         $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
         $node['expression'] = $this->ItsExpression;
         if ($this->RawHtml) {
