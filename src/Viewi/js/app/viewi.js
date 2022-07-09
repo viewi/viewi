@@ -166,16 +166,18 @@ function Viewi() {
 
                 );
             }
-            else if (item.raw || forceRaw) {
+            // else if (item.raw || forceRaw) {
+            else {
                 args.push('return ' + item.code + ';');
-            } else {
-                args.push('return app.htmlentities(' + item.code + ');');
             }
+            // } else {
+            //     args.push('return app.htmlentities(' + item.code + ');');
+            // }
             contentExpression.code = item.code;
             contentExpression.func = Function.apply(null, args);
             return contentExpression;
         }
-        return { call: false, content: item.raw ? item.content : $this.decode(item.content) };
+        return { call: false, content: item.content };
     }
 
     var specialTags = ['template'];
@@ -2642,7 +2644,7 @@ function Viewi() {
         return html;
     }
 
-    var encoder = document.createElement('textarea');
+    var encoder = document.createElement('div');
 
     this.decode = function (text) {
         encoder.innerHTML = text;
