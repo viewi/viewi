@@ -2293,7 +2293,7 @@ function Viewi() {
         // console.log(instance, newBuild, builtNodes, childNodes, attributes);
         parentComponentName = previousName;
         // if (parentComponentName === currentPage.name) {
-        currentPage.components.push({
+        reuseEnabled && currentPage.components.push({
             name: name,
             build: newBuild,
             instanceWrapper: instanceWrapper
