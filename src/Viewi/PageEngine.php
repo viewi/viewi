@@ -210,6 +210,7 @@ class PageEngine
      * @var array<string, array>
      */
     private array $unknownOptions;
+    public int $instanceIdCounter;
     public static ?array $publicConfig = null;
 
     public function __construct(array $config, ?array $publicConfig = null)
@@ -250,6 +251,7 @@ class PageEngine
     {
         $this->renderQueue = [];
         $this->callback = $callback;
+        $this->instanceIdCounter = 0;
         $this->async = $this->callback != null;
         $this->asyncStateManager = new AsyncStateManager();
         $this->asyncStateManager->setAsync($this->async);
@@ -1493,9 +1495,17 @@ class PageEngine
             return $this->Dependencies[$class];
         }
         // $this->debug("Creating $class");
+
         $instance = false;
+
         if (empty($componentInfo->Dependencies)) {
+            /**
+             * @var mixed|BaseComponent $instance
+             */
             $instance = new $class();
+            if ($componentInfo->IsComponent) {
+                $instance->__id = ++$this->instanceIdCounter;
+            }
             if ($componentInfo->HasInit && $init) {
                 $instance->__init();
             }
@@ -1531,10 +1541,22 @@ class PageEngine
                 }
             }
             if ($componentInfo->HasInit && $init) {
+                /**
+                 * @var mixed|BaseComponent $instance
+                 */
                 $instance = new $class();
+                if ($componentInfo->IsComponent) {
+                    $instance->__id = ++$this->instanceIdCounter;
+                }
                 $instance->__init(...$arguments);
             } else {
+                /**
+                 * @var mixed|BaseComponent $instance
+                 */
                 $instance = new $class(...$arguments);
+                if ($componentInfo->IsComponent) {
+                    $instance->__id = ++$this->instanceIdCounter;
+                }
             }
         }
 

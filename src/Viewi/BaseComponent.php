@@ -7,6 +7,7 @@ use Viewi\DOM\Elements\HtmlNode;
 
 abstract class BaseComponent
 {
+    public string $__id;
     public array $_props = [];
     public ?HtmlNode $_element = null;
 
