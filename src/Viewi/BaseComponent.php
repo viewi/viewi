@@ -9,6 +9,11 @@ abstract class BaseComponent
 {
     public string $__id;
     public array $_props = [];
+    /**
+     * 
+     * @var HtmlNode[]
+     */
+    public array $_refs = [];
     public ?HtmlNode $_element = null;
 
     function __invoke($params, ?IContainer $container = null)
