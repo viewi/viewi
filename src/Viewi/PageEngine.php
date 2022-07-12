@@ -239,7 +239,11 @@ class PageEngine
     {
         return $this->config;
     }
-
+    private function reset()
+    {
+        $this->instanceIdCounter = 0;
+        $this->Dependencies = [];
+    }
     /**
      * 
      * @param string $component 
@@ -251,7 +255,7 @@ class PageEngine
     {
         $this->renderQueue = [];
         $this->callback = $callback;
-        $this->instanceIdCounter = 0;
+        $this->reset();
         $this->async = $this->callback != null;
         $this->asyncStateManager = new AsyncStateManager();
         $this->asyncStateManager->setAsync($this->async);
@@ -261,6 +265,7 @@ class PageEngine
         if ($this->development) {
             // set_time_limit(10); // TODO: fix it for ReactPHP, Swoole, etc
             $this->compile($component);
+            $this->reset();
         }
         if ($this->waitingComponents) {
             $this->waitingComponents = false;
@@ -1018,7 +1023,7 @@ class PageEngine
             if ($tagItem->ItsExpression) {
                 $expressions[] = ['type' => 'attribute', 'expression' => $tagItem->PhpExpression];
             }
-            if ($tagItem->Content[0] !== '(') {
+            if ($tagItem->Content[0] !== '(' && $tagItem->Content[0] !== '#') {
                 $attributeValues = $tagItem->getChildren();
                 if (count($attributeValues) > 0) {
                     $attributeValue = $attributeValues[0];
@@ -1113,7 +1118,7 @@ class PageEngine
                     if (count($attributeValues) > 0 && $attributeValues[0]->ItsExpression) {
                         // try different options
                         // extract @options array from component comments
-                        if ($attribute->Content[0] !== '(') {
+                        if ($attribute->Content[0] !== '(' && $attribute->Content[0] !== '#') {
                             if (isset($componentInfo->Inputs[$attribute->Content])) {
                                 $unknownOptions = $this->getUnknownPossibleOptions($tagItem->Content, $attribute->Content);
                                 $unknownProps = array_merge($unknownProps, [$attribute->Content => $unknownOptions]);
@@ -1562,6 +1567,7 @@ class PageEngine
 
         // always cache for slots
         $this->Dependencies[$class] = $instance;
+        // $this->debug([$componentInfo->Name, $this->instanceIdCounter]);
         return $instance;
     }
 
@@ -2325,6 +2331,7 @@ class PageEngine
                             $attributeName = $childTag->Content;
                             $mergeValues = $childTag->getChildren();
                             $valueToReplace = false;
+                            $itsRef = $attributeName[0] === '#';
                             if ($attributeName[0] === '(' || $attributeName === 'model' || $childTag->ItsExpression) { // event
                                 $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $childTag->getChildren();
@@ -2456,6 +2463,7 @@ class PageEngine
                     $this->compileExpression($children[0]);
                     $this->previousItem = $tagItem;
                     $itsEvent = $tagItem->Content[0] === '(';
+                    $itsRef = $tagItem->Content[0] === '#';
                     // attribute is boolean (Ex.: disabled="$isDisabled"), TODO: check argument expression to have boolean type
                     // compile if based on expression
                     if (isset($this->booleanAttributes[strtolower($tagItem->Content)])) {
@@ -2469,7 +2477,7 @@ class PageEngine
                             $codeToAppend = '';
                             $html .= "<?=$condition ? ' {$tagItem->Content}=\"{$tagItem->Content}\"' : ''?>";
                         }
-                    } else if (!$itsEvent) {
+                    } else if (!$itsEvent && !$itsRef) {
                         // if attribute value is null - do not render attribute
                         $this->flushBuffer($html, $codeToAppend);
                         $html .= PHP_EOL . $this->indentation . '$attrValue = ' . $children[0]->PhpExpression . ';';
@@ -2491,12 +2499,15 @@ class PageEngine
                     }
                     return;
                 }
+                if ($content[0] === '#') {
+                    return;
+                }
                 $codeToAppend .= ' ';
                 if ($tagItem->ItsExpression) {
                     if ($this->renderReturn) {
                         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             var_export($codeToAppend, true) . ";";
-                        $html .=  PHP_EOL . $this->indentation . "if ({$tagItem->PhpExpression}[0] !== '(') {";
+                        $html .=  PHP_EOL . $this->indentation . "if ({$tagItem->PhpExpression}[0] !== '(' && {$tagItem->PhpExpression}[0] !== '#') {";
                         // TODO: fix indentation
                         $html .= PHP_EOL . $this->indentation . "\$_content .= " .
                             $content . ";";
@@ -2688,7 +2699,8 @@ class PageEngine
                             }
                             $inputArgument = $childTag->Content;
                             $itsEvent = $inputArgument[0] === '(';
-                            if ($itsEvent || $inputArgument === 'model' || $childTag->ItsExpression) { // event
+                            $itsRef = $inputArgument[0] === '#';
+                            if ($itsEvent || $itsRef || $inputArgument === 'model' || $childTag->ItsExpression) { // event
                                 $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $values;
                                 $newValueContent = '';
