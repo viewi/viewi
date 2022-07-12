@@ -743,6 +743,11 @@ function Viewi() {
                 }
                 attr.latestValue = attrName;
             }
+            if (attrName[0] === '#') {
+                // ref
+                attr.instance.component._refs[attrName.substring(1)] = elm;
+                return;
+            }
             if (attrName[0] === '(') {
                 if (hydrate && !eventsOnly) {
                     return; // no events just yet
@@ -2347,6 +2352,10 @@ function Viewi() {
                 // 1. tag name
                 same = node.domNode.nodeName == domElement.nodeName;
                 if (same) {
+                    /** 
+                     * @type {HTMLElement}
+                     */
+                    var csrDomNode = node.domNode;
                     node.domNode = domElement;
                     if (!node.isVirtual && domElement && node.root && node.instance && node.instance.component) {
                         node.instance.component._element = domElement;
@@ -2484,6 +2493,21 @@ function Viewi() {
                     if (node.attributes) {
                         for (var a in node.attributes) {
                             renderAttribute(node.domNode, node.attributes[a], true);
+                        }
+                    }
+                    var csrAttributes = csrDomNode.getAttributeNames();
+                    var ssrAttributes = node.domNode.getAttributeNames();
+                    for (var attributeIndex = 0; attributeIndex < csrAttributes.length; attributeIndex++) {
+                        var name = csrAttributes[attributeIndex];
+                        var value = csrDomNode.getAttribute(name);
+                        if (node.domNode.getAttribute(name) !== value) {
+                            node.domNode.setAttribute(name, value);
+                        }
+                    }
+                    for (var attributeIndex = 0; attributeIndex < ssrAttributes.length; attributeIndex++) {
+                        var name = ssrAttributes[attributeIndex];
+                        if (!csrDomNode.hasAttribute(name)) {
+                            node.domNode.removeAttribute(name);
                         }
                     }
                 }
