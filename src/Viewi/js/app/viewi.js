@@ -678,7 +678,8 @@ function Viewi() {
         if (wrapper.component) {
             if (wrapper.attributes) {
                 for (var i = 0; i < wrapper.attributes.length; i++) {
-                    wrapper.attributes[i].origin.childComponent = wrapper.component;
+                    wrapper.attributes[i].childComponent = wrapper.component;
+                    // console.log([wrapper.attributes[i].content, wrapper.attributes[i].origin.childComponent, wrapper.component, wrapper.attributes[i].origin.childComponent === wrapper.component]);
                 }
             }
             return;
@@ -690,7 +691,7 @@ function Viewi() {
             for (var i = 0; i < wrapper.attributes.length; i++) {
                 var attribute = wrapper.attributes[i];
                 var itsEvent = attribute.expression ? false : attribute.content[0] === '(';
-                attribute.origin.childComponent = component;
+                attribute.childComponent = component;
                 if (!itsEvent) {
                     if (attribute.subs) {
                         for (var s in attribute.subs) {
@@ -703,6 +704,7 @@ function Viewi() {
                             if (attributeChild.subs) {
                                 for (var s in attributeChild.subs) {
                                     listenTo(attribute, attributeChild.subs[s]);
+                                    // console.log(['listen', attribute.content, attribute, wrapper, component]);
                                 }
                             }
                         }
@@ -1465,41 +1467,43 @@ function Viewi() {
                     // render
                     elm = parent;
                     nextInsert = true;
-                    if (node.latestVal !== val) {
-                        removeDomNodes(node.children);
-                        node.children = null;
-                        var wrapperNode = {
-                            contents: node.contents,
-                            attributes: node.attributes,
-                            parent: node,
-                            previousNode: null,
-                            scope: node.scope,
-                            instance: node.instance,
-                            domNode: null
-                        };
-                        if (node.itemChildren) {
-                            copyNodes(wrapperNode, node.itemChildren);
-                        }
-                        if (val in availableTags) { // it's a tag
-                            wrapperNode.type = 'tag';
-                            wrapperNode.root = node.root;
-                        } else {
-                            // build component
-                            // componentChildren
-                            var dynamicNodes = create(val, wrapperNode.children, node.attributes);
-                            createInstance(dynamicNodes.wrapper);
-                            mountInstance(dynamicNodes.wrapper);
-                            instantiateChildren(dynamicNodes.root);
-                            wrapperNode.type = 'template';
-                            wrapperNode.isVirtual = true;
-                            wrapperNode.children = dynamicNodes.versions['main'];
-                            // reassign parent
-                            wrapperNode.children.each(function (x) {
-                                x.parent = wrapperNode;
-                            });
-                        }
-                        node.children = [wrapperNode];
+                    if (node.latestVal === val) {
+                        return;
                     }
+                    removeDomNodes(node.children);
+                    node.children = null;
+                    var wrapperNode = {
+                        contents: node.contents,
+                        attributes: node.attributes,
+                        parent: node,
+                        previousNode: null,
+                        scope: node.scope,
+                        instance: node.instance,
+                        domNode: null
+                    };
+                    if (node.itemChildren) {
+                        copyNodes(wrapperNode, node.itemChildren);
+                    }
+                    if (val in availableTags) { // it's a tag
+                        wrapperNode.type = 'tag';
+                        wrapperNode.root = node.root;
+                    } else {
+                        // build component
+                        // componentChildren
+                        var dynamicNodes = create(val, wrapperNode.children, node.attributes);
+                        createInstance(dynamicNodes.wrapper);
+                        mountInstance(dynamicNodes.wrapper);
+                        instantiateChildren(dynamicNodes.root);
+                        wrapperNode.type = 'template';
+                        wrapperNode.isVirtual = true;
+                        wrapperNode.children = dynamicNodes.versions['main'];
+                        // reassign parent
+                        wrapperNode.children.each(function (x) {
+                            x.parent = wrapperNode;
+                        });
+                    }
+                    node.children = [wrapperNode];
+
                     node.latestVal = val;
                     // console.log(node, val);
                     break;
@@ -1700,6 +1704,9 @@ function Viewi() {
             if (conditionalTypes.includes(nodes[k].type)) {
                 delete nodes[k].condition.value;
             }
+            if (nodes[k].latestVal) {
+                delete nodes[k].latestVal;
+            }
             if (nodes[k].skipIteration) {
                 nodes[k].skipIteration = false;
             }
@@ -1773,7 +1780,7 @@ function Viewi() {
                     var attr = Object.assign({}, x);
                     attr.scope = copy.scope || attr.scope;
                     attr.origin = Object.assign({}, x.origin);
-                    delete attr.origin.childComponent;
+                    delete attr.childComponent;
                     return attr;
                 });
             }
@@ -1925,7 +1932,7 @@ function Viewi() {
                     if (node.isAttribute) {
                         var domNode = node.parent.type === 'dynamic' ? (node.parent.children && node.parent.children.length > 0 && node.parent.children[0].domNode) : node.parent.domNode;
                         domNode && renderAttribute(domNode, node);
-                        if (node.parent.type === 'component' && node.origin.childComponent) {
+                        if (node.parent.type === 'component' && node.childComponent) {
                             // reassign property
                             var args = [node.instance.component, $this];
                             if (node.scope) {
@@ -1940,7 +1947,7 @@ function Viewi() {
                                     : node.children[childIndex].propExpression.content;
                                 currentValue = childIndex === 0 ? contentValue : currentValue + contentValue;
                             }
-                            node.origin.childComponent[node.content] = currentValue;
+                            node.childComponent[node.content] = currentValue;
                         }
                     } else if (node.isVirtual) {
                         createDomNode(node.parentDomNode, node);
@@ -2235,6 +2242,10 @@ function Viewi() {
 
     var parentComponentName = null;
 
+    var tryCopyObjectList = function (a) {
+        return a ? a.select(function (item) { return Object.assign({}, item); }) : null;
+    }
+
     var create = function (name, childNodes, attributes, params, isRoot) {
         if (!(name in $this.components)) {
             throw new Error('Component ' + name + ' doesn\'t exist.');
@@ -2252,7 +2263,7 @@ function Viewi() {
                 builtNodes = same[0].build;
                 instanceWrapper = same[0].instanceWrapper; // TODO: default values restore
                 instanceWrapper.isMounted = false;
-                instanceWrapper.attributes = attributes;
+                instanceWrapper.attributes = tryCopyObjectList(attributes);
                 instanceWrapper.params = params;
                 // console.log('Reusing', instance);
             }
@@ -2268,7 +2279,7 @@ function Viewi() {
             isCreated: false,
             params: params,
             hasVersions: page.hasVersions,
-            attributes: attributes,
+            attributes: tryCopyObjectList(attributes),
             __id: ++nextInstanceId
         }
         var root = { isRoot: true };
