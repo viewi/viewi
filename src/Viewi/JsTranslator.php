@@ -139,6 +139,7 @@ class JsTranslator
     private array $requestedIncludes = [];
     private int $anonymousCounter = 0;
     private array $usingList = [];
+    private bool $breakOnSpace;
 
     public function __construct(string $content)
     {
@@ -190,6 +191,7 @@ class JsTranslator
         $this->pasteArrayReactivity = false;
         $this->staticCache = [];
         $this->newVar = false;
+        $this->breakOnSpace = false;
     }
 
     public function includeJsFile(string $name, string $filePath)
@@ -590,6 +592,9 @@ class JsTranslator
                     case ')': {
                             $code .= ')';
                             $parenthesisNormal--;
+                            if ($this->breakOnSpace) {
+                                $code .= ' ';
+                            }
                             break;
                         }
                     case 'match': {
@@ -1656,6 +1661,7 @@ class JsTranslator
         $firstType = false;
         $operatorKey = false;
         $this->latestSpaces = '';
+        $this->breakOnSpace = false;
         while ($this->position < $this->length) {
             if (
                 ctype_alnum($this->parts[$this->position])
@@ -1711,6 +1717,7 @@ class JsTranslator
                 $keyword .= $this->parts[$this->position];
             } else { // spaces
                 if ($keyword !== '') {
+                    $this->breakOnSpace = true;
                     break;
                 }
                 $this->latestSpaces .= $this->parts[$this->position];
