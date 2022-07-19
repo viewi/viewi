@@ -1318,7 +1318,7 @@ class PageEngine
         $count = count($keywords);
         $newVariables = false;
         foreach ($keywords as $i => $keyword) {
-            if ($keyword === 'as') {
+            if (in_array($keyword, ['as', 'fn', 'function'])) {
                 $newVariables = true;
             }
             if (isset($reserved[$keyword])) {
@@ -1395,7 +1395,7 @@ class PageEngine
             $code .= $phpCode;
             $code .= ' ?? \'\')' . ($this->renderReturn ? '' : '?>');
             $tagItem->JsExpression = $this->expressionsTranslator->convert($phpCode, true);
-            // $this->debug([$phpCode, $tagItem->JsExpression]);
+            // $this->debug([$expression, $phpCode, $tagItem->JsExpression]);
         }
         $tagItem->PhpExpression = $phpCode;
         $detectedReferences = $this->expressionsTranslator->getVariablePaths();
