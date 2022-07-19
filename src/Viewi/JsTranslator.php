@@ -772,6 +772,10 @@ class JsTranslator
                             $skipLastSaving = true;
                             break;
                         }
+                    case 'self': {
+                            $code .= $indentation . $this->currentClass;
+                            break;
+                        }
                     case 'class': {
                             if ($this->lastKeyword === '::') {
                                 $code = rtrim($code, "\n\r .");
