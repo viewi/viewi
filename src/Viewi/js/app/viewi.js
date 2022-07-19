@@ -714,7 +714,7 @@ function Viewi() {
         }
         // console.log(['create', wrapper.name, wrapper]);
         // if(wrapper.name === 'Row') debugger;
-        onRenderedTracker[wrapper.name] = wrapper;
+        onRenderedTracker[wrapper.name] = wrapper; // TODO: wrapper.name -> wrapper.id
         return component;
     }
 
@@ -988,6 +988,9 @@ function Viewi() {
                     var hasNext = true;
                     while (hasNext) {
                         createDomNode(startParentDomNode, currentNode, true, true);
+                        if (currentNode.isVirtual && currentNode === node.parent) {
+                            createDomNode(startParentDomNode, node, true, true);
+                        }
                         hasNext = currentNode !== toNode;
                         // if (hasNext && !currentNode.nextNode) {
                         //     debugger;
