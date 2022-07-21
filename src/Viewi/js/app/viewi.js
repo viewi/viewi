@@ -658,9 +658,8 @@ function Viewi() {
                     propValue = true;
                 } else if (propValue === 'false') {
                     propValue = false;
-                } else if (typeof propValue === 'string' && !isNaN(propValue)) {
-                    propValue = +propValue;
                 }
+
                 if (attr.content in wrapper.component) {
                     wrapper.component[attr.content] = propValue;
                     // console.log(['mount', wrapper.name, attr.content, propValue, wrapper]);
