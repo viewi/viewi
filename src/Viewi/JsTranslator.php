@@ -651,6 +651,10 @@ class JsTranslator
                             break;
                         }
                     case '.': {
+                            if (ctype_digit($this->lastKeyword)) {
+                                $code .= '.';
+                                break;
+                            }
                             $code .= ' + ';
                             break;
                         }
