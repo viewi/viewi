@@ -713,7 +713,7 @@ function Viewi() {
         }
         // console.log(['create', wrapper.name, wrapper]);
         // if(wrapper.name === 'Row') debugger;
-        onRenderedTracker[wrapper.name] = wrapper; // TODO: wrapper.name -> wrapper.id
+        onRenderedTracker[wrapper.name + '__' + wrapper.__id] = wrapper; // TODO: wrapper.name -> wrapper.id
         return component;
     }
 
@@ -1306,7 +1306,8 @@ function Viewi() {
                     }
                     var nextValue = !!node.condition.func.apply(null, args);
                     if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                        return; // nothing's changed
+                        if (val !== 'template')
+                            return; // nothing's changed
                     }
                     node.condition.value = nextValue;
                     elm = parent;
@@ -1331,7 +1332,8 @@ function Viewi() {
 
                     node.condition.previousValue = node.previousNode.condition.value || nextValue;
                     if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                        return; // nothing's changed
+                        if (val !== 'template')
+                            return; // nothing's changed
                     }
                     node.condition.value = nextValue;
                     elm = parent;
@@ -1343,7 +1345,8 @@ function Viewi() {
                 case 'else': {
                     var nextValue = !node.previousNode.condition.previousValue;
                     if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                        return; // nothing's changed
+                        if (val !== 'template')
+                            return; // nothing's changed
                     }
                     node.condition.value = nextValue;
                     elm = parent;
