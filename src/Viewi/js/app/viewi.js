@@ -586,12 +586,12 @@ function Viewi() {
         if (wrapper.attributes) {
             for (var ai in wrapper.attributes) {
                 var attr = wrapper.attributes[ai];
-                // console.log('attribute', attr, wrapper.component);
                 // TODO: DRY (attribute event)
                 var itsEvent = attr.content[0] === '(';
+                var eventName = null;
                 if (itsEvent) { // event emitter
                     var attrName = attr.content;
-                    var eventName = attrName.substring(1, attrName.length - 1);
+                    eventName = attrName.substring(1, attrName.length - 1);
                     var actionContent = null;
                     if (attr.dynamic) {
                         if (!attr.eventExpression) {
@@ -631,6 +631,7 @@ function Viewi() {
                     if (propExpression.call) {
                         if (!attr.instance.component) {
                             attr.instance.component = createInstance(attr.instance);
+                            mountInstance(attr.instance); // also - mount
                         }
                         var args = [attr.instance.component, $this];
                         if (attr.scope) {
@@ -638,7 +639,7 @@ function Viewi() {
                                 args.push(attr.scope.data[attr.scope.stack[k]]);
                             }
                         }
-                        currentValue = itsEvent ? propExpression.func : propExpression.func.apply(null, args);
+                        currentValue = itsEvent ? wrapper.component.$_callbacks[eventName] : propExpression.func.apply(null, args);
                         if (attr.children[i].subs) {
                             propsSubs['this.' + attr.content] = {
                                 instance: attr.instance,
@@ -653,6 +654,25 @@ function Viewi() {
                     } else {
                         propValue = currentValue;
                     }
+                }
+                if (attr.content === '_props') {
+                    // console.log(['passing all props', propValue]);
+                    // pass all props
+                    for (var propName in propValue) {
+                        if (propName in wrapper.component) {
+                            wrapper.component[propName] = propValue[propName];
+                        }
+                        if (propName[0] === '(') {
+                            // pass the event
+                            var eventName = propName.substring(1, propName.length - 1);
+                            if (!wrapper.component.$_callbacks) {
+                                wrapper.component.$_callbacks = {};
+                            }
+                            wrapper.component.$_callbacks[eventName] = propValue[propName];
+                        }
+                        wrapper.component._props[propName] = propValue[propName];
+                    }
+                    continue;
                 }
                 if (propValue === 'true') {
                     propValue = true;
