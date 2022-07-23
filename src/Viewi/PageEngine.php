@@ -1669,10 +1669,21 @@ class PageEngine
             // TODO: cache properties
             $componentInfo->IsComponent && $componentInfo->HasBeforeMount && $classInstance->__beforeMount();
             foreach ($componentArguments as $key => $inputValue) {
-                if (isset($componentInfo->Inputs[$key])) {
-                    $classInstance->{$key} = $inputValue;
+                if ($key === '_props') {
+                    // passing props as object (array)
+                    foreach ($inputValue as $propKey => $propInputValue) {
+                        if (isset($componentInfo->Inputs[$propKey])) {
+                            $classInstance->{$propKey} = $propInputValue;
+                        }
+                        $classInstance->_props[$propKey] = $propInputValue;
+                    }
+                    // $this->debug(['all props', $inputValue, $classInstance]);
+                } else {
+                    if (isset($componentInfo->Inputs[$key])) {
+                        $classInstance->{$key} = $inputValue;
+                    }
+                    $classInstance->_props[$key] = $inputValue;
                 }
-                $classInstance->_props[$key] = $inputValue;
             }
             $componentInfo->IsComponent && $componentInfo->HasMounted && $classInstance->__mounted();
             $renderFunction = $this->components[$componentName]->RenderFunction ?? '';
@@ -3101,7 +3112,7 @@ class PageEngine
                                 }
                             }
                             if ($itsExpression) {
-                                if (!ctype_alnum($char)) {
+                                if (!ctype_alnum($char) && $char !== '_') {
                                     $saveContent = true;
                                 }
                             }
