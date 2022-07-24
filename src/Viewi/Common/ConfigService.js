@@ -3,6 +3,8 @@ var ConfigService = function () {
         /**
          * @var Viewi app
          */
+        var app = bring('viewiApp');
         return app.getConfig();
     }
 };
+exports.ConfigService = ConfigService;

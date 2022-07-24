@@ -1,6 +1,7 @@
 {
     "includes": [
         "copyright.js",
+        "module.js",
         "router.js",
         "component.js",
         "BUNDLE",

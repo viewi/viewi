@@ -537,6 +537,7 @@ class PageEngine
                 $translator = new JsTranslator($raw);
                 try {
                     $jsCode = $translator->convert();
+                    $jsCode .= "    exports.$className = $className;" . PHP_EOL . PHP_EOL;
                 } catch (Exception $error) {
                     $this->debug("An error has occurred while converting to javascript!"
                         . PHP_EOL
@@ -885,7 +886,21 @@ class PageEngine
             $jsContentToInclude .= file_get_contents($path) . PHP_EOL . PHP_EOL;
         }
         // print_r(array_keys($this->compiledJs));
-        $publicBundleJs = $jsContentToInclude . implode('', array_values($this->compiledJs));
+        // $this->debug([$this->compiledJs]);
+        $publicBundleJs = $jsContentToInclude;
+        $publicBundleJs .=
+            <<<'JAVASCRIPT'
+            var viewiBundleEntry = function (exports, bring) {
+                var $base = bring('$base');
+                var log = bring('log');
+            JAVASCRIPT;
+
+        $publicBundleJs .= implode('', array_values($this->compiledJs));
+
+        $publicBundleJs .=
+            <<<'JAVASCRIPT'
+            };
+            JAVASCRIPT;
 
         $jsAppConfig = json_decode(file_get_contents($thisRoot . 'js/app/config.json'), true);
 

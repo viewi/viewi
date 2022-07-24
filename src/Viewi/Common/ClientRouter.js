@@ -14,3 +14,4 @@ var ClientRouter = function () {
         return location.pathname;
     }
 };
+exports.ClientRouter = ClientRouter;

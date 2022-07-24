@@ -174,3 +174,4 @@ var HttpClient = function () {
         }
     }
 };
+exports.HttpClient = HttpClient;
