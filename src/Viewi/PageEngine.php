@@ -892,7 +892,8 @@ class PageEngine
             <<<'JAVASCRIPT'
             var viewiBundleEntry = function (exports, bring) {
                 var $base = bring('$base');
-                var log = bring('log');
+                var notify = bring('notify');
+            
             JAVASCRIPT;
 
         $publicBundleJs .= implode('', array_values($this->compiledJs));

@@ -1,11 +1,11 @@
 (function (exports, bring) {
-    // register compiled components
-    viewiBundleEntry(exports, bring);
     // create an app
     var Viewi = bring('Viewi');
     var app = new Viewi();
     exports.viewiApp = app;
-    var notify = app.notify;
+    exports.notify = app.notify;
+    // register compiled components
+    viewiBundleEntry(exports, bring);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { app.start(); });

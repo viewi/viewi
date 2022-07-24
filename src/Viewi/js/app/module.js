@@ -9,7 +9,9 @@ function _lock(obj, property, value) {
 _lock(viewiGlobal, 'viewiModules', {});
 _lock(viewiGlobal.viewiModules, 'exports', {});
 _lock(viewiGlobal.viewiModules, 'bring', function (name) {
-    return viewiGlobal.viewiModules.exports[name];
+    var thing = viewiGlobal.viewiModules.exports[name];
+    if (!thing) throw new Error('Can not find module: ' + name);
+    return thing;
 });
 
 var viewiExports = viewiGlobal.viewiModules.exports;

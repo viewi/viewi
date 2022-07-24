@@ -1,3 +1,7 @@
+/**
+ * @var Viewi app
+ */
+var app = bring('viewiApp');
 var ClientRouter = function () {
     this.navigateBack = function () {
         history.back();
