@@ -2,6 +2,8 @@
 
 namespace Viewi;
 
+use Exception;
+
 class TagItem
 {
     public ?string $OriginContent = null;
@@ -21,12 +23,74 @@ class TagItem
     /** @var TagItem[] */
     private ?array $Children;
 
-    public function getRaw(): array
+    // getRaw V2
+    public function getRaw()
+    {
+        $primaryItem = $this->ItsExpression
+            ? [$this->JsExpression]
+            : ($this->Content && !$this->RawHtml ? html_entity_decode($this->Content) : $this->Content);
+        $hasType = isset($this->Type);
+        $type = $hasType ? $this->Type->Name : 'root';
+
+        if ($this->JsExpression && $this->Subscriptions !== null) {
+            $primaryItem[] = $this->Subscriptions;
+        }
+
+        if ($this->RawHtml) {
+            $primaryItem = [$primaryItem, 2];
+        } else if ($type === TagItemType::Comment) {
+            $primaryItem = [$primaryItem, 1];
+        }
+
+        if (
+            $type === TagItemType::TextContent
+            || $type === TagItemType::AttributeValue
+            || $type === TagItemType::Comment
+        ) {
+            return $primaryItem;
+        }
+        if (isset($this->DynamicChild)) {
+            if ($this->Subscriptions === null) {
+                $primaryItem[] = 0;
+            }
+            $primaryItem[] = $this->DynamicChild->getRaw();
+        }
+        $node = [];
+        if ($hasType || $this->Content) {
+            $node[] = $primaryItem;
+        }
+        // if ($this->Type->Name === TagItemType::Attribute) {
+        //     $node[] = $this->ItsExpression ? [$this->JsExpression] : $this->Content;
+        // }
+
+        if (isset($this->Children)) {
+            $children = [];
+            $attributes = [];
+            foreach ($this->Children as &$child) {
+                if ($child->Type->Name === TagItemType::Attribute) {
+                    $attributes[] = $child->getRaw();
+                } else {
+                    $children[] = $child->getRaw();
+                }
+            }
+            $hasChildren = count($children) > 0;
+            $hasAttributes = count($attributes) > 0;
+            if ($hasChildren || $hasAttributes) {
+                $node[] = $hasChildren ? $children : 0;
+            }
+            if ($hasAttributes) {
+                $node[] = $attributes;
+            }
+        }
+        return $node;
+    }
+
+    public function getRawV1(): array
     {
         $node = [];
-        // TODO: optimization, save space
-        // {div:["some text", {}]}
-        $node['content'] = $this->ItsExpression || $this->RawHtml || !$this->Content ? $this->Content : html_entity_decode($this->Content);
+        $node['content'] = $this->ItsExpression || $this->RawHtml || !$this->Content
+            ? $this->Content
+            : html_entity_decode($this->Content);
         $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
         $node['expression'] = $this->ItsExpression;
         if ($this->RawHtml) {
