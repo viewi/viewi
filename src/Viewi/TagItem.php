@@ -31,9 +31,30 @@ class TagItem
             : ($this->Content && !$this->RawHtml ? html_entity_decode($this->Content) : $this->Content);
         $hasType = isset($this->Type);
         $type = $hasType ? $this->Type->Name : 'root';
-
-        if ($this->JsExpression && $this->Subscriptions !== null) {
-            $primaryItem[] = $this->Subscriptions;
+        $hasSubscriptions = false;
+        if ($this->ItsExpression) {            
+            if ($this->Subscriptions !== null) {
+                $hasSubscriptions = true;
+                $primaryItem[] = $this->Subscriptions;
+            }
+            if (isset($this->DataExpression)) {
+                $foreachData = [];
+                if ($this->DataExpression->ForData !== null) {
+                    $foreachData['forData'] = $this->DataExpression->ForData;
+                }
+                if ($this->DataExpression->ForKey !== null) {
+                    $foreachData['forKey'] = $this->DataExpression->ForKey;
+                }
+                if ($this->DataExpression->ForItem !== null) {
+                    $foreachData['forItem'] = $this->DataExpression->ForItem;
+                }
+                if(!$hasSubscriptions)
+                {
+                    $primaryItem[] = 0;
+                    $hasSubscriptions = true;
+                }
+                $primaryItem[] = $foreachData;
+            }
         }
 
         if ($this->RawHtml) {
@@ -50,7 +71,7 @@ class TagItem
             return $primaryItem;
         }
         if (isset($this->DynamicChild)) {
-            if ($this->Subscriptions === null) {
+            if (!$hasSubscriptions) {
                 $primaryItem[] = 0;
             }
             $primaryItem[] = $this->DynamicChild->getRaw();
@@ -70,6 +91,12 @@ class TagItem
                 if ($child->Type->Name === TagItemType::Attribute) {
                     $attributes[] = $child->getRaw();
                 } else {
+                    if (
+                        $child->Type->Name === TagItemType::TextContent
+                        && $child->Skip
+                    ) {
+                        continue;
+                    }
                     $children[] = $child->getRaw();
                 }
             }
@@ -85,6 +112,7 @@ class TagItem
         return $node;
     }
 
+    // old getRaw
     public function getRawV1(): array
     {
         $node = [];

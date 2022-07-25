@@ -597,7 +597,7 @@
                         var attrName = attr.content;
                         eventName = attrName.substring(1, attrName.length - 1);
                         var actionContent = null;
-                        if (attr.dynamic) {
+                        if (attr.dynamic) { // ex: <button $clickEvent="onClick()"></button>
                             if (!attr.eventExpression) {
                                 if (!attr.instance.component) {
                                     attr.instance.component = createInstance(attr.instance);

@@ -2367,7 +2367,7 @@ class PageEngine
                                     $newValueContent .= $attrValue->Content;
                                 }
 
-                                if ($childTag->ItsExpression) {
+                                if ($childTag->ItsExpression) { // handle <button $clickEvent="onClick()"></button>
                                     $dynamicEventTag = new TagItem();
                                     $dynamicEventTag->ItsExpression = true;
                                     $dynamicEventTag->Content = $newValueContent;
