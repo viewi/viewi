@@ -23,8 +23,8 @@ class TagItem
     /** @var TagItem[] */
     private ?array $Children;
 
-    // getRaw V2
-    public function getRaw()
+    // getRaw V2 (using arrays, saves up to x4 in size, in progress)
+    public function getRawV2()
     {
         $primaryItem = $this->ItsExpression
             ? [$this->JsExpression]
@@ -112,8 +112,8 @@ class TagItem
         return $node;
     }
 
-    // old getRaw
-    public function getRawV1(): array
+    // getRaw V1 (using objects)
+    public function getRaw(): array
     {
         $node = [];
         $node['content'] = $this->ItsExpression || $this->RawHtml || !$this->Content
