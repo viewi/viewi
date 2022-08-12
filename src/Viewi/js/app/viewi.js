@@ -139,6 +139,9 @@
                     instance: instance
                 };
                 var args = ['_component', 'app'];
+                if (item.model) {
+                    args.push('value');
+                }
                 if (itsEvent || item.setter) {
                     args.push('event');
                 }
@@ -152,23 +155,26 @@
                 if (item.setter) {
                     args.push(
                         item.isChecked ?
-                            'if(Array.isArray(' + item.code + ')) { '
-                            + ' if (' + item.code + '.indexOf(event.target.value) === -1) { '
-                            + 'event.target.checked && ' + item.code + '.push(event.target.value);'
-                            + 'event.target.checked && notify(' + item.code + '); '
+                            'if(Array.isArray(' + item.code + ')) { \n'
+                            + '    var notify = viewiBring("notify");\n'
+                            + ' if (' + item.code + '.indexOf(event.target.value) === -1) { \n'
+                            + 'event.target.checked && ' + item.code + '.push(event.target.value);\n'
+                            + 'event.target.checked && notify(' + item.code + '); \n'
                             + ' } else { '
-                            + '!event.target.checked && ' + item.code + '.splice(' + item.code + '.indexOf(event.target.value), 1);'
-                            + '!event.target.checked && notify(' + item.code + '); '
+                            + '!event.target.checked && ' + item.code + '.splice(' + item.code + '.indexOf(event.target.value), 1);\n'
+                            + '!event.target.checked && notify(' + item.code + '); \n'
+                            + ' } \n'
+                            + ' } else { \n'
+                            + item.code + ' = event.target.checked;\n'
                             + ' } '
-                            + ' } else { '
-                            + item.code + ' = event.target.checked;'
-                            + ' } '
-                            : (item.code + ' = event.target.multiple ? Array.prototype.slice.call(event.target.options)'
-                                + '.where(function(x){ return x.selected; })'
-                                + '.select(function(x){ return x.value; })'
+                            : (item.code + ' = event.target.multiple ? Array.prototype.slice.call(event.target.options)\n'
+                                + '.where(function(x){ return x.selected; })\n'
+                                + '.select(function(x){ return x.value; })\n'
                                 + ' : event.target.value;')
 
                     );
+                } else if (item.model) {
+                    args.push(item.code + ' = value;');
                 }
                 // else if (item.raw || forceRaw) {
                 else {
@@ -659,6 +665,33 @@
                             propValue = currentValue;
                         }
                     }
+                    if (attr.content === 'model') {
+                        // pass model to the child
+                        var firstChild = attr.children[0];
+                        if (!firstChild.modelExpression) {
+                            firstChild.modelExpression = getDataExpression({
+                                code: firstChild.contentExpression.code,
+                                expression: true,
+                                model: true
+                            }, attr.instance);
+                        }
+                        wrapper.component._model = [firstChild.modelExpression, firstChild.propExpression];
+                        wrapper.component['modelValue'] = propValue;
+                        // callback for model
+                        if (!wrapper.component.$_callbacks) {
+                            wrapper.component.$_callbacks = {};
+                        }
+                        wrapper.component.$_callbacks['model'] = function ($event) {
+                            var args = [attr.instance.component, $this, $event];
+                            if (attr.scope) {
+                                for (var k in attr.scope.stack) {
+                                    args.push(attr.scope.data[attr.scope.stack[k]]);
+                                }
+                            }
+                            firstChild.modelExpression.func.apply(null, args);
+                        };
+                        continue;
+                    }
                     if (attr.content === '_props') {
                         // console.log(['passing all props', propValue]);
                         // pass all props
@@ -869,6 +902,11 @@
                         if (hydrate && !eventsOnly) {
                             return; // no events just yet
                         }
+                        val = texts[0];
+                        var parentModelCalle = attr.instance.component._model;
+                        if (parentModelCalle) {
+                            val = parentModelCalle[1].func.apply(null, [parentModelCalle[1].instance.component, $this]);
+                        }
                         var isChecked = elm.getAttribute('type') === 'checkbox';
                         var isRadio = elm.getAttribute('type') === 'radio';
                         var isSelect = elm.tagName === 'SELECT';
@@ -879,11 +917,11 @@
                             elm.value = val;
                         }
                         if (isRadio) {
-                            var hasChecked = elm.getAttribute('checked');
-                            if (elm.value != val && hasChecked) {
+                            var hasChecked = elm.checked;
+                            if (elm.value !== val && hasChecked) {
                                 elm.removeAttribute('checked');
                                 elm.checked = false;
-                            } else if (elm.value == val && !hasChecked) {
+                            } else if (elm.value === val && !hasChecked) {
                                 elm.setAttribute('checked', 'checked');
                                 elm.checked = true;
                             }
@@ -911,11 +949,85 @@
                                 isMultiple: isMultiple,
                                 scope: attr.scope
                             }, attr.instance);
+                            attr.modelValueExpression = getDataExpression({
+                                code: attr.children[0].contentExpression.code,
+                                expression: true
+                            }, attr.instance);
+                            attr.modelSetValueExpression = getDataExpression({
+                                code: attr.children[0].contentExpression.code,
+                                expression: true,
+                                model: true
+                            }, attr.instance);
+                            if (parentModelCalle && !parentModelCalle[2]) { // TODO: make object instead of array
+                                parentModelCalle[2] = attr.modelSetValueExpression;
+                            }
                             var actionContent = attr.valueExpression.func;
+                            var modelValueFunc = attr.modelValueExpression.func;
+                            var modelValue = parentModelCalle ? modelValueFunc.apply(null, args) : val;
+                            if (isBoolean && Array.isArray(modelValue)) {
+                                if (modelValue.indexOf(attr.parent.domNode.value) !== -1) {
+                                    attr.parent.domNode.setAttribute('checked', 'checked');
+                                    attr.parent.domNode.checked = true;
+                                } else {
+                                    attr.parent.domNode.removeAttribute('checked');
+                                    attr.parent.domNode.checked = false;
+                                }
+                            }
+                            else {
+                                attr.modelSetValueExpression.func.apply(null, args.concat([val]).concat(scopeArgs));
+                                if (isBoolean) {
+                                    if (val) {
+                                        attr.parent.domNode.setAttribute('checked', 'checked');
+                                        attr.parent.domNode.checked = true;
+                                    } else {
+                                        attr.parent.domNode.removeAttribute('checked');
+                                        attr.parent.domNode.checked = false;
+                                    }
+                                }
+                            }
                             attr.listeners[eventName] = function ($event) {
                                 actionContent.apply(null, args.concat([$event]).concat(scopeArgs));
+                                if (parentModelCalle) {
+                                    var modelValue = modelValueFunc.apply(null, args.concat([$event]).concat(scopeArgs));
+                                    parentModelCalle[0].func.apply(null, [parentModelCalle[0].instance.component, $this, modelValue]);
+                                }
                             };
-
+                        } else {
+                            var modelValueFunc = attr.modelValueExpression.func;
+                            var modelValue = parentModelCalle ? modelValueFunc.apply(null, args) : val;
+                            if (isBoolean && Array.isArray(modelValue)) {
+                                if (modelValue.indexOf(attr.parent.domNode.value) !== -1) {
+                                    attr.parent.domNode.setAttribute('checked', 'checked');
+                                    attr.parent.domNode.checked = true;
+                                } else {
+                                    attr.parent.domNode.removeAttribute('checked');
+                                    attr.parent.domNode.checked = false;
+                                }
+                            }
+                            else {
+                                if (isRadio) {
+                                    var hasChecked = attr.parent.domNode.checked;
+                                    if (attr.parent.domNode.value !== val && hasChecked) {
+                                        attr.parent.domNode.removeAttribute('checked');
+                                        attr.parent.domNode.checked = false;
+                                    } else if (attr.parent.domNode.value === val && !hasChecked) {
+                                        attr.parent.domNode.setAttribute('checked', 'checked');
+                                        attr.parent.domNode.checked = true;
+                                    }
+                                    attr.modelSetValueExpression.func.apply(null, args.concat([val]).concat(scopeArgs));
+                                } else {
+                                    attr.modelSetValueExpression.func.apply(null, args.concat([val]).concat(scopeArgs));
+                                    if (isBoolean) {
+                                        if (val) {
+                                            attr.parent.domNode.setAttribute('checked', 'checked');
+                                            attr.parent.domNode.checked = true;
+                                        } else {
+                                            attr.parent.domNode.removeAttribute('checked');
+                                            attr.parent.domNode.checked = false;
+                                        }
+                                    }
+                                }
+                            }
                         }
                         elm.removeEventListener(eventName, attr.listeners[eventName]);
                         elm.addEventListener(eventName, attr.listeners[eventName]);
@@ -1719,6 +1831,7 @@
 
         var removeDomNodes = function (nodes, silent) {
             for (var k in nodes) {
+                // TODO: destroy components on delete
                 if (nodes[k].children) {
                     removeDomNodes(nodes[k].children, silent);
                 }
@@ -1960,8 +2073,9 @@
                         var node = queue[path][i];
                         if (node.isAttribute) {
                             var domNode = node.parent.type === 'dynamic' ? (node.parent.children && node.parent.children.length > 0 && node.parent.children[0].domNode) : node.parent.domNode;
-                            domNode && renderAttribute(domNode, node);
-                            if (node.parent.type === 'component' && node.childComponent) {
+                            if (domNode) {
+                                renderAttribute(domNode, node);
+                            } else if (node.parent.type === 'component' && node.childComponent) {
                                 // reassign property
                                 var args = [node.instance.component, $this];
                                 if (node.scope) {
@@ -1976,7 +2090,16 @@
                                         : node.children[childIndex].propExpression.content;
                                     currentValue = childIndex === 0 ? contentValue : currentValue + contentValue;
                                 }
-                                node.childComponent[node.content] = currentValue;
+                                if (node.content === 'model') {
+                                    // isModel
+                                    if (node.childComponent._model[2]) {
+                                        node.childComponent._model[2].func.apply(null, [node.childComponent, $this, currentValue]);
+                                    } else {
+                                        node.childComponent['modelValue'] = currentValue;
+                                    }
+                                } else {
+                                    node.childComponent[node.content] = currentValue;
+                                }
                             }
                         } else if (node.isVirtual) {
                             createDomNode(node.parentDomNode, node);
@@ -2338,11 +2461,11 @@
             // console.log(instance, newBuild, builtNodes, childNodes, attributes);
             parentComponentName = previousName;
             // if (parentComponentName === currentPage.name) {
-            reuseEnabled && currentPage.components.push({
+            reuseEnabled ? currentPage.components.push({
                 name: name,
                 build: newBuild,
                 instanceWrapper: instanceWrapper
-            });
+            }) : currentPage.watchList.push(instanceWrapper);
             // }
             return newBuild;
         };
@@ -2350,13 +2473,15 @@
         var currentPage = {
             name: null,
             nodes: null,
-            components: []
+            components: [],
+            watchList: []
         };
 
         var latestPage = {
             name: null,
             nodes: null,
-            components: []
+            components: [],
+            watchList: []
         };
 
         var collectVirtual = function (node, vNodes) {
@@ -2544,12 +2669,12 @@
                                 node.domNode.setAttribute(name, value);
                             }
                         }
-                        for (var attributeIndex = 0; attributeIndex < ssrAttributes.length; attributeIndex++) {
-                            var name = ssrAttributes[attributeIndex];
-                            if (!csrDomNode.hasAttribute(name)) {
-                                node.domNode.removeAttribute(name);
-                            }
-                        }
+                        // for (var attributeIndex = 0; attributeIndex < ssrAttributes.length; attributeIndex++) {
+                        //     var name = ssrAttributes[attributeIndex];
+                        //     if (!csrDomNode.hasAttribute(name)) {
+                        //         // node.domNode.removeAttribute(name);
+                        //     }
+                        // }
                     }
                 }
                 if (node.domNode) {
@@ -2651,6 +2776,15 @@
                         componentBuild.instanceWrapper.component.__destroy();
                     }
                 }
+                for (var i = 0; i < latestPage.watchList.length; i++) {
+                    var instanceWrapper = latestPage.watchList[i];
+                    if (
+                        instanceWrapper.component
+                        && instanceWrapper.component.__destroy
+                    ) {
+                        instanceWrapper.component.__destroy();
+                    }
+                }
             };
             renderInProgress = true;
             reuseEnabled = false;
@@ -2664,7 +2798,7 @@
             currentPage = {};
             currentPage.name = name;
             currentPage.components = [];
-
+            currentPage.watchList = [];
             var instanceMeta = create(name, null, null, params, true);
             var nodes = instanceMeta.versions['main'];
             currentPage.nodes = nodes;
