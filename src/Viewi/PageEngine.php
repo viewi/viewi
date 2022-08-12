@@ -683,7 +683,13 @@ class PageEngine
             if ($versionComponentInfo->HasVersions) {
                 $versionComponentInfo->Versions = []; // versions are populated only if component is used
             }
-
+            $props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
+            if (count($props) > 0) {
+                $versionComponentInfo->Inputs = [];
+                foreach ($props as $propertyInfo) {
+                    $versionComponentInfo->Inputs[$propertyInfo->getName()] = true;
+                }
+            }
             if (!empty($className)) {
                 $this->components[$className] = $versionComponentInfo;
                 $this->componentReflectionTypes[$className] = $reflectionClass;
@@ -1695,10 +1701,16 @@ class PageEngine
                     }
                     // $this->debug(['all props', $inputValue, $classInstance]);
                 } else {
-                    if (isset($componentInfo->Inputs[$key])) {
-                        $classInstance->{$key} = $inputValue;
+                    if ($key === 'model') {
+                        if (isset($componentInfo->Inputs['modelValue'])) {
+                            $classInstance->modelValue = $inputValue;
+                        }
+                    } else {
+                        if (isset($componentInfo->Inputs[$key])) {
+                            $classInstance->{$key} = $inputValue;
+                        }
+                        $classInstance->_props[$key] = $inputValue;
                     }
-                    $classInstance->_props[$key] = $inputValue;
                 }
             }
             $componentInfo->IsComponent && $componentInfo->HasMounted && $classInstance->__mounted();
@@ -2713,17 +2725,17 @@ class PageEngine
                         if ($dynamicTagDetected || class_exists($className)) {
                             //$this->debug($className);
 
-                            if (!$dynamicTagDetected) {
-                                if (!isset($this->components[$tagItem->Content]->Inputs)) {
-                                    $this->components[$tagItem->Content]->Inputs = [];
-                                }
-                                $reflect = new ReflectionClass($className);
-                                $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
-                                $propsMap = [];
-                                foreach ($props as $propertyInfo) {
-                                    $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
-                                }
-                            }
+                            // if (!$dynamicTagDetected) {
+                            //     // if (!isset($this->components[$tagItem->Content]->Inputs)) {
+                            //     //     $this->components[$tagItem->Content]->Inputs = [];
+                            //     // }
+                            //     $reflect = new ReflectionClass($className);
+                            //     $props = $reflect->getProperties(ReflectionProperty::IS_PUBLIC);
+                            //     $propsMap = [];
+                            //     foreach ($props as $propertyInfo) {
+                            //         $propsMap[$propertyInfo->getName()] = true; // TODO: check for type ?
+                            //     }
+                            // }
                             $inputArgument = $childTag->Content;
                             $itsEvent = $inputArgument[0] === '(';
                             $itsRef = $inputArgument[0] === '#';
@@ -2751,13 +2763,13 @@ class PageEngine
                                 }
                             }
                             //if ($dynamicTagDetected || isset($propsMap[$inputArgument])) {
-                            if (
-                                !$itsEvent
-                                && !$dynamicTagDetected
-                                && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
-                            ) {
-                                $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
-                            }
+                            // if (
+                            //     !$itsEvent
+                            //     && !$dynamicTagDetected
+                            //     && !isset($this->components[$tagItem->Content]->Inputs[$inputArgument])
+                            // ) {
+                            //     $this->components[$tagItem->Content]->Inputs[$inputArgument] = 1;
+                            // }
                             //$inputValue = $this->getChildValues($childTag);
                             $inputValue = $this->combineChildren(
                                 $childTag,
@@ -2919,6 +2931,7 @@ class PageEngine
                                     $i + 1 < $length // there is still some content
                                     && (ctype_alpha($raw[$i + 1]) //any letter
                                         || $raw[$i + 1] === '$' // dynamic tag
+                                        || $raw[$i + 1] === '{' // dynamic tag
                                         || $raw[$i + 1] === '/') // self closing tag
                                 ) {
                                     // it's a tag
