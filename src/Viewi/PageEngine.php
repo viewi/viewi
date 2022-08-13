@@ -2739,7 +2739,7 @@ class PageEngine
                             $inputArgument = $childTag->Content;
                             $itsEvent = $inputArgument[0] === '(';
                             $itsRef = $inputArgument[0] === '#';
-                            if ($itsEvent || $itsRef || $inputArgument === 'model' || $childTag->ItsExpression) { // event
+                            if ($itsEvent || $itsRef || $inputArgument === 'model' || $childTag->ItsExpression) { // event or ref
                                 $childTag->Skip = !$childTag->ItsExpression;
                                 $attrValues = $values;
                                 $newValueContent = '';
@@ -2753,7 +2753,7 @@ class PageEngine
                                     $dynamicEventTag->Content = $newValueContent;
                                     $this->compileExpression($dynamicEventTag, ['$event' => true]);
                                     $childTag->DynamicChild = $dynamicEventTag;
-                                } else {
+                                } else if ($itsEvent) {
                                     // replace children with one expression
                                     $newChild = $attrValues[0];
                                     $newChild->Content = $newValueContent;
