@@ -1918,13 +1918,15 @@
                         copy.instance.__id = ++nextInstanceId;
                         instancesScope[copy.instance.__id] = copy.instance;
                     }
-                    copy.instance.attributes = copy.instance.attributes.select(function (x) {
-                        var attr = Object.assign({}, x);
-                        attr.scope = copy.scope || attr.scope;
-                        attr.origin = Object.assign({}, x.origin);
-                        delete attr.childComponent;
-                        return attr;
-                    });
+                    if (copy.instance.attributes) {
+                        copy.instance.attributes = copy.instance.attributes.select(function (x) {
+                            var attr = Object.assign({}, x);
+                            attr.scope = copy.scope || attr.scope;
+                            attr.origin = Object.assign({}, x.origin);
+                            delete attr.childComponent;
+                            return attr;
+                        });
+                    }
                 }
                 // TODO: new __id for each iteration level, keep instances
                 if (node.childInstances) {
@@ -1938,11 +1940,13 @@
                                 instancesScope[childInstance.wrapper.__id] = childInstance.wrapper;
                                 childInstance.wrapper.__id = ++nextInstanceId;
                                 instancesScope[childInstance.wrapper.__id] = childInstance.wrapper;
-                                childInstance.wrapper.attributes = x.wrapper.attributes.select(function (y) {
-                                    var attr = Object.assign({}, y);
-                                    attr.scope = copy.scope || attr.scope;
-                                    return attr;
-                                });
+                                if (childInstance.wrapper.attributes) {
+                                    childInstance.wrapper.attributes = x.wrapper.attributes.select(function (y) {
+                                        var attr = Object.assign({}, y);
+                                        attr.scope = copy.scope || attr.scope;
+                                        return attr;
+                                    });
+                                }
                             }
                             return childInstance;
                         }
