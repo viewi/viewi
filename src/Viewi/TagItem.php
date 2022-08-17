@@ -32,7 +32,7 @@ class TagItem
         $hasType = isset($this->Type);
         $type = $hasType ? $this->Type->Name : 'root';
         $hasSubscriptions = false;
-        if ($this->ItsExpression) {            
+        if ($this->ItsExpression) {
             if ($this->Subscriptions !== null) {
                 $hasSubscriptions = true;
                 $primaryItem[] = $this->Subscriptions;
@@ -48,8 +48,7 @@ class TagItem
                 if ($this->DataExpression->ForItem !== null) {
                     $foreachData['forItem'] = $this->DataExpression->ForItem;
                 }
-                if(!$hasSubscriptions)
-                {
+                if (!$hasSubscriptions) {
                     $primaryItem[] = 0;
                     $hasSubscriptions = true;
                 }
@@ -116,17 +115,22 @@ class TagItem
     public function getRaw(): array
     {
         $node = [];
-        $node['content'] = $this->ItsExpression || $this->RawHtml || !$this->Content
+        $node['c'] = $this->ItsExpression || $this->RawHtml || !$this->Content
             ? $this->Content
             : html_entity_decode($this->Content);
-        $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
-        $node['expression'] = $this->ItsExpression;
+        $node['t'] = isset($this->Type) ? $this->Type->toShort() : 'r';
+        if ($node['t'] === 'v') {
+            unset($node['t']);
+        }
+        if ($this->ItsExpression) {
+            $node['e'] = 1;
+        }
         if ($this->RawHtml) {
-            $node['raw'] = true;
+            $node['raw'] = 1;
         }
         if ($this->ItsExpression) {
             $node['code'] = $this->JsExpression;
-            unset($node['content']);
+            unset($node['c']);
             if ($this->Subscriptions != null) {
                 $node['subs'] = $this->Subscriptions;
             }
@@ -154,15 +158,15 @@ class TagItem
                     continue;
                 }
                 if ($child->Type->Name === TagItemType::Attribute) {
-                    if (!isset($node['attributes'])) {
-                        $node['attributes'] = [];
+                    if (!isset($node['a'])) {
+                        $node['a'] = [];
                     }
-                    $node['attributes'][] = $child->getRaw();
+                    $node['a'][] = $child->getRaw();
                 } else {
-                    if (!isset($node['children'])) {
-                        $node['children'] = [];
+                    if (!isset($node['h'])) {
+                        $node['h'] = [];
                     }
-                    $node['children'][] = $child->getRaw();
+                    $node['h'][] = $child->getRaw();
                 }
             }
         }
