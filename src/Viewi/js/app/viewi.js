@@ -201,7 +201,7 @@
             var owner = arguments.length > 3 ? arguments[3] : null;
             var parentNode = owner && !owner.isRoot ? owner : null;
             var isRoot = arguments.length > 4 ? arguments[4] : false;
-            var children = parent.children;
+            var children = parent.children || parent.h;
             var currentNodeList = [];
             var skip = false;
             var node = false;
@@ -209,6 +209,17 @@
             var usedSubscriptions = {};
             for (var i in children) {
                 var item = children[i];
+                if (!item.unpacked) {
+                    item.attributes = item.a;
+                    item.h && (item.children = item.h);
+                    if (item.attributes) {
+                        for (var i = 0; i < item.attributes.length; i++) {
+                            var currentAttribute = item.attributes[i];
+                            currentAttribute.h && (currentAttribute.children = currentAttribute.h);
+                        }
+                    }
+                    item.unpacked = true;
+                }
                 if (item.t === 't' && item.c === 'slot') {
                     skip = true;
                     var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.c === 'name'; });
@@ -352,8 +363,7 @@
                 }
                 var component = false;
                 var nodeType = '';
-                switch(item.t)
-                {
+                switch (item.t) {
                     case 't': {
                         nodeType = 'tag';
                         break;

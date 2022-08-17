@@ -155,15 +155,15 @@ class TagItem
                     continue;
                 }
                 if ($child->Type->Name === TagItemType::Attribute) {
-                    if (!isset($node['attributes'])) {
-                        $node['attributes'] = [];
+                    if (!isset($node['a'])) {
+                        $node['a'] = [];
                     }
-                    $node['attributes'][] = $child->getRaw();
+                    $node['a'][] = $child->getRaw();
                 } else {
-                    if (!isset($node['children'])) {
-                        $node['children'] = [];
+                    if (!isset($node['h'])) {
+                        $node['h'] = [];
                     }
-                    $node['children'][] = $child->getRaw();
+                    $node['h'][] = $child->getRaw();
                 }
             }
         }
