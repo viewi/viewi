@@ -209,7 +209,7 @@
             var usedSubscriptions = {};
             for (var i in children) {
                 var item = children[i];
-                if (item.type === 'tag' && item.content === 'slot') {
+                if (item.t === 't' && item.content === 'slot') {
                     skip = true;
                     var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
                     var slotName = 0;
@@ -334,8 +334,8 @@
                     continue;
                 }
 
-                if (!item.raw && node && ((item.type === 'text' && node.type === 'text')
-                    || (item.type === 'comment' && node.type === 'comment'))
+                if (!item.raw && node && ((item.t === 'x' && node.type === 'text')
+                    || (item.t === 'm' && node.type === 'comment'))
                 ) {
                     node.contents.push(getDataExpression(item, instance));
                     if (item.subs) {
@@ -351,9 +351,39 @@
                     //.select(function (a) { return a.content; }).first();
                 }
                 var component = false;
+                var nodeType = '';
+                switch(item.t)
+                {
+                    case 't': {
+                        nodeType = 'tag';
+                        break;
+                    }
+                    case 'a': {
+                        nodeType = 'attr';
+                        break;
+                    }
+                    case 'v': {
+                        nodeType = 'value';
+                        break;
+                    }
+                    case 'c': {
+                        nodeType = 'component';
+                        break;
+                    }
+                    case 'x': {
+                        nodeType = 'text';
+                        break;
+                    }
+                    case 'm': {
+                        nodeType = 'comment';
+                        break;
+                    }
+                    default:
+                        throw new Error("Type " + item.t + " is not defined in build");
+                }
                 node = {
                     id: ++nextNodeId,
-                    type: item.type,
+                    type: nodeType,
                     contents: [getDataExpression(item, instance)],
                     domNode: null, // DOM node if rendered
                     parent: parentNode, // TODO: make immutable
@@ -372,12 +402,12 @@
                     previousNode.nextNode = node;
                 }
                 previousNode = node;
-                if (item.type === 'tag' && item.expression) {
+                if (item.t === 't' && item.expression) {
                     node.type = 'dynamic';
                     node.componentChildren = item.children;
                     node.isVirtual = true;
                 }
-                if (specialType === null && item.type === 'tag' && specialTags.indexOf(item.content) !== -1) {
+                if (specialType === null && item.t === 't' && specialTags.indexOf(item.content) !== -1) {
                     var specialTag = item.content;
                     node.type = specialTag;
                     node.isVirtual = true;
@@ -451,7 +481,7 @@
                 } else if (usedSpecialTypes.length > 0) {
                     usedSpecialTypes = [];
                 }
-                if (item.type === 'component') {
+                if (item.t === 'c') {
                     component = item.content;
                 }
                 // children

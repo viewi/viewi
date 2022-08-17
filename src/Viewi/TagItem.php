@@ -119,7 +119,7 @@ class TagItem
         $node['content'] = $this->ItsExpression || $this->RawHtml || !$this->Content
             ? $this->Content
             : html_entity_decode($this->Content);
-        $node['type'] = isset($this->Type) ? $this->Type->toShort() : 'root';
+        $node['t'] = isset($this->Type) ? $this->Type->toShort() : 'r';
         $node['expression'] = $this->ItsExpression;
         if ($this->RawHtml) {
             $node['raw'] = true;
