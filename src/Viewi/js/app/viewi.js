@@ -133,7 +133,7 @@
             // Function.apply(null, ['a', 'return a;'])
             var itsEvent = arguments.length > 2 && arguments[2];
             var forceRaw = arguments.length > 3 && arguments[3];
-            if (item.expression) {
+            if (item.expression || item.e) {
                 var contentExpression = {
                     call: true,
                     instance: instance
@@ -187,7 +187,7 @@
                 contentExpression.func = Function.apply(null, args);
                 return contentExpression;
             }
-            return { call: false, content: item.content };
+            return { call: false, content: item.content || item.c };
         }
 
         var specialTags = ['template'];
@@ -209,20 +209,20 @@
             var usedSubscriptions = {};
             for (var i in children) {
                 var item = children[i];
-                if (item.t === 't' && item.content === 'slot') {
+                if (item.t === 't' && item.c === 'slot') {
                     skip = true;
-                    var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.content === 'name'; });
+                    var slotNameItem = item.attributes && item.attributes.first(function (x) { return x.c === 'name'; });
                     var slotName = 0;
                     var slotNameExpression = function (x) {
                         return !x.attributes;
                     };
                     if (slotNameItem) {
-                        slotName = slotNameItem.children[0].content;
+                        slotName = slotNameItem.children[0].c;
                         slotNameExpression = function (x) {
                             return x.attributes
                                 && x.attributes.first(function (y) {
-                                    return y.content === 'name'
-                                        && y.children[0].content === slotName;
+                                    return y.c === 'name'
+                                        && y.children[0].c === slotName;
                                 });
                         }
                     }
@@ -346,9 +346,9 @@
                 var specialType = null;
                 if (item.attributes) {
                     specialType = item.attributes.first(function (a) {
-                        return specialTypes.indexOf(a.content) !== -1 && usedSpecialTypes.indexOf(a.content) === -1;
+                        return specialTypes.indexOf(a.c) !== -1 && usedSpecialTypes.indexOf(a.c) === -1;
                     });
-                    //.select(function (a) { return a.content; }).first();
+                    //.select(function (a) { return a.c; }).first();
                 }
                 var component = false;
                 var nodeType = '';
@@ -402,13 +402,13 @@
                     previousNode.nextNode = node;
                 }
                 previousNode = node;
-                if (item.t === 't' && item.expression) {
+                if (item.t === 't' && item.e) {
                     node.type = 'dynamic';
                     node.componentChildren = item.children;
                     node.isVirtual = true;
                 }
-                if (specialType === null && item.t === 't' && specialTags.indexOf(item.content) !== -1) {
-                    var specialTag = item.content;
+                if (specialType === null && item.t === 't' && specialTags.indexOf(item.c) !== -1) {
+                    var specialTag = item.c;
                     node.type = specialTag;
                     node.isVirtual = true;
                 }
@@ -416,12 +416,12 @@
                     node.scope = parentNode.scope;
                 }
                 if (specialType !== null) {
-                    node.type = specialType.content;
+                    node.type = specialType.c;
                     if (node.type === 'if') { // reset group
                         usedSubscriptions = {};
                     }
                     node.isVirtual = true;
-                    usedSpecialTypes.push(specialType.content);
+                    usedSpecialTypes.push(specialType.c);
                     if (conditionalTypes.indexOf(node.type) !== -1) {
                         node.condition = specialType.children
                             ? getDataExpression(specialType.children[0], instance)
@@ -482,7 +482,7 @@
                     usedSpecialTypes = [];
                 }
                 if (item.t === 'c') {
-                    component = item.content;
+                    component = item.c;
                 }
                 // children
                 childNodes = false;
@@ -492,13 +492,13 @@
                 if (item.attributes) {
                     node.attributes = item.attributes
                         .where(function (a) {
-                            return specialTypes.indexOf(a.content) === -1;
+                            return specialTypes.indexOf(a.c) === -1;
                         })
                         .select(
                             function (a) {
                                 var copy = {};
-                                var itsEvent = a.expression ? false : a.content[0] === '(';
-                                copy.content = a.content; // keep it for slots
+                                var itsEvent = a.e ? false : a.c[0] === '(';
+                                copy.content = a.c; // keep it for slots
                                 copy.isAttribute = true;
                                 copy.parent = node;
                                 copy.contentExpression = getDataExpression(a, instance);
@@ -513,7 +513,7 @@
                                     copy.children = a.children.select(
                                         function (v) {
                                             var valCopy = {};
-                                            var forceRaw = a.content === 'model';
+                                            var forceRaw = a.c === 'model';
                                             valCopy.contentExpression = getDataExpression(v, instance, itsEvent, forceRaw);
                                             if (node.type === 'dynamic'
                                                 || node.type === 'component'
@@ -524,7 +524,7 @@
                                                 }
                                             }
 
-                                            valCopy.content = v.content; // keep it for slots
+                                            valCopy.content = v.c; // keep it for slots
                                             if (v.subs && !itsEvent) {
                                                 valCopy.subs = (valCopy.subs || []).concat(v.subs);
                                             }
