@@ -600,6 +600,17 @@ class PageEngine
         self::$compiled = true;
         $this->templateVersions = [];
         $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
+        $lockFile = $this->buildPath . DIRECTORY_SEPARATOR . 'compile.lock';
+        $fp = @fopen($lockFile, "w+");
+        if (!$fp || !flock($fp, LOCK_EX)) {
+            throw new Exception("Build process is in progress. Please run one build at the time. "
+                . "It may happen if you don't have your fav icons just yet and use wildcard route: 'Route::get('*',' "
+                . "or if you refresh your page too often in DEV mode. "
+                . "If you think that something is wrong, please remove the lock file: $lockFile");
+        }
+        ftruncate($fp, 0);
+        fwrite($fp, time());
+        fflush($fp);
         $this->removeDirectory($this->buildPath);
         $this->removeDirectory($this->publicBuildPath);
         $viewiComponentsPath = __DIR__ . '/Components';
@@ -970,6 +981,9 @@ class PageEngine
             file_put_contents($lazyGroupFilePath, $lazyGroupJsonContent);
             file_put_contents($lazyGroupFilePath . '.gz', gzencode($lazyGroupJsonContent, 5));
         }
+
+        flock($fp, LOCK_UN);
+        fclose($fp);
     }
 
     function minify($js)
@@ -1239,11 +1253,17 @@ class PageEngine
      */
     function setComponentsInfo(array $componentsInfo): void
     {
+        // $time = hrtime(true);
+        // TODO: unpack fromArray on demand
         foreach ($componentsInfo as &$item) {
             $componentInfo = new ComponentInfo();
             $componentInfo->fromArray($item);
             $this->components[$componentInfo->Name] = $componentInfo;
         }
+        // TODO: optimize
+        // $this->components = $componentsInfo;
+        // $this->debug($time);
+        // $this->debug(hrtime(true) - $time);
     }
 
     function save(PageTemplate &$pageTemplate, string $templateKey = '')
@@ -1252,6 +1272,7 @@ class PageEngine
         if ($pageTemplate->ItsSlot) {
             $buildPath .= DIRECTORY_SEPARATOR . '_slots';
         }
+        // $this->debug([$pageTemplate->Path, $pageTemplate->ComponentInfo->Namespace, $pageTemplate->ComponentInfo->Name]);
         $buildFilePath = $pageTemplate->ComponentInfo->Relative ?
             str_replace($this->sourcePath, $buildPath, $this->sourcePath . $this->getRelativeSourcePath($pageTemplate->Path))
             : $buildPath . DIRECTORY_SEPARATOR . str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $pageTemplate->ComponentInfo->Namespace) . DIRECTORY_SEPARATOR . $pageTemplate->ComponentInfo->Name;
