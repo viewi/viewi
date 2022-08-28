@@ -239,6 +239,7 @@ class PageEngine
     {
         return $this->config;
     }
+
     private function reset()
     {
         $this->instanceIdCounter = 0;
@@ -579,6 +580,7 @@ class PageEngine
         if (self::$compiled) {
             return;
         }
+        $this->reset();
         $this->includeInstances = $this->includes !== null
             ? array_map(function ($className) {
                 return new $className();
@@ -601,6 +603,9 @@ class PageEngine
         $this->templateVersions = [];
         $this->sourcePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $this->sourcePath);
         $lockFile = $this->buildPath . DIRECTORY_SEPARATOR . 'compile.lock';
+        if (!file_exists($this->buildPath)) {
+            mkdir($this->buildPath, 0777, true);
+        }
         $fp = @fopen($lockFile, "w+");
         if (!$fp || !flock($fp, LOCK_EX)) {
             throw new Exception("Build process is in progress. Please run one build at the time. "
@@ -1188,12 +1193,6 @@ class PageEngine
                     // if ($attribute->PropValueExpression === '$_component->loading') {
                     //     $this->debug($attribute);
                     // }
-                }
-            }
-            if ($componentInfo->HasMounted) {
-                try {
-                    $instance->__mounted();
-                } catch (Throwable) {
                 }
             }
             // if ($tagItem->Content === 'Column') {
