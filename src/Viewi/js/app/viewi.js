@@ -85,7 +85,7 @@
                 }
                 var target = e.target || e.srcElement;
                 var aTarget = target;
-                if (aTarget.parentNode && aTarget.parentNode.tagName === 'A') {
+                while (aTarget.parentNode && aTarget.tagName !== 'A') {
                     aTarget = aTarget.parentNode;
                 }
                 if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
@@ -716,10 +716,11 @@
                             }
                             currentValue = itsEvent ? wrapper.component.$_callbacks[eventName] : propExpression.func.apply(null, args);
                             if (attr.children[i].subs) {
-                                propsSubs['this.' + attr.content] = {
-                                    instance: attr.instance,
-                                    subs: attr.children[i].subs
-                                };
+                                // TODO: investigate
+                                // propsSubs['this.' + attr.content] = {
+                                //     instance: attr.instance,
+                                //     subs: attr.children[i].subs
+                                // };
                             }
                         } else {
                             currentValue = propExpression.content;
@@ -1288,7 +1289,7 @@
                             if (nodeBefore && nodeBefore.node.type == 'text') {
                                 nodeBefore.node.domNode.nodeValue += val;
                                 if (node.domNode !== null) {
-                                    node.domNode.parentNode.removeChild(node.domNode);
+                                    node.domNode.parentNode && node.domNode.parentNode.removeChild(node.domNode);
                                     node.domNode = null;
                                 }
                             } else {
@@ -1674,6 +1675,13 @@
                         elm = parent;
                         nextInsert = true;
                         if (node.latestVal === val) {
+                            if (node.children) {
+                                for (var i = 0; i < node.children.length; i++) {
+                                    if (node.children[i].domNode) {
+                                        node.children[i].domNode.usedByRenderer = true;
+                                    }
+                                }
+                            }
                             return;
                         }
                         removeDomNodes(node.children);
@@ -2088,6 +2096,7 @@
 
         var renderQueue = {};
         var subscribers = {};
+        var lastSubscribers = {};
         var propsSubs = {};
 
         var listenTo = function (node, path) {
@@ -2413,6 +2422,7 @@
                         hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
                         // ||
                         a[i].domNode = b[i].domNode;
+                        a[i].subscribed = b[i].subscribed;
                         a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;
                         if (a[i].skipIteration) {
                             if (!b[i].origin) {
@@ -2436,9 +2446,18 @@
                             a[i].rawNodes = b[i].rawNodes;
                             a[i].latestHtml = b[i].latestHtml;
                         }
+                        if (a[i].type === 'dynamic' && a[i].instance === b[i].instance) {
+                            if (b[i].latestVal) {
+                                a[i].latestVal = b[i].latestVal;
+                                a[i].itemChildren = b[i].itemChildren;
+                                a[i].children = b[i].children;
+                            }
+                        }
                         // console.log('Merged:', a[i], b[i]);
-                        if (a[i].children && b[i].children) {
-                            mergeNodes(a[i].children, b[i].children);
+                        if (b[i].children) {
+                            if (a[i].children) {
+                                mergeNodes(a[i].children, b[i].children);
+                            }
                         }
                     } else {
                         // remove DOM node
@@ -2487,6 +2506,9 @@
                     instanceWrapper.attributes = tryCopyObjectList(attributes);
                     instanceWrapper.params = params;
                     // console.log('Reusing', instance);
+                    if (instanceWrapper.component && lastSubscribers[instanceWrapper.component.__id]) {
+                        subscribers[instanceWrapper.component.__id] = lastSubscribers[instanceWrapper.component.__id];
+                    }
                 }
             }
             // }
@@ -2857,6 +2879,7 @@
             };
             renderInProgress = true;
             reuseEnabled = false;
+            lastSubscribers = subscribers;
             subscribers = {};
             renderQueue = {};
             parentComponentName = null;
