@@ -245,11 +245,10 @@
             };
         }
 
-        var build = function (parent, instance) {
-            var stack = arguments.length > 2 ? arguments[2] : false;
-            var owner = arguments.length > 3 ? arguments[3] : null;
+        var build = function (parent, instance, stack, owner, level) {
             var parentNode = owner && !owner.isRoot ? owner : null;
-            var isRoot = arguments.length > 4 ? arguments[4] : false;
+            var isRoot = instance.isRoot;
+            !level && (level = 0);
             parent.h && !parent.children && (parent.children = parent.h);
             var children = parent.children;
             var currentNodeList = [];
@@ -366,7 +365,7 @@
                     }
                     if (useDefault) {
                         // unnamed slot
-                        var defaultContent = build(item, instance, false, parentNode);
+                        var defaultContent = build(item, instance, false, parentNode, level);
                         // reassign parent
                         var prevNode = currentNodeList.length > 0
                             ? currentNodeList[currentNodeList.length - 1]
@@ -491,7 +490,7 @@
                             // console.log(node, node.forExpression, currentScope);
                         }
                     }
-                    node.children = build({ children: [item] }, instance, stack, node);
+                    node.children = build({ children: [item] }, instance, stack, node, level + 1);
                     if (node.childInstances) {
                         node.children[0].childInstances = node.childInstances;
                         delete node.childInstances;
@@ -522,7 +521,7 @@
                 // children
                 childNodes = false;
                 if (item.children) {
-                    childNodes = build(item, instance, stack, node);
+                    childNodes = build(item, instance, stack, node, level + 1);
                 }
                 if (item.attributes) {
                     node.attributes = item.attributes
@@ -583,7 +582,7 @@
                         reuseEnabled = true;
                         resetReuse = true;
                     }
-                    var componentNodes = create(component, childNodes, node.attributes);
+                    var componentNodes = create(component, childNodes, node.attributes, false, false, { level: level, parentInstance: instance });
                     if (!owner.childInstances) {
                         owner.childInstances = [];
                     }
@@ -1149,6 +1148,7 @@
         var renderScopeStack = [];
 
         var createDomNode = function (parent, node, insert, skipGroup) {
+            // if (node.instance.name === 'ComponentsPage') debugger;
             if (!skipGroup) {
                 if (node.isVirtual || node.type === 'text') {
                     // TODO: make property which says if text or virtual node has text or virtual siblings
@@ -1672,6 +1672,10 @@
                         // clone child for tag
                         // or build component
                         // render
+                        // if(node.parent.domNode?.getAttribute('class') === 'has-left-nav')
+                        // {
+                        //     debugger;
+                        // }
                         elm = parent;
                         nextInsert = true;
                         if (node.latestVal === val) {
@@ -1704,7 +1708,7 @@
                         } else {
                             // build component
                             // componentChildren
-                            var dynamicNodes = create(val, wrapperNode.children, node.attributes);
+                            var dynamicNodes = create(val, wrapperNode.children, node.attributes, false, false, node.instance);
                             createInstance(dynamicNodes.wrapper);
                             mountInstance(dynamicNodes.wrapper);
                             instantiateChildren(dynamicNodes.root);
@@ -2383,8 +2387,9 @@
                         a[i].children && removeDomNodes(a[i].children, true);
                     }
                 }
-                return; // TODO: match each node individually
+                return false; // TODO: match each node individually
             }
+            var allMatched = true;
             for (var i = 0; i < la; i++) {
                 if (i < lb) {
                     var matched = true;
@@ -2418,6 +2423,7 @@
                         matched = false;
                     }
                     if (matched || (a[i].type === 'dynamic' && b[i].type === 'dynamic')) {
+                        matched = true;
                         // all matched, reassigning DOM node
                         hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
                         // ||
@@ -2446,17 +2452,57 @@
                             a[i].rawNodes = b[i].rawNodes;
                             a[i].latestHtml = b[i].latestHtml;
                         }
+                        var noRootSlot = true;
                         if (a[i].type === 'dynamic' && a[i].instance === b[i].instance) {
                             if (b[i].latestVal) {
-                                a[i].latestVal = b[i].latestVal;
-                                a[i].itemChildren = b[i].itemChildren;
-                                a[i].children = b[i].children;
+                                var findRootSlot = function (children) {
+                                    for (var t = 0; t < children.length; t++) {
+                                        if (!children[t].instance.rooted
+                                            || (children[t].children && !findRootSlot(children[t].children))
+                                        ) {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                };
+                                noRootSlot = findRootSlot(b[i].children); // TODO: investigate multiple merge calls if node is dynamic
+                                // !noRootSlot && console.log(['!noRootSlot', b[i].instance.name, b[i].children?.[0].domNode, b[i]]);
+                                // if (b[i].parent.domNode?.getAttribute('class') === 'has-left-nav') {
+                                //     console.log(['dynamic merge', b[i], a[i]]);
+                                //     debugger;
+                                // }
+                                // console.log(['dynamic merge', b[i].latestVal, a[i].latestVal]);                                
+                                // a[i].itemChildren = b[i].itemChildren;
+                                if (noRootSlot && a[i].itemChildren) {
+                                    var wrapperNode = {
+                                        contents: a[i].contents,
+                                        attributes: a[i].attributes,
+                                        parent: a[i],
+                                        previousNode: null,
+                                        scope: a[i].scope,
+                                        instance: a[i].instance,
+                                        domNode: null,
+                                        type: 'tag'
+                                    };
+                                    copyNodes(wrapperNode, a[i].itemChildren);
+                                    a[i].children = [wrapperNode];
+                                }
+                                // a[i].children = b[i].children;
                             }
                         }
                         // console.log('Merged:', a[i], b[i]);
-                        if (b[i].children) {
+                        if (noRootSlot && b[i].children) {
                             if (a[i].children) {
-                                mergeNodes(a[i].children, b[i].children);
+                                matched = mergeNodes(a[i].children, b[i].children);
+                                if (matched && a[i].instance.rooted) {
+                                    a[i].latestVal = b[i].latestVal;
+                                }
+                                // if (noRootSlot) {
+                                //     matched = mergeNodes(a[i].children, b[i].children);
+                                //     if (matched && a[i].instance.rooted) {
+                                //         a[i].latestVal = b[i].latestVal;
+                                //     }
+                                // }
                             }
                         }
                     } else {
@@ -2476,8 +2522,10 @@
                             a[i].latestHtml = b[i].latestHtml;
                         }
                     }
+                    allMatched = allMatched && matched;
                 }
             }
+            return allMatched;
         };
 
         var parentComponentName = null;
@@ -2486,26 +2534,36 @@
             return a ? a.select(function (item) { return Object.assign({}, item); }) : null;
         }
 
-        var create = function (name, childNodes, attributes, params, isRoot) {
+        var create = function (name, childNodes, attributes, params, isRoot, meta) {
             if (!(name in $this.components)) {
                 throw new Error('Component ' + name + ' doesn\'t exist.');
             }
             var builtNodes = null;
             var instanceWrapper = null;
+            var key = false;
+            var reuseEnabled = meta.parentInstance && (meta.parentInstance.rooted || (meta.parentInstance.isRoot && meta.level === 0));
+            // isRoot && console.log(['isRoot', name]);
+            // meta.level === 0 && console.log([meta.level, name]);
+            // meta.parentInstance && meta.parentInstance.isRoot && console.log(['parentIsRoot', meta.parentInstance.isRoot, name, 'level', meta.level]);
             // if (parentComponentName === currentPage.name) {
             // reuse wrapper components
             if (reuseEnabled) {
+                // TODO: track level (tree level in template): ex: <Layout = level 0, BaseLayout =0, etc.
+                // TODO: keep reused components in map ([key: level 0 component name]:[...components])
+                key = (meta.level === 0 ? '' : meta.parentInstance.name + '_') + name;
+                // ['BaseLayout', 'Layout', 'NavigationDrawer', 'ComponentsLayout'].includes(name) && console.log('Looking', name, key, meta.level, meta.parentInstance.rooted);
                 var same = latestPage.components.first(function (x) {
-                    return x.name === name;
+                    return x.instanceWrapper.key === key; // TODO: match by path and params/attributes
                 }, true);
                 if (same) {
                     latestPage.components.splice(same[1], 1);
                     builtNodes = same[0].build;
                     instanceWrapper = same[0].instanceWrapper; // TODO: default values restore
+                    // ['BaseLayout', 'Layout', 'NavigationDrawer', 'ComponentsLayout'].includes(name) &&
+                    // console.log(['Reusing', name, key]);
                     instanceWrapper.isMounted = false;
                     instanceWrapper.attributes = tryCopyObjectList(attributes);
                     instanceWrapper.params = params;
-                    // console.log('Reusing', instance);
                     if (instanceWrapper.component && lastSubscribers[instanceWrapper.component.__id]) {
                         subscribers[instanceWrapper.component.__id] = lastSubscribers[instanceWrapper.component.__id];
                     }
@@ -2522,8 +2580,14 @@
                 isCreated: false,
                 params: params,
                 hasVersions: page.hasVersions,
+                isRoot: isRoot,
+                rooted: (meta.parentInstance && meta.parentInstance.rooted) || (!isRoot && meta.level === 0 && meta.parentInstance && meta.parentInstance.isRoot && name),
                 attributes: tryCopyObjectList(attributes),
                 __id: ++nextInstanceId
+            };
+            // instanceWrapper.rooted && console.log(['rooted', name, instanceWrapper.rooted, meta.parentInstance.name, 'level', meta.level]);
+            if (reuseEnabled && !instanceWrapper.key) {
+                instanceWrapper.key = key;
             }
             var root = { isRoot: true };
             var newBuild = {
@@ -2533,13 +2597,13 @@
             };
             if (page.hasVersions) {
                 for (var ver in page.versions) {
-                    newBuild.versions[ver] = build(page.versions[ver], instanceWrapper, childNodes, root, isRoot);
+                    newBuild.versions[ver] = build(page.versions[ver], instanceWrapper, childNodes, root, meta.level);
                     if (builtNodes) {
                         mergeNodes(newBuild.versions[ver], builtNodes.versions[ver]);
                     }
                 }
             } else {
-                newBuild.versions['main'] = build(page.nodes, instanceWrapper, childNodes, root, isRoot);
+                newBuild.versions['main'] = build(page.nodes, instanceWrapper, childNodes, root, meta.level);
                 if (builtNodes) {
                     mergeNodes(newBuild.versions['main'], builtNodes.versions['main']);
                 }
@@ -2891,7 +2955,7 @@
             currentPage.name = name;
             currentPage.components = [];
             currentPage.watchList = [];
-            var instanceMeta = create(name, null, null, params, true);
+            var instanceMeta = create(name, null, null, params, true, { level: 0 });
             var nodes = instanceMeta.versions['main'];
             currentPage.nodes = nodes;
             scroll && window.scrollTo(0, 0);
