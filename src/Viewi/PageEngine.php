@@ -1049,7 +1049,7 @@ class PageEngine
                         }
                     }
                 }
-            } catch (Throwable) {
+            } catch (Throwable $thr) {
             }
         }
     }
@@ -1131,7 +1131,7 @@ class PageEngine
                                 if (is_array($evaluatedOptions)) {
                                     $options = $evaluatedOptions;
                                 }
-                            } catch (Throwable) {
+                            } catch (Throwable $thr) {
                             }
                         }
                     }
@@ -1176,7 +1176,7 @@ class PageEngine
                             if (isset($componentInfo->Inputs[$attribute->Content])) {
                                 $instance->{$attribute->Content} = $value;
                             }
-                        } catch (Throwable) {
+                        } catch (Throwable $thr) {
                             $instance->_props[$attribute->Content] = '(unknown)';
                             // if (isset($componentInfo->Inputs[$attribute->Content])) {
                             //     $this->debug(['getting @options', $tagItem->Content, $attribute->Content]);
