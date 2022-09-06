@@ -2473,21 +2473,23 @@
                                 // }
                                 // console.log(['dynamic merge', b[i].latestVal, a[i].latestVal]);                                
                                 // a[i].itemChildren = b[i].itemChildren;
-                                if (noRootSlot && a[i].itemChildren) {
-                                    var wrapperNode = {
-                                        contents: a[i].contents,
-                                        attributes: a[i].attributes,
-                                        parent: a[i],
-                                        previousNode: null,
-                                        scope: a[i].scope,
-                                        instance: a[i].instance,
-                                        domNode: null,
-                                        type: 'tag'
-                                    };
-                                    copyNodes(wrapperNode, a[i].itemChildren);
-                                    a[i].children = [wrapperNode];
+                                // if (noRootSlot && a[i].itemChildren) {
+                                //     var wrapperNode = {
+                                //         contents: a[i].contents,
+                                //         attributes: a[i].attributes,
+                                //         parent: a[i],
+                                //         previousNode: null,
+                                //         scope: a[i].scope,
+                                //         instance: a[i].instance,
+                                //         domNode: null,
+                                //         type: 'tag'
+                                //     };
+                                //     copyNodes(wrapperNode, a[i].itemChildren);
+                                //     a[i].children = [wrapperNode];
+                                // }
+                                if (noRootSlot && a[i].instance.rooted) {
+                                    a[i].children = b[i].children;
                                 }
-                                // a[i].children = b[i].children;
                             }
                         }
                         // console.log('Merged:', a[i], b[i]);
@@ -2551,7 +2553,8 @@
                 // TODO: track level (tree level in template): ex: <Layout = level 0, BaseLayout =0, etc.
                 // TODO: keep reused components in map ([key: level 0 component name]:[...components])
                 key = (meta.level === 0 ? '' : meta.parentInstance.name + '_') + name;
-                // ['BaseLayout', 'Layout', 'NavigationDrawer', 'ComponentsLayout'].includes(name) && console.log('Looking', name, key, meta.level, meta.parentInstance.rooted);
+                // ['BaseLayout', 'Layout', 'NavigationDrawer', 'ComponentsLayout'].includes(name) && 
+                // console.log('Looking', name, key, meta.level, meta.parentInstance.rooted);
                 var same = latestPage.components.first(function (x) {
                     return x.instanceWrapper.key === key; // TODO: match by path and params/attributes
                 }, true);
