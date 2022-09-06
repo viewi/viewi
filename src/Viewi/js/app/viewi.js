@@ -309,6 +309,7 @@
                                         && x.type === 'text'
                                         && !x.raw
                                         && !prevNode.raw
+                                        && !x.contents[0].func
                                     ) {
                                         prevNode.contents = prevNode.contents.concat(x.contents);
                                     } else {
@@ -343,6 +344,7 @@
                                         && x.type === 'text'
                                         && !x.raw
                                         && !prevNode.raw
+                                        && !x.contents[0].func
                                     ) {
                                         prevNode.contents = prevNode.contents.concat(x.contents);
                                     } else {
@@ -377,6 +379,7 @@
                                 && x.type === 'text'
                                 && !x.raw
                                 && !prevNode.raw
+                                && !x.contents[0].func
                             ) {
                                 prevNode.contents = prevNode.contents.concat(x.contents);
                             } else {
