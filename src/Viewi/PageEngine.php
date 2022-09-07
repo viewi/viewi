@@ -1349,7 +1349,7 @@ class PageEngine
         $this->latestPageTemplate = $previousPageTemplate;
     }
 
-    function convertExpressionToCode(string $expression, array $reserved = []): string
+    function convertExpressionToCode(string $expression, array $reserved = [], bool $raw = false): string
     {
         $keywordsList = $this->expressionsTranslator->getKeywords($expression);
         $keywords = $keywordsList[0];
@@ -1363,7 +1363,7 @@ class PageEngine
             if (in_array($keyword, ['as', 'fn', 'function'])) {
                 $newVariables = true;
             }
-            if (isset($reserved[$keyword])) {
+            if ($raw || isset($reserved[$keyword])) {
                 $newExpression .= $spaces[$i] . $keyword;
             } else if (ctype_alnum(str_replace('_', '', str_replace('$', '', $keyword)))) {
                 if ($keyword[0] === '$') { // variable
@@ -1423,7 +1423,7 @@ class PageEngine
             // injected html during the build
             // $this->debug($expression);
             $tagItem->ItsExpression = false;
-            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved);
+            $phpCode = $this->convertExpressionToCode(substr($expression, 1, strlen($expression) - 2), $reserved, true);
             // $this->debug($phpCode);
             $_component = $this->currentComponentInstance ?? null; // keep it for version eval
             $_pageEngine = $this; // keep it for version eval
