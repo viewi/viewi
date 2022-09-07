@@ -28,7 +28,7 @@ class TagItem
     {
         $primaryItem = $this->ItsExpression
             ? [$this->JsExpression]
-            : ($this->Content && !$this->RawHtml ? html_entity_decode($this->Content) : $this->Content);
+            : ($this->Content && !$this->RawHtml ? html_entity_decode($this->Content, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5) : $this->Content);
         $hasType = isset($this->Type);
         $type = $hasType ? $this->Type->Name : 'root';
         $hasSubscriptions = false;
@@ -117,7 +117,7 @@ class TagItem
         $node = [];
         $node['c'] = $this->ItsExpression || $this->RawHtml || !$this->Content
             ? $this->Content
-            : html_entity_decode($this->Content);
+            : html_entity_decode($this->Content, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5);
         $node['t'] = isset($this->Type) ? $this->Type->toShort() : 'r';
         if ($node['t'] === 'v') {
             unset($node['t']);
