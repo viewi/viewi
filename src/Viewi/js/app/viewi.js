@@ -1245,7 +1245,7 @@
                     texts.push(contentExpression.content);
                 }
             }
-            var val = texts.join(''); // TODO: process conditions (if,else,elif)
+            var val = texts.join('');
             var elm = false;
             var nextInsert = false;
             if (node.skipIteration) {
@@ -2433,7 +2433,9 @@
                         hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
                         // ||
                         a[i].domNode = b[i].domNode;
-                        a[i].subscribed = b[i].subscribed;
+                        if (a[i].instance.__id === b[i].instance.__id) {
+                            a[i].subscribed = b[i].subscribed;
+                        }
                         a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;
                         if (a[i].skipIteration) {
                             if (!b[i].origin) {
