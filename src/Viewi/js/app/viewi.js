@@ -26,6 +26,7 @@
         var htmlElementA = document.createElement('a');
         var hydrate = false;
         var config = null;
+        var scrollTo = null;
 
         var getPathName = function (href) {
             htmlElementA.href = href;
@@ -89,6 +90,7 @@
                     aTarget = aTarget.parentNode;
                 }
                 if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
+                    scrollTo = null;
                     getPathName(aTarget.href);
                     if (
                         !htmlElementA.hash
@@ -96,10 +98,10 @@
                     ) {
                         e.preventDefault(); // Cancel the native event
                         // e.stopPropagation(); // Don't bubble/capture the event
-                        $this.go(aTarget.href, true);
                         if (htmlElementA.hash) {
-                            htmlElementA.click();
+                            scrollTo = htmlElementA.hash;
                         }
+                        $this.go(aTarget.href, true);
                     }
                 }
             }, false);
@@ -2964,8 +2966,6 @@
             var instanceMeta = create(name, null, null, params, true, { level: 0 });
             var nodes = instanceMeta.versions['main'];
             currentPage.nodes = nodes;
-            scroll && window.scrollTo(0, 0);
-            scroll = true;
             cleanRender = !hydrate;
             var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
             createInstance(instanceMeta.wrapper);
@@ -2998,6 +2998,15 @@
             onRenderedTracker = {};
             cleanRender = false;
             hydrate = false;
+            if (scroll) {
+                if (scrollTo) {
+                    var toTarget = document.getElementById(scrollTo.substring(1));
+                    toTarget && toTarget.scrollIntoView();
+                } else {
+                    window.scrollTo(0, 0);
+                }
+            }
+            scroll = true;
         };
 
         this.htmlentities = function (html) {
