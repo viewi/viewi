@@ -2253,11 +2253,14 @@
             Object.setPrototypeOf(a, np);
             return a;
         }
-
+        var ignoreReactivityList = ['this._element', 'this._refs', 'this._props'];
         var makeReactive = function (obj) {
             var instance = arguments.length > 1 ? arguments[1] : obj;
             var path = arguments.length > 2 ? arguments[2] : 'this';
             var deps = arguments.length > 3 ? arguments[3] : { subs: {} };
+            if (ignoreReactivityList.indexOf(path) !== -1) {
+                return;
+            }
             if (Array.isArray(obj)) {
                 // reactivate array
                 // TODO: make optimization and fire local changes instead of whole array
