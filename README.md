@@ -38,6 +38,8 @@ class Counter extends BaseComponent
 ```
 [Live demo](https://viewi.net/)
 
+[UI Components](https://ui.viewi.net/)
+
 #### *Requirements: php 7.4+*
 
 Get started
