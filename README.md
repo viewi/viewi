@@ -40,7 +40,7 @@ class Counter extends BaseComponent
 
 [UI Components](https://ui.viewi.net/)
 
-#### *Requirements: php 7.4+*
+#### *Requirements: php ^7.4 || ^8.0*
 
 Get started
 -----------
