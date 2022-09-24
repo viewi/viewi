@@ -659,9 +659,38 @@
             return currentNodeList;
         };
 
+        var subscribeProps = function (wrapper) {
+            if (wrapper.attributes) {
+                for (var i = 0; i < wrapper.attributes.length; i++) {
+                    var attribute = wrapper.attributes[i];
+                    var itsEvent = attribute.expression ? false : attribute.content[0] === '(';
+                    attribute.childComponent = wrapper.component;
+                    if (!itsEvent) {
+                        if (attribute.subs) {
+                            for (var s in attribute.subs) {
+                                listenTo(attribute, attribute.subs[s]);
+                            }
+                        }
+                        if (attribute.children) {
+                            for (var acI = 0; acI < attribute.children.length; acI++) {
+                                var attributeChild = attribute.children[acI];
+                                if (attributeChild.subs) {
+                                    for (var s in attributeChild.subs) {
+                                        listenTo(attribute, attributeChild.subs[s]);
+                                        // console.log(['listen', attribute.content, attribute, wrapper, component]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
         var mountInstance = function (wrapper) {
             if (wrapper.isMounted) return;
             wrapper.component.__beforeMount && wrapper.component.__beforeMount();
+            subscribeProps(wrapper);
             if (wrapper.attributes) {
                 for (var ai in wrapper.attributes) {
                     var attr = wrapper.attributes[ai];
@@ -813,31 +842,6 @@
             var component = resolve(wrapper.name, wrapper.params, wrapper.__id);
             wrapper.component = component;
             wrapper.isCreated = true;
-            if (wrapper.attributes) {
-                for (var i = 0; i < wrapper.attributes.length; i++) {
-                    var attribute = wrapper.attributes[i];
-                    var itsEvent = attribute.expression ? false : attribute.content[0] === '(';
-                    attribute.childComponent = component;
-                    if (!itsEvent) {
-                        if (attribute.subs) {
-                            for (var s in attribute.subs) {
-                                listenTo(attribute, attribute.subs[s]);
-                            }
-                        }
-                        if (attribute.children) {
-                            for (var acI = 0; acI < attribute.children.length; acI++) {
-                                var attributeChild = attribute.children[acI];
-                                if (attributeChild.subs) {
-                                    for (var s in attributeChild.subs) {
-                                        listenTo(attribute, attributeChild.subs[s]);
-                                        // console.log(['listen', attribute.content, attribute, wrapper, component]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             // console.log(['create', wrapper.name, wrapper]);
             // if(wrapper.name === 'Row') debugger;
             onRenderedTracker[wrapper.name + '__' + wrapper.__id] = wrapper; // TODO: wrapper.name -> wrapper.id
@@ -1740,6 +1744,12 @@
                                     node.rawNodes[i].domNode.usedByRenderer = true;
                                 }
                             }
+                            if (!node.subscribed && node.subs) {
+                                for (var s in node.subs) {
+                                    listenTo(node, node.subs[s]);
+                                }
+                                node.subscribed = true;
+                            }
                             return;
                         }
                         node.latestHtml = val;
@@ -2109,6 +2119,9 @@
         var propsSubs = {};
 
         var listenTo = function (node, path) {
+            // path === 'this.application' && console.log(node, path);
+            // if(path === 'this.application' && node?.childComponent?.__id === 11)debugger;
+            // TODO: resibscribe instance on reuse
             var isAttribute = node.isAttribute;
             var instance = isAttribute ? node.parent.instance : node.instance;
             var iid = getInstanceId(instance);
