@@ -1517,8 +1517,16 @@
                         }
                         var nextValue = !!node.condition.func.apply(null, args);
                         if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                            if (val !== 'template')
+                            if (val !== 'template') {
+                                if (node.children) {
+                                    for (var i = 0; i < node.children.length; i++) {
+                                        if (node.children[i].domNode) {
+                                            node.children[i].domNode.usedByRenderer = true;
+                                        }
+                                    }
+                                }
                                 return; // nothing's changed
+                            }
                         }
                         node.condition.value = nextValue;
                         elm = parent;
@@ -1543,8 +1551,16 @@
 
                         node.condition.previousValue = node.previousNode.condition.value || nextValue;
                         if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                            if (val !== 'template')
+                            if (val !== 'template') {
+                                if (node.children) {
+                                    for (var i = 0; i < node.children.length; i++) {
+                                        if (node.children[i].domNode) {
+                                            node.children[i].domNode.usedByRenderer = true;
+                                        }
+                                    }
+                                }
                                 return; // nothing's changed
+                            }
                         }
                         node.condition.value = nextValue;
                         elm = parent;
@@ -1556,8 +1572,16 @@
                     case 'else': {
                         var nextValue = !node.previousNode.condition.previousValue;
                         if (node.condition.value !== undefined && nextValue === node.condition.value) {
-                            if (val !== 'template')
+                            if (val !== 'template') {
+                                if (node.children) {
+                                    for (var i = 0; i < node.children.length; i++) {
+                                        if (node.children[i].domNode) {
+                                            node.children[i].domNode.usedByRenderer = true;
+                                        }
+                                    }
+                                }
                                 return; // nothing's changed
+                            }
                         }
                         node.condition.value = nextValue;
                         elm = parent;
@@ -2448,11 +2472,33 @@
                         // all matched, reassigning DOM node
                         hasCode = (a[i].contents && a[i].contents.first(function (x) { return x.code; }))
                         // ||
+
+                        if (a[i].condition) {
+                            a[i].condition = b[i].condition;
+                        }
+                        a[i].domNode = b[i].domNode;
                         a[i].domNode = b[i].domNode;
                         if (a[i].instance.__id === b[i].instance.__id) {
                             a[i].subscribed = b[i].subscribed;
+                            if (a[i].subscribed && a[i].instance.__id in lastSubscribers) {
+                                for (var subPath in lastSubscribers[a[i].instance.__id]) {
+                                    for (var subIndex = 0; subIndex < lastSubscribers[a[i].instance.__id][subPath].length; subIndex++) {
+                                        if (lastSubscribers[a[i].instance.__id][subPath][subIndex] === b[i]) {
+                                            lastSubscribers[a[i].instance.__id][subPath][subIndex] = a[i];
+                                        }
+                                    }
+                                }
+                            }
+                            // if (a[i].condition) {
+                            //     a[i].condition.value = !b[i].condition.value;
+                            //     a[i].condition.previousValue = !b[i].condition.previousValue;
+                            // }
                         }
-                        a[i].skipIteration = !a[i].isVirtual && !!b[i].domNode && !hasCode;
+                        a[i].skipIteration =
+                            !a[i].isVirtual
+                            && !!b[i].domNode
+                            && !hasCode;
+                        // && !a[i].condition;
                         if (a[i].skipIteration) {
                             if (!b[i].origin) {
                                 b[i].origin = {};
@@ -2579,7 +2625,7 @@
                 // ['BaseLayout', 'Layout', 'NavigationDrawer', 'ComponentsLayout'].includes(name) && 
                 // console.log('Looking', name, key, meta.level, meta.parentInstance.rooted);
                 var same = latestPage.components.first(function (x) {
-                    return x.instanceWrapper.key === key; // TODO: match by path and params/attributes
+                    return x.instanceWrapper.key === key;
                 }, true);
                 if (same) {
                     latestPage.components.splice(same[1], 1);
