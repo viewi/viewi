@@ -2,9 +2,9 @@
 
 <p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo-ua.svg" alt="Viewi" height="180"/></a></p>
 <h1 align="center">Viewi</h1>
-<h2 align="center">A powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
+<h2 align="center">A powerful tool for building full-stack and completely reactive web applications with PHP</h2>
 
-Imagine Vue js or Angular but with similar user-friendly HTML templates and components in the PHP world. The application, which acts like a front-end framework and backend template engine simultaneously, renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
+Imagine Vue js or Angular but with similar user-friendly HTML templates and components but written in PHP. The application, which acts like a front-end framework and backend template engine simultaneously, renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
 
 Works with a limited subset of PHP, but even then, it is still more than enough for building advanced web applications.
 
