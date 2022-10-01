@@ -19,7 +19,16 @@
             });
 
         var resourcesCache = [];
-
+        var alternatives = 'a,';
+        var svgMap = {
+            svg: true
+        };
+        // 'altGlyph,altGlyphDef,altGlyphItem,animate,animateMotion,animateTransform,circle'
+        // +',clipPath,cursor,defs,desc,ellipse,feBlend,feColorMatrix,feComponentTransfer,feComposite,feConvolveMatrix'
+        // +',feDiffuseLighting,feDisplacementMap,feDistantLight,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,feGaussianBlur,'
+        // +'feImage,feMerge,feMergeNode,feMorphology,feOffset,fePointLight,feSpecularLighting,feSpotLight,feTile,'
+        // +'feTurbulence,filter,font,font-face,font-face-format,font-face-name,font-face-src,font-face-uri,foreignObject,g,glyph,glyphRef,hkern,image,line,linearGradient,marker,mask,metadata,missing-glyph,mpath,path,pattern,polygon,polyline,radialGradient,rect,script,set,stop,style,svg,switch,symbol,text,textPath,title,tref,tspan,use,view'
+        // .split(',')
         var router = new Router();
         this.componentsUrl = VIEWI_PATH + '/components.json' + VIEWI_VERSION;
         this.components = {};
@@ -1434,7 +1443,15 @@
                                 existentElm[0].parentNode.removeChild(existentElm[0]);
                             }
                         }
-                        elm = document.createElement(val);
+                        var isSvg = (val in svgMap || parent.isSvg);
+                        elm = isSvg
+                            ? document.createElementNS(
+                                'http://www.w3.org/2000/svg',
+                                val
+                            )
+                            : document.createElement(val);
+                        node.domNode = elm;
+                        isSvg && (elm.isSvg = true);
 
                         if (node.domNode !== null && node.domNode.parentNode) {
                             node.domNode.parentNode.replaceChild(elm, node.domNode);
