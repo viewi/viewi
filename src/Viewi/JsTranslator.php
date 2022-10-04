@@ -1110,6 +1110,7 @@ class JsTranslator
         $className = $this->matchKeyword();
         $classHead = "var $className = function (";
         $option = $this->matchKeyword();
+        $extends = false;
         if ($option !== '{') {
             if ($option === 'extends') {
                 $extends = $this->matchKeyword();
@@ -1132,8 +1133,10 @@ class JsTranslator
         $this->newVar = true;
         $classCode = $this->currentIndentation . 'var $this = this;'
             . PHP_EOL;
-        $classCode .= $this->currentIndentation . '$base(this);'
-            . PHP_EOL;
+        if ($extends) {
+            $classCode .= $this->currentIndentation . '$base(this);'
+                . PHP_EOL;
+        }
         $classCode .= $this->readCodeBlock();
         $this->newVar = true;
         $this->currentClass = $lastClass;
