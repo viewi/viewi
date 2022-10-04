@@ -809,6 +809,14 @@ class JsTranslator
                             break;
                         }
                     case 'for': {
+                            if (
+                                $this->lastKeyword === '->'
+                                || $this->lastKeyword === '?->'
+                                || $this->lastKeyword === '::'
+                            ) {
+                                $goDefault = true;
+                                break;
+                            }
                             $code .= $indentation . $this->readFor();
                             $skipLastSaving = true;
                             break;
