@@ -47,14 +47,18 @@
                         }
                     }
                 }
+                var isJson = data !== null && typeof data === 'object' && !isBlob(data);
                 req.open(type.toUpperCase(), url, true);
+                if (isJson) {
+                    req.setRequestHeader('Content-Type', 'application/json');
+                }
                 if (options && options.headers) {
                     for (var h in options.headers) {
                         req.setRequestHeader(h, options.headers[h]);
                     }
                 }
                 data !== null ?
-                    req.send(isBlob(data) ? data : JSON.stringify(data))
+                    req.send(isJson ? JSON.stringify(data) : data)
                     : req.send();
             });
         },
