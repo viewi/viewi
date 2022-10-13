@@ -64,6 +64,16 @@
             config = $this.components._config;
             cacheResources();
             hydrate = true;
+            // start up
+            for (var s in $this.components._startups) {
+                var name = $this.components._startups[s];
+                try {
+                    var startUp = resolve(name);
+                    startUp.setUp();
+                } catch (err) {
+                    console.error('Start up error in component ' + name, err);
+                }
+            }
             $this.go(location.href, false);
         };
 

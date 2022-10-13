@@ -9,6 +9,7 @@ use \Exception;
 use ReflectionException;
 use Throwable;
 use Viewi\Components\Interfaces\IMiddleware;
+use Viewi\Components\Interfaces\IStartUp;
 use Viewi\Components\Services\AsyncStateManager;
 use Viewi\DI\IContainer;
 use Viewi\Packages\ViewiPackage;
@@ -80,6 +81,8 @@ class PageEngine
     private array $slotCounterMap;
     /** @var ComponentInfo[] */
     private array $components;
+    private array $startups;
+    private bool $started = false;
     private array $templateVersions;
     private ?BaseComponent $currentComponentInstance;
     /** @var \ReflectionClass[] */
@@ -226,6 +229,7 @@ class PageEngine
         $this->echoOutput = !($config[self::RETURN_OUTPUT] ?? true); // $return;
         $this->includes = $config[self::INCLUDES] ?? null;
         $this->components = [];
+        $this->startups = [];
         $this->tokens = [];
         $this->templates = [];
         $this->development =  $config[self::DEV_MODE] ?? true; // $development;
@@ -280,7 +284,19 @@ class PageEngine
         }
         $this->middlewareIndex = -1;
         $this->prepareDependencies($container);
-
+        if (!$this->started) {
+            $this->started = true;
+            try {
+                foreach ($this->startups as $startUpClass) {
+                    /** @var IStartUp $startUp */
+                    $startUp = $this->resolve($this->components[$startUpClass]);
+                    $startUp->setUp();
+                }
+            } catch (Throwable $thr) {
+                // silent
+                // $this->debug(['error', $thr]);
+            }
+        }
         if (!$this->async) {
             $this->asyncStateManager->emit('httpReady');
         }
@@ -647,6 +663,7 @@ class PageEngine
                 include_once $filename;
             }
         }
+        $startups = $this->getClasses(IStartUp::class, $this->sourcePath);
         $types = $this->getClasses(BaseComponent::class, $this->sourcePath)
             + $this->getClasses(BaseComponent::class, $viewiComponentsPath);
         if ($this->includeInstances !== null) {
@@ -716,6 +733,14 @@ class PageEngine
         $types = $this->getClasses(null, $this->sourcePath);
         foreach ($types as $filename => &$reflectionClass) {
             $this->buildDependencies($reflectionClass);
+        }
+        $this->startups = [];
+        foreach ($startups as $filename => &$reflectionClass) {
+            $this->buildDependencies($reflectionClass);
+            $this->compileToJs($reflectionClass);
+            $className = $reflectionClass->getShortName();
+            $this->startups[] = $className;
+            $this->reflectionClasses[$className] = $reflectionClass;
         }
         //$this->debug($this->sourcePath);
         //$this->debug($this->buildPath);
@@ -858,6 +883,7 @@ class PageEngine
 
         // mate info
         $publicJson['_meta'] = ['tags' => $this->reservedTagsString, 'boolean' => $this->booleanAttributesString];
+        $publicJson['_startups'] = $this->startups;
         $routes = Route::getRoutes();
         if ($initialComponent && count($routes) === 0) {
             Route::get('*', $initialComponent);
@@ -875,11 +901,17 @@ class PageEngine
         // $this->debug($this->templates);
         $componentsPath = $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
         $content = var_export(json_decode(json_encode($this->components), true), true);
+        $startupsVar = var_export($this->startups, true);
+        // $this->debug(['$startupsVar', $startupsVar]);
         // $this->debug([$content, json_encode($this->components), $this->components]);
         $componentsInfoTemplate = $thisRoot . 'ComponentsInfoTemplate.php';
         $templateContent = file_get_contents($componentsInfoTemplate);
         $parts = explode("//#content", $templateContent, 2);
-        $content = $parts[0] . '$pageEngine->setComponentsInfo(' . $content . ');' . $parts[1]; // $pageEngine
+        $content = $parts[0]
+            . '$pageEngine->setStartups(' . $startupsVar . ');'
+            . PHP_EOL
+            . '$pageEngine->setComponentsInfo(' . $content . ');'
+            . $parts[1]; // $pageEngine
         file_put_contents($componentsPath, $content);
 
 
@@ -1243,6 +1275,11 @@ class PageEngine
     function getEvaluatedSelectors(): array
     {
         return $this->evaluatedSelectors;
+    }
+
+    function setStartups(array $startups): void
+    {
+        $this->startups = $startups;
     }
 
     /**
