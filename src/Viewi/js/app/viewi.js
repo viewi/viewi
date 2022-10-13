@@ -1460,7 +1460,6 @@
                                 val
                             )
                             : document.createElement(val);
-                        node.domNode = elm;
                         isSvg && (elm.isSvg = true);
 
                         if (node.domNode !== null && node.domNode.parentNode) {
@@ -1470,7 +1469,7 @@
                             var nodeBefore = getFirstBefore(node);
                             if (nodeBefore == null) {
                                 return;
-                                break; // throw error ??
+                                // break; // throw error ??
                             }
                             var nextSibling = nodeBefore.node.domNode.nextSibling;
                             if (!nodeBefore.itsParent && nextSibling !== null) {
