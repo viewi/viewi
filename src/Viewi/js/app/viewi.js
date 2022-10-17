@@ -2182,6 +2182,10 @@
             var firstPart = pathParts[0];
             var paths = [];
             for (var i = 1; i < pathParts.length; i++) {
+                var pathKey = pathParts[i].split('[');
+                if (pathKey.length > 1) {
+                    paths.push(firstPart + '.' + pathKey[0]);
+                }
                 firstPart = firstPart + '.' + pathParts[i];
                 paths.push(firstPart);
             }
