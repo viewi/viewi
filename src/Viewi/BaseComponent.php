@@ -15,6 +15,11 @@ abstract class BaseComponent
      */
     public array $_refs = [];
     public ?HtmlNode $_element = null;
+    /**
+     * 
+     * @var array<string|int,bool>
+     */
+    public array $_slots = [];
 
     function __invoke($params, ?IContainer $container = null)
     {

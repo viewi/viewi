@@ -1741,12 +1741,19 @@ class PageEngine
             }
             $this->_slots[$componentInfo->ComponentName] = $slotsQueue;
             // print_r($componentInfo->ComponentName . ' == ' . $componentName);
-            // print_r($this->_slots);
+            // print_r([$this->_slots]);
             // }
+            // $this->debug(['$slots', $componentInfo->ComponentName , $slots]);
             // TODO: reuse instance, TODO: dependency inject
             // init input properties
             // TODO: cache properties
-            $componentInfo->IsComponent && $componentInfo->HasBeforeMount && $classInstance->__beforeMount();
+            if ($componentInfo->IsComponent) {
+                foreach ($slots as $name => $_) {
+                    $classInstance->_slots[$name] = true;
+                }
+                // $this->debug(['$slots', $componentInfo->ComponentName, $classInstance->_slots]);
+                $componentInfo->HasBeforeMount && $classInstance->__beforeMount();
+            }
             foreach ($componentArguments as $key => $inputValue) {
                 if ($key === '_props') {
                     // passing props as object (array)

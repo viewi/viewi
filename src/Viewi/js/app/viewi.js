@@ -664,6 +664,32 @@
                     //     currentNodeList[currentNodeList.length - 1].nextNode = componentNodes[0];
                     // }
                     // currentNodeList = currentNodeList.concat(componentNodes);
+                    // getting component._slots
+                    // children[0].children lookup for slotContent
+                    // instance componentNodes.wrapper
+                    var _slots = {};
+                    var componentChildren = children[0].children;
+                    if (componentChildren) {
+                        for (var nodeI in componentChildren) {
+                            var childNode = componentChildren[nodeI];
+                            if (
+                                childNode.type === 'tag'
+                                && childNode.content === 'slotContent'
+                            ) {
+                                var slotName = childNode.attributes
+                                    && childNode.attributes.first(function (y) {
+                                        return y.content === 'name'
+                                            && y.children[0].content;
+                                    }).children[0].content;
+                                _slots[slotName] = true;
+                            } else {
+                                _slots[0] = true;
+                            }
+                        }
+                    }
+                    componentNodes.wrapper._slots = _slots;
+                    // console.log(['build component', _slots, component, instance, children, componentNodes, stack, componentNodes.wrapper.instance, componentNodes.wrapper]);
+
                 } else {
                     if (childNodes) {
                         if (node.type === 'dynamic' || node.type === 'raw') {
@@ -864,6 +890,9 @@
             // console.log(['create', wrapper.name, wrapper]);
             // if(wrapper.name === 'Row') debugger;
             onRenderedTracker[wrapper.name + '__' + wrapper.__id] = wrapper; // TODO: wrapper.name -> wrapper.id
+            if (wrapper._slots) {
+                component._slots = wrapper._slots;
+            }
             return component;
         }
 

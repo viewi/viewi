@@ -2,6 +2,7 @@
     var BaseComponent = function () {
         this._props = {};
         this._refs = {};
+        this._slots = {};
         this._element = null;
         this.emitEvent = function (name) {
             var event = arguments.length > 1 ? arguments[1] : null;
