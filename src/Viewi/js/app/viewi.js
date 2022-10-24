@@ -1736,11 +1736,11 @@
                                 if (newChildren.length > 0) {
                                     for (var i = node.children.length - 1; i >= 0; i--) {
                                         if (!(i in keepIndexes)) {
-                                            removeDomNodes([node.children[i]]);
+                                            removeDomNodes([node.children[i]], true);
                                         }
                                     }
                                 } else {
-                                    removeDomNodes(node.children);
+                                    removeDomNodes(node.children, true);
                                 }
                             }
                             // set new children
@@ -2000,18 +2000,19 @@
             return getFirstParentWithDom(node.parent);
         }
 
-        var removeDomNodes = function (nodes, silent) {
+        var removeDomNodes = function (nodes, unsubscribe) {
             for (var k in nodes) {
                 // TODO: destroy components on delete
                 if (nodes[k].children) {
-                    removeDomNodes(nodes[k].children, silent);
+                    removeDomNodes(nodes[k].children, unsubscribe);
                 }
                 if (nodes[k].domNode) {
                     if (nodes[k].domNode.parentNode) {
                         nodes[k].domNode.parentNode.removeChild(nodes[k].domNode);
-                    } else if (!silent) {
-                        // console.log('Can\'t remove', nodes[k]);
                     }
+                    // else if (!silent) {
+                    //     // console.log('Can\'t remove', nodes[k]);
+                    // }
                     nodes[k].domNode = null;
                 }
                 if (conditionalTypes.includes(nodes[k].type)) {
@@ -2031,6 +2032,9 @@
                             nodes[k].origin[oi] = null;
                         }
                     }
+                }
+                if (unsubscribe && nodes[k].subs) {
+                    nodes[k].mute = true;
                 }
             }
         }
@@ -2254,6 +2258,9 @@
                 for (var i in queue[path]) {
                     try {
                         var node = queue[path][i];
+                        if (node.mute) {
+                            continue;
+                        }
                         if (node.isAttribute) {
                             var domNode = node.parent.type === 'dynamic' ? (node.parent.children && node.parent.children.length > 0 && node.parent.children[0].domNode) : node.parent.domNode;
                             if (domNode) {
