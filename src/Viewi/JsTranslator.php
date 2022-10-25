@@ -115,7 +115,7 @@ class JsTranslator
     private ?string $buffer = null;
     private string $bufferIndentation = '';
     private bool $newVar = false;
-    public $lastKeyword = '';
+    public string $lastKeyword = '';
     private bool $thisMatched = false;
     private ?string $callFunction = null;
     private bool $namedArguments = false;
