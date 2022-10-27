@@ -96,7 +96,7 @@ class PageEngine
     /** @var PageTemplate[] */
     private array $templates;
 
-    /** @var string<string, string> */
+    /** @var array<string, string> */
     private array $reservedTags;
     private string $indentation = '    ';
 
@@ -250,11 +250,13 @@ class PageEngine
         $this->Dependencies = [];
     }
     /**
-     * 
-     * @param string $component 
+     *
+     * @param string $component
+     * @param array $params
+     * @param IContainer|null $container
+     * @param callable|null $callback
      * @return string|void
-     * @throws ReflectionException 
-     * @throws Exception Component is missing
+     * @throws ReflectionException
      */
     function render(string $component, array $params = [], ?IContainer $container = null, ?callable $callback = null)
     {
@@ -404,9 +406,11 @@ class PageEngine
     }
 
     /**
-     * 
-     * @param string $baseClass
+     *
+     * @param string|null $baseClass
+     * @param string|null $path
      * @return array<string, ReflectionClass>
+     * @throws ReflectionException
      */
     private function getClasses(?string $baseClass, ?string $path = null): array
     {
@@ -445,9 +449,10 @@ class PageEngine
     }
 
     /**
-     * 
-     * @param ReflectionClass $reflectionClass 
-     * @return void 
+     *
+     * @param ReflectionClass $reflectionClass
+     * @return void
+     * @throws Exception
      */
     function buildDependencies(ReflectionClass $reflectionClass): void
     {
@@ -476,9 +481,10 @@ class PageEngine
     }
 
     /**
-     * 
-     * @param ReflectionClass $reflectionClass 
+     *
+     * @param ReflectionClass $reflectionClass
      * @return array<array,string]>>
+     * @throws ReflectionException
      */
     function getDependencies(ReflectionClass $reflectionClass): array
     {

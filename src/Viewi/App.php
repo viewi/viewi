@@ -12,14 +12,14 @@ class App
 
     public static ?array $publicConfig = null;
 
-    public static function init(array $config, ?array $publicConfig = null)
+    public static function init(array $config, ?array $publicConfig = null): void
     {
         $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
         self::$config = $config;
         self::$publicConfig = $publicConfig;
     }
 
-    public static function use(string $packageClass)
+    public static function use(string $packageClass): void
     {
         if (!isset(self::$config[PageEngine::INCLUDES])) {
             self::$config[PageEngine::INCLUDES] = [];
@@ -27,7 +27,7 @@ class App
         self::$config[PageEngine::INCLUDES][] = $packageClass;
     }
 
-    public static function run(string $component, array $params, ?IContainer $container = null)
+    public static function run(string $component, array $params, ?IContainer $container = null): ?string
     {
         return self::getEngine()->render($component, $params, $container);
     }
