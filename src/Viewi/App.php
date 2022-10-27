@@ -46,7 +46,7 @@ class App
         }
 
         $initConfig[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
-        self::$publicConfig = $publicConfig ?? $initConfig['__public_config'];
+        self::$publicConfig = $publicConfig ?? ($initConfig['__public_config'] ?? null);
 
         // Remove no longer needed public config
         unset($initConfig['__public_config']);
