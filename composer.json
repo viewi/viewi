@@ -10,7 +10,10 @@
     "license": "MIT",
     "require": {
         "php": "^7.4 || ^8.0",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-zlib": "*",
+        "ext-curl": "*",
+        "ext-ctype": "*"
     },
     "autoload": {
         "psr-4": {
