@@ -15,9 +15,10 @@ class App
 
     /**
      * @param AppInit|array $init
+     * @param array|null $publicConfig
      * @return void
      */
-    public static function init($init): void
+    public static function init($init, ?array $publicConfig = null): void
     {
         if (is_array($init)) {
             $initConfig = $init;
@@ -45,7 +46,7 @@ class App
         }
 
         $initConfig[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
-        self::$publicConfig = $initConfig['__public_config'];
+        self::$publicConfig = $publicConfig ?? $initConfig['__public_config'];
 
         // Remove no longer needed public config
         unset($initConfig['__public_config']);
@@ -55,11 +56,12 @@ class App
 
     /**
      * @param AppInit|array $init
+     * @param array|null $publicConfig
      * @return PageEngine
      */
-    public static function initEngine($init): PageEngine
+    public static function initEngine($init, ?array $publicConfig = null): PageEngine
     {
-        self::init($init);
+        self::init($init, $publicConfig);
         return self::getEngine();
     }
 
