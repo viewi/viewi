@@ -13,9 +13,19 @@ class App
 
     public static ?array $publicConfig = null;
 
-    public static function init(AppInit $init): void
+    /**
+     * @param AppInit|array $init
+     * @return void
+     */
+    public static function init($init): void
     {
-        $initConfig = $init->getConfig();
+        if (is_array($init)) {
+            $initConfig = $init;
+        } elseif ($init instanceof AppInit) {
+            $initConfig = $init->getConfig();
+        } else {
+            throw new InvalidArgumentException('init parameter can only accept array/' . AppInit::class);
+        }
 
         // Validate provided config
 
@@ -41,6 +51,16 @@ class App
         unset($initConfig['__public_config']);
 
         self::$config = $initConfig;
+    }
+
+    /**
+     * @param AppInit|array $init
+     * @return PageEngine
+     */
+    public static function initEngine($init): PageEngine
+    {
+        self::init($init);
+        return self::getEngine();
     }
 
     public static function use(string $packageClass)
