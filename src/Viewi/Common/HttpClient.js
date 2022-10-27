@@ -1,3 +1,6 @@
+var OnReady = bring('OnReady');
+var ajax = bring('ajax');
+
 var HttpClient = function () {
     this.response = null;
     this.interceptors = [];
@@ -174,3 +177,4 @@ var HttpClient = function () {
         }
     }
 };
+exports.HttpClient = HttpClient;

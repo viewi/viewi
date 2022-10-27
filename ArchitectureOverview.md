@@ -141,6 +141,6 @@ function compileTemplate(ComponentInfo $componentInfo): PageTemplate
 
 It returns `PageTemplate` object with `TagItem` tree, which represents the DOM/PHP tree.
 
-to be continue..
+to be continued..
 
 

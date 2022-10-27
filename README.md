@@ -1,8 +1,10 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
+
 <p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo-ua.svg" alt="Viewi" height="180"/></a></p>
 <h1 align="center">Viewi</h1>
-<h2 align="center">A powerful tool for building full-stack and completely reactive user interfaces using PHP</h2>
+<h2 align="center">A powerful tool for building full-stack and completely reactive web applications with PHP</h2>
 
-Imagine Vue js or Angular but with similar user-friendly HTML templates and components in the PHP world. The application, which acts like a front-end framework and backend template engine simultaneously, renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
+Imagine Vue js or Angular but with similar user-friendly HTML templates and components but written in PHP. The application, which acts like a front-end framework and backend template engine simultaneously, renders identical contents on both sides. And you don't even need Node js. Isn't it awesome?
 
 Works with a limited subset of PHP, but even then, it is still more than enough for building advanced web applications.
 
@@ -36,7 +38,9 @@ class Counter extends BaseComponent
 ```
 [Live demo](https://viewi.net/)
 
-#### *Requirements: php 7.4+*
+[UI Components](https://ui.viewi.net/)
+
+#### *Requirements: php ^7.4 || ^8.0*
 
 Get started
 -----------
@@ -80,6 +84,7 @@ Support
 We all have full-time jobs and dedicate our free time to this project, and we would appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider supporting:
 
  - Give us a star⭐.
+ - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
  - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
  - Any other ideas or proposals? Please mail me voitovych.ivan.v@gmail.com.

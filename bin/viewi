@@ -87,6 +87,9 @@ class ViewiCLITool
                 $inputsMap[$lastKey] = $input;
             }
         }
+        if (isset($inputsMap['-f'])) {
+            $inputsMap['-d'] = $inputsMap['-f'];
+        }
         $viewiDir = isset($inputsMap['-d']) && trim($inputsMap['-d'], ' \\/') ?
             trim($inputsMap['-d'], ' \\/') :
             'viewi-app';

@@ -1,1 +1,1 @@
-var AsyncStateManager = function () { };
+exports.AsyncStateManager = function () { };

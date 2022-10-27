@@ -115,7 +115,7 @@ class JsTranslator
     private ?string $buffer = null;
     private string $bufferIndentation = '';
     private bool $newVar = false;
-    public $lastKeyword = '';
+    public string $lastKeyword = '';
     private bool $thisMatched = false;
     private ?string $callFunction = null;
     private bool $namedArguments = false;
@@ -139,6 +139,7 @@ class JsTranslator
     private array $requestedIncludes = [];
     private int $anonymousCounter = 0;
     private array $usingList = [];
+    private bool $breakOnSpace;
 
     public function __construct(string $content)
     {
@@ -190,6 +191,7 @@ class JsTranslator
         $this->pasteArrayReactivity = false;
         $this->staticCache = [];
         $this->newVar = false;
+        $this->breakOnSpace = false;
     }
 
     public function includeJsFile(string $name, string $filePath)
@@ -590,6 +592,9 @@ class JsTranslator
                     case ')': {
                             $code .= ')';
                             $parenthesisNormal--;
+                            if ($this->breakOnSpace) {
+                                $code .= ' ';
+                            }
                             break;
                         }
                     case 'match': {
@@ -646,6 +651,10 @@ class JsTranslator
                             break;
                         }
                     case '.': {
+                            if (ctype_digit($this->lastKeyword)) {
+                                $code .= '.';
+                                break;
+                            }
                             $code .= ' + ';
                             break;
                         }
@@ -767,6 +776,10 @@ class JsTranslator
                             $skipLastSaving = true;
                             break;
                         }
+                    case 'self': {
+                            $code .= $indentation . $this->currentClass;
+                            break;
+                        }
                     case 'class': {
                             if ($this->lastKeyword === '::') {
                                 $code = rtrim($code, "\n\r .");
@@ -796,6 +809,14 @@ class JsTranslator
                             break;
                         }
                     case 'for': {
+                            if (
+                                $this->lastKeyword === '->'
+                                || $this->lastKeyword === '?->'
+                                || $this->lastKeyword === '::'
+                            ) {
+                                $goDefault = true;
+                                break;
+                            }
                             $code .= $indentation . $this->readFor();
                             $skipLastSaving = true;
                             break;
@@ -1089,6 +1110,7 @@ class JsTranslator
         $className = $this->matchKeyword();
         $classHead = "var $className = function (";
         $option = $this->matchKeyword();
+        $extends = false;
         if ($option !== '{') {
             if ($option === 'extends') {
                 $extends = $this->matchKeyword();
@@ -1111,8 +1133,10 @@ class JsTranslator
         $this->newVar = true;
         $classCode = $this->currentIndentation . 'var $this = this;'
             . PHP_EOL;
-        $classCode .= $this->currentIndentation . '$base(this);'
-            . PHP_EOL;
+        if ($extends) {
+            $classCode .= $this->currentIndentation . '$base(this);'
+                . PHP_EOL;
+        }
         $classCode .= $this->readCodeBlock();
         $this->newVar = true;
         $this->currentClass = $lastClass;
@@ -1656,6 +1680,7 @@ class JsTranslator
         $firstType = false;
         $operatorKey = false;
         $this->latestSpaces = '';
+        $this->breakOnSpace = false;
         while ($this->position < $this->length) {
             if (
                 ctype_alnum($this->parts[$this->position])
@@ -1711,6 +1736,7 @@ class JsTranslator
                 $keyword .= $this->parts[$this->position];
             } else { // spaces
                 if ($keyword !== '') {
+                    $this->breakOnSpace = true;
                     break;
                 }
                 $this->latestSpaces .= $this->parts[$this->position];

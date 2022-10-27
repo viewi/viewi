@@ -12,12 +12,12 @@ class TagItemType
     const Comment = 'Comment';
 
     public static $shorts = [
-        self::Attribute => 'attr',
-        self::AttributeValue => 'value',
-        self::Component => 'component',
-        self::Tag => 'tag',
-        self::TextContent => 'text',
-        self::Comment => 'comment'
+        self::Attribute => 'a',
+        self::AttributeValue => 'v',
+        self::Component => 'c',
+        self::Tag => 't',
+        self::TextContent => 'x',
+        self::Comment => 'm'
     ];
 
     public string $Name;
