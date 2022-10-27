@@ -2,6 +2,7 @@
 
 namespace Viewi;
 
+use InvalidArgumentException;
 use Viewi\DI\IContainer;
 use Viewi\Routing\Router;
 use Viewi\WebComponents\Response;
@@ -12,11 +13,56 @@ class App
 
     public static ?array $publicConfig = null;
 
-    public static function init(array $config, ?array $publicConfig = null): void
+    /**
+     * @param AppInit|array $init
+     * @param array|null $publicConfig
+     * @return void
+     */
+    public static function init($init, ?array $publicConfig = null): void
     {
-        $config[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
-        self::$config = $config;
-        self::$publicConfig = $publicConfig;
+        if (is_array($init)) {
+            $initConfig = $init;
+        } elseif ($init instanceof AppInit) {
+            $initConfig = $init->getConfig();
+        } else {
+            throw new InvalidArgumentException('init parameter can only accept array/' . AppInit::class);
+        }
+
+        // Validate provided config
+
+        // Source directory
+        if (!array_key_exists(PageEngine::SOURCE_DIR, $initConfig)) {
+            throw new InvalidArgumentException('Source directory is required, none provided.');
+        }
+
+        // Server build directory
+        if (!array_key_exists(PageEngine::SERVER_BUILD_DIR, $initConfig)) {
+            throw new InvalidArgumentException('Server build directory is required, none provided.');
+        }
+
+        // Public root directory
+        if (!array_key_exists(PageEngine::PUBLIC_ROOT_DIR, $initConfig)) {
+            throw new InvalidArgumentException('Public root directory is required, none provided.');
+        }
+
+        $initConfig[PageEngine::PUBLIC_BUILD_DIR] ??= '/viewi-build';
+        self::$publicConfig = $publicConfig ?? ($initConfig['__public_config'] ?? null);
+
+        // Remove no longer needed public config
+        unset($initConfig['__public_config']);
+
+        self::$config = $initConfig;
+    }
+
+    /**
+     * @param AppInit|array $init
+     * @param array|null $publicConfig
+     * @return PageEngine
+     */
+    public static function initEngine($init, ?array $publicConfig = null): PageEngine
+    {
+        self::init($init, $publicConfig);
+        return self::getEngine();
     }
 
     public static function use(string $packageClass): void
