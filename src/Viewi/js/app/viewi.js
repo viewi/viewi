@@ -605,6 +605,11 @@
                     if (isRoot) {
                         reuseEnabled = true;
                         resetReuse = true;
+                        if (childNodes) {
+                            for (var chI = 0; chI < childNodes.length; chI++) {
+                                childNodes[chI].rootPage = true;
+                            }
+                        }
                     }
                     var componentNodes = create(component, childNodes, node.attributes, false, false, { level: level, parentInstance: instance });
                     if (!owner.childInstances) {
@@ -2489,7 +2494,6 @@
             var lb = b.length;
             if (la != lb) {
                 // console.log('Length is different', la, lb, a, b);
-                // temp solution, remove all b
                 removeDomNodes(b);
                 for (var i = 0; i < la; i++) {
                     if (a[i].skipIteration) {
@@ -2498,12 +2502,12 @@
                         a[i].children && removeDomNodes(a[i].children, true);
                     }
                 }
-                return false; // TODO: match each node individually
+                return false;
             }
             var allMatched = true;
             for (var i = 0; i < la; i++) {
                 if (i < lb) {
-                    var matched = true;
+                    var matched = !a[i].rootPage;
                     var hasCode = false;
                     var ac = a[i].contents && a[i].contents.select(function (x) { return x.content || (x.code); }).join(); // && ++randI
                     var bc = b[i].contents && b[i].contents.select(function (x) { return x.content || (x.code); }).join();
