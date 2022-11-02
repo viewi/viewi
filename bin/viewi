@@ -103,6 +103,7 @@ class ViewiCLITool
             echo "Viewi directory '$viewiDir' already exists. To continue please remove the old one or select another folder.\n";
             return;
         }
+        $adapterOnly = isset($inputsMap['-a']);
         echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath);
         $deepLevel = count(explode('/', $viewiDir)) - 1;
@@ -174,34 +175,36 @@ class ViewiCLITool
             echo shell_exec("composer dump-autoload");
         }
         echo "\n";
-        // update index.php
-        $appCode = "\n\n" .
-            "// Viewi application here\n" .
-            "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
-            "Viewi\App::handle();";
-        $indexFilePath = "$projectDir/$indexPath";
-        $codeToInsert =
-            "require __DIR__ . '$rootPath/vendor/autoload.php';\n" .
-            "// Viewi application here\n" .
-            "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
-            "Viewi\App::handle();";
-        if (file_exists($indexFilePath)) {
-            $content = file_get_contents($indexFilePath);
-            if (strpos($content, "$viewiDir/viewi.php") === false) {
-                echo "Updating index.php\n";
-                $content .= $appCode;
-                file_put_contents($indexFilePath, $content);
-            }
-        } else {
-            $appCode = "<?php\n\n" .
-                "require __DIR__ . '$rootPath/vendor/autoload.php';\n\n" .
+        if (!$adapterOnly) {
+            // update index.php
+            $appCode = "\n\n" .
                 "// Viewi application here\n" .
                 "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
                 "Viewi\App::handle();";
-            file_put_contents($indexFilePath, $appCode);
+            $indexFilePath = "$projectDir/$indexPath";
+            $codeToInsert =
+                "require __DIR__ . '$rootPath/vendor/autoload.php';\n" .
+                "// Viewi application here\n" .
+                "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+                "Viewi\App::handle();";
+            if (file_exists($indexFilePath)) {
+                $content = file_get_contents($indexFilePath);
+                if (strpos($content, "$viewiDir/viewi.php") === false) {
+                    echo "Updating index.php\n";
+                    $content .= $appCode;
+                    file_put_contents($indexFilePath, $content);
+                }
+            } else {
+                $appCode = "<?php\n\n" .
+                    "require __DIR__ . '$rootPath/vendor/autoload.php';\n\n" .
+                    "// Viewi application here\n" .
+                    "include __DIR__ . '$rootPath/$viewiDir/viewi.php';\n" .
+                    "Viewi\App::handle();";
+                file_put_contents($indexFilePath, $appCode);
+            }
+            echo "Make sure you have these in your index.php:\n\n";
+            echo $codeToInsert;
         }
-        echo "Make sure you have these in your index.php:\n\n";
-        echo $codeToInsert;
         echo "\n\n";
         // finish up
         echo "All is set up. Enjoy!\n";
