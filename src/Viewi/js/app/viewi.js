@@ -36,6 +36,9 @@
         var hydrate = false;
         var config = null;
         var scrollTo = null;
+        var started = false;
+        var startInProgress = false;
+        var onStartQueue = [];
 
         var getPathName = function (href) {
             htmlElementA.href = href;
@@ -74,6 +77,10 @@
                     console.error('Start up error in component ' + name, err);
                 }
             }
+            started = true;
+            for (var onStartCallbackIndex in onStartQueue) {
+                onStartQueue[onStartCallbackIndex]();
+            }
             $this.go(location.href, false);
         };
 
@@ -81,7 +88,14 @@
             return config;
         }
 
-        this.start = function () {
+        this.start = function (callback) {
+            if (callback) {
+                onStartQueue.push(callback);
+            }
+            if (started || startInProgress) {
+                return;
+            }
+            startInProgress = true;
             if (typeof onViewiUrlChange !== 'undefined'
                 && typeof onViewiUrlChange === 'function') {
                 events.onViewiUrlChange = onViewiUrlChange;
@@ -3001,7 +3015,17 @@
         var abortRender = false;
         var renderIteration = 0;
 
-        this.render = function (name, params, force) {
+        this.runComponent = function (name, domSelector, params) {
+            if (!started) {
+                $this.start(function () {
+                    $this.runComponent(name, domSelector, params);
+                })
+                return;
+            }
+            $this.render(name, params, false, domSelector);
+        };
+
+        this.render = function (name, params, force, domSelector) {
             if (!name) {
                 throw new Error('Component name is required.');
             }
@@ -3024,7 +3048,7 @@
                         }
                         if (resolvedSuccessfully) {
                             // resume render
-                            $this.render(name, params, force);
+                            $this.render(name, params, force, domSelector);
                         } else {
                             console.error('Component "' + name + '" was not found in the group: ' + lazyGroupUrl);
                         }
@@ -3052,7 +3076,7 @@
                                 middleware = resolve(middlewareName);
                                 middleware.run(next);
                             } else {
-                                $this.render(name, params, true);
+                                $this.render(name, params, true, domSelector);
                             }
                         }
                     };
@@ -3101,7 +3125,20 @@
             var nodes = instanceMeta.versions['main'];
             currentPage.nodes = nodes;
             cleanRender = !hydrate;
-            var target = hydrate ? { documentElement: document.createElement('html'), doctype: {} } : document;
+            // selector or HTML node
+            var targetDOM = domSelector ? document.querySelector(domSelector) : document;
+            if (!targetDOM) {
+                throw new Error('Can\'t resolve target DOM node.');
+            }
+            var target =
+                hydrate ?
+                    (
+                        domSelector ?
+                            document.createElement(targetDOM.nodeName)
+                            : { documentElement: document.createElement('html'), doctype: { childNodes: [] }, childNodes: hydrate ? [] : targetDOM.childNodes }
+                    )
+                    : targetDOM;
+
             createInstance(instanceMeta.wrapper);
             // console.log('renderInProgress, setAbort, abortRender', renderInProgress, setAbort, abortRender);
             // TODO: rewrite with cycle/recursion consideration
@@ -3112,14 +3149,22 @@
             if (abortRender) { destroy(); abortRender = false; return; }
             destroy();
             renderIteration++;
+            for (var nI = 0; nI < nodes.length; nI++) {
+                nodes[nI].parent = {
+                    domNode: target
+                };
+            }
             createDOM(target, {}, nodes, false);
             // hydrate && console.log(target);
-            var nodeToHydrate = nodes[1];
+            var nodeToHydrate = domSelector ? {
+                children: nodes,
+                domNode: targetDOM
+            } : nodes[1];
             if (!nodeToHydrate && nodes[0].type === 'dynamic') {
                 //              dynamic  template    html
                 nodeToHydrate = nodes[0].children[0].children[1];
             }
-            hydrate && hydrateDOM(nodeToHydrate, document.documentElement);
+            hydrate && hydrateDOM(nodeToHydrate, targetDOM.documentElement || targetDOM);
             for (var wrapperName in onRenderedTracker) {
                 onRenderedTracker[wrapperName].component.__rendered
                     && onRenderedTracker[wrapperName].component.__rendered();

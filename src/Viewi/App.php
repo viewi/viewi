@@ -3,8 +3,11 @@
 namespace Viewi;
 
 use InvalidArgumentException;
+use ReflectionException;
+use Viewi\Components\Assets\ViewiScripts;
 use Viewi\DI\IContainer;
 use Viewi\Routing\Router;
+use Viewi\Services\AssetsManager;
 use Viewi\WebComponents\Response;
 
 class App
@@ -105,5 +108,25 @@ class App
             header("Content-type: application/json; charset=utf-8");
             echo json_encode($response);
         }
+    }
+
+    /**
+     * Get Viewi Script code for Custom Pages (MFE like)
+     * @return string Html code for Viewi script
+     * @throws ReflectionException 
+     */
+    public static function getScriptsHtmlCode(): string
+    {
+        return self::getEngine()->render(ViewiScripts::class);
+    }
+
+    /**
+     * Get Viewi Script paths for Custom Pages (MFE like)
+     * @return string[] script paths
+     * @throws ReflectionException 
+     */
+    public static function getScriptsArray(): array
+    {
+        return AssetsManager::getViewiScripts();
     }
 }

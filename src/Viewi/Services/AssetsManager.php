@@ -10,23 +10,34 @@ use Viewi\PageTemplate;
 class AssetsManager
 {
     public static int $queueNumber = 0;
-    public static function getViewiScriptsHtml(): string
+
+    public static function getViewiScripts(): array
     {
+        $scripts = [];
         $path = App::$config[PageEngine::PUBLIC_URL_PATH] ?? App::$config[PageEngine::PUBLIC_BUILD_DIR];
         $combine = App::$config[PageEngine::COMBINE_JS] ?? false;
         $minify = App::$config[PageEngine::MINIFY] ?? false;
         $dev = App::$config[PageEngine::DEV_MODE];
         $version = $dev ? '' : '?v=' . date('ymdHis');
-        $async = $combine ? 'defer' : 'defer';
-        $scripts = $minify ?
-            "<script $async src=\"$path/app.min.js$version\"></script>"
-            : "<script $async src=\"$path/app.js$version\"></script>";
         if (!$combine) {
-            $scripts =
-                ($minify ?
-                    "<script $async src=\"$path/bundle.min.js$version\"></script>"
-                    : "<script $async src=\"$path/bundle.js$version\"></script>") .
-                $scripts;
+            $scripts[] =
+                $minify
+                ? "$path/bundle.min.js$version"
+                : "$path/bundle.js$version";
+        }
+        $scripts[] = $minify
+            ? "$path/app.min.js$version"
+            : "$path/app.js$version";
+        return $scripts;
+    }
+
+    public static function getViewiScriptsHtml(): string
+    {
+        $scriptsArray = self::getViewiScripts();
+        $async = 'defer';
+        $scripts = '';
+        foreach ($scriptsArray as $path) {
+            $scripts .= "<script $async src=\"$path\"></script>";
         }
         return $scripts;
     }
