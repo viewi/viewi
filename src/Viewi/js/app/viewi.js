@@ -3114,8 +3114,10 @@
             };
             renderInProgress = true;
             reuseEnabled = false;
-            lastSubscribers = subscribers;
-            subscribers = {};
+            if (!noRouter) {
+                lastSubscribers = subscribers;
+                subscribers = {};
+            }
             renderQueue = {};
             parentComponentName = null;
             if (setAbort) {
