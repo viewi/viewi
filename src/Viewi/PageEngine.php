@@ -51,6 +51,11 @@ class PageEngine
     const COMBINE_JS = 'COMBINE_JS';
 
     /**
+     * Do not include and do not use Viewi router module. Useful when using as MFE
+     */
+    const NO_ROUTER = 'NO_ROUTER';
+
+    /**
      * enable scripts minification, use in production.
      */
     const MINIFY = 'MINIFY';
@@ -137,6 +142,7 @@ class PageEngine
     private bool $extraLine = false;
     private TagItem $previousItem;
     private bool $development;
+    private bool $noRouter;
     private array $componentArguments = [];
     private array $componentScopeVariables = [];
     private static bool $compiled = false;
@@ -233,6 +239,7 @@ class PageEngine
         $this->tokens = [];
         $this->templates = [];
         $this->development =  $config[self::DEV_MODE] ?? true; // $development;
+        $this->noRouter =  $config[self::NO_ROUTER] ?? false;
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
         $this->selfClosingTags = array_flip(explode(',', $this->selfClosingTagsString));
@@ -979,6 +986,13 @@ class PageEngine
                 case 'BUNDLE': {
                         $appJsContent .= $this->combineJs ? $publicBundleJs . $publicJsonContentJs : '';
                         break;
+                    }
+                case 'VIEWI_ROUTER': {
+                        if ($this->noRouter) {
+                            $appJsContent .= 'viewiGlobal.VIEWI_NO_ROUTER = true;' . PHP_EOL;
+                            break;
+                        }
+                        $file = 'router.js';
                     }
                 default: {
                         $pathinfo = pathinfo($file);

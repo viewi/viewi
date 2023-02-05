@@ -1,5 +1,6 @@
 (function (exports, bring) {
-    var Router = bring('Router');
+    var noRouter = viewiGlobal.VIEWI_NO_ROUTER;
+    var Router = noRouter ? null : bring('Router');
     var ajax = bring('ajax');
 
     function Viewi() {
@@ -29,7 +30,7 @@
         // +'feImage,feMerge,feMergeNode,feMorphology,feOffset,fePointLight,feSpecularLighting,feSpotLight,feTile,'
         // +'feTurbulence,filter,font,font-face,font-face-format,font-face-name,font-face-src,font-face-uri,foreignObject,g,glyph,glyphRef,hkern,image,line,linearGradient,marker,mask,metadata,missing-glyph,mpath,path,pattern,polygon,polyline,radialGradient,rect,script,set,stop,style,svg,switch,symbol,text,textPath,title,tref,tspan,use,view'
         // .split(',')
-        var router = new Router();
+        var router = noRouter ? null : new Router();
         this.componentsUrl = VIEWI_PATH + '/components.json' + VIEWI_VERSION;
         this.components = {};
         var htmlElementA = document.createElement('a');
@@ -61,7 +62,7 @@
             $this.components._meta.boolean.split(',').each(function (x) {
                 booleanAttributes[x] = true;
             });
-            $this.components._routes.each(function (x) {
+            !noRouter && $this.components._routes.each(function (x) {
                 router.register(x.method, x.url, x.component);
             });
             config = $this.components._config;
@@ -81,7 +82,9 @@
             for (var onStartCallbackIndex in onStartQueue) {
                 onStartQueue[onStartCallbackIndex]();
             }
-            $this.go(location.href, false);
+            if (!noRouter) {
+                $this.go(location.href, false);
+            }
         };
 
         this.getConfig = function () {
@@ -111,41 +114,43 @@
                     });
             }
 
-            // catch all local A tags click
-            document.addEventListener('click', function (e) {
-                e = e || window.event;
-                if (e.defaultPrevented) {
-                    return;
-                }
-                var target = e.target || e.srcElement;
-                var aTarget = target;
-                while (aTarget.parentNode && aTarget.tagName !== 'A') {
-                    aTarget = aTarget.parentNode;
-                }
-                if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
-                    scrollTo = null;
-                    getPathName(aTarget.href);
-                    if (
-                        !htmlElementA.hash
-                        || htmlElementA.pathname !== location.pathname
-                    ) {
-                        e.preventDefault(); // Cancel the native event
-                        // e.stopPropagation(); // Don't bubble/capture the event
-                        if (htmlElementA.hash) {
-                            scrollTo = htmlElementA.hash;
-                        }
-                        $this.go(aTarget.href, true);
+            if (!noRouter) {
+                // catch all local A tags click
+                document.addEventListener('click', function (e) {
+                    e = e || window.event;
+                    if (e.defaultPrevented) {
+                        return;
                     }
-                }
-            }, false);
+                    var target = e.target || e.srcElement;
+                    var aTarget = target;
+                    while (aTarget.parentNode && aTarget.tagName !== 'A') {
+                        aTarget = aTarget.parentNode;
+                    }
+                    if (aTarget.tagName === 'A' && aTarget.href && aTarget.href.indexOf(location.origin) === 0) {
+                        scrollTo = null;
+                        getPathName(aTarget.href);
+                        if (
+                            !htmlElementA.hash
+                            || htmlElementA.pathname !== location.pathname
+                        ) {
+                            e.preventDefault(); // Cancel the native event
+                            // e.stopPropagation(); // Don't bubble/capture the event
+                            if (htmlElementA.hash) {
+                                scrollTo = htmlElementA.hash;
+                            }
+                            $this.go(aTarget.href, true);
+                        }
+                    }
+                }, false);
 
-            // handle back button
-            window.addEventListener('popstate', function (e) {
-                if (e.state)
-                    $this.go(e.state.href, false);
-                else
-                    $this.go(location.href, false);
-            });
+                // handle back button
+                window.addEventListener('popstate', function (e) {
+                    if (e.state)
+                        $this.go(e.state.href, false);
+                    else
+                        $this.go(location.href, false);
+                });
+            }
         };
 
         this.go = function (href, isForward) {
