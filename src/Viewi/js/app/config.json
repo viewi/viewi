@@ -2,7 +2,7 @@
     "includes": [
         "copyright.js",
         "module.js",
-        "router.js",
+        "VIEWI_ROUTER",
         "component.js",
         "BUNDLE",
         "VIEWI_PATH",
