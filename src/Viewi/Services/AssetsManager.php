@@ -5,28 +5,64 @@ namespace Viewi\Services;
 use Viewi\App;
 use Viewi\Components\Assets\CssBundle;
 use Viewi\PageEngine;
+use Viewi\PageTemplate;
 
 class AssetsManager
 {
-    public static function getViewiScriptsHtml(): string
+    public static int $queueNumber = 0;
+
+    public static function getViewiScripts(): array
     {
+        $scripts = [];
         $path = App::$config[PageEngine::PUBLIC_URL_PATH] ?? App::$config[PageEngine::PUBLIC_BUILD_DIR];
         $combine = App::$config[PageEngine::COMBINE_JS] ?? false;
         $minify = App::$config[PageEngine::MINIFY] ?? false;
         $dev = App::$config[PageEngine::DEV_MODE];
         $version = $dev ? '' : '?v=' . date('ymdHis');
-        $async = $combine ? 'defer' : 'defer';
-        $scripts = $minify ?
-            "<script $async src=\"$path/app.min.js$version\"></script>"
-            : "<script $async src=\"$path/app.js$version\"></script>";
         if (!$combine) {
-            $scripts =
-                ($minify ?
-                    "<script $async src=\"$path/bundle.min.js$version\"></script>"
-                    : "<script $async src=\"$path/bundle.js$version\"></script>") .
-                $scripts;
+            $scripts[] =
+                $minify
+                ? "$path/bundle.min.js$version"
+                : "$path/bundle.js$version";
+        }
+        $scripts[] = $minify
+            ? "$path/app.min.js$version"
+            : "$path/app.js$version";
+        return $scripts;
+    }
+
+    public static function getViewiScriptsHtml(): string
+    {
+        $scriptsArray = self::getViewiScripts();
+        $async = 'defer';
+        $scripts = '';
+        foreach ($scriptsArray as $path) {
+            $scripts .= "<script $async src=\"$path\"></script>";
         }
         return $scripts;
+    }
+
+    public static function scheduleStylesProcessing(CssBundle $bundle, PageEngine $_pageEngine): string
+    {
+        $queueNumber = self::$queueNumber++;
+        $contentKey = "### $queueNumber ###";
+        $_pageEngine->putIntoPostProcessQueue(function () use ($bundle, $_pageEngine, $contentKey) {
+            $content = self::getViewiStylesHtml($bundle, $_pageEngine);
+            $templates = $_pageEngine->getTemplates();
+            foreach ($templates as $template) {
+                if ($template->ComponentInfo->Name === 'CssBundle') {
+                    foreach ($template->ComponentInfo->Versions as $version => $templateInfo) {
+                        /**
+                         * @var PageTemplate
+                         */
+                        $template = $templateInfo['Template'];
+                        $template->PhpHtmlContent = str_replace($contentKey, $content, $template->PhpHtmlContent);
+                        $template->RootTag->getChildren()[0]->Content = str_replace($contentKey, $content, $template->RootTag->getChildren()[0]->Content);
+                    }
+                }
+            }
+        });
+        return $contentKey;
     }
 
     public static function getViewiStylesHtml(CssBundle $bundle, PageEngine $_pageEngine): string

@@ -9,6 +9,7 @@ abstract class DOMEvent
     public abstract function type();
     public FileInputElement $target;
     public $detail;
+    public $keyCode;
     public abstract function currentTarget();
     public abstract function eventPhase();
     public abstract function bubbles();

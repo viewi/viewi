@@ -4,7 +4,7 @@ namespace Viewi\Components\Services;
 
 class ClientTimer
 {
-    public function setTimeout(callable $action, int $milliseconds): int
+    public static function setTimeoutStatic(callable $action, int $milliseconds): int
     {
         <<<'javascript'
         return window.setTimeout(action, milliseconds);
@@ -13,7 +13,12 @@ class ClientTimer
         return 0;
     }
 
-    public function clearTimeout(int $timerId)
+    public function setTimeout(callable $action, int $milliseconds): int
+    {
+        return self::setTimeoutStatic($action, $milliseconds);
+    }
+
+    public static function clearTimeoutStatic(int $timerId)
     {
         <<<'javascript'
         window.clearTimeout(timerId);
@@ -22,7 +27,12 @@ class ClientTimer
         // nothing on server-side 
     }
 
-    public function setInterval(callable $action, int $milliseconds): int
+    public function clearTimeout(int $timerId)
+    {
+        self::clearTimeoutStatic($timerId);
+    }
+
+    public static function setIntervalStatic(callable $action, int $milliseconds): int
     {
         <<<'javascript'
         return window.setInterval(action, milliseconds);
@@ -31,12 +41,22 @@ class ClientTimer
         return 0;
     }
 
-    public function clearInterval(int $timerId)
+    public function setInterval(callable $action, int $milliseconds): int
+    {
+        return self::setIntervalStatic($action, $milliseconds);
+    }
+
+    public static function clearIntervalStatic(int $timerId)
     {
         <<<'javascript'
         window.clearInterval(timerId);
         return;
         javascript;
         // nothing on server-side
+    }
+
+    public function clearInterval(int $timerId)
+    {
+        self::clearIntervalStatic($timerId);
     }
 }

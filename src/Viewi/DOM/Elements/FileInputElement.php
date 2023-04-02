@@ -9,5 +9,6 @@ abstract class FileInputElement
      * @var DOMFile[]
      */
     public array $files = [];
+    public $value;
 }
 
