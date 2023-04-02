@@ -3,13 +3,12 @@
 namespace Viewi\Routing;
 
 use ReflectionMethod;
-use RuntimeException;
 use Viewi\Common\JsonMapper;
 use Viewi\Exceptions\RouteNotFoundException;
 
 class Router
 {
-    public static function register(string $method, string $url, $actionOrController)
+    public static function register($method, $url, $actionOrController)
     {
         return Route::add(
             $method,
@@ -18,7 +17,7 @@ class Router
         );
     }
 
-    public static function handle(string $url, string $method = 'get', array $params = [])
+    public static function handle($url, $method = 'get', $params = [])
     {
         $match = self::resolve(explode('?', $url)[0], $method);
 
@@ -34,7 +33,7 @@ class Router
 
         // print_r($match);
         $action = $match['route']->action;
-
+        $response = '';
         if (is_array($action)) {
             $instance = new $action[0]();
             $method = $action[1];
@@ -57,7 +56,9 @@ class Router
             }
             foreach ($arguments as $argument) {
                 $argName = $argument->getName();
-                $argumentValue = $match['params'][$argName] ?? ($params[$argName] ?? null);
+                $argumentValue = isset($match['params'][$argName])
+                    ? $match['params'][$argName]
+                    : (isset($params[$argName]) ? $params[$argName] : null);
                 // parse json body
                 if ($argumentValue === null && $stdObject !== null) {
                     if ($argument->hasType() && !$argument->getType()->isBuiltin()) {
@@ -85,15 +86,8 @@ class Router
             $response = $action(...array_values($match['params'] + $params));
         } else {
             $instance = new $action();
-
-            if (!is_callable($instance)) {
-                $classNS = get_class($instance);
-                throw new RuntimeException("Component '$classNS' must be callable");
-            }
-
             $response = $instance($match['params']);
         }
-
         return $response;
     }
 
@@ -103,12 +97,11 @@ class Router
      * @param string $method
      * @return array{route: RouteItem, params: array}
      */
-    public static function resolve(string $url, string $method = 'get'): ?array
+    public static function resolve($url, $method = 'get'): ?array
     {
-        if (empty($url)) {
+        if (!$url) {
             $url = '/';
         }
-
         $parts = explode('/', trim($url, '/'));
         $method = strtolower($method);
         $routes = Route::getRoutes();
