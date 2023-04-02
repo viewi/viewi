@@ -235,6 +235,7 @@ class PageEngine
             ? $this->publicRootPath . $this->publicBuildDir
             : "$this->publicRootPath/$this->publicBuildDir";
 
+        $this->renderReturn = true; // TODO: eliminate
         $this->renderReturn = $config[self::RETURN_OUTPUT] ?? true; // $return;
         $this->includes = $config[self::INCLUDES] ?? null;
         $this->components = [];
