@@ -2,10 +2,10 @@
 
 namespace Viewi\Routing;
 
-use Exception;
 use ReflectionMethod;
 use RuntimeException;
 use Viewi\Common\JsonMapper;
+use Viewi\Exceptions\RouteNotFoundException;
 
 class Router
 {
@@ -23,7 +23,13 @@ class Router
         $match = self::resolve(explode('?', $url)[0], $method);
 
         if ($match === null) {
-            throw new Exception('No route was matched!');
+            $routeData = [
+                'path' => $url,
+                'method' => $method,
+                'params' => $params
+            ];
+
+            throw new RouteNotFoundException("Route \"$url\" not found", 0, null, $routeData);
         }
 
         // print_r($match);
