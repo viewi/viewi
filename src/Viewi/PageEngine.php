@@ -230,7 +230,11 @@ class PageEngine
         $this->buildPath = $config[self::SERVER_BUILD_DIR]; // $buildPath;
         $this->publicRootPath = $config[self::PUBLIC_ROOT_DIR]; // $publicRootPath;
         $this->publicBuildDir = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
-        $this->publicBuildPath = $this->publicRootPath . $this->publicBuildDir;
+
+        $this->publicBuildPath = substr($this->publicRootPath, -1, 1) == '/'
+            ? $this->publicRootPath . $this->publicBuildDir
+            : "$this->publicRootPath/$this->publicBuildDir";
+
         $this->renderReturn = true; // TODO: eliminate
         $this->echoOutput = !($config[self::RETURN_OUTPUT] ?? true); // $return;
         $this->includes = $config[self::INCLUDES] ?? null;
