@@ -231,9 +231,7 @@ class PageEngine
         $this->publicRootPath = $config[self::PUBLIC_ROOT_DIR]; // $publicRootPath;
         $this->publicBuildDir = $config[self::PUBLIC_BUILD_DIR]; // $publicBuildPath;
 
-        $this->publicBuildPath = substr($this->publicRootPath, -1, 1) == '/'
-            ? $this->publicRootPath . $this->publicBuildDir
-            : "$this->publicRootPath/$this->publicBuildDir";
+        $this->publicBuildPath = Helper::concatPath($this->publicRootPath, $this->publicBuildDir);
 
         $this->renderReturn = true; // TODO: eliminate
         $this->echoOutput = !($config[self::RETURN_OUTPUT] ?? true); // $return;

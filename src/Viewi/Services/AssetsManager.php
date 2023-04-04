@@ -4,6 +4,7 @@ namespace Viewi\Services;
 
 use Viewi\App;
 use Viewi\Components\Assets\CssBundle;
+use Viewi\Helper;
 use Viewi\PageEngine;
 use Viewi\PageTemplate;
 
@@ -22,8 +23,8 @@ class AssetsManager
         if (!$combine) {
             $scripts[] =
                 $minify
-                ? "$path/bundle.min.js$version"
-                : "$path/bundle.js$version";
+                    ? "$path/bundle.min.js$version"
+                    : "$path/bundle.js$version";
         }
         $scripts[] = $minify
             ? "$path/app.min.js$version"
@@ -105,13 +106,13 @@ class AssetsManager
             if ($bundle->shakeTree) {
                 $cssContent = $treeShakeService->shakeCss($cssContent);
                 $cssName = $buildDir . '/' . basename($cssName, '.css') . '.shk.css';
-                $newFileName =  $rootDir . $cssName;
+                $newFileName = Helper::concatPath($rootDir, $cssName);
                 file_put_contents($newFileName, $cssContent);
             }
             if ($bundle->minify) {
                 $cssContent = $minifyService->minifyCss($cssContent);
                 $cssName = $buildDir . '/' . basename($cssName, '.css') . '.min.css';
-                $newFileName =  $rootDir . $cssName;
+                $newFileName =  Helper::concatPath($rootDir, $cssName);
                 file_put_contents($newFileName, $cssContent);
             }
             if ($bundle->combine) {
@@ -124,7 +125,7 @@ class AssetsManager
         }
         if ($bundle->combine) {
             $newName = $buildDir . '/' . crc32($componentVersion) . '.css';
-            $newFileName =  $rootDir . $newName;
+            $newFileName = Helper::concatPath($rootDir, $newName);
             file_put_contents($newFileName, $combined);
             $html .= $bundle->inline ?
                 '<style>' . $combined . '</style>' :
