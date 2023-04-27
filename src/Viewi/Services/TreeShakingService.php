@@ -167,6 +167,7 @@ class TreeShakingService
                         return $group;
                     }
                 case ';': { // ex: @import 'url'; @charset 'UTF-8';
+                        // echo $this->selector . PHP_EOL;
                         $this->newTokensGroup($group, true);
                         $this->selector = '';
                         return 'global';
@@ -219,12 +220,16 @@ class TreeShakingService
                             // comment /*
                             $this->readCommentBlock();
                             break;
+                        } else {
+                            $this->selector .= $this->css[$this->i];
+                            break;
                         }
                     }
                 case '@': {
                         if ($this->i - 1 >= 0 && $this->css[$this->i - 1] !== '\\') {
                             // new group, ex: @media, @animation, @font-face
                             $group = $this->readGroupName();
+                            // echo "$group" . PHP_EOL;
                             $this->newTokensGroup($group);
                             $this->selector = '';
                             break;
@@ -240,6 +245,19 @@ class TreeShakingService
                         break;
                     }
                 case '}': {
+                        if (count($this->cssTokens[$this->currentIndex]['rules']) == 0 && trim($this->selector)) {
+                            // @font-face group
+                            //echo "Empty Group: ";
+                            // echo $this->selector . PHP_EOL;
+                            // $this->addRule($this->selector, false);
+                            $this->addRule($this->cssTokens[$this->currentIndex]['scope'], $this->selector);
+                            $this->cssTokens[$this->currentIndex]['scope'] = 'global';
+                            $this->cssTokens[$this->currentIndex]['valid'] = true;
+                            $this->cssTokens[$this->currentIndex]['special'] = true;
+                            $this->cssTokens[$this->currentIndex]['keep'] = true;
+                            //print_r($this->cssTokens[$this->currentIndex - 1]);
+                            // print_r($this->cssTokens[$this->currentIndex]);
+                        }
                         $this->newTokensGroup();
                         $this->selector = '';
                         break;
@@ -257,8 +275,8 @@ class TreeShakingService
     {
         $keepNext = false;
         foreach ($this->cssTokens as &$group) {
-            $group['valid'] = false;
-            $group['special'] = false;
+            $group['valid'] = $group['valid'] ?? false;
+            $group['special'] = $group['special'] ?? false;
             $groupName = trim($group['scope']);
             if ($groupName[0] === '@' && strpos($groupName, '@media') === false) {
                 $group['valid'] = true;
@@ -267,11 +285,11 @@ class TreeShakingService
             }
             foreach ($group['rules'] as &$rule) {
                 $selector = trim($rule['selector']);
-                $keepCurrent = $keepNext;
+                $keepCurrent = $group['keep'] ?? $keepNext;
                 $keepNext = false;
                 if ($selector === '##comment##') {
                     $rule['valid'] = false;
-                    if (strpos($rule['content'], '@keep') !== false) {
+                    if ($rule['content'] && strpos($rule['content'], '@keep') !== false) {
                         $keepNext = true;
                     }
                     continue;
@@ -301,7 +319,7 @@ class TreeShakingService
                         $subSelector = str_replace('\\', '', $subSelector);
 
                         $allValid = true;
-                        $subSelectorParts = explode('!', $subSelector);                        
+                        $subSelectorParts = explode('!', $subSelector);
                         foreach ($subSelectorParts as $subSelectorPart) {
                             $specialPos = strpos($subSelectorPart, ':');
                             if ($specialPos !== false) {
@@ -353,6 +371,13 @@ class TreeShakingService
         $indentation = '    ';
         foreach ($this->cssTokens as $group) {
             if ($group['valid']) {
+                // if (
+                //     $group['special']
+                //     && trim($group['scope']) == '@font-face'
+                // ) {
+                //     print_r($group);
+                // }
+
                 $groupName = trim($group['scope']);
                 if ($group['noblock']) {
                     $textCss .= $groupName . ';' . PHP_EOL;
@@ -366,9 +391,9 @@ class TreeShakingService
                     $selector = implode(',' . PHP_EOL, $rule['selectors'] ?? [trim($rule['selector'])]); // trim($rule['selector']);
                     // $selector = trim($rule['selector']); // trim($rule['selector']);
                     if ($rule['valid'] || $group['special']) {
-                        $textCss .= ($blocked ? $indentation : '') . $selector . ' {' . PHP_EOL;
-                        $textCss .= $indentation . ($blocked ? $indentation : '') . trim($rule['content']);
-                        $textCss .= $blocked ?  PHP_EOL . $indentation . '}' . PHP_EOL :  PHP_EOL . '}' . PHP_EOL . PHP_EOL;
+                        $textCss .= ($blocked ? $indentation : '') . $selector . ($rule['content'] !== false ? ' {' . PHP_EOL : '');
+                        $textCss .= $rule['content'] !== false ? ($indentation . ($blocked ? $indentation : '') . trim($rule['content'])) : '';
+                        $textCss .= ($rule['content'] !== false ? ($blocked ?  PHP_EOL . $indentation . '}' . PHP_EOL :  PHP_EOL . '}' . PHP_EOL) : '') . PHP_EOL;
                     }
                 }
                 if ($blocked) {
