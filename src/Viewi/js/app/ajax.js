@@ -8,7 +8,7 @@
             this.action(function (data) {
                 $this.onOk(data);
             }, function (data) {
-                $this.onError(data);
+                $this.onError ? $this.onError(data) : console.error('Server error', data);
             }
             );
         };
