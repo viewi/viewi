@@ -763,6 +763,17 @@
             if (wrapper.attributes) {
                 for (var ai in wrapper.attributes) {
                     var attr = wrapper.attributes[ai];
+                    if (attr.content[0] === '#') {
+                        var attrName = attr.content;
+                        var refName = attrName.substring(1, attrName.length);
+                        // #ref
+                        if (!attr.instance.component) {
+                            attr.instance.component = createInstance(attr.instance);
+                        }
+                        // console.log(wrapper, attr);
+                        attr.instance.component._refs[refName] = wrapper.component;
+                        continue;
+                    }
                     // TODO: DRY (attribute event)
                     var itsEvent = attr.content[0] === '(';
                     var eventName = null;
