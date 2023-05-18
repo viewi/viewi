@@ -444,6 +444,8 @@ class JsTranslator
                 ) {
                     $this->lastBreak = $keyword;
                     // $this->debug('Keyword Break: ' . $keyword);
+                    // $debugInfo = print_r([$breakOnConditions, $breakOn, $breakConditions], true);
+                    // $code .= "/** $keyword $parenthesisNormal $debugInfo **/";
                     $this->position -= strlen($keyword);
                     break;
                 }
@@ -1396,8 +1398,11 @@ class JsTranslator
         $lastindentation = $this->currentIndentation;
         $this->currentIndentation .= $this->indentation;
         $this->lastKeyword = '[';
+        $commaBreakCondition = new BreakCondition();
+        $commaBreakCondition->Keyword = ',';
+        $commaBreakCondition->ParenthesisNormal = 0;
         while ($this->position < $this->length) {
-            $item = $this->readCodeBlock(',', '=>', $closing, ';');
+            $item = $this->readCodeBlock($commaBreakCondition, '=>', $closing, ';');
             $this->lastKeyword = $this->lastBreak;
             if ($this->lastBreak === ';') {
                 break;
