@@ -878,7 +878,11 @@ class PageEngine
                 if ($componentInfo->IsComponent) {
                     $fullClassName = $componentInfo->Namespace . '\\' . $componentInfo->Name;
                     $this->save($this->templates[$className]);
-                    if (isset($fullClassName::$_lazyLoadGroup)) {
+                    if (isset($fullClassName::$_noBrowser) && $fullClassName::$_noBrowser) {
+                        unset($publicJson[$className]);
+                        $filePath = $this->reflectionClasses[$className]->getFileName();
+                        unset($this->compiledJs[$filePath]);
+                    } else if (isset($fullClassName::$_lazyLoadGroup)) {
                         $lazyLoadGroup = $fullClassName::$_lazyLoadGroup;
                         $publicJson[$className]['lazyLoad'] = $lazyLoadGroup;
                         if (!isset($lazyContent[$lazyLoadGroup])) {
@@ -1238,7 +1242,9 @@ class PageEngine
                         }
                         // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression]);
                     }
+                    // if($tagItem->Content == 'Checkbox') {
                     // $this->debug([$tagItem->Content, $attribute->Content, $attribute->PropValueExpression, is_callable($value) ? 'fn' : $value]);
+                    // }
                     // output:
                     // [0] => Button
                     // [1] => loading
@@ -1249,8 +1255,8 @@ class PageEngine
                     // }
                 }
             }
-            // if ($tagItem->Content === 'Column') {
-            //     $this->debug([$instance, $this->templates[$componentInfo->Name]->RootTag]);
+            // if ($tagItem->Content === 'Checkbox') {
+            //     $this->debug([$instance]);
             // }
             // $instance->_props = ['(removed)'];
 
