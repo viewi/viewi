@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "build": "node ./build.mjs"
+  },
+  "dependencies": {
+    "esbuild": "0.18.17"
+  }
+}
