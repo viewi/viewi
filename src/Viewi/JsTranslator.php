@@ -8,20 +8,27 @@ use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\AssignOp\Concat;
 use PhpParser\Node\Expr\BinaryOp;
 use PhpParser\Node\Expr\BinaryOp\Equal;
 use PhpParser\Node\Expr\BooleanNot;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\Isset_;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\PostDec;
 use PhpParser\Node\Expr\PostInc;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Ternary;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Scalar\Encapsed;
+use PhpParser\Node\Scalar\EncapsedStringPart;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
@@ -30,7 +37,9 @@ use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Nop;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
+use PhpParser\Node\Stmt\Switch_;
 use PhpParser\Node\Stmt\Use_;
+use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
 use ReflectionClass;
 use Viewi\JsFunctions\BreakCondition;
@@ -340,6 +349,20 @@ class JsTranslator
                 $this->jsCode .= "    };" . PHP_EOL;
             } else if ($node instanceof String_) {
                 $this->jsCode .= $node->getAttribute('rawValue', "'{$node->value}'");
+                // TODO: miltyline string <<<
+            } else if ($node instanceof Encapsed) {
+                $parts = [];
+                $insert = false;
+                foreach ($node->parts as $part) {
+                    if ($insert) {
+                        $parts[] = ' + ';
+                    }
+                    $parts[] = $part;
+                    $insert = true;
+                }
+                $this->processStmts($parts);
+            } else if ($node instanceof EncapsedStringPart) {
+                $this->jsCode .= json_encode($node->value);
             } else if ($node instanceof LNumber) {
                 $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
             } else if ($node instanceof Array_) {
@@ -435,6 +458,19 @@ class JsTranslator
                     }
                 }
                 $this->jsCode .= ')';
+            } else if ($node instanceof New_) {
+                // TODO: validate parts
+                $this->jsCode .= 'new ';
+                $this->jsCode .= $node->class->getParts()[0] . '(';
+                if (count($node->args) > 0) {
+                    $comma = '';
+                    foreach ($node->args as $argument) {
+                        $this->jsCode .= $comma;
+                        $this->processStmts([$argument->value]);
+                        $comma = ', ';
+                    }
+                }
+                $this->jsCode .= ')';
             } else if ($node instanceof Closure) {
                 $this->jsCode .= "function(";
                 $comma = '';
@@ -459,6 +495,22 @@ class JsTranslator
                 $this->jsCode .= "    }";
             } else if ($node instanceof Variable) {
                 $this->jsCode .= $node->name === 'this' ? '$this' : $node->name;
+                // TODO: variable declaration
+            } else if ($node instanceof Isset_) {
+                $comma = '';
+                foreach ($node->vars as $var) {
+                    $this->jsCode .= $comma;
+                    if ($var instanceof ArrayDimFetch) {
+                        $this->processStmts([$var->dim]);
+                        $this->jsCode .= ' in ';
+                        $this->processStmts([$var->var]);
+                    } else {
+                        $this->jsCode .= 'isset(';
+                        $this->processStmts([$var]);
+                        $this->jsCode .= ')';
+                    }
+                    $comma = ' && ';
+                }
             } else if ($node instanceof ArrayDimFetch) {
                 if ($node->dim === null) {
                     // array push
@@ -474,6 +526,10 @@ class JsTranslator
                     $this->processStmts([$node->expr]);
                 }
                 $this->jsCode .= ';' . PHP_EOL;
+            } else if ($node instanceof Break_) {
+                $this->jsCode .= '    break;' . PHP_EOL;
+            } else if ($node instanceof Ternary) {
+                $this->processStmts([$node->cond, ' ? ', $node->if ?? $node->cond, ' : ', $node->else]);
             } else if ($node instanceof Expression) {
                 $this->jsCode .= '        ';
                 if ($node->expr instanceof Assign) {
@@ -484,11 +540,28 @@ class JsTranslator
                     $this->processStmts([$node->expr]);
                 }
                 $this->jsCode .= ';' . PHP_EOL;
+            } else if ($node instanceof Concat) {
+                $this->processStmts([$node->var, ' += ', $node->expr]);
             } else if ($node instanceof If_) {
                 $this->jsCode .= '    if (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
                 $this->processStmts($node->stmts);
+                $this->jsCode .= '}' . PHP_EOL;
+            } else if ($node instanceof While_) {
+                $this->jsCode .= '    while (';
+                $this->processStmts([$node->cond]);
+                $this->jsCode .= ') {' . PHP_EOL;
+                $this->processStmts($node->stmts);
+                $this->jsCode .= '}' . PHP_EOL;
+            } else if ($node instanceof Switch_) {
+                $this->jsCode .= '    switch (';
+                $this->processStmts([$node->cond]);
+                $this->jsCode .= ') {' . PHP_EOL;
+                foreach ($node->cases as $case) {
+                    $this->processStmts(['    case ', $case->cond ?? 'default', ':' . PHP_EOL]);
+                    $this->processStmts($case->stmts);
+                }
                 $this->jsCode .= '}' . PHP_EOL;
             } else if ($node instanceof BinaryOp) {
                 $this->processStmts([$node->left]);
