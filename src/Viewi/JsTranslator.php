@@ -32,6 +32,7 @@ use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\If_;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Nop;
@@ -181,6 +182,12 @@ class JsTranslator
     private int $anonymousCounter = 0;
     private array $usingList = [];
     private bool $breakOnSpace;
+    // v2
+    public int $level = 0;
+    public int $membersCount = 0;
+    public string $indentationPattern = '    ';
+    public array $privateProperties = [];
+    public $stmts;
 
     public function __construct(string $content)
     {
@@ -233,60 +240,10 @@ class JsTranslator
         $this->staticCache = [];
         $this->newVar = false;
         $this->breakOnSpace = false;
-    }
-
-    public function includeJsFile(string $name, string $filePath)
-    {
-        $this->requestedIncludes[$name] = $filePath;
-    }
-
-    public function getRequestedIncludes(): array
-    {
-        return $this->requestedIncludes;
-    }
-
-    public function getUsingList(): array
-    {
-        return $this->usingList;
-    }
-
-    public function activateReactivity(array $info)
-    {
-        $this->pasteArrayReactivity = $info;
-    }
-
-    public function getVariablePaths(): array
-    {
-        return $this->variablePaths;
-    }
-
-    public function getKeywords(?string $content = null): array
-    {
-        $keywords = [
-            [], // keyword
-            [] // space before
-        ];
-        if ($content !== null) {
-            $this->phpCode = $content;
-            $this->reset();
-        }
-        $keyword = $this->nextKeyword();
-        while ($keyword !== null) {
-            $keywords[0][] = $keyword;
-            $keywords[1][] = $this->latestSpaces;
-            $keyword = $this->nextKeyword();
-        }
-        return $keywords;
-    }
-
-    public function nextKeyword(): ?string
-    {
-        $keyword = $this->matchKeyword();
-        // $this->debug($keyword);
-        if ($keyword === '' && $this->position === $this->length) {
-            return null;
-        }
-        return $keyword;
+        // v2
+        $this->level = 0;
+        $this->membersCount = 0;
+        $this->privateProperties = [];
     }
 
     /**
@@ -308,19 +265,24 @@ class JsTranslator
                 // TODO: validation
             } else if ($node instanceof Class_) {
                 $this->jsCode .= "var {$node->name} = function() {" . PHP_EOL;
+                $this->level++;
                 if ($node->stmts !== null) {
                     $this->processStmts($node->stmts);
                 }
                 // "var $this = this;
                 // $base(this);"
                 $this->jsCode .= "};" . PHP_EOL;
+                $this->membersCount = 0;
+                $this->privateProperties = [];
+                $this->level--;
             } else if ($node instanceof Property) {
                 $publicOrProtected = !$node->isPrivate();
                 $name = $node->props[0]->name->name;
                 if ($publicOrProtected) {
-                    $this->jsCode .= "    this.$name = ";
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = ";
                 } else {
-                    $this->jsCode .= "    var $name = ";
+                    $this->privateProperties[$name] = true;
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = ";
                 }
                 if ($node->props[0]->default !== null) {
                     $this->processStmts([$node->props[0]->default]);
@@ -328,14 +290,18 @@ class JsTranslator
                     $this->jsCode .= 'null';
                 }
                 $this->jsCode .= ';' . PHP_EOL;
+                $this->membersCount++;
                 // TODO: track public/priv:protected
             } else if ($node instanceof ClassMethod) {
+                if ($this->membersCount > 0) {
+                    $this->jsCode .= PHP_EOL;
+                }
                 $publicOrProtected = !$node->isPrivate();
                 $name = $node->name->name;
                 if ($publicOrProtected) {
-                    $this->jsCode .= "    this.$name = function(";
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = function(";
                 } else {
-                    $this->jsCode .= "    var $name = function(";
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = function(";
                 }
                 $comma = '';
                 foreach ($node->params as $param) {
@@ -343,13 +309,28 @@ class JsTranslator
                     $comma = ', ';
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
+                $this->level++;
                 if ($node->stmts !== null) {
                     $this->processStmts($node->stmts);
                 }
-                $this->jsCode .= "    };" . PHP_EOL;
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "};" . PHP_EOL;
+                $this->membersCount++;
             } else if ($node instanceof String_) {
-                $this->jsCode .= $node->getAttribute('rawValue', "'{$node->value}'");
-                // TODO: miltyline string <<<
+                $docLabel = $node->getAttribute('docLabel');
+                if (in_array($docLabel, ['javascript', "'javascript'"])) {
+                    // inject javascript;
+                    $parts = explode(PHP_EOL, $node->value);
+                    $iden = str_repeat($this->indentationPattern, $this->level);
+                    $this->jsCode .= '/** JS injection **/' . PHP_EOL;
+                    foreach ($parts as $part) {
+                        $this->jsCode .=  $iden . $part . PHP_EOL;
+                    }
+                    $this->jsCode .=  $iden . '/** END injection **/';
+                } else {
+                    $this->jsCode .= $node->getAttribute('rawValue', "'{$node->value}'");
+                }
+                // TODO: miltyline string <<<pre
             } else if ($node instanceof Encapsed) {
                 $parts = [];
                 $insert = false;
@@ -365,7 +346,25 @@ class JsTranslator
                 $this->jsCode .= json_encode($node->value);
             } else if ($node instanceof LNumber) {
                 $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
+            } else if ($node instanceof Foreach_) {
+                $key = $node->keyVar ?? '_i';
+                $this->processStmts([
+                    'for (var ',
+                    $key,
+                    ' in ',
+                    $node->expr,
+                    ') {' . PHP_EOL,
+                    str_repeat($this->indentationPattern, $this->level),
+                    $node->valueVar, ' = ',
+                    $node->expr,
+                    '[',
+                    $key,
+                    ']'
+                ]);
+                $this->processStmts($node->stmts);
+                $this->jsCode .= '}' . PHP_EOL;
             } else if ($node instanceof Array_) {
+                // TODO: auto new line
                 $arrayType = 0; // 0 [], 1 {}
                 $at = strlen($this->jsCode) - 1;
                 if ($node->items !== null) {
@@ -419,8 +418,12 @@ class JsTranslator
                 // TODO: validate parts
                 $this->jsCode .= implode(',', $node->name->getParts());
             } else if ($node instanceof PropertyFetch) {
-                $this->processStmts([$node->var]);
-                $this->jsCode .= '.' . $node->name->name;
+                if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
+                    $this->jsCode .= $node->name->name;
+                } else {
+                    $this->processStmts([$node->var]);
+                    $this->jsCode .= '.' . $node->name->name;
+                }
             } else if ($node instanceof MethodCall) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '.' . $node->name . '(';
@@ -479,10 +482,12 @@ class JsTranslator
                     $comma = ', ';
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
+                $this->level++;
                 if ($node->stmts !== null) {
                     $this->processStmts($node->stmts);
                 }
-                $this->jsCode .= "    }";
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
             } else if ($node instanceof ArrowFunction) {
                 $this->jsCode .= "function(";
                 $comma = '';
@@ -492,7 +497,7 @@ class JsTranslator
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->processStmts([$node->expr]);
-                $this->jsCode .= "    }";
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
             } else if ($node instanceof Variable) {
                 $this->jsCode .= $node->name === 'this' ? '$this' : $node->name;
                 // TODO: variable declaration
@@ -520,18 +525,18 @@ class JsTranslator
                     $this->processStmts([$node->var, '[', $node->dim, ']']);
                 }
             } else if ($node instanceof Return_) {
-                $this->jsCode .= '    return';
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';
                 if ($node->expr != null) {
                     $this->jsCode .= ' ';
                     $this->processStmts([$node->expr]);
                 }
                 $this->jsCode .= ';' . PHP_EOL;
             } else if ($node instanceof Break_) {
-                $this->jsCode .= '    break;' . PHP_EOL;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'break;' . PHP_EOL;
             } else if ($node instanceof Ternary) {
                 $this->processStmts([$node->cond, ' ? ', $node->if ?? $node->cond, ' : ', $node->else]);
             } else if ($node instanceof Expression) {
-                $this->jsCode .= '        ';
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '';
                 if ($node->expr instanceof Assign) {
                     $this->processStmts([$node->expr->var]);
                     $this->jsCode .= ' = ';
@@ -543,26 +548,48 @@ class JsTranslator
             } else if ($node instanceof Concat) {
                 $this->processStmts([$node->var, ' += ', $node->expr]);
             } else if ($node instanceof If_) {
-                $this->jsCode .= '    if (';
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'if (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
+                $this->level++;
                 $this->processStmts($node->stmts);
-                $this->jsCode .= '}' . PHP_EOL;
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+                foreach ($node->elseifs as $elseif) {
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'else if (';
+                    $this->processStmts([$elseif->cond]);
+                    $this->jsCode .= ') {' . PHP_EOL;
+                    $this->level++;
+                    $this->processStmts($elseif->stmts);
+                    $this->level--;
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+                }
+                if ($node->else !== null) {
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'else {' . PHP_EOL;
+                    $this->level++;
+                    $this->processStmts($node->else->stmts);
+                    $this->level--;
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+                }
             } else if ($node instanceof While_) {
-                $this->jsCode .= '    while (';
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'while (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
+                $this->level++;
                 $this->processStmts($node->stmts);
-                $this->jsCode .= '}' . PHP_EOL;
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } else if ($node instanceof Switch_) {
-                $this->jsCode .= '    switch (';
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'switch (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
+                $this->level++;
                 foreach ($node->cases as $case) {
-                    $this->processStmts(['    case ', $case->cond ?? 'default', ':' . PHP_EOL]);
+                    $this->processStmts([str_repeat($this->indentationPattern, $this->level) . 'case ', $case->cond ?? 'default', ':' . PHP_EOL]);
                     $this->processStmts($case->stmts);
                 }
-                $this->jsCode .= '}' . PHP_EOL;
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } else if ($node instanceof BinaryOp) {
                 $this->processStmts([$node->left]);
                 $this->jsCode .= ' ' . $node->getOperatorSigil() . ' ';
@@ -577,7 +604,7 @@ class JsTranslator
                 $this->jsCode .= '!';
                 $this->processStmts([$node->expr]);
             } else if ($node instanceof Nop) {
-                $this->jsCode .= implode(PHP_EOL, $node->getComments());
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . implode(str_repeat($this->indentationPattern, $this->level) . PHP_EOL, $node->getComments()) . PHP_EOL;
             } else if (is_string($node)) {
                 $this->jsCode .= $node;
             } else {
@@ -586,14 +613,13 @@ class JsTranslator
             }
         }
     }
-    public $stmts;
-    public function convert(?string $content = null, bool $skipPhpTag = false): string
+    public function convert(?string $content = null, bool $inlineExpression = false): string
     {
         if ($content !== null) {
             $this->phpCode = $content;
             $this->reset();
         }
-        if (!$skipPhpTag) {
+        if (!$inlineExpression) {
             $this->matchPhpTag();
         }
 
@@ -601,15 +627,22 @@ class JsTranslator
             if ($this->parser == null) {
                 $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
             }
-            $stmts = $this->parser->parse($this->phpCode);
+            $stmts = $this->parser->parse(($inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($inlineExpression ? ';' : ''));
             $this->stmts = $stmts;
             $this->processStmts($stmts);
             // $this->debug([$this->phpCode,  $this->jsCode, $stmts]);
         } catch (Exception $exc) {
+            $this->debug([$this->phpCode,  $this->jsCode]);
             echo 'Parse Error: ', $exc->getMessage();
+            $this->debug($this->phpCode);
         }
         // die();
         // $this->debug([$this->phpCode,  $this->jsCode]);
+        echo "<table border='1' width='100%'><tbody><tr><td><pre>"
+            . htmlentities($this->phpCode)
+            . "</pre></td><td><pre>"
+            . htmlentities($this->jsCode)
+            . "</pre></td></tr></tbody></table>";
         return $this->jsCode;
         try {
             while ($this->position < $this->length) {
@@ -637,6 +670,60 @@ class JsTranslator
         }
         $this->stopCollectingVariablePath();
         // $this->debug($this->jsCode);
+    }
+
+    public function includeJsFile(string $name, string $filePath)
+    {
+        $this->requestedIncludes[$name] = $filePath;
+    }
+
+    public function getRequestedIncludes(): array
+    {
+        return $this->requestedIncludes;
+    }
+
+    public function getUsingList(): array
+    {
+        return $this->usingList;
+    }
+
+    public function activateReactivity(array $info)
+    {
+        $this->pasteArrayReactivity = $info;
+    }
+
+    public function getVariablePaths(): array
+    {
+        return $this->variablePaths;
+    }
+
+    public function getKeywords(?string $content = null): array
+    {
+        $keywords = [
+            [], // keyword
+            [] // space before
+        ];
+        if ($content !== null) {
+            $this->phpCode = $content;
+            $this->reset();
+        }
+        $keyword = $this->nextKeyword();
+        while ($keyword !== null) {
+            $keywords[0][] = $keyword;
+            $keywords[1][] = $this->latestSpaces;
+            $keyword = $this->nextKeyword();
+        }
+        return $keywords;
+    }
+
+    public function nextKeyword(): ?string
+    {
+        $keyword = $this->matchKeyword();
+        // $this->debug($keyword);
+        if ($keyword === '' && $this->position === $this->length) {
+            return null;
+        }
+        return $keyword;
     }
 
     private function isDeclared(string $varName, int $maxLevel = 9999): ?string
