@@ -61,7 +61,6 @@ class JsTranslator
     /** @var array<string,array<string,string>> */
     private array $scope;
     private int $scopeLevel = 0;
-    private ?string $currentClass = null;
     private array $staticCache;
     private ?string $currentMethod = null;
     private ?Parser $parser = null;
@@ -154,7 +153,6 @@ class JsTranslator
      */
     private array $constructors = [];
     private bool $putIndentation = false;
-    private ?string $buffer = null;
     private string $bufferIndentation = '';
     private bool $newVar = false;
     public string $lastKeyword = '';
@@ -188,6 +186,9 @@ class JsTranslator
     public string $indentationPattern = '    ';
     public array $privateProperties = [];
     public $stmts;
+    private ?string $currentClass = null;
+    private ?string $buffer = null;
+    private string $forks = '';
 
     public function __construct(string $content)
     {
@@ -234,7 +235,6 @@ class JsTranslator
         $this->collectVariablePath = false;
         $this->skipVariableKey = false;
         $this->currentMethod = null;
-        $this->currentClass = null;
         $this->latestVariablePath = '';
         $this->pasteArrayReactivity = false;
         $this->staticCache = [];
@@ -244,6 +244,24 @@ class JsTranslator
         $this->level = 0;
         $this->membersCount = 0;
         $this->privateProperties = [];
+        $this->currentClass = null;
+        $this->buffer = null;
+        $this->forks = '';
+    }
+
+    public function fork()
+    {
+        $this->buffer = $this->jsCode;
+        $this->jsCode = '';
+    }
+
+    public function unfork(): string
+    {
+        $ret = $this->jsCode;
+        $this->jsCode = $this->buffer;
+        $this->buffer = null;
+        $this->forks .= $ret;
+        return $ret;
     }
 
     /**
@@ -266,6 +284,7 @@ class JsTranslator
             } else if ($node instanceof Class_) {
                 $this->jsCode .= "var {$node->name} = function() {" . PHP_EOL;
                 $this->level++;
+                $this->currentClass = $node->name;
                 if ($node->stmts !== null) {
                     $this->processStmts($node->stmts);
                 }
@@ -275,6 +294,7 @@ class JsTranslator
                 $this->membersCount = 0;
                 $this->privateProperties = [];
                 $this->level--;
+                $this->currentClass = null;
             } else if ($node instanceof Property) {
                 $publicOrProtected = !$node->isPrivate();
                 $name = $node->props[0]->name->name;
@@ -293,15 +313,22 @@ class JsTranslator
                 $this->membersCount++;
                 // TODO: track public/priv:protected
             } else if ($node instanceof ClassMethod) {
-                if ($this->membersCount > 0) {
-                    $this->jsCode .= PHP_EOL;
-                }
-                $publicOrProtected = !$node->isPrivate();
                 $name = $node->name->name;
-                if ($publicOrProtected) {
-                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = function(";
+                $isStatic = $node->isStatic();
+                if ($isStatic) {
+                    $this->fork();
+                    $this->level--;
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . $this->currentClass . ".$name = function(";
                 } else {
-                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = function(";
+                    if ($this->membersCount > 0) {
+                        $this->jsCode .= PHP_EOL;
+                    }
+                    $publicOrProtected = !$node->isPrivate();
+                    if ($publicOrProtected) {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = function(";
+                    } else {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = function(";
+                    }
                 }
                 $comma = '';
                 foreach ($node->params as $param) {
@@ -315,7 +342,12 @@ class JsTranslator
                 }
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "};" . PHP_EOL;
-                $this->membersCount++;
+                if ($isStatic) {
+                    $this->unfork();
+                    $this->level++;
+                } else {
+                    $this->membersCount++;
+                }
             } else if ($node instanceof String_) {
                 $docLabel = $node->getAttribute('docLabel');
                 if (in_array($docLabel, ['javascript', "'javascript'"])) {
@@ -438,7 +470,8 @@ class JsTranslator
                 $this->jsCode .= ')';
             } else if ($node instanceof StaticCall) {
                 // TODO: validate parts
-                $this->jsCode .= $node->class->getParts()[0];
+                $class = $node->class->getParts()[0];
+                $this->jsCode .= $class === 'self' ? $this->currentClass : $class;
                 $this->jsCode .= '.' . $node->name . '(';
                 if (count($node->args) > 0) {
                     $comma = '';
@@ -496,7 +529,7 @@ class JsTranslator
                     $comma = ', ';
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
-                $this->processStmts([$node->expr]);
+                $this->processStmts([str_repeat($this->indentationPattern, $this->level + 1) . 'return ', $node->expr, ';' . PHP_EOL]);
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
             } else if ($node instanceof Variable) {
                 $this->jsCode .= $node->name === 'this' ? '$this' : $node->name;
@@ -632,10 +665,11 @@ class JsTranslator
             $this->processStmts($stmts);
             // $this->debug([$this->phpCode,  $this->jsCode, $stmts]);
         } catch (Exception $exc) {
-            $this->debug([$this->phpCode,  $this->jsCode]);
+            $this->debug([$this->phpCode,  $this->jsCode, $this->forks]);
             echo 'Parse Error: ', $exc->getMessage();
             $this->debug($this->phpCode);
         }
+        $this->jsCode .= $this->forks;
         // die();
         // $this->debug([$this->phpCode,  $this->jsCode]);
         echo "<table border='1' width='100%'><tbody><tr><td><pre>"
