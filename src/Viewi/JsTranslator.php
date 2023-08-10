@@ -167,8 +167,6 @@ class JsTranslator
     private static array $functionConverters = [];
     /** @var string[] */
     private static array $reservedGlobalNames = [];
-    /** @var array<string,string[]> */
-    private array $variablePaths;
     private string $currentVariablePath;
     private bool $collectVariablePath;
     private bool $skipVariableKey;
@@ -181,6 +179,8 @@ class JsTranslator
     private array $usingList = [];
     private bool $breakOnSpace;
     // v2
+    public bool $inlineExpression = false;
+    public ?string $objectRefName = null;
     public int $level = 0;
     public int $membersCount = 0;
     public string $indentationPattern = '    ';
@@ -191,6 +191,10 @@ class JsTranslator
     private string $forks = '';
     private array $localVariables = [];
     private int $foreachKeyIndex = 0;
+    /** @var array<string,string[]> */
+    private array $variablePaths;
+    private array $currentPath = []; // namespace.class.method...
+    private array $propertyFetchQueue = []; // this.User.Name; this.List[x].name, etc.
 
     public function __construct(string $content)
     {
@@ -232,7 +236,6 @@ class JsTranslator
         $this->length = count($this->parts);
         $this->scope = [[]];
         $this->callFunction = null;
-        $this->variablePaths = [];
         $this->currentVariablePath = '';
         $this->collectVariablePath = false;
         $this->skipVariableKey = false;
@@ -251,6 +254,10 @@ class JsTranslator
         $this->buffer = null;
         $this->forks = '';
         $this->foreachKeyIndex = 0;
+        $this->inlineExpression = false;
+        $this->variablePaths = [];
+        $this->currentPath = [];
+        $this->propertyFetchQueue = [];
     }
 
     public function fork()
@@ -268,6 +275,69 @@ class JsTranslator
         return $ret;
     }
 
+    public function convert(?string $content = null, bool $inlineExpression = false, ?string $objectRefName = null, array $locals = []): string
+    {
+        if ($content !== null) {
+            $this->phpCode = $content;
+            $this->reset();
+        }
+        $this->inlineExpression = $inlineExpression;
+        $this->objectRefName = $objectRefName;
+        $this->localVariables = $locals;
+        try {
+            if ($this->parser == null) {
+                $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+            }
+            $stmts = $this->parser->parse(($this->inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($this->inlineExpression ? ';' : ''));
+            $this->stmts = $stmts;
+            $this->processStmts($stmts);
+            // $this->debug([$this->phpCode,  $this->jsCode, $stmts]);
+        } catch (Exception $exc) {
+            $this->debug([$this->phpCode,  $this->jsCode, $this->forks]);
+            echo 'Parse Error: ', $exc->getMessage();
+            $this->debug($this->phpCode);
+        }
+        $this->jsCode .= $this->forks;
+        // die();
+        // $this->debug([$this->phpCode,  $this->jsCode]);
+        echo "<table border='1' width='100%'><tbody><tr><td><pre>"
+            . htmlentities($this->phpCode)
+            . "</pre></td><td><pre>"
+            . htmlentities($this->jsCode)
+            . "</pre></td></tr></tbody></table>";
+        $this->debug($this->variablePaths);
+        return $this->jsCode;
+        if (!$this->inlineExpression) {
+            $this->matchPhpTag();
+        }
+        try {
+            while ($this->position < $this->length) {
+                $this->jsCode .= $this->readCodeBlock();
+            }
+        } catch (Exception $exc) {
+            // $this->debug($exc->getMessage());
+            $codeBlockStart = max(0, $this->position - 100);
+            $codeBlockEnd = min($this->position + 100, $this->length);
+
+            $codeErrorPart =
+                '...'
+                . substr($this->phpCode, $codeBlockStart, $this->position - $codeBlockStart)
+                . ' ~~! HERE !~~ '
+                . substr($this->phpCode, $this->position, $codeBlockEnd)
+                . '...';
+            $this->debug($exc->getMessage() . " at position: {$this->position}" . PHP_EOL . $codeErrorPart . PHP_EOL);
+            throw $exc;
+            return json_encode('Error: ' . $exc->getMessage()) . ";\n\n";
+        }
+        // $this->jsCode .= ' <PHP> ';
+        while ($this->position < $this->length) {
+            $this->jsCode .= $this->parts[$this->position];
+            $this->position++;
+        }
+        $this->stopCollectingVariablePath();
+        // $this->debug($this->jsCode);
+    }
+
     /**
      * 
      * @param array<Node\Stmt|string> $stmts 
@@ -280,7 +350,9 @@ class JsTranslator
             if ($node instanceof Namespace_) {
                 // skip, no namespaces in JS
                 if ($node->stmts !== null) {
+                    $this->currentPath[] = 'NS'; // TODO: const
                     $this->processStmts($node->stmts);
+                    array_pop($this->currentPath);
                 }
             } else if ($node instanceof Use_) {
                 // skip, for now
@@ -290,7 +362,9 @@ class JsTranslator
                 $this->level++;
                 $this->currentClass = $node->name;
                 if ($node->stmts !== null) {
+                    $this->currentPath[] = 'CLASS'; // TODO: const
                     $this->processStmts($node->stmts);
+                    array_pop($this->currentPath);
                 }
                 // "var $this = this;
                 // $base(this);"
@@ -357,7 +431,9 @@ class JsTranslator
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
                 if ($node->stmts !== null) {
+                    $this->currentPath[] = "$name()";
                     $this->processStmts($node->stmts);
+                    array_pop($this->currentPath);
                 }
                 $this->localVariables = $allscopes;
                 $this->level--;
@@ -484,12 +560,33 @@ class JsTranslator
                 // TODO: validate parts
                 $this->jsCode .= implode(',', $node->name->getParts());
             } else if ($node instanceof PropertyFetch) {
-                if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
+                $isThis = $node->var instanceof Variable && $node->var->name === 'this';
+                if ($isThis && isset($this->privateProperties[$node->name->name])) {
                     $this->jsCode .= $node->name->name;
                 } else {
+                    $this->propertyFetchQueue[] = $node->name->name;
+                    if ($isThis) {
+                        $this->propertyFetchQueue[] = 'this';
+                    }
                     $this->processStmts([$node->var]);
                     $this->jsCode .= '.' . $node->name->name;
+                    if ($isThis) {
+                        // $this->debug($this->propertyFetchQueue);
+                        $index = count($this->propertyFetchQueue);
+                        $path = '';
+                        $comma = '';
+                        while ($index) {
+                            $path .= $comma . $this->propertyFetchQueue[--$index];
+                            $comma = '.';
+                        }
+                        // $this->debug([$path, implode('.', $this->currentPath)]);
+                        $this->variablePaths[implode('.', $this->currentPath)][$path] = true;
+                        $this->propertyFetchQueue = [];
+                    } else {
+                        array_pop($this->propertyFetchQueue);
+                    }
                 }
+                // $this->debug($node);
             } else if ($node instanceof MethodCall) {
                 if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
                     $this->jsCode .= $node->name->name . '(';
@@ -522,7 +619,11 @@ class JsTranslator
                 $this->jsCode .= ')';
             } else if ($node instanceof FuncCall) {
                 // TODO: validate parts
-                $this->jsCode .= $node->name->getParts()[0] . '(';
+                $name = $node->name->getParts()[0];
+                if ($this->objectRefName !== null && !isset($this->localVariables[$name])) {
+                    $this->jsCode .= $this->objectRefName . '.';
+                }
+                $this->jsCode .=  $name . '(';
                 if (count($node->args) > 0) {
                     $comma = '';
                     foreach ($node->args as $argument) {
@@ -574,6 +675,9 @@ class JsTranslator
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
             } else if ($node instanceof Variable) {
                 $isThis = $node->name === 'this';
+                if ($this->objectRefName !== null && $node->name !== $this->objectRefName && !isset($this->localVariables[$node->name])) {
+                    $this->jsCode .= $this->objectRefName . '.';
+                }
                 $this->jsCode .= $isThis ? '$this' : $node->name;
                 // TODO: variable declaration
             } else if ($node instanceof Isset_) {
@@ -595,7 +699,13 @@ class JsTranslator
                 if ($node->dim === null) {
                     throw new RuntimeException("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
                 } else {
-                    $this->processStmts([$node->var, '[', $node->dim, ']']);
+                    $this->propertyFetchQueue[] = '[]';
+                    $this->processStmts([$node->var, '[']);
+                    array_pop($this->propertyFetchQueue);
+                    $queue = $this->propertyFetchQueue;
+                    $this->propertyFetchQueue = [];
+                    $this->processStmts([$node->dim, ']']);
+                    $this->propertyFetchQueue = $queue;
                 }
             } else if ($node instanceof Return_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';
@@ -620,7 +730,7 @@ class JsTranslator
                         if ($node->expr->var instanceof Variable) {
                             $name = $node->expr->var->name;
                             $isThis = $name === 'this';
-                            if (!$isThis && !isset($this->localVariables[$name]) && !isset($this->privateProperties[$name])) {
+                            if (!$isThis && !$this->inlineExpression && !isset($this->localVariables[$name]) && !isset($this->privateProperties[$name])) {
                                 $this->jsCode .= 'var ';
                                 $this->localVariables[$name] = true;
                             }
@@ -630,10 +740,13 @@ class JsTranslator
                         $this->processStmts([$node->expr->expr]);
                         // TODO: if ArrayDimFetch - notify array change for reactivity
                     }
+                    // $this->debug($node);
                 } else {
                     $this->processStmts([$node->expr]);
                 }
-                $this->jsCode .= ';' . PHP_EOL;
+                if (!$this->inlineExpression) {
+                    $this->jsCode .= ';' . PHP_EOL;
+                }
             } else if ($node instanceof Concat) {
                 $this->processStmts([$node->var, ' += ', $node->expr]);
             } else if ($node instanceof If_) {
@@ -706,65 +819,6 @@ class JsTranslator
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
-    }
-    public function convert(?string $content = null, bool $inlineExpression = false): string
-    {
-        if ($content !== null) {
-            $this->phpCode = $content;
-            $this->reset();
-        }
-        if (!$inlineExpression) {
-            $this->matchPhpTag();
-        }
-
-        try {
-            if ($this->parser == null) {
-                $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
-            }
-            $stmts = $this->parser->parse(($inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($inlineExpression ? ';' : ''));
-            $this->stmts = $stmts;
-            $this->processStmts($stmts);
-            // $this->debug([$this->phpCode,  $this->jsCode, $stmts]);
-        } catch (Exception $exc) {
-            $this->debug([$this->phpCode,  $this->jsCode, $this->forks]);
-            echo 'Parse Error: ', $exc->getMessage();
-            $this->debug($this->phpCode);
-        }
-        $this->jsCode .= $this->forks;
-        // die();
-        // $this->debug([$this->phpCode,  $this->jsCode]);
-        echo "<table border='1' width='100%'><tbody><tr><td><pre>"
-            . htmlentities($this->phpCode)
-            . "</pre></td><td><pre>"
-            . htmlentities($this->jsCode)
-            . "</pre></td></tr></tbody></table>";
-        return $this->jsCode;
-        try {
-            while ($this->position < $this->length) {
-                $this->jsCode .= $this->readCodeBlock();
-            }
-        } catch (Exception $exc) {
-            // $this->debug($exc->getMessage());
-            $codeBlockStart = max(0, $this->position - 100);
-            $codeBlockEnd = min($this->position + 100, $this->length);
-
-            $codeErrorPart =
-                '...'
-                . substr($this->phpCode, $codeBlockStart, $this->position - $codeBlockStart)
-                . ' ~~! HERE !~~ '
-                . substr($this->phpCode, $this->position, $codeBlockEnd)
-                . '...';
-            $this->debug($exc->getMessage() . " at position: {$this->position}" . PHP_EOL . $codeErrorPart . PHP_EOL);
-            throw $exc;
-            return json_encode('Error: ' . $exc->getMessage()) . ";\n\n";
-        }
-        // $this->jsCode .= ' <PHP> ';
-        while ($this->position < $this->length) {
-            $this->jsCode .= $this->parts[$this->position];
-            $this->position++;
-        }
-        $this->stopCollectingVariablePath();
-        // $this->debug($this->jsCode);
     }
 
     public function includeJsFile(string $name, string $filePath)
@@ -1275,7 +1329,7 @@ class JsTranslator
                         }
                     case '#[': {
                             $attributeCode = $this->readCodeBlock(']');
-                            $this->position += strlen($this->lastBreak);
+                            $this->position += $this->lastBreak !== null ? strlen($this->lastBreak) : 0;
                             // ignore attributes; throw an error ??
                             // $this->debug($attributeCode);
                             $skipLastSaving = true;
