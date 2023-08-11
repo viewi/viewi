@@ -17,6 +17,50 @@ Transpiling works with a limited subset of PHP (not everything can be converted 
 
 More description is coming.
 
+Testing
+--------
+
+#### Run tests
+
+All tests:
+
+`php vendor/bin/codecept run`
+
+Unit tests:
+
+`php vendor/bin/codecept run Unit`
+
+Specific test:
+
+`php vendor/bin/codecept run Unit JsTranspilerTest`
+
+
+#### Create test
+
+`php vendor/bin/codecept generate:test Unit JsTranspiler`
+
+
+Support
+--------
+
+We all have full-time jobs and dedicate our free time to this project, and we would appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider supporting:
+
+ - Give us a star⭐.
+ - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
+ - Follow us on [Twitter](https://twitter.com/viewiphp).
+ - Contribute by sending pull requests.
+ - Any other ideas or proposals? Please mail me voitovych.ivan.v@gmail.com.
+ - Feel welcome to share this project with your friends.
+
+
+License
+--------
+
+Copyright (c) 2020-present Ivan Voitovych
+
+Please see [MIT](/LICENSE) for license text
+
+
 ### Viewi v1:
 
 Short example:
@@ -88,35 +132,3 @@ Under the hood, Viewi translates view components into javascript and uses it for
 Got to `tests` folder
 
 Run `php test.php backend`
-
-Support
---------
-
-We all have full-time jobs and dedicate our free time to this project, and we would appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider supporting:
-
- - Give us a star⭐.
- - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
- - Follow us on [Twitter](https://twitter.com/viewiphp).
- - Contribute by sending pull requests.
- - Any other ideas or proposals? Please mail me voitovych.ivan.v@gmail.com.
- - Feel welcome to share this project with your friends.
-
-
-License
---------
-
-MIT License
-
-Copyright (c) 2020-present Ivan Voitovych
-
-Please see [LICENSE](/LICENSE) for license text
-
-
-Legal
-------
-
-By submitting a Pull Request, you disallow any rights or claims to any changes submitted to the Viewi project and assign the copyright of those changes to Ivan Voitovych.
-
-If you cannot or do not want to reassign those rights (your employment contract for your employer may not allow this), you should not submit a PR. Open an issue, and someone else can do the work.
-
-This is a legal way of saying, "If you submit a PR to us, that code becomes ours." 99.9% of the time, that's what you intend anyways; we hope it doesn't scare you away from contributing.

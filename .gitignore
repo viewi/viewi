@@ -1,1 +1,8 @@
 **/node_modules
+**/temp/**/*
+composer.lock
+**/build/**/*
+!**/build/.gitkeep
+**/vendor/**
+src/v1/**
+/.idea
