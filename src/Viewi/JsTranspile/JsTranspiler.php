@@ -23,6 +23,7 @@ use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Ternary;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\Encapsed;
 use PhpParser\Node\Scalar\EncapsedStringPart;
 use PhpParser\Node\Scalar\LNumber;
@@ -52,14 +53,15 @@ class JsTranspiler
     private ?Parser $parser = null;
     private array $requestedIncludes = [];
     private array $usingList = [];
-    public bool $inlineExpression = false;
-    public ?string $objectRefName = null;
-    public int $level = 0;
-    public int $membersCount = 0;
-    public string $indentationPattern = '    ';
-    public array $privateProperties = [];
-    public $stmts;
+    private bool $inlineExpression = false;
+    private ?string $objectRefName = null;
+    private int $level = 0;
+    private int $membersCount = 0;
+    private string $indentationPattern = '    ';
+    private array $privateProperties = [];
+    private $stmts;
     private ?string $currentClass = null;
+    private ?string $currentNamespace = null;
     private ?string $buffer = null;
     private string $forks = '';
     private array $localVariables = [];
@@ -68,6 +70,11 @@ class JsTranspiler
     private array $variablePaths;
     private array $currentPath = []; // namespace.class.method...
     private array $propertyFetchQueue = []; // this.User.Name; this.List[x].name, etc.
+    /**
+     * 
+     * @var array<string, ExportItem>
+     */
+    private array $exports = []; // tree of [namespace->]class/function->public method/prop
 
     public function __construct(string $content = '')
     {
@@ -78,11 +85,13 @@ class JsTranspiler
     private function reset()
     {
         // v2
+        $this->jsCode = '';
         $this->level = 0;
         $this->membersCount = 0;
         $this->privateProperties = [];
         $this->localVariables = [];
         $this->currentClass = null;
+        $this->currentNamespace = null;
         $this->buffer = null;
         $this->forks = '';
         $this->foreachKeyIndex = 0;
@@ -90,15 +99,16 @@ class JsTranspiler
         $this->variablePaths = [];
         $this->currentPath = [];
         $this->propertyFetchQueue = [];
+        $this->exports = [];
     }
 
-    public function fork()
+    private function fork()
     {
         $this->buffer = $this->jsCode;
         $this->jsCode = '';
     }
 
-    public function unfork(): string
+    private function unfork(): string
     {
         $ret = $this->jsCode;
         $this->jsCode = $this->buffer;
@@ -107,7 +117,7 @@ class JsTranspiler
         return $ret;
     }
 
-    public function convert(?string $content = null, bool $inlineExpression = false, ?string $objectRefName = null, array $locals = []): string
+    public function convert(?string $content = null, bool $inlineExpression = false, ?string $objectRefName = null, array $locals = []): JsOutput
     {
         if ($content !== null) {
             $this->phpCode = $content;
@@ -132,13 +142,13 @@ class JsTranspiler
         $this->jsCode .= $this->forks;
         // die();
         // $this->debug([$this->phpCode,  $this->jsCode]);
-        echo "<table border='1' width='100%'><tbody><tr><td><pre>"
-            . htmlentities($this->phpCode)
-            . "</pre></td><td><pre>"
-            . htmlentities($this->jsCode)
-            . "</pre></td></tr></tbody></table>";
-        $this->debug($this->variablePaths);
-        return $this->jsCode;
+        // echo "<table border='1' width='100%'><tbody><tr><td><pre>"
+        //     . htmlentities($this->phpCode)
+        //     . "</pre></td><td><pre>"
+        //     . htmlentities($this->jsCode)
+        //     . "</pre></td></tr></tbody></table>";
+        // $this->debug($this->variablePaths);
+        return new JsOutput($this->jsCode, $this->exports);
     }
 
     /**
@@ -146,15 +156,18 @@ class JsTranspiler
      * @param array<Node\Stmt|string> $stmts 
      * @return void 
      */
-    public function processStmts(?array $stmts)
+    private function processStmts(?array $stmts)
     {
         foreach ($stmts as $node) {
             // use if else for intellisense support. switch does not support it in vs code 
             if ($node instanceof Namespace_) {
                 // skip, no namespaces in JS
                 if ($node->stmts !== null) {
-                    $this->currentPath[] = 'NS'; // TODO: const
+                    $this->currentPath[] = $node->name; // TODO: const
+                    $this->currentNamespace = $node->name;
+                    $this->exports[$this->currentNamespace] = ExportItem::NewNamespace($this->currentNamespace);
                     $this->processStmts($node->stmts);
+                    $this->currentNamespace = null;
                     array_pop($this->currentPath);
                 }
             } else if ($node instanceof Use_) {
@@ -164,8 +177,13 @@ class JsTranspiler
                 $this->jsCode .= "var {$node->name} = function() {" . PHP_EOL;
                 $this->level++;
                 $this->currentClass = $node->name;
+                $exportItem = ExportItem::NewClass($node->name);
+                if ($node->extends !== null) {
+                    $exportItem->Attributes = ['extends' => $node->extends->getParts()];
+                }
+                $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
                 if ($node->stmts !== null) {
-                    $this->currentPath[] = 'CLASS'; // TODO: const
+                    $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
                     array_pop($this->currentPath);
                 }
@@ -190,6 +208,9 @@ class JsTranspiler
                     } else {
                         $this->privateProperties[$name] = true;
                         $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = ";
+                    }
+                    if ($node->isPublic()) {
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name);
                     }
                 }
                 if ($node->props[0]->default !== null) {
@@ -222,6 +243,9 @@ class JsTranspiler
                     } else {
                         $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = function(";
                         $this->privateProperties[$name] = true;
+                    }
+                    if ($node->isPublic()) {
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewMethod($name);
                     }
                 }
                 $allscopes = $this->localVariables;
@@ -421,12 +445,17 @@ class JsTranspiler
                 }
                 $this->jsCode .= ')';
             } else if ($node instanceof FuncCall) {
-                // TODO: validate parts
-                $name = $node->name->getParts()[0];
-                if ($this->objectRefName !== null && !isset($this->localVariables[$name])) {
-                    $this->jsCode .= $this->objectRefName . '.';
+                if ($node->name instanceof Name) {
+                    // TODO: validate parts
+                    $name = $node->name->getParts()[0];
+                    if ($this->objectRefName !== null && !isset($this->localVariables[$name])) {
+                        $this->jsCode .= $this->objectRefName . '.';
+                    }
+                    $this->jsCode .=  $name;
+                } else {
+                    $this->processStmts([$node->name]);
                 }
-                $this->jsCode .=  $name . '(';
+                $this->jsCode .= '(';
                 if (count($node->args) > 0) {
                     $comma = '';
                     foreach ($node->args as $argument) {
@@ -624,27 +653,27 @@ class JsTranspiler
         }
     }
 
-    public function includeJsFile(string $name, string $filePath)
+    private function includeJsFile(string $name, string $filePath)
     {
         $this->requestedIncludes[$name] = $filePath;
     }
 
-    public function getRequestedIncludes(): array
+    private function getRequestedIncludes(): array
     {
         return $this->requestedIncludes;
     }
 
-    public function getUsingList(): array
+    private function getUsingList(): array
     {
         return $this->usingList;
     }
 
-    public function getVariablePaths(): array
+    private function getVariablePaths(): array
     {
         return $this->variablePaths;
     }
 
-    function debug($any, bool $checkEmpty = false): void
+    private function debug($any, bool $checkEmpty = false): void
     {
         if ($checkEmpty && empty($any)) {
             return;
