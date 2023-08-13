@@ -44,6 +44,7 @@ use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use RuntimeException;
+use Viewi\Helpers;
 
 class JsTranspiler
 {
@@ -61,12 +62,13 @@ class JsTranspiler
     private array $privateProperties = [];
     private $stmts;
     private ?string $currentClass = null;
+    private ?string $currentMethod = null;
     private ?string $currentNamespace = null;
     private ?string $buffer = null;
     private string $forks = '';
     private array $localVariables = [];
     private int $foreachKeyIndex = 0;
-    /** @var array<string,string[]> */
+    /** @var array<string,array<string,string[]>> */
     private array $variablePaths;
     private array $currentPath = []; // namespace.class.method...
     private array $propertyFetchQueue = []; // this.User.Name; this.List[x].name, etc.
@@ -91,6 +93,7 @@ class JsTranspiler
         $this->privateProperties = [];
         $this->localVariables = [];
         $this->currentClass = null;
+        $this->currentMethod = null;
         $this->currentNamespace = null;
         $this->buffer = null;
         $this->forks = '';
@@ -130,14 +133,13 @@ class JsTranspiler
             if ($this->parser == null) {
                 $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
             }
-            $stmts = $this->parser->parse(($this->inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($this->inlineExpression ? ';' : ''));
-            $this->stmts = $stmts;
-            $this->processStmts($stmts);
-            // $this->debug([$this->phpCode,  $this->jsCode, $stmts]);
+            $this->stmts = $this->parser->parse(($this->inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($this->inlineExpression ? ';' : ''));
+            $this->processStmts($this->stmts);
+            // $this->debug([$this->phpCode,  $this->jsCode, $this->stmts]);
         } catch (Exception $exc) {
-            $this->debug([$this->phpCode,  $this->jsCode, $this->forks]);
+            Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
             echo 'Parse Error: ', $exc->getMessage();
-            $this->debug($this->phpCode);
+            Helpers::debug($this->phpCode);
         }
         $this->jsCode .= $this->forks;
         // die();
@@ -148,7 +150,7 @@ class JsTranspiler
         //     . htmlentities($this->jsCode)
         //     . "</pre></td></tr></tbody></table>";
         // $this->debug($this->variablePaths);
-        return new JsOutput($this->jsCode, $this->exports);
+        return new JsOutput($this->jsCode, $this->exports, $this->usingList, $this->variablePaths);
     }
 
     /**
@@ -171,17 +173,23 @@ class JsTranspiler
                     array_pop($this->currentPath);
                 }
             } else if ($node instanceof Use_) {
-                // skip, for now
+                foreach ($node->uses as $use) {
+                    $parts = $use->name->getParts();
+                    $last = $use->name->getLast();
+                    $this->usingList[$last] = $parts;
+                }
+                // Helpers::debug($node);
                 // TODO: validation
             } else if ($node instanceof Class_) {
                 $this->jsCode .= "var {$node->name} = function() {" . PHP_EOL;
                 $this->level++;
                 $this->currentClass = $node->name;
+                $this->variablePaths[$this->currentClass] = [];
                 $exportItem = ExportItem::NewClass($node->name);
                 if ($node->extends !== null) {
-                    $exportItem->Attributes = ['extends' => $node->extends->getParts()];
+                    $exportItem->attributes = ['extends' => $node->extends->getParts()];
                 }
-                $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
+                $this->exports[$this->currentNamespace]->children[$this->currentClass] = $exportItem;
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -210,7 +218,7 @@ class JsTranspiler
                         $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = ";
                     }
                     if ($node->isPublic()) {
-                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name);
+                        $this->exports[$this->currentNamespace]->children[$this->currentClass]->children[$name] = ExportItem::NewProperty($name);
                     }
                 }
                 if ($node->props[0]->default !== null) {
@@ -245,9 +253,11 @@ class JsTranspiler
                         $this->privateProperties[$name] = true;
                     }
                     if ($node->isPublic()) {
-                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewMethod($name);
+                        $this->exports[$this->currentNamespace]->children[$this->currentClass]->children[$name] = ExportItem::NewMethod($name);
                     }
                 }
+                $this->currentMethod = $name;
+                $this->variablePaths[$this->currentClass][$this->currentMethod] = [];
                 $allscopes = $this->localVariables;
                 $comma = '';
                 foreach ($node->params as $param) {
@@ -262,6 +272,7 @@ class JsTranspiler
                     $this->processStmts($node->stmts);
                     array_pop($this->currentPath);
                 }
+                $this->currentMethod = null;
                 $this->localVariables = $allscopes;
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "};" . PHP_EOL;
@@ -407,7 +418,7 @@ class JsTranspiler
                             $comma = '.';
                         }
                         // $this->debug([$path, implode('.', $this->currentPath)]);
-                        $this->variablePaths[implode('.', $this->currentPath)][$path] = true;
+                        $this->variablePaths[$this->currentClass][$this->currentMethod][$path] = true;
                         $this->propertyFetchQueue = [];
                     } else {
                         array_pop($this->propertyFetchQueue);
@@ -647,7 +658,7 @@ class JsTranspiler
             } else if (is_string($node)) {
                 $this->jsCode .= $node;
             } else {
-                $this->debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
+                Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
@@ -661,25 +672,5 @@ class JsTranspiler
     private function getRequestedIncludes(): array
     {
         return $this->requestedIncludes;
-    }
-
-    private function getUsingList(): array
-    {
-        return $this->usingList;
-    }
-
-    private function getVariablePaths(): array
-    {
-        return $this->variablePaths;
-    }
-
-    private function debug($any, bool $checkEmpty = false): void
-    {
-        if ($checkEmpty && empty($any)) {
-            return;
-        }
-        echo '<pre>';
-        echo htmlentities(print_r($any, true));
-        echo '</pre>';
     }
 }

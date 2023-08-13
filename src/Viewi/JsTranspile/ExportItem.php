@@ -14,8 +14,8 @@ class ExportItem
      * 
      * @var array<string, ExportItem>
      */
-    public array $Children = [];
-    public ?array $Attributes = null;
+    public array $children = [];
+    public ?array $attributes = null;
 
     public function __construct(public string $type, public string $name)
     {
