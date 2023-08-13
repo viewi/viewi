@@ -187,9 +187,9 @@ class JsTranspiler
                 $this->variablePaths[$this->currentClass] = [];
                 $exportItem = ExportItem::NewClass($node->name);
                 if ($node->extends !== null) {
-                    $exportItem->attributes = ['extends' => $node->extends->getParts()];
+                    $exportItem->Attributes = ['extends' => $node->extends->getParts()];
                 }
-                $this->exports[$this->currentNamespace]->children[$this->currentClass] = $exportItem;
+                $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -218,7 +218,7 @@ class JsTranspiler
                         $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = ";
                     }
                     if ($node->isPublic()) {
-                        $this->exports[$this->currentNamespace]->children[$this->currentClass]->children[$name] = ExportItem::NewProperty($name);
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name);
                     }
                 }
                 if ($node->props[0]->default !== null) {
@@ -253,7 +253,7 @@ class JsTranspiler
                         $this->privateProperties[$name] = true;
                     }
                     if ($node->isPublic()) {
-                        $this->exports[$this->currentNamespace]->children[$this->currentClass]->children[$name] = ExportItem::NewMethod($name);
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewMethod($name);
                     }
                 }
                 $this->currentMethod = $name;

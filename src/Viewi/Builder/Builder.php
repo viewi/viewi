@@ -61,10 +61,10 @@ class Builder
     private function collectExports(JsOutput $jsOutput, array $exports)
     {
         foreach ($exports as $exportItem) {
-            if ($exportItem->type === ExportItem::Namespace) {
-                $this->collectExports($jsOutput, $exportItem->children);
-            } elseif ($exportItem->type === ExportItem::Class_) {
-                $this->components[$exportItem->name] = new BuildItem($exportItem->name, $jsOutput);
+            if ($exportItem->Type === ExportItem::Namespace) {
+                $this->collectExports($jsOutput, $exportItem->Children);
+            } elseif ($exportItem->Type === ExportItem::Class_) {
+                $this->components[$exportItem->Name] = new BuildItem($exportItem->Name, $jsOutput);
             }
         }
     }

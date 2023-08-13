@@ -14,10 +14,10 @@ class ExportItem
      * 
      * @var array<string, ExportItem>
      */
-    public array $children = [];
-    public ?array $attributes = null;
+    public array $Children = [];
+    public ?array $Attributes = null;
 
-    public function __construct(public string $type, public string $name)
+    public function __construct(public string $Type, public string $Name)
     {
     }
 
