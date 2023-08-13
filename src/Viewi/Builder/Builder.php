@@ -2,6 +2,8 @@
 
 namespace Viewi\Builder;
 
+use Exception;
+use Viewi\ViewiPath;
 use Viewi\Helpers;
 use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
@@ -12,7 +14,14 @@ class Builder
 {
     private TemplateParser $templateParser;
     private JsTranspiler $jsTranspiler;
+    /**
+     * 
+     * @var array<string, BuildItem>
+     */
     private array $components;
+    private array $avaliableComponents;
+    // Config placeholders
+    private bool $shakeTree = true;
 
     public function __construct()
     {
@@ -33,18 +42,24 @@ class Builder
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
         // 2. transpile to js and collect uses, props, methods and paths
-        // 3. parse html templates
+        $this->avaliableComponents = [];
+        $this->collectComponents($entryPath, true);
+        foreach ([...$includes, ViewiPath::dir() . DIRECTORY_SEPARATOR . 'Components'] as $path) {
+            $this->collectComponents($path, !$this->shakeTree);
+        }
+        // 3. validate components and parse html templates
         // 4. validate and build template:
         //      render function, 
         //      expressions,
         //      mark used components,
-        //      collect reactivity deps
+        //      collect reactivity deps       
+        foreach ($this->components as $buildItem) {
+            $this->validateAndParseTemplate($buildItem);
+        }
         // 5. cache metadata on each step if enabled
         // 6. return metadata
-        $this->collectComponents($entryPath);
-        foreach ($includes as $path) {
-            $this->collectComponents($path, true);
-        }
+        Helpers::debug($this->avaliableComponents);
+        Helpers::debug($this->components);
     }
 
     private function reset()
@@ -58,45 +73,58 @@ class Builder
      * @param array<string, ExportItem> $exports 
      * @return void 
      */
-    private function collectExports(JsOutput $jsOutput, array $exports)
+    private function collectExports(JsOutput $jsOutput, array $exports, bool $include = false)
     {
         foreach ($exports as $exportItem) {
             if ($exportItem->Type === ExportItem::Namespace) {
-                $this->collectExports($jsOutput, $exportItem->Children);
+                $this->collectExports($jsOutput, $exportItem->Children, $include);
             } elseif ($exportItem->Type === ExportItem::Class_) {
-                $this->components[$exportItem->Name] = new BuildItem($exportItem->Name, $jsOutput);
+                $this->components[$exportItem->Name] = new BuildItem($exportItem->Name, $jsOutput, $include);
+                $this->components[$exportItem->Name]->Uses = $jsOutput->getUses();
+                if ($exportItem->Attributes !== null) {
+                    if (isset($exportItem->Attributes['extends'])) {
+                        $this->components[$exportItem->Name]->Extends = $exportItem->Attributes['extends'];
+                    }
+                    if (isset($exportItem->Attributes['namespace'])) {
+                        $this->components[$exportItem->Name]->Namespace = $exportItem->Attributes['namespace'];
+                    }
+                }
             }
         }
     }
 
-    private function collectComponents(string $path, bool $shake = false)
+    private function collectComponents(string $path, bool $include = false)
     {
         $files = Helpers::collectFiles($path);
         foreach ($files as $filePath => $_) {
             $pathinfo = pathinfo($filePath);
             $extension = $pathinfo['extension'] ?? null;
             if ($extension === 'php') {
-                // $pathinfo['filename'];
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
-                $this->collectExports($jsOutput, $jsOutput->getExports());
+                $this->collectExports($jsOutput, $jsOutput->getExports(), $include);
+                $templatePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.html';
+                if (is_file($templatePath) && isset($this->components[$pathinfo['filename']])) {
+                    $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
+                    $this->avaliableComponents[$pathinfo['filename']] = true;
+                }
             }
-            // switch ($extension) {
-            //     case 'php': {
-            //             $jsCode = $this->jsTranspiler->convert(file_get_contents($filePath));
-            //         }
-            //     case 'html': {
-            //             $this->templateParser->parse(file_get_contents($filePath));
-            //             break;
-            //         }
-            //     default:
-            //         break;
-            // }
         }
-
-        Helpers::debug($this->components);
     }
 
-    private function buildComponents()
+    private function validateAndParseTemplate(BuildItem $buildItem)
     {
+        if (!$buildItem->Ready) {
+            $buildItem->Ready = true;
+            // 1. validate uses
+            foreach ($buildItem->Uses as $baseName => $parts) {
+                if (!isset($this->components[$baseName])) {
+                    $fullName = implode('\\', $parts);
+                    throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                }
+            }
+            // 2. validate core functions
+            // 3. parse template if exists
+            // 4. transpile and validate expressions
+        }
     }
 }
