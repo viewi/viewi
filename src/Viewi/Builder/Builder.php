@@ -3,6 +3,8 @@
 namespace Viewi\Builder;
 
 use Viewi\Helpers;
+use Viewi\JsTranspile\ExportItem;
+use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\TemplateParser\TemplateParser;
 
@@ -50,6 +52,23 @@ class Builder
         $this->components = [];
     }
 
+    /**
+     * 
+     * @param JsOutput $jsOutput 
+     * @param array<string, ExportItem> $exports 
+     * @return void 
+     */
+    private function collectExports(JsOutput $jsOutput, array $exports)
+    {
+        foreach ($exports as $exportItem) {
+            if ($exportItem->type === ExportItem::Namespace) {
+                $this->collectExports($jsOutput, $exportItem->children);
+            } elseif ($exportItem->type === ExportItem::Class_) {
+                $this->components[$exportItem->name] = new BuildItem($exportItem->name, $jsOutput);
+            }
+        }
+    }
+
     private function collectComponents(string $path, bool $shake = false)
     {
         $files = Helpers::collectFiles($path);
@@ -59,7 +78,7 @@ class Builder
             if ($extension === 'php') {
                 // $pathinfo['filename'];
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
-                Helpers::debug($jsOutput);
+                $this->collectExports($jsOutput, $jsOutput->getExports());
             }
             // switch ($extension) {
             //     case 'php': {
@@ -73,6 +92,8 @@ class Builder
             //         break;
             // }
         }
+
+        Helpers::debug($this->components);
     }
 
     private function buildComponents()
