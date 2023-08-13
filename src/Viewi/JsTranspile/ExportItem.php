@@ -26,9 +26,11 @@ class ExportItem
         return new self(self::Namespace, $name);
     }
 
-    public static function NewClass(string $name): self
+    public static function NewClass(string $name, string $namespace): self
     {
-        return new self(self::Class_, $name);
+        $item = new self(self::Class_, $name);
+        $item->Attributes['namespace'] = $namespace;
+        return $item;
     }
 
     public static function NewMethod(string $name): self

@@ -70,7 +70,7 @@ class JsTranspiler
     private int $foreachKeyIndex = 0;
     /** @var array<string,array<string,string[]>> */
     private array $variablePaths;
-    private array $currentPath = []; // namespace.class.method...
+    private array $currentPath = []; // namespace->class->method
     private array $propertyFetchQueue = []; // this.User.Name; this.List[x].name, etc.
     /**
      * 
@@ -103,6 +103,7 @@ class JsTranspiler
         $this->currentPath = [];
         $this->propertyFetchQueue = [];
         $this->exports = [];
+        $this->usingList = [];
     }
 
     private function fork()
@@ -185,9 +186,9 @@ class JsTranspiler
                 $this->level++;
                 $this->currentClass = $node->name;
                 $this->variablePaths[$this->currentClass] = [];
-                $exportItem = ExportItem::NewClass($node->name);
+                $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
                 if ($node->extends !== null) {
-                    $exportItem->Attributes = ['extends' => $node->extends->getParts()];
+                    $exportItem->Attributes['extends'] = $node->extends->getParts();
                 }
                 $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
                 if ($node->stmts !== null) {
@@ -662,15 +663,5 @@ class JsTranspiler
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
-    }
-
-    private function includeJsFile(string $name, string $filePath)
-    {
-        $this->requestedIncludes[$name] = $filePath;
-    }
-
-    private function getRequestedIncludes(): array
-    {
-        return $this->requestedIncludes;
     }
 }
