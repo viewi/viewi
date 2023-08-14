@@ -29,11 +29,17 @@ class TemplateParser
 
     /** @var array<string, string> */
     private array $reservedTags;
+    private array $components = [];
 
     public function __construct()
     {
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
+    }
+
+    public function setAvaliableComponents(array $components): void
+    {
+        $this->components = $components;
     }
 
     public function parse(string $content): TagItem
@@ -331,9 +337,9 @@ class TemplateParser
                             !strpos($content, ':')
                             && !isset($this->reservedTags[$content])
                         ) {
-                            // if (!isset($this->components[$content])) {
-                            //     throw new Exception("Component `$content` not found.");
-                            // }
+                            if (!isset($this->components[$content])) {
+                                throw new Exception("Component `$content` not found.");
+                            }
 
                             $child->Type = new TagItemType(TagItemType::Component);
                         }
@@ -387,10 +393,9 @@ class TemplateParser
                     !strpos($content, ':')
                     && !isset($this->reservedTags[$content])
                 ) {
-                    // if (!isset($this->components[$content])) {
-                    //     throw new Exception("Component `$content` not found.");
-                    // }
-
+                    if (!isset($this->components[$content])) {
+                        throw new Exception("Component `$content` not found.");
+                    }
                     $child->Type = new TagItemType(TagItemType::Component);
                 }
             }
