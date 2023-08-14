@@ -5,9 +5,11 @@ namespace Viewi\Builder;
 use Exception;
 use Viewi\ViewiPath;
 use Viewi\Helpers;
+use Viewi\JsTranspile\BaseFunction;
 use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
+use Viewi\JsTranspile\UseItem;
 use Viewi\TemplateParser\TemplateParser;
 
 class Builder
@@ -20,6 +22,16 @@ class Builder
      */
     private array $components;
     private array $avaliableComponents;
+    /**
+     * 
+     * @var array<string, BaseFunction>
+     */
+    private array $avaliableFunctions;
+    /**
+     * 
+     * @var array<string, BaseFunction>
+     */
+    private array $usedFunctions;
     // Config placeholders
     private bool $shakeTree = true;
 
@@ -43,8 +55,10 @@ class Builder
         // 1. collect avaliable components
         // 2. transpile to js and collect uses, props, methods and paths
         $this->avaliableComponents = [];
+        $this->usedFunctions = [];
+        $this->avaliableFunctions = require ViewiPath::dir() . DIRECTORY_SEPARATOR . 'JsTranspile' . DIRECTORY_SEPARATOR . 'functions.php';
         $this->collectComponents($entryPath, true);
-        foreach ([...$includes, ViewiPath::dir() . DIRECTORY_SEPARATOR . 'Components'] as $path) {
+        foreach ([...$includes, $this->getCoreComponentsPath()] as $path) {
             $this->collectComponents($path, !$this->shakeTree);
         }
         // 3. validate components and parse html templates
@@ -52,19 +66,27 @@ class Builder
         //      render function, 
         //      expressions,
         //      mark used components,
-        //      collect reactivity deps       
+        //      collect reactivity deps
+        $this->templateParser->setAvaliableComponents(array_flip(array_keys($this->components)));
         foreach ($this->components as $buildItem) {
             $this->validateAndParseTemplate($buildItem);
         }
         // 5. cache metadata on each step if enabled
         // 6. return metadata
+        Helpers::debug(array_flip(array_keys($this->components)));
         Helpers::debug($this->avaliableComponents);
+        Helpers::debug($this->usedFunctions);
         Helpers::debug($this->components);
     }
 
     private function reset()
     {
         $this->components = [];
+    }
+
+    private function getCoreComponentsPath(): string
+    {
+        return ViewiPath::dir() . DIRECTORY_SEPARATOR . 'Components';
     }
 
     /**
@@ -111,20 +133,48 @@ class Builder
         }
     }
 
+    private function collectIncludes(BuildItem $buildItem)
+    {
+        foreach ($buildItem->Uses as $baseName => $useItem) {
+            if ($useItem->Type === UseItem::Class_) {
+                if (!$this->components[$baseName]->Include) {
+                    $this->components[$baseName]->Include = true;
+                    $this->collectIncludes($this->components[$baseName]);
+                }
+            } elseif ($useItem->Type === UseItem::Function) {
+                $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
+            }
+        }
+    }
+
     private function validateAndParseTemplate(BuildItem $buildItem)
     {
         if (!$buildItem->Ready) {
             $buildItem->Ready = true;
             // 1. validate uses
-            foreach ($buildItem->Uses as $baseName => $parts) {
-                if (!isset($this->components[$baseName])) {
-                    $fullName = implode('\\', $parts);
-                    throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+            // 2. validate core functions
+            foreach ($buildItem->Uses as $baseName => $useItem) {
+                if ($useItem->Type === UseItem::Class_) {
+                    if (!isset($this->components[$baseName])) {
+                        $fullName = implode('\\', $useItem->Parts);
+                        throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                    }
+                } elseif ($useItem->Type === UseItem::Function) {
+                    if (!isset($this->avaliableFunctions[$baseName])) {
+                        $fullName = implode('\\', $useItem->Parts);
+                        throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                    }
                 }
             }
-            // 2. validate core functions
             // 3. parse template if exists
+            if ($buildItem->TemplatePath !== null) {
+                $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
+            }
+
             // 4. transpile and validate expressions
+            if ($buildItem->Include) {
+                $this->collectIncludes($buildItem);
+            }
         }
     }
 }
