@@ -16,7 +16,10 @@ class JsOutput
     {
         return $this->exports;
     }
-
+    /**
+     * 
+     * @return array<string, UseItem>> 
+     */
     public function getUses(): array
     {
         return $this->uses;

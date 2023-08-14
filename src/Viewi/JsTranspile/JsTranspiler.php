@@ -53,6 +53,7 @@ class JsTranspiler
     private string $jsCode = '';
     private ?Parser $parser = null;
     private array $requestedIncludes = [];
+    /** @var array<string, UseItem>> */
     private array $usingList = [];
     private bool $inlineExpression = false;
     private ?string $objectRefName = null;
@@ -177,7 +178,7 @@ class JsTranspiler
                 foreach ($node->uses as $use) {
                     $parts = $use->name->getParts();
                     $last = $use->name->getLast();
-                    $this->usingList[$last] = $parts;
+                    $this->usingList[$last] = new UseItem($parts, UseItem::Class_);
                 }
                 // Helpers::debug($node);
                 // TODO: validation
@@ -459,11 +460,13 @@ class JsTranspiler
             } else if ($node instanceof FuncCall) {
                 if ($node->name instanceof Name) {
                     // TODO: validate parts
-                    $name = $node->name->getParts()[0];
+                    $parts = $node->name->getParts();
+                    $name = $parts[0];
                     if ($this->objectRefName !== null && !isset($this->localVariables[$name])) {
                         $this->jsCode .= $this->objectRefName . '.';
                     }
                     $this->jsCode .=  $name;
+                    $this->usingList[$name] = new UseItem($parts, UseItem::Function);
                 } else {
                     $this->processStmts([$node->name]);
                 }
