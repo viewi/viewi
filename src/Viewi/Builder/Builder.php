@@ -10,12 +10,14 @@ use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\JsTranspile\UseItem;
+use Viewi\TemplateCompiler\TemplateCompiler;
 use Viewi\TemplateParser\TemplateParser;
 
 class Builder
 {
     private TemplateParser $templateParser;
     private JsTranspiler $jsTranspiler;
+    private TemplateCompiler $templateCompiler;
     /**
      * 
      * @var array<string, BuildItem>
@@ -39,6 +41,7 @@ class Builder
     {
         $this->templateParser = new TemplateParser();
         $this->jsTranspiler = new JsTranspiler();
+        $this->templateCompiler = new TemplateCompiler($this->jsTranspiler);
     }
 
     // collect files,
@@ -73,10 +76,10 @@ class Builder
         }
         // 5. cache metadata on each step if enabled
         // 6. return metadata
-        Helpers::debug(array_flip(array_keys($this->components)));
-        Helpers::debug($this->avaliableComponents);
-        Helpers::debug($this->usedFunctions);
-        Helpers::debug($this->components);
+        // Helpers::debug(array_flip(array_keys($this->components)));
+        // Helpers::debug($this->avaliableComponents);
+        // Helpers::debug($this->usedFunctions);
+        // Helpers::debug($this->components);
     }
 
     private function reset()
@@ -166,12 +169,14 @@ class Builder
                     }
                 }
             }
-            // 3. parse template if exists
+            // 3. parse and compile template if exists
+            // 4. transpile and validate expressions
             if ($buildItem->TemplatePath !== null) {
                 $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
+                $template = $this->templateCompiler->compile($rootTag, $buildItem);
+                Helpers::debug($template);
             }
 
-            // 4. transpile and validate expressions
             if ($buildItem->Include) {
                 $this->collectIncludes($buildItem);
             }
