@@ -8,4 +8,9 @@ class Meta
     {
         return __DIR__;
     }
+
+    public static function renderFunctionPath(): string
+    {
+        return __DIR__ . DIRECTORY_SEPARATOR . 'RenderFunction.php';
+    }
 }
