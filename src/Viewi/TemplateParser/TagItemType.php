@@ -5,6 +5,7 @@ namespace Viewi\TemplateParser;
 class TagItemType
 {
     const Tag = 'Tag';
+    const Root = 'Root';
     const TextContent = 'TextContent';
     const Component = 'Component';
     const Attribute = 'Attribute';

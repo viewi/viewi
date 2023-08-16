@@ -45,6 +45,7 @@ class TemplateParser
     public function parse(string $content): TagItem
     {
         $template = new TagItem();
+        $template->Type = new TagItemType(TagItemType::Root);
         $raw = str_split($content);
         $currentParent = &$template;
         $currentType = new TagItemType(TagItemType::TextContent);
@@ -244,7 +245,7 @@ class TemplateParser
                             break;
                         }
                     case '{': {
-                            if ($escapeNextChar) {
+                            if ($escapeNextChar || $currentType->Name === TagItemType::Comment) {
                                 $escapeNextChar = false;
                                 break;
                             }
@@ -265,7 +266,7 @@ class TemplateParser
                             break;
                         }
                     case '$': {
-                            if ($escapeNextChar) {
+                            if ($escapeNextChar || $currentType->Name === TagItemType::Comment) {
                                 $escapeNextChar = false;
                                 break;
                             }

@@ -39,7 +39,7 @@ class TagItem
 
     /**
      * 
-     * @return null|TagItem[] 
+     * @return TagItem[] 
      */
     public function &getChildren(): ?array
     {
