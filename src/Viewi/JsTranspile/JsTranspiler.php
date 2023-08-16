@@ -78,6 +78,7 @@ class JsTranspiler
      * @var array<string, ExportItem>
      */
     private array $exports = []; // tree of [namespace->]class/function->public method/prop
+    private array $transforms = [];
 
     public function __construct(string $content = '')
     {
@@ -105,6 +106,7 @@ class JsTranspiler
         $this->propertyFetchQueue = [];
         $this->exports = [];
         $this->usingList = [];
+        $this->transforms = [];
     }
 
     private function fork()
@@ -152,7 +154,7 @@ class JsTranspiler
         //     . htmlentities($this->jsCode)
         //     . "</pre></td></tr></tbody></table>";
         // $this->debug($this->variablePaths);
-        return new JsOutput($this->jsCode, $this->exports, $this->usingList, $this->variablePaths);
+        return new JsOutput($this->jsCode, $this->exports, $this->usingList, $this->variablePaths, $this->transforms);
     }
 
     /**
@@ -464,6 +466,7 @@ class JsTranspiler
                     $name = $parts[0];
                     if ($this->objectRefName !== null && !isset($this->localVariables[$name])) {
                         $this->jsCode .= $this->objectRefName . '.';
+                        $this->transforms[$name] = $this->objectRefName . '->' . $name;
                     }
                     $this->jsCode .=  $name;
                     $this->usingList[$name] = new UseItem($parts, UseItem::Function);
@@ -524,6 +527,7 @@ class JsTranspiler
                 $isThis = $node->name === 'this';
                 if ($this->objectRefName !== null && $node->name !== $this->objectRefName && !isset($this->localVariables[$node->name])) {
                     $this->jsCode .= $this->objectRefName . '.';
+                    $this->transforms['$' . $node->name] = $this->objectRefName . '->' . $node->name;
                 }
                 $this->jsCode .= $isThis ? '$this' : $node->name;
                 // TODO: variable declaration

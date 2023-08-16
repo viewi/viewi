@@ -4,8 +4,13 @@ namespace Viewi\JsTranspile;
 
 class JsOutput
 {
-    public function __construct(private string $jsCode, private array $exports = [], private array $uses = [], private array $varDeps = [])
-    {
+    public function __construct(
+        private string $jsCode,
+        private array $exports = [],
+        private array $uses = [],
+        private array $varDeps = [],
+        private array $transforms = []
+    ) {
     }
 
     /**
@@ -28,6 +33,11 @@ class JsOutput
     public function getVariableDependencies(): array
     {
         return $this->uses;
+    }
+
+    public function getTransforms(): array
+    {
+        return $this->transforms;
     }
 
     public function __toString(): string
