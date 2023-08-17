@@ -26,6 +26,7 @@ class TemplateCompiler
     /** @var array<string,string> */
     private array $voidTags;
     private string $_CompileJsComponentName = '_component';
+    private BuildItem $buildItem;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -35,7 +36,9 @@ class TemplateCompiler
     public function compile(TagItem $rootTag, BuildItem $buildItem, $templateKey = ''): string
     {
         $this->reset();
-        $renderFunctionTemplate = $this->template ?? ($this->template = file_get_contents(Meta::renderFunctionPath()));
+        $this->buildItem = $buildItem;
+        $renderFunctionTemplate = $this->template
+            ?? ($this->template = str_replace('<?php', '', file_get_contents(Meta::renderFunctionPath())));
         $parts = explode("//#content", $renderFunctionTemplate, 2);
         $this->code .= $parts[0];
         $renderFunction = "Render{$buildItem->ComponentName}$templateKey";
@@ -59,9 +62,28 @@ class TemplateCompiler
         $this->level = 1;
     }
 
+    private function preserve(): array
+    {
+        return [
+            'code' => $this->code,
+            'plainItems' => $this->plainItems,
+            'level' => $this->level,
+        ];
+    }
+
+    private function restore(array $state)
+    {
+        $this->code = $state['code'];
+        $this->plainItems = $state['plainItems'];
+        $this->level = $state['level'];
+    }
+
     private function buildTag(TagItem &$tagItem)
     {
         $allChildren = $tagItem->getChildren();
+        /**
+         * @var TagItem[]
+         */
         $attributes = [];
         /**
          * @var TagItem[]
@@ -78,10 +100,12 @@ class TemplateCompiler
         $hasAttributes = count($attributes) > 0;
         $root = $tagItem->Type->Name === TagItemType::Root;
         $tag = $tagItem->Type->Name === TagItemType::Tag;
+        $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
-        $nested = $root || $tag;
+        $nested = $root || $tag || $component;
         if ($nested) {
             $isVoid = $tag && isset($this->voidTags[$tagItem->Content]);
+
             if ($tag) {
                 if ($expression) {
                     // dynamic tag or component
@@ -91,7 +115,72 @@ class TemplateCompiler
                     $this->code .= PHP_EOL . $this->i() . "if (\$_engine->isComponent({$tagItem->PhpExpression})) {";
                     $this->level++;
                     // component: TODO
+                    $component = true;
+                }
+            }
+            // == COMPONENT ==
+            if ($component) {
+                if (count($this->plainItems)) {
+                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
+                    $this->plainItems = [];
+                }
+                $componentName = $tagItem->PhpExpression ?? var_export($tagItem->Content, true);
+                // pass props
+                $inputArguments = [];
+                if ($hasAttributes) {
+                    $comma = '';
+                    $this->level++;
+                    foreach ($attributes as &$attributeItem) {
+                        if ($attributeItem->ItsExpression) {
+                            $this->buildExpression($attributeItem);
+                        }
+                        $values = $attributeItem->getChildren();
+                        $hasValues = count($values) > 0;
+                        $combinedValue = $hasValues ? '' : 'true';
+                        $concat = '';
+                        foreach ($values as &$attributeValue) {
+                            if ($attributeValue->ItsExpression) {
+                                $this->buildExpression($attributeValue);
+                                $combinedValue .= $concat . "({$attributeValue->PhpExpression})";
+                            } else {
+                                if (
+                                    ctype_digit($attributeValue->Content)
+                                    || $attributeValue->Content === 'false'
+                                    || $attributeValue->Content === 'true'
+                                ) {
+                                    $combinedValue .= $concat . $attributeValue->Content;
+                                } else {
+                                    $combinedValue .= $concat . var_export($attributeValue->Content, true);
+                                }
+                            }
+                            $concat = ' . ';
+                        }
+                        $name = $attributeItem->PhpExpression ?? var_export($attributeItem->Content, true);
+                        $inputArguments[] = "{$comma}$name => $combinedValue";
+                        $comma = ',' . PHP_EOL . $this->i();
+                    }
+                    $this->level--;
+                }
+                // build slots
+                $lastState = $this->preserve();
+                $slotRoot = new TagItem();
+                $slotRoot->Type = new TagItemType(TagItemType::Root);
+                $slotRoot->setChildren($children);
+                $slotFunction = $this->compile($slotRoot, $this->buildItem, 'Slot');
+                $this->restore($lastState);
+                Helpers::debug($slotFunction);
+                // pass slots
+                $props = implode('', $inputArguments);
+                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props]);";
+                if (!$expression) {
+                    return;
+                }
+            }
+            // == END COMPONENT ==
 
+            if ($tag) {
+                if ($expression) {
+                    // dynamic tag or component
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "} elseif ({$tagItem->PhpExpression}) {";
                     $this->level++;
@@ -107,12 +196,13 @@ class TemplateCompiler
                     $this->plainItems[] = '>';
                 }
             }
+
             if (!$isVoid) {
                 if ($hasChildren) {
                     foreach ($children as &$childItem) {
                         if ($childItem->Type->Name === TagItemType::TextContent) {
                             if ($childItem->ItsExpression) {
-                                $this->expression($childItem);
+                                $this->appendExpression($childItem);
                             } else {
                                 $this->plainItems[] = $childItem->Content;
                             }
@@ -159,7 +249,7 @@ class TemplateCompiler
         if ($hasChildren) {
             foreach ($children as $attributeValue) {
                 if ($attributeValue->ItsExpression) {
-                    $this->expression($attributeValue);
+                    $this->appendExpression($attributeValue);
                 } else {
                     $this->plainItems[] = htmlentities($attributeValue->Content);
                 }
@@ -176,6 +266,9 @@ class TemplateCompiler
 
     private function buildExpression(TagItem &$tagItem)
     {
+        if ($tagItem->PhpExpression) {
+            return;
+        }
         $phpCode = $tagItem->Content;
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName);
         $tagItem->JsExpression = $jsOutput->__toString();
@@ -191,7 +284,7 @@ class TemplateCompiler
         $tagItem->PhpExpression = $phpCode;
     }
 
-    private function expression(TagItem &$tagItem)
+    private function appendExpression(TagItem &$tagItem)
     {
         $this->buildExpression($tagItem);
         $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
@@ -201,6 +294,7 @@ class TemplateCompiler
 
     private function i(): string
     {
-        return ($this->identations[$this->level] ?? ($this->identations[$this->level] = str_repeat($this->indentationPattern, $this->level)));
+        return ($this->identations[$this->level]
+            ?? ($this->identations[$this->level] = str_repeat($this->indentationPattern, $this->level)));
     }
 }
