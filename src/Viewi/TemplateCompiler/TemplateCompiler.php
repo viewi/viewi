@@ -28,16 +28,27 @@ class TemplateCompiler
     private array $voidTags;
     private string $_CompileJsComponentName = '_component';
     private BuildItem $buildItem;
+    private ?string $parentComponentName = null;
+    /**
+     * 
+     * @var RenderItem[]
+     */
+    private array $slots;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
     }
 
-    public function compile(TagItem $rootTag, BuildItem $buildItem, $templateKey = ''): string
-    {
+    public function compile(
+        TagItem $rootTag, // template
+        BuildItem $buildItem, // scope
+        $templateKey = '', // for slots
+        ?string $parentComponentName = null // for slots
+    ): RenderItem {
         $this->reset();
         $this->buildItem = $buildItem;
+        $this->parentComponentName = $parentComponentName;
         $renderFunctionTemplate = $this->template
             ?? ($this->template = str_replace('<?php', '', file_get_contents(Meta::renderFunctionPath())));
         $parts = explode("//#content", $renderFunctionTemplate, 2);
@@ -60,7 +71,7 @@ class TemplateCompiler
             $this->plainItems = [];
         }
         $this->code .= $parts[1];
-        return $this->code;
+        return new RenderItem($this->code, $renderFunction, $this->slots);
     }
 
     private function reset()
@@ -68,6 +79,7 @@ class TemplateCompiler
         $this->code = '';
         $this->plainItems = [];
         $this->level = 1;
+        $this->slots = [];
     }
 
     private function preserve(): array
@@ -76,6 +88,7 @@ class TemplateCompiler
             'code' => $this->code,
             'plainItems' => $this->plainItems,
             'level' => $this->level,
+            'slots' => $this->slots,
         ];
     }
 
@@ -84,6 +97,7 @@ class TemplateCompiler
         $this->code = $state['code'];
         $this->plainItems = $state['plainItems'];
         $this->level = $state['level'];
+        $this->slots = $state['slots'];
     }
 
     private function buildTag(TagItem &$tagItem)
@@ -110,13 +124,19 @@ class TemplateCompiler
         $root = $tagItem->Type->Name === TagItemType::Root;
         $tag = $tagItem->Type->Name === TagItemType::Tag;
         $slot = false;
-        if ($tag && $tagItem->Content === 'slot') {
-            $slot = true;
-            $tag = false;
+        $slotContent = false;
+        if ($tag) {
+            if ($tagItem->Content === 'slot') {
+                $slot = true;
+                $tag = false;
+            } elseif ($tagItem->Content === 'slotContent') {
+                $slotContent = true;
+                $tag = false;
+            }
         }
         $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
-        $nested = $root || $tag || $component || $slot;
+        $nested = $root || $tag || $component || $slot || $slotContent;
         if ($nested) {
             $isVoid = $tag && isset($this->voidTags[$tagItem->Content]);
 
@@ -133,6 +153,44 @@ class TemplateCompiler
                     $component = true;
                 }
             }
+            if ($slotContent) {
+                if (count($this->plainItems) > 0) {
+                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
+                    $this->plainItems = [];
+                }
+                $slotContentName = '\'default\'';
+                $slotContentRawName = 'default';
+                $slotAttribute = $this->extractAttribute('name', $attributes);
+                if ($slotAttribute !== null) {
+                    $nameValues = $slotAttribute->getChildren();
+                    if (count($nameValues) > 0) {
+                        $nameValue = $nameValues[0];
+                        if ($nameValue->ItsExpression) {
+                            $this->buildExpression($nameValue);
+                            $slotContentName = $nameValue->PhpExpression;
+                            $slotContentRawName = 'expr';
+                        } else {
+                            $slotContentName = var_export($nameValue->Content, true);
+                            $slotContentRawName = $nameValue->Content;
+                        }
+                    }
+                }
+                // build slot content
+                $lastState = $this->preserve();
+                $slotRoot = new TagItem();
+                $slotRoot->Type = new TagItemType(TagItemType::Root);
+                $slotRoot->setChildren($children);
+                $slotFunction = $this->compile(
+                    $slotRoot,
+                    $this->buildItem,
+                    '_' . $this->parentComponentName . '_' . $slotContentRawName,
+                    $this->parentComponentName
+                );
+                $this->restore($lastState);
+                $this->slots[] = [$slotContentRawName, $slotFunction];
+                // Helpers::debug($slotFunction);
+                return;
+            }
             // == COMPONENT ==
             if ($component) {
                 if (count($this->plainItems)) {
@@ -140,6 +198,7 @@ class TemplateCompiler
                     $this->plainItems = [];
                 }
                 $componentName = $tagItem->PhpExpression ?? var_export($tagItem->Content, true);
+                $rawComponentName = $tagItem->ItsExpression ? 'X' : $tagItem->Content;
                 // pass props
                 $inputArguments = [];
                 if ($hasAttributes) {
@@ -181,14 +240,33 @@ class TemplateCompiler
                 $slotRoot = new TagItem();
                 $slotRoot->Type = new TagItemType(TagItemType::Root);
                 $slotRoot->setChildren($children);
-                $slotFunction = $this->compile($slotRoot, $this->buildItem, 'Slot');
+                $slotContentName = '_' . $rawComponentName . '_default';
+                $slotFunction = $this->compile($slotRoot, $this->buildItem, $slotContentName, $rawComponentName);
                 $this->restore($lastState);
-                Helpers::debug($slotFunction);
+                $this->slots[] = ['default', $slotFunction];
+                $passThroughSlots = [];
+                $comma = '';
+                $this->level++;
+                foreach ($slotFunction->slots as $childSlot) {
+                    $this->slots[] = $childSlot;
+                    $slotKey = var_export($childSlot[0], true);
+                    $renderName = var_export($childSlot[1]->renderName, true);
+                    $passThroughSlots[] = "{$comma}$slotKey => $renderName";
+                    $comma = ',' . PHP_EOL . $this->i();
+                }
+                $this->level--;
+                $slotFunction->slots = [];
+                // Helpers::debug($slotFunction);
                 // pass slots
+                $slotsMap = $passThroughSlots
+                    ? "'component' => \$_component, 'map' => [" .
+                    PHP_EOL . $this->i() . $this->indentationPattern . implode('', $passThroughSlots) . PHP_EOL . $this->i() .
+                    ']'
+                    : '';
                 $props = $inputArguments
                     ? PHP_EOL . $this->i() . $this->indentationPattern . implode('', $inputArguments) . PHP_EOL . $this->i()
                     : '';
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props]);";
+                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap]);";
                 if (!$expression) {
                     return;
                 }
@@ -220,7 +298,7 @@ class TemplateCompiler
                         $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
                         $this->plainItems = [];
                     }
-                    $slotName = '\'default\'';
+                    $slotContentName = '\'default\'';
                     $slotAttribute = $this->extractAttribute('name', $attributes);
                     if ($slotAttribute !== null) {
                         $nameValues = $slotAttribute->getChildren();
@@ -228,15 +306,15 @@ class TemplateCompiler
                             $nameValue = $nameValues[0];
                             if ($nameValue->ItsExpression) {
                                 $this->buildExpression($nameValue);
-                                $slotName = $nameValue->PhpExpression;
+                                $slotContentName = $nameValue->PhpExpression;
                             } else {
-                                $slotName = var_export($nameValue->Content, true);
+                                $slotContentName = var_export($nameValue->Content, true);
                             }
                         }
                     }
-                    $this->code .= PHP_EOL . $this->i() . "if (isset(\$_slots[$slotName])) {";
+                    $this->code .= PHP_EOL . $this->i() . "if (isset(\$_slots['map'][$slotContentName])) {";
                     $this->level++;
-                    $this->code .= PHP_EOL . $this->i() . "\$_engine->renderSlot(\$_slots[$slotName]);";
+                    $this->code .= PHP_EOL . $this->i() . "\$_engine->renderSlot(\$_slots['component'], \$_slots['map'][$slotContentName]);";
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "} else {";
                     $this->level++;
