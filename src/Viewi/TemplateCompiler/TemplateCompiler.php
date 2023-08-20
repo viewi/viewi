@@ -7,6 +7,7 @@ use Viewi\Builder\BuildItem;
 use Viewi\Helpers;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\Meta\Meta;
+use Viewi\TemplateParser\DataExpression;
 use Viewi\TemplateParser\TagItem;
 use Viewi\TemplateParser\TagItemType;
 
@@ -35,6 +36,8 @@ class TemplateCompiler
      * @var RenderItem[]
      */
     private array $slots;
+    private int $forIterationKey = 0;
+    private array $localScope = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -105,6 +108,12 @@ class TemplateCompiler
         }
     }
 
+    function getNextIterationKey(): string
+    {
+        ++$this->forIterationKey;
+        return "_key{$this->forIterationKey}";
+    }
+
     private function buildTag(TagItem &$tagItem)
     {
         $allChildren = $tagItem->getChildren();
@@ -119,12 +128,12 @@ class TemplateCompiler
         foreach ($allChildren as &$child) {
             if (!$child->Used) {
                 if ($child->Type->Name === TagItemType::Attribute) {
-                    // == IF ==
                     if (
                         $child->Content === 'if'
                         || $child->Content === 'else-if'
                         || $child->Content === 'else'
                     ) {
+                        // == IF ==
                         $child->Used = true;
                         $itsIf = $child->Content === 'if';
                         $itsElseIf = $child->Content === 'else-if';
@@ -171,8 +180,76 @@ class TemplateCompiler
                         $this->level--;
                         $this->code .= PHP_EOL . $this->i() . "}";
                         return;
+                        // == IF END ==
+                    } elseif ($child->Content === 'foreach') {
+                        // == FOREACH ==                        
+                        $child->Used = true;
+                        $foreachValues = $child->getChildren();
+                        if (count($foreachValues) === 0) {
+                            throw new Exception("foreach directive requires expression.");
+                        }
+                        $expression = '';
+                        foreach ($foreachValues as &$ifvalue) {
+                            $expression .= $ifvalue->Content;
+                        }
+                        $foreachTagValue = &$foreachValues[0];
+                        $foreachTagValue->ItsExpression = true;
+                        $foreachTagValue->Content = $expression;
+                        $child->setChildren([$foreachTagValue]);
+                        $foreachParts = explode(' as ', $expression);
+                        $phpCode = $foreachParts[0];
+                        $foreachTagValue->DataExpression = new DataExpression();
+                        $jsOutput = $this->jsTranspiler->convert($foreachParts[0], true, $this->_CompileJsComponentName, $this->localScope);
+                        $foreachTagValue->DataExpression->ForData = $jsOutput->__toString();
+
+                        $transforms = $jsOutput->getTransforms();
+                        foreach ($transforms as $input => $replacement) {
+                            if ($input[0] === '$') {
+                                $phpCode = preg_replace('/\$\b' . substr($input, 1) . '\b/', '$' . $replacement, $phpCode);
+                            } else {
+                                $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
+                            }
+                        }
+                        $foreachTagValue->PhpExpression = $phpCode;
+                        $foreachLoop = $foreachParts[1];
+                        $foreachAsParts = explode('=>', $foreachLoop);
+                        $prevScope = $this->localScope;
+                        if (count($foreachAsParts) > 1) {
+                            $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
+                            $foreachTagValue->DataExpression->ForKey = $jsOutput->__toString();
+                            $argument = trim($foreachAsParts[0]);
+                            if ($argument[0] === '$') {
+                                $argument = substr($argument, 1);
+                            }
+                            $this->localScope[$argument] = true;
+                            $jsOutput = $this->jsTranspiler->convert($foreachAsParts[1], true, null, $this->localScope);
+                            $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
+                            $argument = trim($foreachAsParts[1]);
+                            if ($argument[0] === '$') {
+                                $argument = substr($argument, 1);
+                            }
+                            $this->localScope[$argument] = true;
+                        } else {
+                            $foreachTagValue->DataExpression->ForKey = $this->getNextIterationKey();
+                            $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
+                            $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
+                            $argument = trim($foreachAsParts[0]);
+                            if ($argument[0] === '$') {
+                                $argument = substr($argument, 1);
+                            }
+                            $this->localScope[$argument] = true;
+                        }
+                        $this->flushBuffer();
+                        $this->code .= PHP_EOL . $this->i() . "foreach ({$foreachTagValue->PhpExpression} as $foreachLoop) {";
+                        $this->level++;
+                        $this->buildTag($tagItem);
+                        $this->flushBuffer();
+                        $this->level--;
+                        $this->code .= PHP_EOL . $this->i() . "}";
+                        $this->localScope = $prevScope;
+                        return;
+                        // == FOREACH END ==
                     }
-                    // == IF END ==
                     $attributes[] = $child;
                 } else {
                     $children[] = $child;
@@ -491,7 +568,7 @@ class TemplateCompiler
             return;
         }
         $phpCode = $tagItem->Content;
-        $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName);
+        $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
         $tagItem->JsExpression = $jsOutput->__toString();
         $transforms = $jsOutput->getTransforms();
         // Helpers::debug($transforms);
