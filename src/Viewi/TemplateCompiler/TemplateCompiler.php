@@ -52,7 +52,7 @@ class TemplateCompiler
         $renderFunctionTemplate = $this->template
             ?? ($this->template = str_replace('<?php', '', file_get_contents(Meta::renderFunctionPath())));
         $parts = explode("//#content", $renderFunctionTemplate, 2);
-        $this->code .= $parts[0];
+        $funcBegin = $parts[0];
         $renderFunction = "Render{$buildItem->ComponentName}$templateKey";
         if (!isset($this->slotsIndex[$renderFunction])) {
             $this->slotsIndex[$renderFunction] = -1;
@@ -61,8 +61,8 @@ class TemplateCompiler
         if ($this->slotsIndex[$renderFunction] > 0) {
             $renderFunction .= $this->slotsIndex[$renderFunction];
         }
-        $this->code = str_replace('BaseComponent $', ($buildItem->Namespace ?? '') . '\\' . $buildItem->ComponentName . ' $', $this->code);
-        $this->code = str_replace('RenderFunction', $renderFunction, $this->code);
+        $funcBegin = str_replace('BaseComponent $', ($buildItem->Namespace ?? '') . '\\' . $buildItem->ComponentName . ' $', $funcBegin);
+        $funcBegin = str_replace('RenderFunction', $renderFunction, $funcBegin);
 
         $this->buildTag($rootTag);
 
@@ -70,8 +70,7 @@ class TemplateCompiler
             $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
             $this->plainItems = [];
         }
-        $this->code .= $parts[1];
-        return new RenderItem($this->code, $renderFunction, $this->slots);
+        return new RenderItem($funcBegin . $this->code . $parts[1], !$this->code, $renderFunction, $this->slots);
     }
 
     private function reset()
@@ -243,20 +242,29 @@ class TemplateCompiler
                 $slotContentName = '_' . $rawComponentName . '_default';
                 $slotFunction = $this->compile($slotRoot, $this->buildItem, $slotContentName, $rawComponentName);
                 $this->restore($lastState);
-                $this->slots[] = ['default', $slotFunction];
                 $passThroughSlots = [];
                 $comma = '';
                 $this->level++;
-                foreach ($slotFunction->slots as $childSlot) {
-                    $this->slots[] = $childSlot;
-                    $slotKey = var_export($childSlot[0], true);
-                    $renderName = var_export($childSlot[1]->renderName, true);
-                    $passThroughSlots[] = "{$comma}$slotKey => $renderName";
+                $trackMap = [];
+                if (!$slotFunction->empty) {
+                    $this->slots[] = ['default', $slotFunction];
+                    $defaultRenderName = var_export($slotFunction->renderName, true);
+                    $passThroughSlots[] = "{$comma}'default' => $defaultRenderName";
+                    $trackMap = ['default' => true];
                     $comma = ',' . PHP_EOL . $this->i();
                 }
+                foreach ($slotFunction->slots as $childSlot) {
+                    $this->slots[] = $childSlot;
+                    if (!isset($trackMap[$childSlot[0]])) {
+                        $slotKey = var_export($childSlot[0], true);
+                        $renderName = var_export($childSlot[1]->renderName, true);
+                        $passThroughSlots[] = "{$comma}$slotKey => $renderName";
+                        $comma = ',' . PHP_EOL . $this->i();
+                    }
+                }
                 $this->level--;
-                $slotFunction->slots = [];
                 // Helpers::debug($slotFunction);
+                $slotFunction->slots = [];
                 // pass slots
                 $slotsMap = $passThroughSlots
                     ? "'component' => \$_component, 'map' => [" .
@@ -266,7 +274,7 @@ class TemplateCompiler
                 $props = $inputArguments
                     ? PHP_EOL . $this->i() . $this->indentationPattern . implode('', $inputArguments) . PHP_EOL . $this->i()
                     : '';
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap]);";
+                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap], \$_slots);";
                 if (!$expression) {
                     return;
                 }
@@ -314,7 +322,7 @@ class TemplateCompiler
                     }
                     $this->code .= PHP_EOL . $this->i() . "if (isset(\$_slots['map'][$slotContentName])) {";
                     $this->level++;
-                    $this->code .= PHP_EOL . $this->i() . "\$_engine->renderSlot(\$_slots['component'], \$_slots['map'][$slotContentName]);";
+                    $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderSlot(\$_slots['component'], \$_slots['map'][$slotContentName], \$_parentSlots);";
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "} else {";
                     $this->level++;
