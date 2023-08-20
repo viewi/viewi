@@ -2,6 +2,7 @@
 
 namespace Viewi\TemplateCompiler;
 
+use Exception;
 use Viewi\Builder\BuildItem;
 use Viewi\Helpers;
 use Viewi\JsTranspile\JsTranspiler;
@@ -66,10 +67,7 @@ class TemplateCompiler
 
         $this->buildTag($rootTag);
 
-        if (count($this->plainItems) > 0) {
-            $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-            $this->plainItems = [];
-        }
+        $this->flushBuffer();
         return new RenderItem($funcBegin . $this->code . $parts[1], !$this->code, $renderFunction, $this->slots);
     }
 
@@ -99,6 +97,14 @@ class TemplateCompiler
         $this->slots = $state['slots'];
     }
 
+    private function flushBuffer()
+    {
+        if (count($this->plainItems) > 0) {
+            $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
+            $this->plainItems = [];
+        }
+    }
+
     private function buildTag(TagItem &$tagItem)
     {
         $allChildren = $tagItem->getChildren();
@@ -111,10 +117,66 @@ class TemplateCompiler
          */
         $children = [];
         foreach ($allChildren as &$child) {
-            if ($child->Type->Name === TagItemType::Attribute) {
-                $attributes[] = $child;
-            } else {
-                $children[] = $child;
+            if (!$child->Used) {
+                if ($child->Type->Name === TagItemType::Attribute) {
+                    // == IF ==
+                    if (
+                        $child->Content === 'if'
+                        || $child->Content === 'else-if'
+                        || $child->Content === 'else'
+                    ) {
+                        $child->Used = true;
+                        $itsIf = $child->Content === 'if';
+                        $itsElseIf = $child->Content === 'else-if';
+                        $itsElse = $child->Content === 'else';
+                        // insert If
+                        $ifTagValue = null;
+                        if (!$itsElse) {
+                            $ifValues = $child->getChildren();
+                            if (count($ifValues) === 0) {
+                                throw new Exception("if/else-if/else directive requires expression.");
+                            }
+                            $expression = '';
+                            foreach ($ifValues as &$ifvalue) {
+                                $expression .= $ifvalue->Content;
+                            }
+                            $ifTagValue = &$ifValues[0];
+                            $ifTagValue->ItsExpression = true;
+                            $ifTagValue->Content = $expression;
+                            $child->setChildren([$ifTagValue]);
+                            $this->buildExpression($ifTagValue);
+                        }
+                        if ($itsElseIf || $itsElse) {
+                            // validate previous tag for if/else-if
+                            $plainCount = count($this->plainItems);
+                            if (
+                                $plainCount > 1
+                                || ($plainCount > 0 && trim(implode('', $this->plainItems)))
+                                || $this->code[strlen($this->code) - 1] !== '}'
+                            ) {
+                                throw new Exception("else-if/else directive requires previous if/else-if directive.");
+                            }
+                            $this->plainItems = [];
+                        } else {
+                            $this->flushBuffer();
+                        }
+                        if (!$itsElse) {
+                            $this->code .= ($itsElseIf ? ' else' : PHP_EOL . $this->i()) . "if ({$ifTagValue->PhpExpression}) {";
+                        } else {
+                            $this->code .= " else {";
+                        }
+                        $this->level++;
+                        $this->buildTag($tagItem);
+                        $this->flushBuffer();
+                        $this->level--;
+                        $this->code .= PHP_EOL . $this->i() . "}";
+                        return;
+                    }
+                    // == IF END ==
+                    $attributes[] = $child;
+                } else {
+                    $children[] = $child;
+                }
             }
         }
         $hasChildren = count($children) > 0;
@@ -136,6 +198,10 @@ class TemplateCompiler
         $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
         $nested = $root || $tag || $component || $slot || $slotContent;
+        // if directive
+        if ($nested) {
+        }
+
         if ($nested) {
             $isVoid = $tag && isset($this->voidTags[$tagItem->Content]);
 
@@ -143,27 +209,21 @@ class TemplateCompiler
                 if ($expression) {
                     // dynamic tag or component
                     $this->buildExpression($tagItem);
-                    if (count($this->plainItems) > 0) {
-                        $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                        $this->plainItems = [];
-                    }
+                    $this->flushBuffer();
                     $this->code .= PHP_EOL . $this->i() . "if (\$_engine->isComponent({$tagItem->PhpExpression})) {";
                     $this->level++;
                     $component = true;
                 }
             }
             if ($slotContent) {
-                if (count($this->plainItems) > 0) {
-                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                    $this->plainItems = [];
-                }
+                $this->flushBuffer();
                 $slotContentName = '\'default\'';
                 $slotContentRawName = 'default';
                 $slotAttribute = $this->extractAttribute('name', $attributes);
                 if ($slotAttribute !== null) {
-                    $nameValues = $slotAttribute->getChildren();
-                    if (count($nameValues) > 0) {
-                        $nameValue = $nameValues[0];
+                    $ifValue = $slotAttribute->getChildren();
+                    if (count($ifValue) > 0) {
+                        $nameValue = $ifValue[0];
                         if ($nameValue->ItsExpression) {
                             $this->buildExpression($nameValue);
                             $slotContentName = $nameValue->PhpExpression;
@@ -192,10 +252,7 @@ class TemplateCompiler
             }
             // == COMPONENT ==
             if ($component) {
-                if (count($this->plainItems)) {
-                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                    $this->plainItems = [];
-                }
+                $this->flushBuffer();
                 $componentName = $tagItem->PhpExpression ?? var_export($tagItem->Content, true);
                 $rawComponentName = $tagItem->ItsExpression ? 'X' : $tagItem->Content;
                 // pass props
@@ -302,16 +359,13 @@ class TemplateCompiler
 
             if (!$isVoid) {
                 if ($slot) {
-                    if (count($this->plainItems) > 0) {
-                        $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                        $this->plainItems = [];
-                    }
+                    $this->flushBuffer();
                     $slotContentName = '\'default\'';
                     $slotAttribute = $this->extractAttribute('name', $attributes);
                     if ($slotAttribute !== null) {
-                        $nameValues = $slotAttribute->getChildren();
-                        if (count($nameValues) > 0) {
-                            $nameValue = $nameValues[0];
+                        $ifValue = $slotAttribute->getChildren();
+                        if (count($ifValue) > 0) {
+                            $nameValue = $ifValue[0];
                             if ($nameValue->ItsExpression) {
                                 $this->buildExpression($nameValue);
                                 $slotContentName = $nameValue->PhpExpression;
@@ -343,19 +397,13 @@ class TemplateCompiler
                     }
                 }
                 if ($slot) {
-                    if (count($this->plainItems) > 0) {
-                        $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                        $this->plainItems = [];
-                    }
+                    $this->flushBuffer();
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "}";
                 }
                 if ($tag) {
                     if ($expression) {
-                        if (count($this->plainItems) > 0) {
-                            $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                            $this->plainItems = [];
-                        }
+                        $this->flushBuffer();
                         $this->code .= PHP_EOL . $this->i() . '$_content .= ' . "'</' . htmlentities({$tagItem->PhpExpression} ?? '') . '>'" . ';';
                         $this->level--;
                         $this->code .= PHP_EOL . $this->i() . "}";
@@ -389,10 +437,7 @@ class TemplateCompiler
         $childrenCount = count($children);
         if ($attributeItem->ItsExpression) {
             $this->buildExpression($attributeItem);
-            if (count($this->plainItems) > 0) {
-                $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                $this->plainItems = [];
-            }
+            $this->flushBuffer();
             $this->code .= PHP_EOL . $this->i() . "if ({$attributeItem->PhpExpression} && {$attributeItem->PhpExpression}[0] !== '(') {";
             $this->level++;
         } else {
@@ -403,10 +448,7 @@ class TemplateCompiler
         if ($childrenCount === 1 && $children[0]->ItsExpression) {
             $attributeValue = &$children[0];
             $this->buildExpression($attributeValue);
-            if (count($this->plainItems) > 0) {
-                $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                $this->plainItems = [];
-            }
+            $this->flushBuffer();
             $this->code .= PHP_EOL . $this->i() . "\$tempVal = {$attributeValue->PhpExpression};";
             $this->code .= PHP_EOL . $this->i() . 'if ($tempVal !== null) {';
             $this->level++;
@@ -436,10 +478,7 @@ class TemplateCompiler
             $this->plainItems[] = '"';
         }
         if ($attributeItem->ItsExpression) {
-            if (count($this->plainItems) > 0) {
-                $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-                $this->plainItems = [];
-            }
+            $this->flushBuffer();
             $this->level--;
             $this->code .= PHP_EOL . $this->i() . "}";
         }
@@ -468,10 +507,7 @@ class TemplateCompiler
     private function appendExpression(TagItem &$tagItem)
     {
         $this->buildExpression($tagItem);
-        if (count($this->plainItems) > 0) {
-            $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(implode('', $this->plainItems), true) . ';';
-            $this->plainItems = [];
-        }
+        $this->flushBuffer();
         $this->code .= PHP_EOL . $this->i() . '$_content .= ' . "htmlentities({$tagItem->PhpExpression} ?? '')" . ';';
     }
 
