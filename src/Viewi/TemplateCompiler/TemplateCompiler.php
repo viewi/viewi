@@ -186,6 +186,7 @@ class TemplateCompiler
         $tag = $tagItem->Type->Name === TagItemType::Tag;
         $slot = false;
         $slotContent = false;
+        $templateTag = false;
         if ($tag) {
             if ($tagItem->Content === 'slot') {
                 $slot = true;
@@ -193,14 +194,14 @@ class TemplateCompiler
             } elseif ($tagItem->Content === 'slotContent') {
                 $slotContent = true;
                 $tag = false;
+            } elseif ($tagItem->Content === 'template') {
+                $templateTag = true;
+                $tag = false;
             }
         }
         $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
-        $nested = $root || $tag || $component || $slot || $slotContent;
-        // if directive
-        if ($nested) {
-        }
+        $nested = $root || $tag || $component || $slot || $slotContent || $templateTag;
 
         if ($nested) {
             $isVoid = $tag && isset($this->voidTags[$tagItem->Content]);
