@@ -6,10 +6,10 @@ function RenderFunction(
     //BaseComponent 
     $_component,
     array $_slots,
-    array $_parentSlots
+    array $_scope
 ) {
-    $slotContents = [];
     $_content = '';
-    //#content   
+    //#content
+    // Viewi\Helpers::debug([__FUNCTION__, $_slots, $_scope]);
     return $_content;
 }

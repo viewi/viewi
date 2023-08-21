@@ -71,6 +71,18 @@ class TemplateCompiler
         $this->buildTag($rootTag);
 
         $this->flushBuffer();
+        if (count($this->localScope) > 0) {
+            $scopeVariables = '[';
+            $this->level++;
+            $comma = PHP_EOL . $this->i();
+            foreach ($this->localScope as $varName => $_) {
+                $scopeVariables .= "{$comma}'$varName' => \$$varName";
+                $comma = ',' . PHP_EOL . $this->i();
+            }
+            $this->level--;
+            $scopeVariables .= PHP_EOL . $this->i() . ']';
+            $funcBegin .= $scopeVariables . ' = $_scope;';
+        }
         return new RenderItem($funcBegin . $this->code . $parts[1], !$this->code, $renderFunction, $this->slots);
     }
 
@@ -400,16 +412,29 @@ class TemplateCompiler
                 $this->level--;
                 // Helpers::debug($slotFunction);
                 $slotFunction->slots = [];
-                // pass slots
-                $slotsMap = $passThroughSlots
-                    ? "'component' => \$_component, 'map' => [" .
-                    PHP_EOL . $this->i() . $this->indentationPattern . implode('', $passThroughSlots) . PHP_EOL . $this->i() .
-                    ']'
-                    : '';
                 $props = $inputArguments
                     ? PHP_EOL . $this->i() . $this->indentationPattern . implode('', $inputArguments) . PHP_EOL . $this->i()
                     : '';
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap], \$_slots);";
+
+                $scopeVariables = [];
+                $comma = '';
+                $this->level++;
+                foreach ($this->localScope as $varName => $_) {
+                    $scopeVariables[] = "{$comma}'$varName' => \$$varName";
+                    $comma = ',' . PHP_EOL . $this->i();
+                }
+                $this->level--;
+                $scope = $scopeVariables
+                    ? '$_scope + [' . PHP_EOL . $this->i() . $this->indentationPattern . implode('', $scopeVariables) . PHP_EOL . $this->i() . ']'
+                    : '$_scope';
+                // pass slots
+                $slotsMap = $passThroughSlots
+                    ? "'component' => \$_component, 'parent' => \$_slots, 'map' => [" .
+                    PHP_EOL . $this->i() . $this->indentationPattern . implode('', $passThroughSlots) . PHP_EOL . $this->i() .
+                    ']'
+                    : '';
+
+                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap], $scope);";
                 if (!$expression) {
                     return;
                 }
@@ -454,7 +479,7 @@ class TemplateCompiler
                     }
                     $this->code .= PHP_EOL . $this->i() . "if (isset(\$_slots['map'][$slotContentName])) {";
                     $this->level++;
-                    $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderSlot(\$_slots['component'], \$_slots['map'][$slotContentName], \$_parentSlots);";
+                    $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderSlot(\$_slots['component'], \$_scope, \$_slots['map'][$slotContentName], \$_slots['parent']);";
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "} else {";
                     $this->level++;
