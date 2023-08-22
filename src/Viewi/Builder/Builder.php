@@ -23,6 +23,7 @@ class Builder
      * @var array<string, BuildItem>
      */
     private array $components;
+
     private array $avaliableComponents;
     /**
      * 
@@ -95,7 +96,8 @@ class Builder
     /**
      * 
      * @param JsOutput $jsOutput 
-     * @param array<string, ExportItem> $exports 
+     * @param array<string, ExportItem> $exports
+     * @param bool $include
      * @return void 
      */
     private function collectExports(JsOutput $jsOutput, array $exports, bool $include = false)
@@ -114,6 +116,22 @@ class Builder
                         $this->components[$exportItem->Name]->Namespace = $exportItem->Attributes['namespace'];
                     }
                 }
+                $this->collectPublicNodes($this->components[$exportItem->Name], $exportItem->Children);
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param BuildItem $buildItem 
+     * @param array<string, ExportItem> $exports 
+     * @return void 
+     */
+    private function collectPublicNodes(BuildItem $buildItem, array $exports)
+    {
+        foreach ($exports as $exportItem) {
+            if ($exportItem->Type === ExportItem::Property || $exportItem->Type === ExportItem::Method) {
+                $buildItem->publicNodes[$exportItem->Name] = $exportItem->Type;
             }
         }
     }
@@ -174,7 +192,11 @@ class Builder
             if ($buildItem->TemplatePath !== null) {
                 $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
                 $template = $this->templateCompiler->compile($rootTag, $buildItem);
-                Helpers::debug($template);
+                foreach ($template->usedFunctions as $funcName => $_) {
+                    if (!isset($this->avaliableFunctions[$funcName])) {
+                        throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                    }
+                }
             }
 
             if ($buildItem->Include) {

@@ -13,6 +13,11 @@ class BuildItem
     public ?string $TemplatePath = null;
     /**
      * 
+     * @var array<string, string> see ExportItem
+     */
+    public array $publicNodes = [];
+    /**
+     * 
      * @var array<string, UseItem>> 
      */
     public array $Uses = [];

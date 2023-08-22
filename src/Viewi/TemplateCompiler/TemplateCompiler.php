@@ -5,6 +5,7 @@ namespace Viewi\TemplateCompiler;
 use Exception;
 use Viewi\Builder\BuildItem;
 use Viewi\Helpers;
+use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\Meta\Meta;
 use Viewi\TemplateParser\DataExpression;
@@ -38,6 +39,7 @@ class TemplateCompiler
     private array $slots;
     private int $forIterationKey = 0;
     private array $localScope = [];
+    private array $usedFunctions = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -48,9 +50,10 @@ class TemplateCompiler
         TagItem $rootTag, // template
         BuildItem $buildItem, // scope
         $templateKey = '', // for slots
-        ?string $parentComponentName = null // for slots
+        ?string $parentComponentName = null, // for slots
+        bool $resetAll = true
     ): RenderItem {
-        $this->reset();
+        $this->reset($resetAll);
         $this->buildItem = $buildItem;
         $this->parentComponentName = $parentComponentName;
         $renderFunctionTemplate = $this->template
@@ -83,15 +86,26 @@ class TemplateCompiler
             $scopeVariables .= PHP_EOL . $this->i() . ']';
             $funcBegin .= $scopeVariables . ' = $_scope;';
         }
-        return new RenderItem($funcBegin . $this->code . $parts[1], !$this->code, $renderFunction, $this->slots);
+        return new RenderItem(
+            $funcBegin . $this->code . $parts[1],
+            !$this->code,
+            $renderFunction,
+            $this->slots,
+            $this->usedFunctions
+        );
     }
 
-    private function reset()
+    private function reset(bool $all = true)
     {
         $this->code = '';
         $this->plainItems = [];
         $this->level = 1;
         $this->slots = [];
+        if ($all) {
+            $this->localScope = [];
+            $this->forIterationKey = 0;
+            $this->usedFunctions = [];
+        }
     }
 
     private function preserve(): array
@@ -333,7 +347,8 @@ class TemplateCompiler
                     $slotRoot,
                     $this->buildItem,
                     '_' . $this->parentComponentName . '_' . $slotContentRawName,
-                    $this->parentComponentName
+                    $this->parentComponentName,
+                    false
                 );
                 $this->restore($lastState);
                 $this->slots[] = [$slotContentRawName, $slotFunction];
@@ -387,7 +402,7 @@ class TemplateCompiler
                 $slotRoot->Type = new TagItemType(TagItemType::Root);
                 $slotRoot->setChildren($children);
                 $slotContentName = '_' . $rawComponentName . '_default';
-                $slotFunction = $this->compile($slotRoot, $this->buildItem, $slotContentName, $rawComponentName);
+                $slotFunction = $this->compile($slotRoot, $this->buildItem, $slotContentName, $rawComponentName, false);
                 $this->restore($lastState);
                 $passThroughSlots = [];
                 $comma = '';
@@ -481,7 +496,7 @@ class TemplateCompiler
                     $this->level++;
                     $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderSlot(\$_slots['component'], \$_scope, \$_slots['map'][$slotContentName], \$_slots['parent']);";
                     $this->level--;
-                    $this->code .= PHP_EOL . $this->i() . "} else {";
+                    $this->code .= PHP_EOL . $this->i() . ($hasChildren ? '} else {' : '}');
                     $this->level++;
                 }
                 if ($hasChildren) {
@@ -499,7 +514,7 @@ class TemplateCompiler
                         }
                     }
                 }
-                if ($slot) {
+                if ($slot && $hasChildren) {
                     $this->flushBuffer();
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . "}";
@@ -596,12 +611,27 @@ class TemplateCompiler
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
         $tagItem->JsExpression = $jsOutput->__toString();
         $transforms = $jsOutput->getTransforms();
-        // Helpers::debug($transforms);
         foreach ($transforms as $input => $replacement) {
             if ($input[0] === '$') {
-                $phpCode = preg_replace('/\$\b' . substr($input, 1) . '\b/', '$' . $replacement, $phpCode);
+                $propName = substr($input, 1);
+                if (
+                    isset($this->buildItem->publicNodes[$propName])
+                    && $this->buildItem->publicNodes[$propName] === ExportItem::Property
+                ) {
+                    $phpCode = preg_replace('/\$\b' . substr($input, 1) . '\b/', '$' . $replacement, $phpCode);
+                } else {
+                    throw new Exception("Access to undeclared public property $propName in {$this->buildItem->TemplatePath}.");
+                }
             } else {
-                $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
+                if (
+                    isset($this->buildItem->publicNodes[$input])
+                    && $this->buildItem->publicNodes[$input] === ExportItem::Method
+                ) {
+                    $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
+                } else {
+                    // probably call to a global function, collect and validate outside
+                    $this->usedFunctions[$input] = true;
+                }
             }
         }
         $tagItem->PhpExpression = $phpCode;
