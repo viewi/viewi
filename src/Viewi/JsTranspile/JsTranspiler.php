@@ -267,7 +267,13 @@ class JsTranspiler
                 foreach ($node->params as $param) {
                     $this->jsCode .= $comma . $param->var->name;
                     $comma = ', ';
+                    // TODO: declare js properties for promoted params
                     $this->localVariables[$param->var->name] = true;
+                    if ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$param->var->name] = ExportItem::NewProperty($param->var->name);
+                    } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                        $this->privateProperties[$param->var->name] = true;
+                    }
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
