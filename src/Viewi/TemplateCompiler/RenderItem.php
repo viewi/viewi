@@ -26,4 +26,13 @@ class RenderItem
     {
         return $this->renderCode;
     }
+
+    public function generatePhpContent(): string
+    {
+        $code = '<?php' . PHP_EOL . $this->renderCode;
+        foreach ($this->slots as $slotTuple) {
+            $code .= $slotTuple[1]->renderCode;
+        }
+        return $code;
+    }
 }
