@@ -3,6 +3,9 @@
 namespace Viewi\Builder;
 
 use Exception;
+use ReflectionClass;
+use ReflectionNamedType;
+use ReflectionProperty;
 use Viewi\ViewiPath;
 use Viewi\Helpers;
 use Viewi\JsTranspile\BaseFunction;
@@ -37,6 +40,13 @@ class Builder
     private array $usedFunctions;
     // Config placeholders
     private bool $shakeTree = true;
+    private string $buildPath = '';
+    // Keep it as associative array
+    /**
+     * 
+     * @var array{meta: array, components: array}
+     */
+    private array $meta = [];
 
     public function __construct()
     {
@@ -52,19 +62,22 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(string $entryPath, array $includes = [])
+    public function build(string $entryPath, array $includes, string $buildPath)
     {
         $this->reset();
+        $this->buildPath = $buildPath;
+        $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
         // 2. transpile to js and collect uses, props, methods and paths
         $this->avaliableComponents = [];
         $this->usedFunctions = [];
-        $this->avaliableFunctions = require ViewiPath::dir() . DIRECTORY_SEPARATOR . 'JsTranspile' . DIRECTORY_SEPARATOR . 'functions.php';
+        $this->avaliableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
         $this->collectComponents($entryPath, true);
         foreach ([...$includes, $this->getCoreComponentsPath()] as $path) {
             $this->collectComponents($path, !$this->shakeTree);
         }
+        // Helpers::debug($this->components);
         // 3. validate components and parse html templates
         // 4. validate and build template:
         //      render function, 
@@ -80,12 +93,16 @@ class Builder
         // Helpers::debug(array_flip(array_keys($this->components)));
         // Helpers::debug($this->avaliableComponents);
         // Helpers::debug($this->usedFunctions);
+        // create files
+        $this->makeFiles();
+        // Helpers::debug($this->meta);
         // Helpers::debug($this->components);
     }
 
     private function reset()
     {
         $this->components = [];
+        $this->meta = ['components' => [], 'map' => [], 'buildPath' => ''];
     }
 
     private function getCoreComponentsPath(): string
@@ -168,6 +185,19 @@ class Builder
         }
     }
 
+    private function collectExtends(BuildItem $buildItem, BuildItem $extendBuildItem)
+    {
+        if ($extendBuildItem->Extends != null) {
+            foreach ($extendBuildItem->Extends as $extendClass) {
+                if (!isset($this->components[$extendClass])) {
+                    throw new Exception("Class '$extendClass' can not be found."); // TODO: create exception classes                    
+                }
+                $buildItem->publicNodes = array_merge($this->components[$extendClass]->publicNodes, $buildItem->publicNodes);
+                $this->collectExtends($buildItem, $this->components[$extendClass]);
+            }
+        }
+    }
+
     private function validateAndParseTemplate(BuildItem $buildItem)
     {
         if (!$buildItem->Ready) {
@@ -187,6 +217,7 @@ class Builder
                     }
                 }
             }
+            $this->collectExtends($buildItem, $buildItem);
             // 3. parse and compile template if exists
             // 4. transpile and validate expressions
             if ($buildItem->TemplatePath !== null) {
@@ -197,11 +228,124 @@ class Builder
                         throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                     }
                 }
+                $buildItem->RenderFunction = $template;
             }
 
             if ($buildItem->Include) {
                 $this->collectIncludes($buildItem);
             }
         }
+    }
+
+    private function makeFiles()
+    {
+        $d = DIRECTORY_SEPARATOR;
+        if (!file_exists($this->buildPath)) {
+            mkdir($this->buildPath, 0777, true);
+        }
+        Helpers::removeDirectory($this->buildPath);
+        // $this->meta['buildPath'] = $this->buildPath;
+        foreach ($this->components as $buildItem) {
+            $componentMeta = [
+                'Namespace' => $buildItem->Namespace,
+                'Name' => $buildItem->ComponentName
+            ];
+            // dependencies, props
+            $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
+            $rf = new ReflectionClass($class);
+            $componentMeta['dependencies'] = $this->getDependencies($rf);
+            $componentMeta['inputs'] = $this->getProps($rf);
+            // template, render function
+            if ($buildItem->RenderFunction !== null) {
+                $renderRelativePath = $d .
+                    str_replace(array('/', '\\'), $d, ($buildItem->Namespace ?? ''));
+                $renderFunctionDir = $this->buildPath . $renderRelativePath;
+                $renderFunctionPath = $renderRelativePath . $d .
+                    $buildItem->ComponentName . '.php';
+                $componentMeta['Path'] = $renderFunctionPath;
+                $componentMeta['Function'] = $buildItem->RenderFunction->renderName;
+                if (!file_exists($renderFunctionDir)) {
+                    mkdir($renderFunctionDir, 0777, true);
+                }
+                $content = $buildItem->RenderFunction->generatePhpContent();
+                file_put_contents($this->buildPath . $renderFunctionPath, $content);
+                $this->meta['map'][$buildItem->RenderFunction->renderName] = $buildItem->ComponentName;
+                foreach ($buildItem->RenderFunction->slots as $slotTuple) {
+                    $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
+                }
+            }
+            $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
+        }
+        $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
+        file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
+    }
+
+
+    /**
+     * 
+     * @param ReflectionClass $reflectionClass 
+     * @return array 
+     */
+    private function getProps(ReflectionClass $reflectionClass): array
+    {
+        $inputs = [];
+        $props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
+        if (count($props) > 0) {
+            foreach ($props as $propertyInfo) {
+                $inputs[$propertyInfo->getName()] = true;
+            }
+        }
+        return $inputs;
+    }
+
+    /**
+     *
+     * @param ReflectionClass $reflectionClass
+     * @return array
+     * @throws ReflectionException
+     */
+    private function getDependencies(ReflectionClass $reflectionClass): array
+    {
+        $dependencies = [];
+        $constructor = $reflectionClass->getConstructor();
+        if ($constructor !== null) {
+            $constructorArgs = $constructor->getParameters();
+            if (!empty($constructorArgs)) {
+
+                foreach ($constructorArgs as $argument) {
+                    $argumentName = $argument->name;
+                    if ($argument->hasType()) {
+                        /** @var ReflectionNamedType $namedType */
+                        $namedType = $argument->getType();
+                        if ($namedType instanceof ReflectionNamedType) {
+                            $argumentClass = $argument->getType() && !$argument->getType()->isBuiltin()
+                                ? new ReflectionClass($argument->getType()->getName())
+                                : null; // check if class exists
+                            $dependencies[$argumentName] =
+                                [
+                                    'name' => $argumentClass ? $argumentClass->getShortName() : $namedType->getName()
+                                ];
+                            if ($argument->isOptional()) {
+                                $dependencies[$argumentName]['optional'] = 1;
+                            }
+                            if ($argument->isDefaultValueAvailable() && is_null($argumentClass)) {
+                                $dependencies[$argumentName]['default'] =
+                                    $argument->getDefaultValue();
+                            }
+                            if ($namedType->isBuiltin()) {
+                                $dependencies[$argumentName]['builtIn'] = 1;
+                            }
+                            if ($namedType->allowsNull()) {
+                                $dependencies[$argumentName]['null'] = 1;
+                            }
+                        }
+                    } else {
+                        throw new Exception("Argument '$argumentName' in class" .
+                            "{$reflectionClass->name}' can`t be resolved without a type in {$reflectionClass->getFileName()}.");
+                    }
+                }
+            }
+        }
+        return $dependencies;
     }
 }
