@@ -29,6 +29,24 @@ class Helpers
         return $results;
     }
 
+    /**
+     * 
+     * @param mixed $path 
+     * @param bool $removeRoot 
+     * @return void 
+     */
+    public static function removeDirectory($path, $removeRoot = false)
+    {
+        $files = glob($path . '/*');
+        foreach ($files as $file) {
+            is_dir($file) ? self::removeDirectory($file, true) : unlink($file);
+        }
+        if ($removeRoot) {
+            rmdir($path);
+        }
+        return;
+    }
+
     public static function debug($any, bool $checkEmpty = false): void
     {
         if ($checkEmpty && empty($any)) {
