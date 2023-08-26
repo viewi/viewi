@@ -227,6 +227,9 @@ class Builder
                     if (!isset($this->avaliableFunctions[$funcName])) {
                         throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                     }
+                    if (!isset($buildItem->Uses[$funcName])) {
+                        $buildItem->Uses[$funcName] = new UseItem([$funcName], UseItem::Function);
+                    }
                 }
                 $buildItem->RenderFunction = $template;
             }
@@ -244,6 +247,8 @@ class Builder
             mkdir($this->buildPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
+        $jsPath = $this->buildPath . $d . 'js';
+        mkdir($jsPath, 0777, true);
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
             $componentMeta = [
@@ -275,9 +280,27 @@ class Builder
                 }
             }
             $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
+            // javascript
+            $jsComponentPath = $jsPath . $d . $buildItem->ComponentName . '.js';
+            $jsComponentCode = '';
+            $comma = '';
+            foreach ($buildItem->Uses as $importName => $useItem) {
+                if ($useItem->Type === UseItem::Class_) {
+                    $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                } elseif ($useItem->Type === UseItem::Function) {
+                    $jsComponentCode .= "import { $importName } from \"./functions/$importName\";" . PHP_EOL;
+                }
+                $comma = PHP_EOL;
+            }
+            $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
+            $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
+            file_put_contents($jsComponentPath, $jsComponentCode);
+            // Helpers::debug($buildItem);
         }
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
+
+
     }
 
 

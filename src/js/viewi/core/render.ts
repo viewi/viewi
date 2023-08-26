@@ -33,3 +33,5 @@ export function render(target: HTMLElement, component: any) {
     ];
     console.log(component);
 }
+
+export { document };

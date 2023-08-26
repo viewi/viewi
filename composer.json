@@ -21,6 +21,11 @@
             "Viewi\\": "src/Viewi/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Components\\": "server/viewi-app/Components/"
+        }
+    },
     "bin": [
         "bin/viewi"
     ],

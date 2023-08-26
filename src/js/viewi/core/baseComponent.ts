@@ -5,6 +5,7 @@ export type TBaseComponent = {
     _slots: { [key: string]: any };
     _element?: HTMLElement | null,
     $$r: { [key: string]: Function },
+    $$p: TBaseComponent,
     emitEvent: (name: string, event?: any) => void
 }
 
@@ -12,7 +13,7 @@ export type TGBaseComponent<T> = TBaseComponent & {
     $$p: TBaseComponent & T
 }
 
-export function BaseComponent(this: TBaseComponent) {
+export function BaseComponent<T>(this: TGBaseComponent<T>) {
     this._props = {};
     this._refs = {};
     this._slots = {};

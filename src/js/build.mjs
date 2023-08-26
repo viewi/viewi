@@ -8,7 +8,7 @@ process.argv.forEach(function (val, index, array) {
       break;
     }
     default:
-      break; // non
+      break; // nop
   }
 });
 

@@ -42,7 +42,7 @@
 
   // viewi/core/makeProxy.ts
   function makeProxy(component) {
-    return new Proxy(component, {
+    const proxy = new Proxy(component, {
       set(obj, prop, value) {
         var react = obj[prop] !== value;
         var ret = Reflect.set(obj, prop, value);
@@ -50,13 +50,14 @@
         return ret;
       }
     });
+    proxy.$$p = proxy;
+    return proxy;
   }
 
   // viewi/tests/HomeComponent.ts
   function HomeComponent() {
     BaseComponent.apply(this);
     const $this = makeProxy(this);
-    this.$$p = $this;
     this.value = null;
     this.count = 0;
     this.dynamicTagOrComponent1 = "ListItem";
@@ -86,4 +87,68 @@
     render(target, homeComponent);
   }
   setInterval(() => homeComponent.count++, 1e3);
+  var baseComponent = {
+    create(child) {
+      const base = child || {};
+      base._name_ = "BaseComponent";
+      base._props = {};
+      base.$$r = {};
+      base.$$p = null;
+      base._refs = {};
+      base._slots = {};
+      base._element = null;
+      base.$_callbacks = {};
+      base.emitEvent = function(name, event) {
+        if (this.$_callbacks && name in this.$_callbacks) {
+          this.$_callbacks[name](event);
+        }
+      };
+      return base;
+    }
+  };
+  function makeProxy2(component) {
+    const proxy = new Proxy(component, {
+      set(obj, prop, value) {
+        var react = obj[prop] !== value;
+        var ret = Reflect.set(obj, prop, value);
+        react && prop in obj.$$r && obj.$$r[prop]();
+        return ret;
+      }
+    });
+    proxy.$$p = proxy;
+    return proxy;
+  }
+  var todoApp = {
+    create(child) {
+      let a = 1;
+      const base = child || {};
+      base._name_ = "TodoApp";
+      baseComponent.create(base);
+      const $this = makeProxy2(base);
+      base.count = 0;
+      base.text = "";
+      base.items = [];
+      base.handleSubmit = function(event) {
+        event.preventDefault();
+        if ($this.text.length == 0) {
+          return;
+        }
+        $this.items.push($this.text);
+        $this.text = "";
+      };
+      base.increment = function() {
+        $this.count++;
+        return ++a;
+      };
+      return $this;
+    }
+  };
+  var b = todoApp.create();
+  var c = todoApp.create();
+  b.$$r["count"] = () => console.log("Count has changed", b.count);
+  b.increment();
+  b.increment();
+  b.increment();
+  b.increment();
+  console.log(b.increment(), c.increment());
 })();

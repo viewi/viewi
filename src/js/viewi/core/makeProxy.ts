@@ -1,7 +1,7 @@
 import { TBaseComponent } from "./baseComponent";
 
 export function makeProxy<T>(component: T & TBaseComponent): T & TBaseComponent {
-    return new Proxy(component, {
+    const proxy = new Proxy(component, {
         set(obj, prop: string, value) {
             // console.log(arguments);
             var react = obj[prop] !== value;
@@ -10,4 +10,6 @@ export function makeProxy<T>(component: T & TBaseComponent): T & TBaseComponent 
             return ret;
         }
     });
+    proxy.$$p = proxy;
+    return proxy;
 }

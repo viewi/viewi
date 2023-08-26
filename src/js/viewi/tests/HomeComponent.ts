@@ -15,7 +15,6 @@ export type THomeComponent = {
 export function HomeComponent(this: THomeComponent & TGBaseComponent<THomeComponent>) {
     BaseComponent.apply(this);
     const $this = makeProxy(this);
-    this.$$p = $this;
     // props
     this.value = null;
     this.count = 0;
