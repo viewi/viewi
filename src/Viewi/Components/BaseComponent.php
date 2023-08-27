@@ -4,7 +4,7 @@ namespace Viewi\Components;
 
 abstract class BaseComponent
 {
-    public string $__id;
+    public string $__id = '';
     public array $_props = [];
     /**
      * 
