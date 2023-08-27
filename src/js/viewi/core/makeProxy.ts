@@ -1,6 +1,6 @@
-import { TBaseComponent } from "./baseComponent";
+import { BaseComponent } from "./BaseComponent";
 
-export function makeProxy<T>(component: T & TBaseComponent): T & TBaseComponent {
+export function makeProxy<T>(component: T & BaseComponent<T>): T {
     const proxy = new Proxy(component, {
         set(obj, prop: string, value) {
             // console.log(arguments);
@@ -10,6 +10,6 @@ export function makeProxy<T>(component: T & TBaseComponent): T & TBaseComponent 
             return ret;
         }
     });
-    proxy.$$p = proxy;
+    component.$ = component;
     return proxy;
 }

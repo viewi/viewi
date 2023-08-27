@@ -1,4 +1,4 @@
-import { BaseComponent, TBaseComponent, TGBaseComponent } from "../core/baseComponent";
+import { BaseComponent, TBaseComponent, TGBaseComponent } from "../core/BaseComponent";
 import { makeProxy } from "../core/makeProxy";
 
 export type THomeComponent = {

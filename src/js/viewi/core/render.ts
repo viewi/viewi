@@ -1,4 +1,4 @@
-import { TBaseComponent } from "./baseComponent";
+import { TBaseComponent } from "./BaseComponent";
 
 const document = globalThis.document as any as { 
     _c: (tagName: string, options?: ElementCreationOptions) => HTMLElement,
