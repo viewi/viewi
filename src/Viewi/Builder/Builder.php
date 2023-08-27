@@ -41,6 +41,7 @@ class Builder
     // Config placeholders
     private bool $shakeTree = true;
     private string $buildPath = '';
+    private string $jsPath = '';
     // Keep it as associative array
     /**
      * 
@@ -62,10 +63,11 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(string $entryPath, array $includes, string $buildPath)
+    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath)
     {
         $this->reset();
         $this->buildPath = $buildPath;
+        $this->jsPath = $jsPath;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -247,8 +249,14 @@ class Builder
             mkdir($this->buildPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
-        $jsPath = $this->buildPath . $d . 'js';
-        mkdir($jsPath, 0777, true);
+        $jsPath = $this->jsPath . $d . 'components';
+        $jsFunctionsPath = $this->jsPath . $d . 'functions';
+        if (!file_exists($jsPath)) {
+            mkdir($jsPath, 0777, true);
+        }
+        if (!file_exists($jsFunctionsPath)) {
+            mkdir($jsFunctionsPath, 0777, true);
+        }
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
             $componentMeta = [
@@ -288,7 +296,7 @@ class Builder
                 if ($useItem->Type === UseItem::Class_) {
                     $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
                 } elseif ($useItem->Type === UseItem::Function) {
-                    $jsComponentCode .= "import { $importName } from \"./functions/$importName\";" . PHP_EOL;
+                    $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
                 }
                 $comma = PHP_EOL;
             }
@@ -300,7 +308,13 @@ class Builder
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
 
-
+        // core PHP functions in JS
+        foreach ($this->usedFunctions as $functionName => $baseFunction) {
+            $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
+            $functionContent = $baseFunction::getJs();
+            $functionContent .= PHP_EOL . "export { $functionName }";
+            file_put_contents($functionPath, $functionContent);
+        }
     }
 
 
