@@ -63,6 +63,8 @@ class JsTranspiler
     private array $privateProperties = [];
     private $stmts;
     private ?string $currentClass = null;
+    private ?string $currentExtend = null;
+    private bool $currentConstructor = false;
     private ?string $currentMethod = null;
     private ?string $currentNamespace = null;
     private ?string $buffer = null;
@@ -95,6 +97,8 @@ class JsTranspiler
         $this->privateProperties = [];
         $this->localVariables = [];
         $this->currentClass = null;
+        $this->currentExtend = null;
+        $this->currentConstructor = false;
         $this->currentMethod = null;
         $this->currentNamespace = null;
         $this->buffer = null;
@@ -185,15 +189,26 @@ class JsTranspiler
                 // Helpers::debug($node);
                 // TODO: validation
             } else if ($node instanceof Class_) {
-                $this->jsCode .= "var {$node->name} = function() {" . PHP_EOL;
+                $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
+                $extendsCode = '';
+                $itsBase = false;
+                if ($node->extends !== null) {
+                    $exportItem->Attributes['extends'] = $node->extends->getParts();
+                    $extendClass = $exportItem->Attributes['extends'][0];
+                    $extendsCode = " extends $extendClass";
+                    $itsBase = $extendClass === 'BaseComponent';
+                    $this->currentExtend = $extendClass;
+                }
+                $this->jsCode .= "class {$node->name}{$extendsCode} {";
                 $this->level++;
                 $this->currentClass = $node->name;
                 $this->variablePaths[$this->currentClass] = [];
-                $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
-                if ($node->extends !== null) {
-                    $exportItem->Attributes['extends'] = $node->extends->getParts();
-                }
                 $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
+                if ($itsBase) {
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
+                        "_name = '{$node->name}';";
+                }
+
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -201,11 +216,12 @@ class JsTranspiler
                 }
                 // "var $this = this;
                 // $base(this);"
-                $this->jsCode .= "};" . PHP_EOL;
                 $this->membersCount = 0;
                 $this->privateProperties = [];
                 $this->level--;
+                $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "}" . PHP_EOL;
                 $this->currentClass = null;
+                $this->currentExtend = null;
             } else if ($node instanceof Property) {
                 $name = $node->props[0]->name->name;
                 $isStatic = $node->isStatic();
@@ -216,10 +232,10 @@ class JsTranspiler
                 } else {
                     $publicOrProtected = !$node->isPrivate();
                     if ($publicOrProtected) {
-                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = ";
+                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name = ";
                     } else {
                         $this->privateProperties[$name] = true;
-                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = ";
+                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "\$$name = ";
                     }
                     if ($node->isPublic()) {
                         $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name);
@@ -230,7 +246,7 @@ class JsTranspiler
                 } else {
                     $this->jsCode .= 'null';
                 }
-                $this->jsCode .= ';' . PHP_EOL;
+                $this->jsCode .= ';';
                 if ($isStatic) {
                     $this->unfork();
                     $this->level++;
@@ -240,20 +256,59 @@ class JsTranspiler
                 // TODO: track public/priv:protected
             } else if ($node instanceof ClassMethod) {
                 $name = $node->name->name;
+                $itsConstructor = false;
+                if ($name === '__construct') {
+                    $name = 'constructor';
+                    $itsConstructor = true;
+                    $this->currentConstructor = true;
+                }
+                $promotedParams = [];
                 $isStatic = $node->isStatic();
                 if ($isStatic) {
                     $this->fork();
                     $this->level--;
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . $this->currentClass . ".$name = function(";
                 } else {
+                    if ($itsConstructor) {
+                        foreach ($node->params as $param) {
+                            $paramName = $param->var->name;
+                            $argumentName = $param->var->name;
+                            if (
+                                ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC)
+                                || ($param->flags & Node\Stmt\Class_::MODIFIER_PROTECTED)
+                            ) {
+                                $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
+                                    "$paramName = null;";
+                            } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                                $paramName = '$' . $param->var->name;
+                                $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
+                                    "$paramName = null;";
+                            }
+                            if ($param->default !== null) {
+                                $promotedParams[$paramName] =
+                                    [
+                                        $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
+                                            'this.' . $paramName . " = $argumentName === undefined ? ",
+                                        $param->default,
+                                        " : $argumentName;" . PHP_EOL
+                                    ];
+                            } else {
+                                $promotedParams[$paramName] =
+                                    [
+                                        $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
+                                            'this.' . $paramName . " = $argumentName;" . PHP_EOL
+                                    ];
+                            }
+                        }
+                    }
                     if ($this->membersCount > 0) {
                         $this->jsCode .= PHP_EOL;
                     }
                     $publicOrProtected = !$node->isPrivate();
                     if ($publicOrProtected) {
-                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "this.$name = function(";
+                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name(";
                     } else {
-                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "var $name = function(";
+                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "\$$name(";
                         $this->privateProperties[$name] = true;
                     }
                     if ($node->isPublic()) {
@@ -269,23 +324,37 @@ class JsTranspiler
                     $comma = ', ';
                     // TODO: declare js properties for promoted params
                     $this->localVariables[$param->var->name] = true;
-                    if ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
-                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$param->var->name] = ExportItem::NewProperty($param->var->name);
-                    } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
-                        $this->privateProperties[$param->var->name] = true;
+                    if ($itsConstructor) {
+                        if ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+                            $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$param->var->name] = ExportItem::NewProperty($param->var->name);
+                        } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                            $this->privateProperties[$param->var->name] = true;
+                        }
                     }
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
+                if ($itsConstructor && $this->currentExtend !== null) {
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
+                }
+                if ($itsConstructor) {
+                    foreach ($promotedParams as $paramStmts) {
+                        $this->processStmts($paramStmts);
+                    }
+                }
                 if ($node->stmts !== null) {
                     $this->currentPath[] = "$name()";
                     $this->processStmts($node->stmts);
                     array_pop($this->currentPath);
                 }
+                if ($itsConstructor) {
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'this.$ = makeProxy(this);' . PHP_EOL;
+                }
                 $this->currentMethod = null;
+                $this->currentConstructor = false;
                 $this->localVariables = $allscopes;
                 $this->level--;
-                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "};" . PHP_EOL;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
                 if ($isStatic) {
                     $this->unfork();
                     $this->level++;
@@ -535,7 +604,7 @@ class JsTranspiler
                     $this->jsCode .= $this->objectRefName . '.';
                     $this->transforms['$' . $node->name] = $this->objectRefName . '->' . $node->name;
                 }
-                $this->jsCode .= $isThis ? '$this' : $node->name;
+                $this->jsCode .= $isThis ? ($this->currentConstructor ? 'this' : 'this.$') : $node->name;
                 // TODO: variable declaration
             } else if ($node instanceof Isset_) {
                 $comma = '';
