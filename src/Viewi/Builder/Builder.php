@@ -249,14 +249,16 @@ class Builder
             mkdir($this->buildPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
-        $jsPath = $this->jsPath . $d . 'components';
-        $jsFunctionsPath = $this->jsPath . $d . 'functions';
+        $jsPath = $this->jsPath . $d . 'app' . $d . 'components'; // TODO: clean up before
+        $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . 'functions'; // TODO: clean up before
         if (!file_exists($jsPath)) {
             mkdir($jsPath, 0777, true);
         }
         if (!file_exists($jsFunctionsPath)) {
             mkdir($jsFunctionsPath, 0777, true);
         }
+        $componentsIndexJs = '';
+        $componentsExportList = '';
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
             $componentMeta = [
@@ -303,17 +305,55 @@ class Builder
             $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
             $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
             file_put_contents($jsComponentPath, $jsComponentCode);
-            // Helpers::debug($buildItem);
+            $componentsIndexJs .= "import { {$buildItem->ComponentName} } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+            $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
         }
+        // export const components = {
+        //     Counter,
+        //     CounterReducer,
+        //     TodoReducer
+        // };
+
+        $componentsIndexJs .= PHP_EOL . "export const components = {{$componentsExportList}";
+        $componentsIndexJs .= $componentsExportList ? PHP_EOL . '};' : '};';
+
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
-
         // core PHP functions in JS
+        $functionsExportList = '';
+        $functionsIndexJs = '';
         foreach ($this->usedFunctions as $functionName => $baseFunction) {
             $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
             $functionContent = $baseFunction::getJs();
             $functionContent .= PHP_EOL . "export { $functionName }";
             file_put_contents($functionPath, $functionContent);
+            $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
+            $functionsExportList .= PHP_EOL . "    {$functionName},";
+        }
+        $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
+        $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
+        // components/index.js
+        // functions/index.js
+        file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
+        file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+
+        // Run NPM command
+        // TODO: watch mode
+        // TODO: no node mode (means no minfication and all the node features)
+        $npmFolder = $this->jsPath . $d;
+        $command = "npm --prefix $npmFolder run build 2>&1";
+        // $command = "npm run build 2>&1"; // test error
+        $lastLine = exec($command, $output, $result_code);
+        if ($result_code !== 0) {
+            Helpers::debug([$output, $lastLine, $result_code]);
+            $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
+            throw new Exception("NPM build failed: code $result_code $text");
+        }
+        $distJsFile = $this->jsPath . $d . 'dist' . $d . 'viewi.js';
+        // TODO: configurable paths
+        // TODO: configurable minify
+        if (!file_exists($distJsFile)) {
+            throw new Exception("Could not find Viewi build file at $distJsFile.");
         }
     }
 
