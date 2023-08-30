@@ -18,7 +18,8 @@ class TagItemType
         self::Component => 'c',
         self::Tag => 't',
         self::TextContent => 'x',
-        self::Comment => 'm'
+        self::Comment => 'm',
+        self::Root => 'r'
     ];
 
     public string $Name;

@@ -13,6 +13,7 @@ class TagItem
     private ?TagItem $Parent;
     public ?TagItem $DynamicChild;
     public ?string $JsExpression = null;
+    public ?int $JsExpressionCode = null;
     public ?string $PhpExpression = null;
     public ?string $PropValueExpression = null;
     public ?array $Subscriptions = null;
