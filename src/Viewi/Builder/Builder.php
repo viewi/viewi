@@ -14,6 +14,7 @@ use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\JsTranspile\UseItem;
 use Viewi\TemplateCompiler\TemplateCompiler;
+use Viewi\TemplateParser\TagItemConverter;
 use Viewi\TemplateParser\TemplateParser;
 
 class Builder
@@ -42,6 +43,7 @@ class Builder
     private bool $shakeTree = true;
     private string $buildPath = '';
     private string $jsPath = '';
+    private string $publicPath = '';
     // Keep it as associative array
     /**
      * 
@@ -63,11 +65,12 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath)
+    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath)
     {
         $this->reset();
         $this->buildPath = $buildPath;
         $this->jsPath = $jsPath;
+        $this->publicPath = $publicPath;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -234,6 +237,7 @@ class Builder
                     }
                 }
                 $buildItem->RenderFunction = $template;
+                $buildItem->RootTag = $rootTag;
             }
 
             if ($buildItem->Include) {
@@ -259,18 +263,27 @@ class Builder
         }
         $componentsIndexJs = '';
         $componentsExportList = '';
+        $publicJson = [];
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
             $componentMeta = [
                 'Namespace' => $buildItem->Namespace,
                 'Name' => $buildItem->ComponentName
             ];
+            $publicJson[$buildItem->ComponentName] = [];
             // dependencies, props
             $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
             $rf = new ReflectionClass($class);
             $componentMeta['dependencies'] = $this->getDependencies($rf);
+            if (count($componentMeta['dependencies']) > 0) {
+                $publicJson[$buildItem->ComponentName]['dependencies'] = [];
+                foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
+                    $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
+                }
+            }
             $componentMeta['inputs'] = $this->getProps($rf);
             // template, render function
+            $expressionsJs = '';
             if ($buildItem->RenderFunction !== null) {
                 $renderRelativePath = $d .
                     str_replace(array('/', '\\'), $d, ($buildItem->Namespace ?? ''));
@@ -288,25 +301,51 @@ class Builder
                 foreach ($buildItem->RenderFunction->slots as $slotTuple) {
                     $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
                 }
+                $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
+                // inline expressions
+                $exprComma = '';
+                foreach ($buildItem->RenderFunction->inlineExpressions as $code => $expression) {
+                    $expressionsJs .= $exprComma . "    function (_component) { return $expression; }";
+                    $exprComma = ',' . PHP_EOL;
+                }
             }
             $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
             // javascript
-            $jsComponentPath = $jsPath . $d . $buildItem->ComponentName . '.js';
-            $jsComponentCode = '';
-            $comma = '';
-            foreach ($buildItem->Uses as $importName => $useItem) {
-                if ($useItem->Type === UseItem::Class_) {
-                    $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
-                } elseif ($useItem->Type === UseItem::Function) {
-                    $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+            if ($buildItem->ComponentName !== 'BaseComponent') {
+                $jsComponentPath = $jsPath . $d . $buildItem->ComponentName . '.js';
+                $jsComponentCode = '';
+                $comma = '';
+                foreach ($buildItem->Uses as $importName => $useItem) {
+                    if ($useItem->Type === UseItem::Class_) {
+                        if ($importName === 'BaseComponent') {
+                            $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/BaseComponent";' . PHP_EOL;
+                        } else {
+                            $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                        }
+                    } elseif ($useItem->Type === UseItem::Function) {
+                        $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+                    }
+                    $comma = PHP_EOL;
                 }
-                $comma = PHP_EOL;
+                // if ($buildItem->RenderFunction !== null) {
+                //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
+                //     $comma = PHP_EOL;
+                // }
+                $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
+                $expressionsImport = '';
+                if ($expressionsJs !== '') {
+                    $expressionName = $buildItem->ComponentName . '_x';
+                    $expressionsJs = PHP_EOL . $expressionsJs . PHP_EOL;
+                    $jsComponentCode .= $comma .
+                        "export const $expressionName = [$expressionsJs];" . PHP_EOL;
+                    $componentsExportList .= PHP_EOL . "    $expressionName,";
+                    $expressionsImport = ", $expressionName";
+                }
+                $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
+                file_put_contents($jsComponentPath, $jsComponentCode);
+                $componentsIndexJs .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+                $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
             }
-            $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
-            $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
-            file_put_contents($jsComponentPath, $jsComponentCode);
-            $componentsIndexJs .= "import { {$buildItem->ComponentName} } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
-            $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
         }
         // export const components = {
         //     Counter,
@@ -336,11 +375,14 @@ class Builder
         // functions/index.js
         file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
         file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
-
+        $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
+        file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
         // Run NPM command
         // TODO: watch mode
         // TODO: no node mode (means no minfication and all the node features)
         $npmFolder = $this->jsPath . $d;
+        $currentDir = getcwd();
+        chdir($npmFolder);
         $command = "npm --prefix $npmFolder run build 2>&1";
         // $command = "npm run build 2>&1"; // test error
         $lastLine = exec($command, $output, $result_code);
@@ -350,11 +392,15 @@ class Builder
             throw new Exception("NPM build failed: code $result_code $text");
         }
         $distJsFile = $this->jsPath . $d . 'dist' . $d . 'viewi.js';
+        copy($this->jsPath . $d . 'components.json', $this->jsPath . $d . 'dist' . $d . 'components.json');
         // TODO: configurable paths
         // TODO: configurable minify
         if (!file_exists($distJsFile)) {
             throw new Exception("Could not find Viewi build file at $distJsFile.");
         }
+        chdir($currentDir);
+        copy($distJsFile, $this->publicPath . $d . 'app.js');
+        copy($this->jsPath . $d . 'components.json', $this->publicPath . $d . 'components.json');
     }
 
 
