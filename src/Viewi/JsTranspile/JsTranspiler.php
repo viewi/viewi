@@ -208,6 +208,7 @@ class JsTranspiler
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                         "_name = '{$node->name}';";
                 }
+                // $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '$ = makeProxy(this);' . PHP_EOL;
 
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
@@ -346,9 +347,6 @@ class JsTranspiler
                     $this->currentPath[] = "$name()";
                     $this->processStmts($node->stmts);
                     array_pop($this->currentPath);
-                }
-                if ($itsConstructor) {
-                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'this.$ = makeProxy(this);' . PHP_EOL;
                 }
                 $this->currentMethod = null;
                 $this->currentConstructor = false;
