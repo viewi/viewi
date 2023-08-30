@@ -40,6 +40,7 @@ class TemplateCompiler
     private int $forIterationKey = 0;
     private array $localScope = [];
     private array $usedFunctions = [];
+    private array $inlineExpressions = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -91,7 +92,8 @@ class TemplateCompiler
             !$this->code,
             $renderFunction,
             $this->slots,
-            $this->usedFunctions
+            $this->usedFunctions,
+            $this->inlineExpressions
         );
     }
 
@@ -105,6 +107,7 @@ class TemplateCompiler
             $this->localScope = [];
             $this->forIterationKey = 0;
             $this->usedFunctions = [];
+            $this->inlineExpressions = [];
         }
     }
 
@@ -630,10 +633,13 @@ class TemplateCompiler
                     $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
                 } else {
                     // probably call to a global function, collect and validate outside
+                    $tagItem->JsExpression = preg_replace('/\b_component.' . $input . '\b/', $input, $tagItem->JsExpression);
                     $this->usedFunctions[$input] = true;
                 }
             }
         }
+        $this->inlineExpressions[] = $tagItem->JsExpression;
+        $tagItem->JsExpressionCode = count($this->inlineExpressions) - 1;
         $tagItem->PhpExpression = $phpCode;
     }
 

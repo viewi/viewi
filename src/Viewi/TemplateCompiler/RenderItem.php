@@ -18,7 +18,8 @@ class RenderItem
         public bool $empty,
         public string $renderName,
         public array $slots,
-        public array $usedFunctions
+        public array $usedFunctions,
+        public array $inlineExpressions
     ) {
     }
 
