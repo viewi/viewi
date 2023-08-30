@@ -1,5 +1,5 @@
 import { TodoReducer } from "./TodoReducer";
-import { BaseComponent } from "./BaseComponent";
+import { BaseComponent } from "../../viewi/core/BaseComponent";
 import { strlen } from "../functions/strlen";
 import { count } from "../functions/count";
 
@@ -11,7 +11,6 @@ class StatefulTodoApp extends BaseComponent {
     constructor(todo) {
         super();
         this.todo = todo;
-        this.$ = makeProxy(this);
     }
 
     handleSubmit(event) {
@@ -23,5 +22,11 @@ class StatefulTodoApp extends BaseComponent {
         this.$.text = '';
     }
 }
+
+export const StatefulTodoApp_x = [
+    function (_component) { return _component.text; },
+    function (_component) { return count(_component.todo.items) + 1; },
+    function (_component) { return _component.todo.items; }
+];
 
 export { StatefulTodoApp }

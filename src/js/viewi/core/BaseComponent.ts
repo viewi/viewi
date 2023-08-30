@@ -4,7 +4,7 @@ export abstract class BaseComponent<T> {
     _refs: { [key: string]: HTMLElement } = {};
     _slots: { [key: string]: any } = {};
     _element: HTMLElement | null = null;
-    $$r: { [key: string]: Function } = {};
+    $$r: Function[] = [];
     $: T;
     _name: string = 'BaseComponent';
     emitEvent(name: string, event?: any) {

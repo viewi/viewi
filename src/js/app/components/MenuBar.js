@@ -1,4 +1,4 @@
-import { BaseComponent } from "./BaseComponent";
+import { BaseComponent } from "../../viewi/core/BaseComponent";
 
 class MenuBar extends BaseComponent {
     _name = 'MenuBar';
