@@ -3,10 +3,10 @@
   var CounterReducer = class {
     count = 0;
     increment() {
-      this.$.count++;
+      this.count++;
     }
     decrement() {
-      this.$.count--;
+      this.count--;
     }
   };
 
@@ -14,7 +14,7 @@
   var TodoReducer = class {
     items = [];
     addNewItem(text) {
-      this.$.items.push(text);
+      this.items.push(text);
     }
   };
 
@@ -25,7 +25,10 @@
     _refs = {};
     _slots = {};
     _element = null;
-    $$r = [];
+    $$t = [];
+    // template inline expressions
+    $$r = {};
+    // reactivity callbacks
     $;
     _name = "BaseComponent";
     emitEvent(name, event) {
@@ -52,18 +55,43 @@
     count = 0;
     message = "My message";
     increment() {
-      this.$.count++;
+      this.count++;
+      this.message += "!";
     }
     decrement() {
-      this.$.count--;
+      this.count--;
     }
   };
   var Counter_x = [
+    function(_component) {
+      return function(event) {
+        _component.decrement();
+      };
+    },
+    function(_component) {
+      return _component.message;
+    },
+    function(_component) {
+      return _component.count % 10 + 12;
+    },
     function(_component) {
       return _component.count;
     },
     function(_component) {
       return strlen(_component.message);
+    },
+    function(_component) {
+      return function(event) {
+        _component.increment();
+      };
+    },
+    function(_component) {
+      return function(event) {
+        _component.increment(event);
+      };
+    },
+    function(_component) {
+      return _component.increment.bind(_component);
     }
   ];
 
@@ -119,15 +147,25 @@
       this.counter = new CounterReducer();
     }
     $calculate() {
-      this.$.count++;
+      this.count++;
     }
   };
   var StatefulCounter_x = [
+    function(_component) {
+      return function(event) {
+        _component.counter.decrement();
+      };
+    },
     function(_component) {
       return _component.__id;
     },
     function(_component) {
       return _component.counter.count;
+    },
+    function(_component) {
+      return function(event) {
+        _component.counter.increment();
+      };
     }
   ];
 
@@ -168,14 +206,19 @@
     }
     handleSubmit(event) {
       event.preventDefault();
-      if (strlen(this.$.text) == 0) {
+      if (strlen(this.text) == 0) {
         return;
       }
-      this.$.todo.addNewItem(this.$.text);
-      this.$.text = "";
+      this.todo.addNewItem(this.text);
+      this.text = "";
     }
   };
   var StatefulTodoApp_x = [
+    function(_component) {
+      return function(event) {
+        _component.handleSubmit(event);
+      };
+    },
     function(_component) {
       return _component.text;
     },
@@ -194,14 +237,19 @@
     items = [];
     handleSubmit(event) {
       event.preventDefault();
-      if (strlen(this.$.text) == 0) {
+      if (strlen(this.text) == 0) {
         return;
       }
-      this.$.items.push(this.$.text);
-      this.$.text = "";
+      this.items.push(this.text);
+      this.text = "";
     }
   };
   var TodoApp_x = [
+    function(_component) {
+      return function(event) {
+        _component.handleSubmit(event);
+      };
+    },
     function(_component) {
       return _component.text;
     },
@@ -220,7 +268,7 @@
   };
   var TodoList_x = [
     function(_component) {
-      return item;
+      return _component.item;
     }
   ];
 
@@ -254,7 +302,12 @@
       set(obj, prop, value) {
         var react = obj[prop] !== value;
         var ret = Reflect.set(obj, prop, value);
-        react && prop in obj.$$r && obj.$$r[prop]();
+        if (react && prop in obj.$$r) {
+          for (let i in obj.$$r[prop]) {
+            const callbackFunc = obj.$$r[prop][i];
+            callbackFunc[0].apply(null, callbackFunc[1]);
+          }
+        }
         return ret;
       }
     });
@@ -263,9 +316,9 @@
   }
 
   // viewi/core/unpack.ts
-  function unpack(item2) {
+  function unpack(item) {
     let nodeType = "value";
-    switch (item2.t) {
+    switch (item.t) {
       case "t": {
         nodeType = "tag";
         break;
@@ -291,26 +344,36 @@
         nodeType = "comment";
         break;
       }
+      case "r": {
+        nodeType = "root";
+        break;
+      }
       default:
-        throw new Error("Type " + item2.t + " is not defined in build");
+        throw new Error("Type " + item.t + " is not defined in build");
     }
-    item2.type = nodeType;
-    delete item2.t;
-    if (item2.c) {
-      item2.content = item2.c;
-      delete item2.c;
+    item.type = nodeType;
+    delete item.t;
+    if (item.c) {
+      item.content = item.c;
+      delete item.c;
     }
-    if (item2.e) {
-      item2.expression = item2.e;
-      delete item2.e;
+    if (item.e) {
+      item.expression = item.e;
+      delete item.e;
     }
-    if (item2.a) {
-      item2.attributes = item2.a;
-      delete item2.a;
+    if (item.a) {
+      item.attributes = item.a;
+      delete item.a;
+      for (let i in item.attributes) {
+        unpack(item.attributes[i]);
+      }
     }
-    if (item2.h) {
-      item2.children = item2.h;
-      delete item2.h;
+    if (item.h) {
+      item.children = item.h;
+      delete item.h;
+      for (let i in item.children) {
+        unpack(item.children[i]);
+      }
     }
     ;
   }
@@ -323,15 +386,28 @@
   globalThis.Viewi = Viewi;
   console.log("Viewi entry");
   var counterTarget = document.getElementById("counter");
+  function renderAttributeValue(instance, attribute, element, attrName) {
+    let valueContent = null;
+    if (attribute.children) {
+      valueContent = "";
+      for (let av in attribute.children) {
+        const attributeValue = attribute.children[av];
+        valueContent += (attributeValue.expression ? instance.$$t[attributeValue.code](instance) : attributeValue.content) ?? "";
+      }
+    }
+    if (valueContent !== null) {
+      element.setAttribute(attrName, valueContent);
+    }
+  }
+  function renderText(instance, node, textNode) {
+    const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+    textNode.nodeValue = content;
+  }
   function render(target, instance, nodes) {
     for (let i in nodes) {
       const node = nodes[i];
-      if (!node.unpacked) {
-        unpack(node);
-        node.unpacked = true;
-      }
       let element = target;
-      let content = node.expression ? instance.$$r[node.code](instance) : node.content ?? "";
+      const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
       switch (node.type) {
         case "tag": {
           element = document.createElement(content);
@@ -342,11 +418,55 @@
         case "text": {
           const textNode = document.createTextNode(content);
           target.appendChild(textNode);
-          console.log("text", node);
+          renderText(instance, node, textNode);
+          if (node.subs) {
+            for (let subI in node.subs) {
+              const trackingPath = node.subs[subI];
+              if (!instance.$$r[trackingPath]) {
+                instance.$$r[trackingPath] = [];
+              }
+              instance.$$r[trackingPath].push([renderText, [instance, node, textNode]]);
+            }
+          }
           break;
         }
         default: {
+          console.log("No implemented", node);
           break;
+        }
+      }
+      if (node.attributes) {
+        for (let a in node.attributes) {
+          const attribute = node.attributes[a];
+          const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
+          if (attrName[0] === "(") {
+            const eventName = attrName.substring(1, attrName.length - 1);
+            if (attribute.children) {
+              const eventHandler = instance.$$t[attribute.children[0].code](instance);
+              element.addEventListener(eventName, eventHandler);
+              console.log("Event", attribute, eventName, eventHandler);
+            }
+          } else {
+            renderAttributeValue(instance, attribute, element, attrName);
+            let valueSubs = [];
+            if (attribute.children) {
+              for (let av in attribute.children) {
+                const attributeValue = attribute.children[av];
+                if (attributeValue.subs) {
+                  valueSubs = valueSubs.concat(attributeValue.subs);
+                }
+              }
+            }
+            if (valueSubs) {
+              for (let subI in valueSubs) {
+                const trackingPath = valueSubs[subI];
+                if (!instance.$$r[trackingPath]) {
+                  instance.$$r[trackingPath] = [];
+                }
+                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
+              }
+            }
+          }
         }
       }
       if (node.children) {
@@ -365,10 +485,14 @@
     const instance = makeProxy(new components[name]());
     const inlineExpressions = name + "_x";
     if (inlineExpressions in components) {
-      instance.$$r = components[inlineExpressions];
+      instance.$$t = components[inlineExpressions];
     }
     if (counterTarget && root) {
-      const rootChildren = root.h;
+      if (!root.unpacked) {
+        unpack(root);
+        root.unpacked = true;
+      }
+      const rootChildren = root.children;
       console.log(counterTarget, instance, rootChildren);
       rootChildren && render(counterTarget, instance, rootChildren);
     }
