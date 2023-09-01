@@ -1,6 +1,6 @@
-import { Node, NodeType } from "./node";
+import { TemplateNode, NodeType } from "./node";
 
-export function unpack(item: Node) {
+export function unpack(item: TemplateNode) {
     let nodeType: NodeType = 'value';
     switch (item.t) {
         case 't': {
@@ -28,6 +28,10 @@ export function unpack(item: Node) {
             nodeType = 'comment';
             break;
         }
+        case 'r': {
+            nodeType = 'root';
+            break;
+        }
         default:
             throw new Error("Type " + item.t + " is not defined in build");
     }
@@ -44,9 +48,15 @@ export function unpack(item: Node) {
     if (item.a) {
         item.attributes = item.a;
         delete item.a;
+        for (let i in item.attributes) {
+            unpack(item.attributes[i]);
+        }
     }
     if (item.h) {
         item.children = item.h;
         delete item.h;
+        for (let i in item.children) {
+            unpack(item.children[i]);
+        }
     };
 }

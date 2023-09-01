@@ -1,10 +1,13 @@
+import { TemplateNode } from "./node";
+
 export abstract class BaseComponent<T> {
     _props: { [key: string]: any } = {};
     $_callbacks: { [key: string]: Function } = {};
     _refs: { [key: string]: HTMLElement } = {};
     _slots: { [key: string]: any } = {};
     _element: HTMLElement | null = null;
-    $$r: Function[] = [];
+    $$t: Function[] = []; // template inline expressions
+    $$r: { [key: string]: [Function, any[]][] } = {}; // reactivity callbacks
     $: T;
     _name: string = 'BaseComponent';
     emitEvent(name: string, event?: any) {

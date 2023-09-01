@@ -1,7 +1,7 @@
-export type NodeType = 'tag' | 'attr' | 'value' | 'component' | 'text' | 'comment' | undefined;
-export type NodeTypePacked = 't' | 'a' | 'v' | 'x' | 'm' | 'c' | undefined;
+export type NodeType = 'tag' | 'attr' | 'value' | 'component' | 'text' | 'comment' | 'root' | undefined;
+export type NodeTypePacked = 't' | 'a' | 'v' | 'x' | 'm' | 'c' | 'r' | undefined;
 
-export type Node = {
+export type TemplateNode = {
     t: NodeTypePacked,
     type: NodeType,
     c?: string,
@@ -11,16 +11,16 @@ export type Node = {
     e?: boolean,
     expression?: boolean,
     raw?: boolean,
-    h?: Node[],
-    children?: Node[],
-    a?: Node[],
-    attributes?: Node[],
+    h?: TemplateNode[],
+    children?: TemplateNode[],
+    a?: TemplateNode[],
+    attributes?: TemplateNode[],
     unpacked?: boolean,
     func: Function
 }
 
 export type ComponentMeta = {
     [key: string]: {
-        nodes?: Node
+        nodes?: TemplateNode
     }
 }
