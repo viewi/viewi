@@ -480,9 +480,9 @@ class JsTranspiler
                     $this->jsCode .= $node->name->name;
                 } else {
                     $this->propertyFetchQueue[] = $node->name->name;
-                    if ($isThis) {
-                        $this->propertyFetchQueue[] = 'this';
-                    }
+                    // if ($isThis) {
+                    //     $this->propertyFetchQueue[] = 'this';
+                    // }
                     $this->processStmts([$node->var]);
                     $this->jsCode .= '.' . $node->name->name;
                     if ($isThis) {
@@ -602,7 +602,10 @@ class JsTranspiler
                     $this->jsCode .= $this->objectRefName . '.';
                     $this->transforms['$' . $node->name] = $this->objectRefName . '->' . $node->name;
                 }
-                $this->jsCode .= $isThis ? ($this->currentConstructor ? 'this' : 'this.$') : $node->name;
+                $this->jsCode .= $isThis ? ($this->currentConstructor ? 'this' : 'this') : $node->name;
+                if ($this->inlineExpression) {
+                    $this->variablePaths[$node->name] = true;
+                }
                 // TODO: variable declaration
             } else if ($node instanceof Isset_) {
                 $comma = '';
@@ -668,7 +671,7 @@ class JsTranspiler
                 } else {
                     $this->processStmts([$node->expr]);
                 }
-                if (!$this->inlineExpression) {
+                if (!$this->inlineExpression || $this->level > 0) {
                     $this->jsCode .= ';' . PHP_EOL;
                 }
             } else if ($node instanceof Concat) {

@@ -40,6 +40,11 @@ class JsOutput
         return $this->transforms;
     }
 
+    public function getDeps(): array
+    {
+        return $this->varDeps;
+    }
+
     public function __toString(): string
     {
         return $this->jsCode;
