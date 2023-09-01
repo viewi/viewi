@@ -563,6 +563,24 @@ class TemplateCompiler
             $this->level++;
         } else {
             if (!$attributeItem->Content || $attributeItem->Content[0] === '(') {
+                $expression = '';
+                foreach ($children as &$subValue) {
+                    $expression .= $subValue->Content;
+                }
+                $attributeTagValue = &$children[0];
+                $attributeTagValue->ItsExpression = true;
+                $attributeTagValue->Content = $expression;
+                $attributeItem->setChildren([$attributeTagValue]);
+                $this->localScope['event'] = true;
+                $this->buildExpression($attributeTagValue);
+                array_pop($this->localScope);
+                $jsEventCode = array_pop($this->inlineExpressions);
+                if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
+                    $jsEventCode = "function (event) { $jsEventCode; }";
+                } else {
+                    $jsEventCode = "$jsEventCode.bind(_component)";
+                }
+                $this->inlineExpressions[] = $jsEventCode;
                 return; // event is handled on front-end only
             }
         }
@@ -605,6 +623,30 @@ class TemplateCompiler
         }
     }
 
+    private function collectSubscriptions(array $subs, array &$classSubs)
+    {
+        $result = [];
+        $repeat = true;
+        while ($repeat) {
+            $repeat = false;
+            $pending = $subs;
+            foreach ($pending as $name => $_1) {
+                if (!isset($result[$name])) {
+                    $result[$name] = true;
+
+                    foreach ($classSubs as $className => $methods) {
+                        if (isset($methods[$name])) {
+                            $repeat = true;
+                            $subs = array_merge($methods[$name], $subs);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
     private function buildExpression(TagItem &$tagItem)
     {
         if ($tagItem->PhpExpression) {
@@ -625,12 +667,22 @@ class TemplateCompiler
                 } else {
                     throw new Exception("Access to undeclared public property $propName in {$this->buildItem->TemplatePath}.");
                 }
+                if ($tagItem->Subscriptions === null) {
+                    $tagItem->Subscriptions = [];
+                }
+                $subs = $jsOutput->getDeps();
+                $classSubs = $this->buildItem->JsOutput->getDeps();
+                $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
             } else {
                 if (
                     isset($this->buildItem->publicNodes[$input])
                     && $this->buildItem->publicNodes[$input] === ExportItem::Method
                 ) {
                     $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
+                    $subs = $jsOutput->getDeps();
+                    $subs[$input] = true;
+                    $classSubs = $this->buildItem->JsOutput->getDeps();
+                    $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
                 } else {
                     // probably call to a global function, collect and validate outside
                     $tagItem->JsExpression = preg_replace('/\b_component.' . $input . '\b/', $input, $tagItem->JsExpression);
@@ -638,6 +690,11 @@ class TemplateCompiler
                 }
             }
         }
+        if (ctype_alnum(str_replace('_', '', $tagItem->JsExpression))) { // method
+            $tagItem->JsExpression = $this->_CompileJsComponentName .
+                '.' . $tagItem->JsExpression;
+        }
+
         $this->inlineExpressions[] = $tagItem->JsExpression;
         $tagItem->JsExpressionCode = count($this->inlineExpressions) - 1;
         $tagItem->PhpExpression = $phpCode;
