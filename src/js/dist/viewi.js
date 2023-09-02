@@ -69,9 +69,6 @@
       };
     },
     function(_component) {
-      return _component.message;
-    },
-    function(_component) {
       return _component.count % 10 + 12;
     },
     function(_component) {
@@ -92,6 +89,9 @@
     },
     function(_component) {
       return _component.increment.bind(_component);
+    },
+    function(_component) {
+      return _component.message;
     }
   ];
 
@@ -401,24 +401,80 @@
   }
   function renderText(instance, node, textNode) {
     const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-    textNode.nodeValue = content;
+    textNode.nodeValue !== content && (textNode.nodeValue = content);
+  }
+  var anchorId = 0;
+  var anchors = {};
+  function getAnchor(target) {
+    if (!target.__aid) {
+      target.__aid = ++anchorId;
+      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
+    }
+    return anchors[target.__aid];
+  }
+  function hydrateTag(target, tag) {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+      const potentialNode = target.childNodes[i];
+      if (potentialNode.nodeType === 1 && potentialNode.nodeName.toLowerCase() === tag) {
+        anchor.current = i;
+        anchor.invalid = anchor.invalid.concat(invalid);
+        console.log("Hydrate match", potentialNode);
+        return potentialNode;
+      }
+      invalid.push(i);
+    }
+    anchor.added++;
+    console.log("Hydrate not found", tag);
+    return target.appendChild(document.createElement(tag));
+  }
+  function hydrateText(target, instance, node) {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length - anchor.added;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+      const potentialNode = target.childNodes[i];
+      if (potentialNode.nodeType === 3) {
+        anchor.current = i;
+        anchor.invalid = anchor.invalid.concat(invalid);
+        renderText(instance, node, potentialNode);
+        console.log("Hydrate match", potentialNode);
+        return potentialNode;
+      }
+      invalid.push(i);
+    }
+    anchor.added++;
+    const textNode = document.createTextNode("");
+    renderText(instance, node, textNode);
+    console.log("Hydrate not found", textNode);
+    return target.appendChild(textNode);
   }
   function render(target, instance, nodes) {
     for (let i in nodes) {
       const node = nodes[i];
       let element = target;
-      const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+      let hydrate = true;
       switch (node.type) {
         case "tag": {
-          element = document.createElement(content);
-          target.appendChild(element);
-          console.log("tag", node);
+          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+          element = hydrate ? hydrateTag(target, content) : target.appendChild(document.createElement(content));
           break;
         }
         case "text": {
-          const textNode = document.createTextNode(content);
-          target.appendChild(textNode);
-          renderText(instance, node, textNode);
+          let textNode;
+          if (hydrate) {
+            textNode = hydrateText(target, instance, node);
+          } else {
+            textNode = document.createTextNode("");
+            renderText(instance, node, textNode);
+            target.appendChild(textNode);
+          }
           if (node.subs) {
             for (let subI in node.subs) {
               const trackingPath = node.subs[subI];
@@ -495,6 +551,16 @@
       const rootChildren = root.children;
       console.log(counterTarget, instance, rootChildren);
       rootChildren && render(counterTarget, instance, rootChildren);
+    }
+    console.log(anchors);
+    for (let a in anchors) {
+      const anchor = anchors[a];
+      for (let i = anchor.invalid.length - 1; i >= 0; i--) {
+        anchor.target.childNodes[anchor.invalid[i]].remove();
+      }
+      for (let i = anchor.current + 1; i < anchor.target.childNodes.length - anchor.added; i++) {
+        anchor.target.childNodes[i].remove();
+      }
     }
   }
   (async () => {
