@@ -2,6 +2,7 @@
 import { components } from "../app/components";
 import * as functions from "../app/functions";
 import { BaseComponent } from "./core/BaseComponent";
+import { Anchor } from "./core/anchor";
 import { makeProxy } from "./core/makeProxy";
 import { ComponentMeta, TemplateNode, NodeType } from "./core/node";
 import { unpack } from "./core/unpack";
@@ -37,35 +38,97 @@ export function renderText(instance: BaseComponent<any>, node: TemplateNode, tex
     const content = node.expression
         ? instance.$$t[node.code as number](instance)
         : (node.content ?? '');
-    textNode.nodeValue = content;
+    textNode.nodeValue !== content && (textNode.nodeValue = content);
 };
+
+let anchorId = 0;
+const anchors: { [key: string]: Anchor } = {};
+
+export function getAnchor(target: HTMLElement & { __aid?: number }): Anchor {
+    if (!target.__aid) {
+        target.__aid = ++anchorId;
+        anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
+    }
+    return anchors[target.__aid];
+}
+
+export function hydrateTag(target: HTMLElement, tag: string): HTMLElement {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid: number[] = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+        const potentialNode = target.childNodes[i];
+        if (
+            potentialNode.nodeType === 1
+            && potentialNode.nodeName.toLowerCase() === tag
+        ) {
+            anchor.current = i;
+            anchor.invalid = anchor.invalid.concat(invalid);
+            console.log('Hydrate match', potentialNode);
+            return potentialNode as HTMLElement;
+        }
+        invalid.push(i);
+    }
+    anchor.added++;
+    console.log('Hydrate not found', tag);
+    return target.appendChild(document.createElement(tag));
+}
+
+export function hydrateText(target: HTMLElement, instance: BaseComponent<any>, node: TemplateNode): Text {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length - anchor.added;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid: number[] = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+        const potentialNode = target.childNodes[i];
+        if (
+            potentialNode.nodeType === 3
+        ) {
+            anchor.current = i;
+            anchor.invalid = anchor.invalid.concat(invalid);
+            renderText(instance, node, potentialNode as Text);
+            console.log('Hydrate match', potentialNode);
+            return potentialNode as Text;
+        }
+        invalid.push(i);
+    }
+    anchor.added++;
+    const textNode = document.createTextNode('');
+    renderText(instance, node, textNode);
+    console.log('Hydrate not found', textNode);
+    return target.appendChild(textNode);
+}
 
 export function render(target: HTMLElement, instance: BaseComponent<any>, nodes: TemplateNode[]) {
     for (let i in nodes) {
         const node = nodes[i];
         let element: HTMLElement = target;
-        // if (node.expression && node.code) {
-        //     node.func = new Function('_component', 'return ' + node.code as string);
-        //     console.log('building function', node);
-        // }
-        const content = node.expression
-            ? instance.$$t[node.code as number](instance)
-            : (node.content ?? '');
+        let hydrate = true;
         switch (node.type) {
             case <NodeType>'tag':
                 {
-                    element = document.createElement(content);
-                    target.appendChild(element);
-                    console.log('tag', node);
+                    const content = node.expression
+                        ? instance.$$t[node.code as number](instance)
+                        : (node.content ?? '');
+                    element = hydrate
+                        ? hydrateTag(target, content)
+                        : target.appendChild(document.createElement(content));
                     break;
                 }
             case <NodeType>'text':
                 {
-                    const textNode: Text = document.createTextNode(content);
-                    target.appendChild(textNode);
-                    renderText(instance, node, textNode);
+                    let textNode: Text;
+                    if (hydrate) {
+                        textNode = hydrateText(target, instance, node);
+                    } else {
+                        textNode = document.createTextNode('');
+                        renderText(instance, node, textNode);
+                        target.appendChild(textNode);
+                    }
                     if (node.subs) {
-
                         for (let subI in node.subs) {
                             const trackingPath = node.subs[subI];
                             if (!instance.$$r[trackingPath]) {
@@ -97,7 +160,7 @@ export function render(target: HTMLElement, instance: BaseComponent<any>, nodes:
                     }
                 } else {
                     renderAttributeValue(instance, attribute, element, attrName);
-                    let valueSubs = []; // TODO: on backend, pass value subs in attribute
+                    let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
                     if (attribute.children) {
                         for (let av in attribute.children) {
                             const attributeValue = attribute.children[av];
@@ -148,6 +211,18 @@ export function renderComponent(name: string) {
         const rootChildren = root.children;
         console.log(counterTarget, instance, rootChildren);
         rootChildren && render(counterTarget, instance, rootChildren);
+    }
+    console.log(anchors);
+    for (let a in anchors) {
+        const anchor = anchors[a];
+        // clean up not matched
+        for (let i = anchor.invalid.length - 1; i >= 0; i--) {
+            anchor.target.childNodes[anchor.invalid[i]].remove();
+        }
+        // clean up what's left
+        for (let i = anchor.current + 1; i < anchor.target.childNodes.length - anchor.added; i++) {
+            anchor.target.childNodes[i].remove();
+        }
     }
 }
 
