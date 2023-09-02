@@ -66,19 +66,23 @@ export function hydrateTag(target: HTMLElement, tag: string): HTMLElement {
         ) {
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);
-            console.log('Hydrate match', potentialNode);
+            // console.log('Hydrate match', potentialNode);
             return potentialNode as HTMLElement;
         }
         invalid.push(i);
     }
     anchor.added++;
     console.log('Hydrate not found', tag);
-    return target.appendChild(document.createElement(tag));
+    const element = document.createElement(tag);
+    anchor.current++;
+    return max > anchor.current
+        ? target.insertBefore(element, target.childNodes[anchor.current])
+        : target.appendChild(document.createElement(tag));
 }
 
 export function hydrateText(target: HTMLElement, instance: BaseComponent<any>, node: TemplateNode): Text {
     const anchor = getAnchor(target);
-    const max = target.childNodes.length - anchor.added;
+    const max = target.childNodes.length;
     let end = anchor.current + 3;
     end = end > max ? max : end;
     const invalid: number[] = [];
@@ -90,7 +94,7 @@ export function hydrateText(target: HTMLElement, instance: BaseComponent<any>, n
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);
             renderText(instance, node, potentialNode as Text);
-            console.log('Hydrate match', potentialNode);
+            // console.log('Hydrate match', potentialNode);
             return potentialNode as Text;
         }
         invalid.push(i);
@@ -98,8 +102,11 @@ export function hydrateText(target: HTMLElement, instance: BaseComponent<any>, n
     anchor.added++;
     const textNode = document.createTextNode('');
     renderText(instance, node, textNode);
+    anchor.current++;
     console.log('Hydrate not found', textNode);
-    return target.appendChild(textNode);
+    return max > anchor.current
+        ? target.insertBefore(textNode, target.childNodes[anchor.current])
+        : target.appendChild(textNode);
 }
 
 export function render(target: HTMLElement, instance: BaseComponent<any>, nodes: TemplateNode[]) {
@@ -220,7 +227,7 @@ export function renderComponent(name: string) {
             anchor.target.childNodes[anchor.invalid[i]].remove();
         }
         // clean up what's left
-        for (let i = anchor.current + 1; i < anchor.target.childNodes.length - anchor.added; i++) {
+        for (let i = anchor.current + 1; i < anchor.target.childNodes.length; i++) {
             anchor.target.childNodes[i].remove();
         }
     }

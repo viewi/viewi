@@ -423,18 +423,19 @@
       if (potentialNode.nodeType === 1 && potentialNode.nodeName.toLowerCase() === tag) {
         anchor.current = i;
         anchor.invalid = anchor.invalid.concat(invalid);
-        console.log("Hydrate match", potentialNode);
         return potentialNode;
       }
       invalid.push(i);
     }
     anchor.added++;
     console.log("Hydrate not found", tag);
-    return target.appendChild(document.createElement(tag));
+    const element = document.createElement(tag);
+    anchor.current++;
+    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(document.createElement(tag));
   }
   function hydrateText(target, instance, node) {
     const anchor = getAnchor(target);
-    const max = target.childNodes.length - anchor.added;
+    const max = target.childNodes.length;
     let end = anchor.current + 3;
     end = end > max ? max : end;
     const invalid = [];
@@ -444,7 +445,6 @@
         anchor.current = i;
         anchor.invalid = anchor.invalid.concat(invalid);
         renderText(instance, node, potentialNode);
-        console.log("Hydrate match", potentialNode);
         return potentialNode;
       }
       invalid.push(i);
@@ -452,8 +452,9 @@
     anchor.added++;
     const textNode = document.createTextNode("");
     renderText(instance, node, textNode);
+    anchor.current++;
     console.log("Hydrate not found", textNode);
-    return target.appendChild(textNode);
+    return max > anchor.current ? target.insertBefore(textNode, target.childNodes[anchor.current]) : target.appendChild(textNode);
   }
   function render(target, instance, nodes) {
     for (let i in nodes) {
@@ -558,7 +559,7 @@
       for (let i = anchor.invalid.length - 1; i >= 0; i--) {
         anchor.target.childNodes[anchor.invalid[i]].remove();
       }
-      for (let i = anchor.current + 1; i < anchor.target.childNodes.length - anchor.added; i++) {
+      for (let i = anchor.current + 1; i < anchor.target.childNodes.length; i++) {
         anchor.target.childNodes[i].remove();
       }
     }
