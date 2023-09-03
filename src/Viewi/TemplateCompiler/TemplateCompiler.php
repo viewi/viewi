@@ -285,7 +285,8 @@ class TemplateCompiler
                 }
             }
         }
-        $hasChildren = count($children) > 0;
+        $childrenCount = count($children);
+        $hasChildren = $childrenCount > 0;
         $hasAttributes = count($attributes) > 0;
 
         $root = $tagItem->Type->Name === TagItemType::Root;
@@ -503,17 +504,57 @@ class TemplateCompiler
                     $this->level++;
                 }
                 if ($hasChildren) {
-                    foreach ($children as &$childItem) {
+                    // for text nodes merge
+                    /**
+                     * @var TagItem[]
+                     */
+                    $textCollection = [];
+                    $textsCout = 0;
+                    $lastChild = false;
+                    $lastIndex = $childrenCount - 1;
+                    foreach ($children as $order => &$childItem) {
+                        $notText = true;
                         if ($childItem->Type->Name === TagItemType::TextContent) {
-                            if ($childItem->ItsExpression) {
-                                $this->appendExpression($childItem);
-                            } else {
-                                $this->plainItems[] = $childItem->Content;
+                            $textCollection[] = &$childItem;
+                            $textsCout++;
+                            $notText = false;
+                        }
+                        $lastChild = $lastIndex === $order;
+                        if ($notText || $lastChild) {
+                            if ($textsCout > 0) {
+                                $textTagItem = &$textCollection[0];
+                                if ($textsCout > 1) {
+                                    if (!$textTagItem->ItsExpression) {
+                                        $textTagItem->Content = var_export($textTagItem->Content, true);
+                                    }
+                                    if ($textTagItem->ItsExpression) {
+                                        $textTagItem->Content = '(' . $textTagItem->Content . ')';
+                                    }
+                                    for ($textI = 1; $textI < $textsCout; $textI++) {
+                                        $neigbourText = &$textCollection[$textI];
+                                        $textTagItem->ItsExpression =
+                                            $textTagItem->ItsExpression || $neigbourText->ItsExpression;
+                                        $textTagItem->Content .= ' . ' .
+                                            ($neigbourText->ItsExpression
+                                                ? '(' . $neigbourText->Content . ')'
+                                                : var_export($neigbourText->Content, true));
+                                        $neigbourText->Skip = true;
+                                    }
+                                    $textTagItem->Content = '(' . $textTagItem->Content . ')';
+                                }
+                                if ($textTagItem->ItsExpression) {
+                                    $this->appendExpression($textTagItem);
+                                } else {
+                                    $this->plainItems[] = $textTagItem->Content;
+                                }
+                                $textCollection = [];
+                                $textsCout = 0;
                             }
-                        } elseif ($childItem->Type->Name === TagItemType::Comment) {
-                            $this->plainItems[] = '<!--' . htmlentities($childItem->Content) . '-->';
-                        } else {
-                            $this->buildTag($childItem);
+                            if ($childItem->Type->Name === TagItemType::Comment) {
+                                $this->plainItems[] = '<!--' . htmlentities($childItem->Content) . '-->';
+                            } elseif ($notText) {
+                                $this->buildTag($childItem);
+                            }
                         }
                     }
                 }
