@@ -371,9 +371,9 @@ class JsTranspiler
                     }
                     $this->jsCode .=  $iden . '/** END injection **/';
                 } else {
-                    $this->jsCode .= $node->getAttribute('rawValue', json_encode($node->value));
+                    $this->jsCode .= json_encode($node->value);
                 }
-                // TODO: miltyline string <<<pre
+                // TODO: multiline string <<<pre
             } else if ($node instanceof Encapsed) {
                 $parts = [];
                 $insert = false;
@@ -723,7 +723,9 @@ class JsTranspiler
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } else if ($node instanceof BinaryOp) {
                 $this->processStmts([$node->left]);
-                $this->jsCode .= ' ' . $node->getOperatorSigil() . ' ';
+                $op = $node->getOperatorSigil();
+                $op = $op === '.' ? '+' : $op;
+                $this->jsCode .= ' ' . $op . ' ';
                 $this->processStmts([$node->right]);
             } else if ($node instanceof PostInc) {
                 $this->processStmts([$node->var]);
