@@ -1,9 +1,11 @@
 import { BaseComponent } from "./BaseComponent";
+import { hydrateComment } from "./hydrateComment";
 import { hydrateTag } from "./hydrateTag";
 import { hydrateText } from "./hydrateText";
 import { NodeType, TemplateNode } from "./node";
 import { renderAttributeValue } from "./renderAttributeValue";
 import { renderText } from "./renderText";
+import { updateComment } from "./updateComment";
 
 export function render(target: HTMLElement, instance: BaseComponent<any>, nodes: TemplateNode[]) {
     for (let i in nodes) {
@@ -19,6 +21,7 @@ export function render(target: HTMLElement, instance: BaseComponent<any>, nodes:
                     element = hydrate
                         ? hydrateTag(target, content)
                         : target.appendChild(document.createElement(content));
+                    // TODO: reactive tag/component
                     break;
                 }
             case <NodeType>'text':
@@ -42,6 +45,24 @@ export function render(target: HTMLElement, instance: BaseComponent<any>, nodes:
                     }
                     break;
                 }
+            case <NodeType>'comment': {
+                const content = node.expression
+                    ? instance.$$t[node.code as number](instance)
+                    : (node.content ?? '');
+                const commentNode = hydrate
+                    ? hydrateComment(target, content)
+                    : target.appendChild(document.createComment(content));
+                if (node.subs) {
+                    for (let subI in node.subs) {
+                        const trackingPath = node.subs[subI];
+                        if (!instance.$$r[trackingPath]) {
+                            instance.$$r[trackingPath] = [];
+                        }
+                        instance.$$r[trackingPath].push([updateComment, [instance, node, commentNode]]);
+                    }
+                }
+                break;
+            }
             default: {
                 console.log('No implemented', node);
                 break;
