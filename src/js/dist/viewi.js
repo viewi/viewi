@@ -78,6 +78,12 @@
       return strlen(_component.message);
     },
     function(_component) {
+      return _component.count;
+    },
+    function(_component) {
+      return strlen(_component.message);
+    },
+    function(_component) {
       return function(event) {
         _component.increment();
       };
@@ -230,6 +236,62 @@
     }
   ];
 
+  // app/components/TestComponent.js
+  var TestComponent = class extends BaseComponent {
+    _name = "TestComponent";
+    name = "MyName";
+    _name2_Test = "MyName_2";
+    empty = "";
+    null = null;
+    url = "/home";
+    attr = "title";
+    event = "(click)";
+    arr = ["a", "b", "c"];
+    arrWithKeys = { "a": "Apple", "b": "Orange", "c": "Lemon" };
+    arrNested = { "a": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "b": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "c": { "a": "Apple", "b": "Orange", "c": "Lemon" } };
+    getName(name) {
+      return name ?? "DefaultName";
+    }
+    onEvent(event) {
+      event.preventDefault();
+    }
+  };
+  var TestComponent_x = [
+    function(_component) {
+      return _component.name;
+    },
+    function(_component) {
+      return _component._name2_Test;
+    },
+    function(_component) {
+      return _component.getName();
+    },
+    function(_component) {
+      return _component.getName(_component.name);
+    },
+    function(_component) {
+      return _component.url;
+    },
+    function(_component) {
+      return _component.empty;
+    },
+    function(_component) {
+      return _component.null;
+    },
+    function(_component) {
+      return _component.attr;
+    },
+    function(_component) {
+      return _component.expression.bind(_component);
+    },
+    function(_component) {
+      return _component.event;
+    },
+    function(_component) {
+      return _component.onEvent.bind(_component);
+    }
+  ];
+
   // app/components/TodoApp.js
   var TodoApp = class extends BaseComponent {
     _name = "TodoApp";
@@ -290,11 +352,24 @@
     StatefulCounter,
     StatefulTodoApp_x,
     StatefulTodoApp,
+    TestComponent_x,
+    TestComponent,
     TodoApp_x,
     TodoApp,
     TodoList_x,
     TodoList
   };
+
+  // viewi/core/anchor.ts
+  var anchorId = 0;
+  var anchors = {};
+  function getAnchor(target) {
+    if (!target.__aid) {
+      target.__aid = ++anchorId;
+      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
+    }
+    return anchors[target.__aid];
+  }
 
   // viewi/core/makeProxy.ts
   function makeProxy(component) {
@@ -313,6 +388,159 @@
     });
     component.$ = component;
     return proxy;
+  }
+
+  // viewi/core/hydrateTag.ts
+  function hydrateTag(target, tag) {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+      const potentialNode = target.childNodes[i];
+      if (potentialNode.nodeType === 1 && potentialNode.nodeName.toLowerCase() === tag) {
+        anchor.current = i;
+        anchor.invalid = anchor.invalid.concat(invalid);
+        return potentialNode;
+      }
+      invalid.push(i);
+    }
+    anchor.added++;
+    console.log("Hydrate not found", tag);
+    const element = document.createElement(tag);
+    anchor.current++;
+    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(document.createElement(tag));
+  }
+
+  // viewi/core/renderText.ts
+  function renderText(instance, node, textNode) {
+    const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+    textNode.nodeValue !== content && (textNode.nodeValue = content);
+  }
+
+  // viewi/core/hydrateText.ts
+  function hydrateText(target, instance, node) {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid = [];
+    const start = anchor.current > -1 ? anchor.current : anchor.current + 1;
+    for (let i = start; i < end; i++) {
+      const potentialNode = target.childNodes[i];
+      if (potentialNode.nodeType === 3) {
+        if (i === anchor.current) {
+          break;
+        }
+        anchor.current = i;
+        anchor.invalid = anchor.invalid.concat(invalid);
+        renderText(instance, node, potentialNode);
+        return potentialNode;
+      }
+      i !== anchor.current && invalid.push(i);
+    }
+    anchor.added++;
+    const textNode = document.createTextNode("");
+    renderText(instance, node, textNode);
+    anchor.current++;
+    console.log("Hydrate not found", textNode);
+    return max > anchor.current ? target.insertBefore(textNode, target.childNodes[anchor.current]) : target.appendChild(textNode);
+  }
+
+  // viewi/core/renderAttributeValue.ts
+  function renderAttributeValue(instance, attribute, element, attrName) {
+    let valueContent = null;
+    if (attribute.children) {
+      valueContent = "";
+      for (let av = 0; av < attribute.children.length; av++) {
+        const attributeValue = attribute.children[av];
+        const childContent = attributeValue.expression ? instance.$$t[attributeValue.code](instance) : attributeValue.content ?? "";
+        valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
+      }
+    }
+    if (valueContent !== null) {
+      valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+    } else {
+      element.removeAttribute(attrName);
+    }
+  }
+
+  // viewi/core/render.ts
+  function render(target, instance, nodes) {
+    for (let i in nodes) {
+      const node = nodes[i];
+      let element = target;
+      let hydrate = true;
+      switch (node.type) {
+        case "tag": {
+          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+          element = hydrate ? hydrateTag(target, content) : target.appendChild(document.createElement(content));
+          break;
+        }
+        case "text": {
+          let textNode;
+          if (hydrate) {
+            textNode = hydrateText(target, instance, node);
+          } else {
+            textNode = document.createTextNode("");
+            renderText(instance, node, textNode);
+            target.appendChild(textNode);
+          }
+          if (node.subs) {
+            for (let subI in node.subs) {
+              const trackingPath = node.subs[subI];
+              if (!instance.$$r[trackingPath]) {
+                instance.$$r[trackingPath] = [];
+              }
+              instance.$$r[trackingPath].push([renderText, [instance, node, textNode]]);
+            }
+          }
+          break;
+        }
+        default: {
+          console.log("No implemented", node);
+          break;
+        }
+      }
+      if (node.attributes) {
+        for (let a in node.attributes) {
+          const attribute = node.attributes[a];
+          const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
+          if (attrName[0] === "(") {
+            const eventName = attrName.substring(1, attrName.length - 1);
+            if (attribute.children) {
+              const eventHandler = instance.$$t[attribute.dynamic ? attribute.dynamic.code : attribute.children[0].code](instance);
+              element.addEventListener(eventName, eventHandler);
+              console.log("Event", attribute, eventName, eventHandler);
+            }
+          } else {
+            renderAttributeValue(instance, attribute, element, attrName);
+            let valueSubs = [];
+            if (attribute.children) {
+              for (let av in attribute.children) {
+                const attributeValue = attribute.children[av];
+                if (attributeValue.subs) {
+                  valueSubs = valueSubs.concat(attributeValue.subs);
+                }
+              }
+            }
+            if (valueSubs) {
+              for (let subI in valueSubs) {
+                const trackingPath = valueSubs[subI];
+                if (!instance.$$r[trackingPath]) {
+                  instance.$$r[trackingPath] = [];
+                }
+                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
+              }
+            }
+          }
+        }
+      }
+      if (node.children) {
+        render(element, instance, node.children);
+      }
+    }
   }
 
   // viewi/core/unpack.ts
@@ -386,151 +614,6 @@
   globalThis.Viewi = Viewi;
   console.log("Viewi entry");
   var counterTarget = document.getElementById("counter");
-  function renderAttributeValue(instance, attribute, element, attrName) {
-    let valueContent = null;
-    if (attribute.children) {
-      valueContent = "";
-      for (let av in attribute.children) {
-        const attributeValue = attribute.children[av];
-        valueContent += (attributeValue.expression ? instance.$$t[attributeValue.code](instance) : attributeValue.content) ?? "";
-      }
-    }
-    if (valueContent !== null) {
-      element.setAttribute(attrName, valueContent);
-    }
-  }
-  function renderText(instance, node, textNode) {
-    const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-    textNode.nodeValue !== content && (textNode.nodeValue = content);
-  }
-  var anchorId = 0;
-  var anchors = {};
-  function getAnchor(target) {
-    if (!target.__aid) {
-      target.__aid = ++anchorId;
-      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
-    }
-    return anchors[target.__aid];
-  }
-  function hydrateTag(target, tag) {
-    const anchor = getAnchor(target);
-    const max = target.childNodes.length;
-    let end = anchor.current + 3;
-    end = end > max ? max : end;
-    const invalid = [];
-    for (let i = anchor.current + 1; i < end; i++) {
-      const potentialNode = target.childNodes[i];
-      if (potentialNode.nodeType === 1 && potentialNode.nodeName.toLowerCase() === tag) {
-        anchor.current = i;
-        anchor.invalid = anchor.invalid.concat(invalid);
-        return potentialNode;
-      }
-      invalid.push(i);
-    }
-    anchor.added++;
-    console.log("Hydrate not found", tag);
-    const element = document.createElement(tag);
-    anchor.current++;
-    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(document.createElement(tag));
-  }
-  function hydrateText(target, instance, node) {
-    const anchor = getAnchor(target);
-    const max = target.childNodes.length;
-    let end = anchor.current + 3;
-    end = end > max ? max : end;
-    const invalid = [];
-    for (let i = anchor.current + 1; i < end; i++) {
-      const potentialNode = target.childNodes[i];
-      if (potentialNode.nodeType === 3) {
-        anchor.current = i;
-        anchor.invalid = anchor.invalid.concat(invalid);
-        renderText(instance, node, potentialNode);
-        return potentialNode;
-      }
-      invalid.push(i);
-    }
-    anchor.added++;
-    const textNode = document.createTextNode("");
-    renderText(instance, node, textNode);
-    anchor.current++;
-    console.log("Hydrate not found", textNode);
-    return max > anchor.current ? target.insertBefore(textNode, target.childNodes[anchor.current]) : target.appendChild(textNode);
-  }
-  function render(target, instance, nodes) {
-    for (let i in nodes) {
-      const node = nodes[i];
-      let element = target;
-      let hydrate = true;
-      switch (node.type) {
-        case "tag": {
-          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-          element = hydrate ? hydrateTag(target, content) : target.appendChild(document.createElement(content));
-          break;
-        }
-        case "text": {
-          let textNode;
-          if (hydrate) {
-            textNode = hydrateText(target, instance, node);
-          } else {
-            textNode = document.createTextNode("");
-            renderText(instance, node, textNode);
-            target.appendChild(textNode);
-          }
-          if (node.subs) {
-            for (let subI in node.subs) {
-              const trackingPath = node.subs[subI];
-              if (!instance.$$r[trackingPath]) {
-                instance.$$r[trackingPath] = [];
-              }
-              instance.$$r[trackingPath].push([renderText, [instance, node, textNode]]);
-            }
-          }
-          break;
-        }
-        default: {
-          console.log("No implemented", node);
-          break;
-        }
-      }
-      if (node.attributes) {
-        for (let a in node.attributes) {
-          const attribute = node.attributes[a];
-          const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
-          if (attrName[0] === "(") {
-            const eventName = attrName.substring(1, attrName.length - 1);
-            if (attribute.children) {
-              const eventHandler = instance.$$t[attribute.children[0].code](instance);
-              element.addEventListener(eventName, eventHandler);
-              console.log("Event", attribute, eventName, eventHandler);
-            }
-          } else {
-            renderAttributeValue(instance, attribute, element, attrName);
-            let valueSubs = [];
-            if (attribute.children) {
-              for (let av in attribute.children) {
-                const attributeValue = attribute.children[av];
-                if (attributeValue.subs) {
-                  valueSubs = valueSubs.concat(attributeValue.subs);
-                }
-              }
-            }
-            if (valueSubs) {
-              for (let subI in valueSubs) {
-                const trackingPath = valueSubs[subI];
-                if (!instance.$$r[trackingPath]) {
-                  instance.$$r[trackingPath] = [];
-                }
-                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
-              }
-            }
-          }
-        }
-      }
-      if (node.children) {
-        render(element, instance, node.children);
-      }
-    }
-  }
   function renderComponent(name) {
     if (!(name in componentsMeta)) {
       throw new Error(`Component ${name} not found.`);
@@ -566,6 +649,6 @@
   }
   (async () => {
     componentsMeta = await (await fetch("/assets/components.json")).json();
-    renderComponent("Counter");
+    setTimeout(() => renderComponent("TestComponent"), 500);
   })();
 })();
