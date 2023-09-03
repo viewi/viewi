@@ -16,6 +16,7 @@ export type TemplateNode = {
     a?: TemplateNode[],
     attributes?: TemplateNode[],
     unpacked?: boolean,
+    dynamic?: TemplateNode,
     func: Function
 }
 
