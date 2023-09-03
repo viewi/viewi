@@ -561,29 +561,40 @@ class TemplateCompiler
             $this->flushBuffer();
             $this->code .= PHP_EOL . $this->i() . "if ({$attributeItem->PhpExpression} && {$attributeItem->PhpExpression}[0] !== '(') {";
             $this->level++;
-        } else {
-            if (!$attributeItem->Content || $attributeItem->Content[0] === '(') {
-                $expression = '';
-                foreach ($children as &$subValue) {
-                    $expression .= $subValue->Content;
-                }
+        }
+
+        if (!$attributeItem->Content || $attributeItem->Content[0] === '(' || $attributeItem->ItsExpression) {
+            $expression = '';
+            foreach ($children as &$subValue) {
+                $expression .= $subValue->Content;
+            }
+            $attributeTagValue = null;
+            if ($attributeItem->ItsExpression) {
+                $attributeTagValue = new TagItem();
+                $attributeTagValue->Type = new TagItemType(TagItemType::AttributeValue);
+            } else {
                 $attributeTagValue = &$children[0];
-                $attributeTagValue->ItsExpression = true;
-                $attributeTagValue->Content = $expression;
+            }
+            $attributeTagValue->ItsExpression = true;
+            $attributeTagValue->Content = $expression;
+            $this->localScope['event'] = true;
+            $this->buildExpression($attributeTagValue);
+            array_pop($this->localScope);
+            $jsEventCode = array_pop($this->inlineExpressions);
+            if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
+                $jsEventCode = "function (event) { $jsEventCode; }";
+            } else {
+                $jsEventCode = "$jsEventCode.bind(_component)";
+            }
+            $this->inlineExpressions[] = $jsEventCode;
+            if (!$attributeItem->ItsExpression) {
                 $attributeItem->setChildren([$attributeTagValue]);
-                $this->localScope['event'] = true;
-                $this->buildExpression($attributeTagValue);
-                array_pop($this->localScope);
-                $jsEventCode = array_pop($this->inlineExpressions);
-                if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
-                    $jsEventCode = "function (event) { $jsEventCode; }";
-                } else {
-                    $jsEventCode = "$jsEventCode.bind(_component)";
-                }
-                $this->inlineExpressions[] = $jsEventCode;
                 return; // event is handled on front-end only
+            } else {
+                $attributeItem->DynamicChild = $attributeTagValue;
             }
         }
+
         if ($childrenCount === 1 && $children[0]->ItsExpression) {
             $attributeValue = &$children[0];
             $this->buildExpression($attributeValue);
