@@ -49,10 +49,17 @@ class TagItemConverter
                 continue;
             }
             if ($child->Type->Name === TagItemType::Attribute) {
-                if (!isset($node['a'])) {
-                    $node['a'] = [];
+                if (in_array($child->Content, ['if', 'else-if', 'else', 'foreach'])) {
+                    if (!isset($node['i'])) {
+                        $node['i'] = [];
+                    }
+                    $node['i'][] = self::getRaw($child);
+                } else {
+                    if (!isset($node['a'])) {
+                        $node['a'] = [];
+                    }
+                    $node['a'][] = self::getRaw($child);
                 }
-                $node['a'][] = self::getRaw($child);
             } else {
                 if (!isset($node['h'])) {
                     $node['h'] = [];
