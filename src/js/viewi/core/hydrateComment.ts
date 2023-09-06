@@ -1,6 +1,6 @@
 import { getAnchor } from "./anchor";
 
-export function hydrateComment(target: HTMLElement, content: string): Comment {
+export function hydrateComment(target: Node, content: string): Comment {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;

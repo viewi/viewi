@@ -52,6 +52,13 @@ export function unpack(item: TemplateNode) {
             unpack(item.attributes[i]);
         }
     }
+    if (item.i) {
+        item.directives = item.i;
+        delete item.i;
+        for (let i in item.directives) {
+            unpack(item.directives[i]);
+        }
+    }
     if (item.h) {
         item.children = item.h;
         delete item.h;

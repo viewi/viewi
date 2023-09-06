@@ -1,5 +1,5 @@
 export type Anchor = {
-    target: HTMLElement,
+    target: Node,
     current: number,
     added: number,
     invalid: number[]
@@ -8,7 +8,7 @@ export type Anchor = {
 let anchorId = 0;
 export const anchors: { [key: string]: Anchor } = {};
 
-export function getAnchor(target: HTMLElement & { __aid?: number }): Anchor {
+export function getAnchor(target: Node & { __aid?: number }): Anchor {
     if (!target.__aid) {
         target.__aid = ++anchorId;
         anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };

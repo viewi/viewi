@@ -1,6 +1,6 @@
 import { getAnchor } from "./anchor";
 
-export function hydrateTag(target: HTMLElement, tag: string): HTMLElement {
+export function hydrateTag(target: Node, tag: string): Node {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;
@@ -15,7 +15,7 @@ export function hydrateTag(target: HTMLElement, tag: string): HTMLElement {
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);
             // console.log('Hydrate match', potentialNode);
-            return potentialNode as HTMLElement;
+            return potentialNode as Node;
         }
         invalid.push(i);
     }
