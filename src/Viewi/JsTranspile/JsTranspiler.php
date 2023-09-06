@@ -48,7 +48,6 @@ use Viewi\Helpers;
 
 class JsTranspiler
 {
-    // v2
     private string $phpCode;
     private string $jsCode = '';
     private ?Parser $parser = null;
@@ -722,11 +721,16 @@ class JsTranspiler
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } else if ($node instanceof BinaryOp) {
-                $this->processStmts([$node->left]);
+                $className = get_class($node);
+                list($precedence, $associativity) = $this->precedenceMap[$className];
+                $leftParentheses = $this->pPrec($node->left, $precedence, $associativity, -1);
+                $this->processStmts($leftParentheses ? ['(', $node->left, ')'] : [$node->left]);
                 $op = $node->getOperatorSigil();
                 $op = $op === '.' ? '+' : $op;
                 $this->jsCode .= ' ' . $op . ' ';
-                $this->processStmts([$node->right]);
+                $rightParentheses = $this->pPrec($node->right, $precedence, $associativity, 1);
+                $this->processStmts($rightParentheses ? ['(', $node->right, ')'] : [$node->right]);
+                // Helpers::debug([$op, $leftParentheses, $rightParentheses, $node]);
             } else if ($node instanceof PostInc) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '++';
@@ -748,5 +752,94 @@ class JsTranspiler
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
+    }
+
+    // PHP Parser 
+
+    // https://github.com/nikic/PHP-Parser/blob/a6303e50c90c355c7eeee2c4a8b27fe8dc8fef1d/lib/PhpParser/PrettyPrinterAbstract.php#L27
+    protected $precedenceMap = [
+        // [precedence, associativity]
+        // where for precedence -1 is %left, 0 is %nonassoc and 1 is %right
+        BinaryOp\Pow::class            => [0,  1],
+        Expr\BitwiseNot::class         => [10,  1],
+        Expr\PreInc::class             => [10,  1],
+        Expr\PreDec::class             => [10,  1],
+        Expr\PostInc::class            => [10, -1],
+        Expr\PostDec::class            => [10, -1],
+        Expr\UnaryPlus::class          => [10,  1],
+        Expr\UnaryMinus::class         => [10,  1],
+        Cast\Int_::class               => [10,  1],
+        Cast\Double::class             => [10,  1],
+        Cast\String_::class            => [10,  1],
+        Cast\Array_::class             => [10,  1],
+        Cast\Object_::class            => [10,  1],
+        Cast\Bool_::class              => [10,  1],
+        Cast\Unset_::class             => [10,  1],
+        Expr\ErrorSuppress::class      => [10,  1],
+        Expr\Instanceof_::class        => [20,  0],
+        Expr\BooleanNot::class         => [30,  1],
+        BinaryOp\Mul::class            => [40, -1],
+        BinaryOp\Div::class            => [40, -1],
+        BinaryOp\Mod::class            => [40, -1],
+        BinaryOp\Plus::class           => [50, -1],
+        BinaryOp\Minus::class          => [50, -1],
+        BinaryOp\Concat::class         => [50, -1],
+        BinaryOp\ShiftLeft::class      => [60, -1],
+        BinaryOp\ShiftRight::class     => [60, -1],
+        BinaryOp\Smaller::class        => [70,  0],
+        BinaryOp\SmallerOrEqual::class => [70,  0],
+        BinaryOp\Greater::class        => [70,  0],
+        BinaryOp\GreaterOrEqual::class => [70,  0],
+        BinaryOp\Equal::class          => [80,  0],
+        BinaryOp\NotEqual::class       => [80,  0],
+        BinaryOp\Identical::class      => [80,  0],
+        BinaryOp\NotIdentical::class   => [80,  0],
+        BinaryOp\Spaceship::class      => [80,  0],
+        BinaryOp\BitwiseAnd::class     => [90, -1],
+        BinaryOp\BitwiseXor::class     => [100, -1],
+        BinaryOp\BitwiseOr::class      => [110, -1],
+        BinaryOp\BooleanAnd::class     => [120, -1],
+        BinaryOp\BooleanOr::class      => [130, -1],
+        BinaryOp\Coalesce::class       => [140,  1],
+        Expr\Ternary::class            => [150,  0],
+        // parser uses %left for assignments, but they really behave as %right
+        Expr\Assign::class             => [160,  1],
+        Expr\AssignRef::class          => [160,  1],
+        AssignOp\Plus::class           => [160,  1],
+        AssignOp\Minus::class          => [160,  1],
+        AssignOp\Mul::class            => [160,  1],
+        AssignOp\Div::class            => [160,  1],
+        AssignOp\Concat::class         => [160,  1],
+        AssignOp\Mod::class            => [160,  1],
+        AssignOp\BitwiseAnd::class     => [160,  1],
+        AssignOp\BitwiseOr::class      => [160,  1],
+        AssignOp\BitwiseXor::class     => [160,  1],
+        AssignOp\ShiftLeft::class      => [160,  1],
+        AssignOp\ShiftRight::class     => [160,  1],
+        AssignOp\Pow::class            => [160,  1],
+        AssignOp\Coalesce::class       => [160,  1],
+        Expr\YieldFrom::class          => [165,  1],
+        Expr\Print_::class             => [168,  1],
+        BinaryOp\LogicalAnd::class     => [170, -1],
+        BinaryOp\LogicalXor::class     => [180, -1],
+        BinaryOp\LogicalOr::class      => [190, -1],
+        Expr\Include_::class           => [200, -1],
+    ];
+
+    // https://github.com/nikic/PHP-Parser/blob/a6303e50c90c355c7eeee2c4a8b27fe8dc8fef1d/lib/PhpParser/PrettyPrinterAbstract.php#L363
+    protected function pPrec(Node $node, int $parentPrecedence, int $parentAssociativity, int $childPosition): string
+    {
+        $class = \get_class($node);
+        if (isset($this->precedenceMap[$class])) {
+            $childPrecedence = $this->precedenceMap[$class][0];
+            if (
+                $childPrecedence > $parentPrecedence
+                || ($parentPrecedence === $childPrecedence && $parentAssociativity !== $childPosition)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
