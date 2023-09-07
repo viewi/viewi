@@ -1,5 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
-import { getAnchor } from "./anchor";
+import { TextAnchor, createAnchorNode, getAnchor } from "./anchor";
 import { ConditionalDirective, Directive, DirectiveMap, DirectiveStorageType, DirectiveType } from "./directive";
 import { hydrateComment } from "./hydrateComment";
 import { hydrateTag } from "./hydrateTag";
@@ -19,6 +19,7 @@ export function render(
     insert: boolean = false
 ) {
     let ifConditions: ConditionalDirective | null = null;
+    let nextInsert = false;
     for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         let element: Node = target;
@@ -34,53 +35,30 @@ export function render(
                         for (let d = 0; d < node.directives.length; d++) {
                             const directive = node.directives[d];
                             if (d in localDirectiveMap.map) { // already processed                                 
-                                console.log('skipping', localDirectiveMap, directive);
+                                // console.log('skipping', localDirectiveMap, directive);
                                 continue;
                             }
                             localDirectiveMap.map[d] = true;
                             switch (directive.content) {
                                 case <DirectiveType>'if': {
                                     // new conditions
-                                    ifConditions = <ConditionalDirective>{ values: [], index: 0 };
+                                    ifConditions = <ConditionalDirective>{ values: [], index: 0, subs: [] };
                                     const nextValue = !!(instance.$$t[
                                         directive.children![0].code!
                                     ](instance));
                                     ifConditions.values.push(nextValue);
                                     const anchor = getAnchor(target);
-                                    const anchorNode = document.createTextNode('');
-                                    // TODO: acnhor node for template and multiple DOM nodes
-                                    anchor.current++;
-                                    target.childNodes.length > anchor.current
-                                        ? target.insertBefore(anchorNode, target.childNodes[anchor.current])
-                                        : target.appendChild(anchorNode);
+                                    createAnchorNode(anchor, target); // begin if
+                                    const anchorNode = createAnchorNode(anchor, target); // end if
+
                                     if (directive.children![0].subs) {
                                         for (let subI in directive.children![0].subs) {
                                             const trackingPath = directive.children![0].subs[subI];
+                                            ifConditions.subs.push(trackingPath);
                                             if (!instance.$$r[trackingPath]) {
                                                 instance.$$r[trackingPath] = [];
                                             }
-                                            instance.$$r[trackingPath].push([function (
-                                                instance: BaseComponent<any>,
-                                                node: TemplateNode,
-                                                directive: TemplateNode,
-                                                anchorNode: Text,
-                                                ifConditions: ConditionalDirective,
-                                                index: number
-                                            ) {
-                                                const nextValue = !!(instance.$$t[
-                                                    directive.children![0].code!
-                                                ](instance));
-                                                if (ifConditions.values[index] !== nextValue) {
-                                                    ifConditions.values[index] = nextValue;
-                                                    if (nextValue) {
-                                                        // render
-                                                        render(anchorNode, instance, [node], { ...localDirectiveMap }, false, true);
-                                                    } else {
-                                                        // remove and dispose
-                                                        anchorNode.previousSibling!.remove();
-                                                    }
-                                                }
-                                            }, [instance, node, directive, anchorNode, ifConditions, ifConditions.index]]);
+                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
                                         }
                                     }
                                     ifConditions.index++;
@@ -92,34 +70,64 @@ export function render(
                                     break;
                                 }
                                 case <DirectiveType>'else-if': {
-                                    console.log('else if', ifConditions);
+                                    // console.log('else if', ifConditions);
                                     if (ifConditions) {
                                         const nextValue = !ifConditions.values[ifConditions.index - 1]
                                             && !!(instance.$$t[
                                                 directive.children![0].code!
                                             ](instance));
                                         ifConditions.values.push(nextValue);
-                                        ifConditions.index++;
-                                        if (!nextValue) {
-                                            // continue to the next node
-                                            breakAndContinue = true;
+                                        const anchor = getAnchor(target);
+                                        createAnchorNode(anchor, target); // begin else-if
+                                        const anchorNode = createAnchorNode(anchor, target); // end else-if
+                                        if (directive.children![0].subs) {
+                                            // TODO: filter out unique
+                                            ifConditions.subs = ifConditions.subs.concat(directive.children![0].subs);
                                         }
-                                    } else {
-                                        console.warn('Directive else-if has missing previous if/else-if', directive.content, directive);
-                                    }
-                                    console.log(ifConditions);
-                                    break;
-                                }
-                                case <DirectiveType>'else': {
-                                    if (ifConditions) {
-                                        const nextValue = !ifConditions.values[ifConditions.index - 1];
-                                        ifConditions.values.push(nextValue);
+                                        for (let subI in ifConditions.subs) {
+                                            const trackingPath = ifConditions.subs[subI];
+                                            if (!instance.$$r[trackingPath]) {
+                                                instance.$$r[trackingPath] = [];
+                                            }
+                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                                        }
+
                                         ifConditions.index++;
                                         if (nextValue) {
                                             render(target, instance, [node], localDirectiveMap);
                                         }
                                         // continue to the next node
                                         breakAndContinue = true;
+                                    } else {
+                                        console.warn('Directive else-if has missing previous if/else-if', directive.content, directive);
+                                    }
+                                    // console.log(ifConditions);
+                                    break;
+                                }
+                                case <DirectiveType>'else': {
+                                    if (ifConditions) {
+                                        const nextValue = !ifConditions.values[ifConditions.index - 1];
+                                        ifConditions.values.push(nextValue);
+                                        const anchor = getAnchor(target);
+                                        createAnchorNode(anchor, target); // begin else
+                                        if (nextValue) {
+                                            render(target, instance, [node], localDirectiveMap);
+                                        }
+
+                                        const anchorNode = createAnchorNode(anchor, target); // end else
+                                        for (let subI in ifConditions.subs) {
+                                            const trackingPath = ifConditions.subs[subI];
+                                            if (!instance.$$r[trackingPath]) {
+                                                instance.$$r[trackingPath] = [];
+                                            }
+                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                                        }
+
+                                        ifConditions.index++;
+                                        // continue to the next node
+                                        breakAndContinue = true;
+                                    } else {
+                                        console.warn('Directive else has missing previous if/else-if', directive.content, directive);
                                     }
                                     break;
                                 }
@@ -138,6 +146,7 @@ export function render(
                     }
                     // template
                     if (node.content === 'template') {
+                        nextInsert = insert;
                         break;
                     }
                     const content = node.expression
@@ -242,7 +251,7 @@ export function render(
             }
         }
         if (node.children) {
-            render(element, instance, node.children, undefined, hydrate);
+            render(element, instance, node.children, undefined, hydrate, nextInsert);
         }
     }
 }
