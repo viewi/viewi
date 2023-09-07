@@ -49,8 +49,10 @@ export function render(
                                     ifConditions.values.push(nextValue);
                                     const anchor = getAnchor(target);
                                     createAnchorNode(anchor, target); // begin if
+                                    if (nextValue) {
+                                        render(target, instance, [node], localDirectiveMap);
+                                    }
                                     const anchorNode = createAnchorNode(anchor, target); // end if
-
                                     if (directive.children![0].subs) {
                                         for (let subI in directive.children![0].subs) {
                                             const trackingPath = directive.children![0].subs[subI];
@@ -62,9 +64,6 @@ export function render(
                                         }
                                     }
                                     ifConditions.index++;
-                                    if (nextValue) {
-                                        render(target, instance, [node], localDirectiveMap);
-                                    }
                                     // continue to the next node
                                     breakAndContinue = true;
                                     break;
@@ -72,13 +71,20 @@ export function render(
                                 case <DirectiveType>'else-if': {
                                     // console.log('else if', ifConditions);
                                     if (ifConditions) {
-                                        const nextValue = !ifConditions.values[ifConditions.index - 1]
+                                        let nextValue = true;
+                                        for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                                            nextValue = nextValue && !ifConditions.values[ifv];
+                                        }
+                                        nextValue = nextValue && !ifConditions.values[ifConditions.index - 1]
                                             && !!(instance.$$t[
                                                 directive.children![0].code!
                                             ](instance));
                                         ifConditions.values.push(nextValue);
                                         const anchor = getAnchor(target);
                                         createAnchorNode(anchor, target); // begin else-if
+                                        if (nextValue) {
+                                            render(target, instance, [node], localDirectiveMap);
+                                        }
                                         const anchorNode = createAnchorNode(anchor, target); // end else-if
                                         if (directive.children![0].subs) {
                                             // TODO: filter out unique
@@ -93,9 +99,6 @@ export function render(
                                         }
 
                                         ifConditions.index++;
-                                        if (nextValue) {
-                                            render(target, instance, [node], localDirectiveMap);
-                                        }
                                         // continue to the next node
                                         breakAndContinue = true;
                                     } else {
@@ -106,14 +109,16 @@ export function render(
                                 }
                                 case <DirectiveType>'else': {
                                     if (ifConditions) {
-                                        const nextValue = !ifConditions.values[ifConditions.index - 1];
+                                        let nextValue = true;
+                                        for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                                            nextValue = nextValue && !ifConditions.values[ifv];
+                                        }
                                         ifConditions.values.push(nextValue);
                                         const anchor = getAnchor(target);
                                         createAnchorNode(anchor, target); // begin else
                                         if (nextValue) {
                                             render(target, instance, [node], localDirectiveMap);
                                         }
-
                                         const anchorNode = createAnchorNode(anchor, target); // end else
                                         for (let subI in ifConditions.subs) {
                                             const trackingPath = ifConditions.subs[subI];
