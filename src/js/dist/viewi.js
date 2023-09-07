@@ -72,16 +72,10 @@
       return _component.count % 10 + 12;
     },
     function(_component) {
-      return _component.count;
+      return "\n    Count " + _component.count + " " + strlen(_component.message) + "\n";
     },
     function(_component) {
-      return strlen(_component.message);
-    },
-    function(_component) {
-      return _component.count;
-    },
-    function(_component) {
-      return strlen(_component.message);
+      return "\nCount " + _component.count + " " + strlen(_component.message) + "\n";
     },
     function(_component) {
       return function(event) {
@@ -122,7 +116,7 @@
   };
   var Layout_x = [
     function(_component) {
-      return _component.title;
+      return "\n        " + _component.title + " | Viewi\n    ";
     }
   ];
 
@@ -229,7 +223,7 @@
       return _component.text;
     },
     function(_component) {
-      return count(_component.todo.items) + 1;
+      return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    ";
     },
     function(_component) {
       return _component.todo.items;
@@ -249,25 +243,28 @@
     arr = ["a", "b", "c"];
     arrWithKeys = { "a": "Apple", "b": "Orange", "c": "Lemon" };
     arrNested = { "a": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "b": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "c": { "a": "Apple", "b": "Orange", "c": "Lemon" } };
+    ifValue = false;
+    ifElseValue = true;
     getName(name) {
+      var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
     }
     onEvent(event) {
       event.preventDefault();
     }
+    toggleIf() {
+      this.ifValue = !this.ifValue;
+    }
+    toggleElseIf() {
+      this.ifElseValue = !this.ifElseValue;
+    }
   };
   var TestComponent_x = [
     function(_component) {
-      return _component.name;
+      return "Tag test " + _component.name + " " + _component._name2_Test;
     },
     function(_component) {
-      return _component._name2_Test;
-    },
-    function(_component) {
-      return _component.getName();
-    },
-    function(_component) {
-      return _component.getName(_component.name);
+      return "\n    $notAVar " + _component.getName() + " " + _component.getName(_component.name) + "\n    Nested\n    ";
     },
     function(_component) {
       return _component.url;
@@ -289,6 +286,24 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.toggleIf.bind(_component);
+    },
+    function(_component) {
+      return _component.toggleElseIf.bind(_component);
+    },
+    function(_component) {
+      return _component.ifValue;
+    },
+    function(_component) {
+      return _component.ifElseValue;
+    },
+    function(_component) {
+      return _component.ifValue;
+    },
+    function(_component) {
+      return _component.ifElseValue;
     }
   ];
 
@@ -316,7 +331,7 @@
       return _component.text;
     },
     function(_component) {
-      return count(_component.items) + 1;
+      return "\n        Add #" + (count(_component.items) + 1) + "\n    ";
     },
     function(_component) {
       return _component.items;
@@ -370,6 +385,13 @@
     }
     return anchors[target.__aid];
   }
+  function createAnchorNode(anchor, target) {
+    const anchorNode = document.createTextNode("");
+    anchorNode._anchor = true;
+    anchor.current++;
+    target.childNodes.length > anchor.current ? target.insertBefore(anchorNode, target.childNodes[anchor.current]) : target.appendChild(anchorNode);
+    return anchorNode;
+  }
 
   // viewi/core/makeProxy.ts
   function makeProxy(component) {
@@ -388,6 +410,29 @@
     });
     component.$ = component;
     return proxy;
+  }
+
+  // viewi/core/hydrateComment.ts
+  function hydrateComment(target, content) {
+    const anchor = getAnchor(target);
+    const max = target.childNodes.length;
+    let end = anchor.current + 3;
+    end = end > max ? max : end;
+    const invalid = [];
+    for (let i = anchor.current + 1; i < end; i++) {
+      const potentialNode = target.childNodes[i];
+      if (potentialNode.nodeType === 8) {
+        anchor.current = i;
+        anchor.invalid = anchor.invalid.concat(invalid);
+        return potentialNode;
+      }
+      invalid.push(i);
+    }
+    anchor.added++;
+    console.log("Hydrate comment not found", content);
+    const element = document.createComment(content);
+    anchor.current++;
+    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(element);
   }
 
   // viewi/core/hydrateTag.ts
@@ -410,7 +455,7 @@
     console.log("Hydrate not found", tag);
     const element = document.createElement(tag);
     anchor.current++;
-    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(document.createElement(tag));
+    return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(element);
   }
 
   // viewi/core/renderText.ts
@@ -466,16 +511,153 @@
     }
   }
 
+  // viewi/core/renderIf.ts
+  function renderIf(instance, node, directive, anchorNode, ifConditions, localDirectiveMap, index) {
+    let nextValue = true;
+    for (let i = 0; i < index; i++) {
+      nextValue = nextValue && !ifConditions.values[i];
+    }
+    if (directive.children) {
+      nextValue = nextValue && !!instance.$$t[directive.children[0].code](instance);
+    }
+    if (ifConditions.values[index] !== nextValue) {
+      ifConditions.values[index] = nextValue;
+      if (nextValue) {
+        render(anchorNode, instance, [node], { ...localDirectiveMap }, false, true);
+      } else {
+        while (!anchorNode.previousSibling._anchor) {
+          anchorNode.previousSibling.remove();
+        }
+      }
+    }
+  }
+
+  // viewi/core/updateComment.ts
+  function updateComment(instance, node, commentNode) {
+    const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+    commentNode.nodeValue !== content && (commentNode.nodeValue = content);
+  }
+
   // viewi/core/render.ts
-  function render(target, instance, nodes) {
-    for (let i in nodes) {
+  function render(target, instance, nodes, directives, hydrate = true, insert = false) {
+    let ifConditions = null;
+    let nextInsert = false;
+    for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       let element = target;
-      let hydrate = true;
+      let breakAndContinue = false;
       switch (node.type) {
         case "tag": {
+          if (node.directives) {
+            const localDirectiveMap = directives || { map: {}, storage: {} };
+            for (let d = 0; d < node.directives.length; d++) {
+              const directive = node.directives[d];
+              if (d in localDirectiveMap.map) {
+                continue;
+              }
+              localDirectiveMap.map[d] = true;
+              switch (directive.content) {
+                case "if": {
+                  ifConditions = { values: [], index: 0, subs: [] };
+                  const nextValue = !!instance.$$t[directive.children[0].code](instance);
+                  ifConditions.values.push(nextValue);
+                  const anchor = getAnchor(target);
+                  createAnchorNode(anchor, target);
+                  if (nextValue) {
+                    render(target, instance, [node], localDirectiveMap);
+                  }
+                  const anchorNode = createAnchorNode(anchor, target);
+                  if (directive.children[0].subs) {
+                    for (let subI in directive.children[0].subs) {
+                      const trackingPath = directive.children[0].subs[subI];
+                      ifConditions.subs.push(trackingPath);
+                      if (!instance.$$r[trackingPath]) {
+                        instance.$$r[trackingPath] = [];
+                      }
+                      instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                    }
+                  }
+                  ifConditions.index++;
+                  breakAndContinue = true;
+                  break;
+                }
+                case "else-if": {
+                  if (ifConditions) {
+                    let nextValue = true;
+                    for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                      nextValue = nextValue && !ifConditions.values[ifv];
+                    }
+                    nextValue = nextValue && !ifConditions.values[ifConditions.index - 1] && !!instance.$$t[directive.children[0].code](instance);
+                    ifConditions.values.push(nextValue);
+                    const anchor = getAnchor(target);
+                    createAnchorNode(anchor, target);
+                    if (nextValue) {
+                      render(target, instance, [node], localDirectiveMap);
+                    }
+                    const anchorNode = createAnchorNode(anchor, target);
+                    if (directive.children[0].subs) {
+                      ifConditions.subs = ifConditions.subs.concat(directive.children[0].subs);
+                    }
+                    for (let subI in ifConditions.subs) {
+                      const trackingPath = ifConditions.subs[subI];
+                      if (!instance.$$r[trackingPath]) {
+                        instance.$$r[trackingPath] = [];
+                      }
+                      instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                    }
+                    ifConditions.index++;
+                    breakAndContinue = true;
+                  } else {
+                    console.warn("Directive else-if has missing previous if/else-if", directive.content, directive);
+                  }
+                  break;
+                }
+                case "else": {
+                  if (ifConditions) {
+                    let nextValue = true;
+                    for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                      nextValue = nextValue && !ifConditions.values[ifv];
+                    }
+                    ifConditions.values.push(nextValue);
+                    const anchor = getAnchor(target);
+                    createAnchorNode(anchor, target);
+                    if (nextValue) {
+                      render(target, instance, [node], localDirectiveMap);
+                    }
+                    const anchorNode = createAnchorNode(anchor, target);
+                    for (let subI in ifConditions.subs) {
+                      const trackingPath = ifConditions.subs[subI];
+                      if (!instance.$$r[trackingPath]) {
+                        instance.$$r[trackingPath] = [];
+                      }
+                      instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                    }
+                    ifConditions.index++;
+                    breakAndContinue = true;
+                  } else {
+                    console.warn("Directive else has missing previous if/else-if", directive.content, directive);
+                  }
+                  break;
+                }
+                default: {
+                  console.warn("Directive not implemented", directive.content, directive);
+                  break;
+                }
+              }
+              if (breakAndContinue) {
+                break;
+              }
+            }
+            if (breakAndContinue) {
+              continue;
+            }
+          }
+          if (node.content === "template") {
+            nextInsert = insert;
+            break;
+          }
           const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-          element = hydrate ? hydrateTag(target, content) : target.appendChild(document.createElement(content));
+          element = hydrate ? hydrateTag(target, content) : insert ? target.parentElement.insertBefore(document.createElement(content), target) : target.appendChild(document.createElement(content));
           break;
         }
         case "text": {
@@ -485,7 +667,7 @@
           } else {
             textNode = document.createTextNode("");
             renderText(instance, node, textNode);
-            target.appendChild(textNode);
+            insert ? target.parentElement.insertBefore(textNode, target) : target.appendChild(textNode);
           }
           if (node.subs) {
             for (let subI in node.subs) {
@@ -498,8 +680,22 @@
           }
           break;
         }
+        case "comment": {
+          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+          const commentNode = hydrate ? hydrateComment(target, content) : insert ? target.parentElement.insertBefore(document.createComment(content), target) : target.appendChild(document.createComment(content));
+          if (node.subs) {
+            for (let subI in node.subs) {
+              const trackingPath = node.subs[subI];
+              if (!instance.$$r[trackingPath]) {
+                instance.$$r[trackingPath] = [];
+              }
+              instance.$$r[trackingPath].push([updateComment, [instance, node, commentNode]]);
+            }
+          }
+          break;
+        }
         default: {
-          console.log("No implemented", node);
+          console.log("Not implemented", node);
           break;
         }
       }
@@ -538,7 +734,7 @@
         }
       }
       if (node.children) {
-        render(element, instance, node.children);
+        render(element, instance, node.children, void 0, hydrate, nextInsert);
       }
     }
   }
@@ -594,6 +790,13 @@
       delete item.a;
       for (let i in item.attributes) {
         unpack(item.attributes[i]);
+      }
+    }
+    if (item.i) {
+      item.directives = item.i;
+      delete item.i;
+      for (let i in item.directives) {
+        unpack(item.directives[i]);
       }
     }
     if (item.h) {
