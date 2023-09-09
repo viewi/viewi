@@ -39,6 +39,7 @@ class TemplateCompiler
     private array $slots;
     private int $forIterationKey = 0;
     private array $localScope = [];
+    private array $localScopeArguments = [];
     private array $usedFunctions = [];
     private array $inlineExpressions = [];
 
@@ -229,8 +230,8 @@ class TemplateCompiler
                         $phpCode = $foreachParts[0];
                         $foreachTagValue->DataExpression = new DataExpression();
                         $jsOutput = $this->jsTranspiler->convert($foreachParts[0], true, $this->_CompileJsComponentName, $this->localScope);
-                        $foreachTagValue->DataExpression->ForData = $jsOutput->__toString();
-
+                        $this->inlineExpressions[] = [$jsOutput->__toString(), $this->localScopeArguments];
+                        $foreachTagValue->DataExpression->ForData = count($this->inlineExpressions) - 1;
                         $transforms = $jsOutput->getTransforms();
                         foreach ($transforms as $input => $replacement) {
                             if ($input[0] === '$') {
@@ -243,6 +244,7 @@ class TemplateCompiler
                         $foreachLoop = $foreachParts[1];
                         $foreachAsParts = explode('=>', $foreachLoop);
                         $prevScope = $this->localScope;
+                        $prevScopeArguments = $this->localScopeArguments;
                         if (count($foreachAsParts) > 1) {
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
                             $foreachTagValue->DataExpression->ForKey = $jsOutput->__toString();
@@ -251,6 +253,7 @@ class TemplateCompiler
                                 $argument = substr($argument, 1);
                             }
                             $this->localScope[$argument] = true;
+                            $this->localScopeArguments[] = $argument;
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[1], true, null, $this->localScope);
                             $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[1]);
@@ -258,15 +261,20 @@ class TemplateCompiler
                                 $argument = substr($argument, 1);
                             }
                             $this->localScope[$argument] = true;
+                            $this->localScopeArguments[] = $argument;
                         } else {
-                            $foreachTagValue->DataExpression->ForKey = $this->getNextIterationKey();
+                            $autoForKey = $this->getNextIterationKey();
+                            $foreachTagValue->DataExpression->ForKey = $autoForKey;
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
                             $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[0]);
                             if ($argument[0] === '$') {
                                 $argument = substr($argument, 1);
                             }
+                            $this->localScope[$autoForKey] = true;
+                            $this->localScopeArguments[] = $autoForKey;
                             $this->localScope[$argument] = true;
+                            $this->localScopeArguments[] = $argument;
                         }
                         $this->flushBuffer();
                         $this->code .= PHP_EOL . $this->i() . "foreach ({$foreachTagValue->PhpExpression} as $foreachLoop) {";
@@ -276,6 +284,7 @@ class TemplateCompiler
                         $this->level--;
                         $this->code .= PHP_EOL . $this->i() . "}";
                         $this->localScope = $prevScope;
+                        $this->localScopeArguments = $prevScopeArguments;
                         return;
                         // == FOREACH END ==
                     }
@@ -619,15 +628,19 @@ class TemplateCompiler
             $attributeTagValue->ItsExpression = true;
             $attributeTagValue->Content = $expression;
             $this->localScope['event'] = true;
+            $this->localScopeArguments[] = 'event';
             $this->buildExpression($attributeTagValue);
             array_pop($this->localScope);
-            $jsEventCode = array_pop($this->inlineExpressions);
+            array_pop($this->localScopeArguments);
+            $jsEventCodeTupple = array_pop($this->inlineExpressions);
+            $jsEventCode = $jsEventCodeTupple[0];
+            $funcArguments = implode(', ', $jsEventCodeTupple[1]);
             if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
-                $jsEventCode = "function (event) { $jsEventCode; }";
+                $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
             } else {
                 $jsEventCode = "$jsEventCode.bind(_component)";
             }
-            $this->inlineExpressions[] = $jsEventCode;
+            $this->inlineExpressions[] = [$jsEventCode, $this->localScopeArguments];
             if (!$attributeItem->ItsExpression) {
                 $attributeItem->setChildren([$attributeTagValue]);
                 return; // event is handled on front-end only
@@ -742,12 +755,17 @@ class TemplateCompiler
                 }
             }
         }
-        if (ctype_alnum(str_replace('_', '', $tagItem->JsExpression))) { // method
+        if (
+            !isset($this->localScope[$tagItem->JsExpression])
+            && ctype_alnum(str_replace('_', '', $tagItem->JsExpression))
+            && isset($this->buildItem->publicNodes[$tagItem->JsExpression])
+            && $this->buildItem->publicNodes[$tagItem->JsExpression] === ExportItem::Method
+        ) { // method
             $tagItem->JsExpression = $this->_CompileJsComponentName .
                 '.' . $tagItem->JsExpression;
         }
 
-        $this->inlineExpressions[] = $tagItem->JsExpression;
+        $this->inlineExpressions[] = [$tagItem->JsExpression, $this->localScopeArguments];
         $tagItem->JsExpressionCode = count($this->inlineExpressions) - 1;
         $tagItem->PhpExpression = $phpCode;
     }
