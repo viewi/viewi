@@ -19,9 +19,10 @@ export function hydrateComment(target: Node, content: string): Comment {
         invalid.push(i);
     }
     anchor.added++;
+    anchor.invalid = anchor.invalid.concat(invalid);
     console.log('Hydrate comment not found', content);
     const element = document.createComment(content);
-    anchor.current++;
+    anchor.current = anchor.current + invalid.length + 1;
     return max > anchor.current
         ? target.insertBefore(element, target.childNodes[anchor.current])
         : target.appendChild(element);

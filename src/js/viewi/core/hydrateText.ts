@@ -28,9 +28,10 @@ export function hydrateText(target: Node, instance: BaseComponent<any>, node: Te
         i !== anchor.current && invalid.push(i);
     }
     anchor.added++;
+    anchor.invalid = anchor.invalid.concat(invalid);
     const textNode = document.createTextNode('');
     renderText(instance, node, textNode);
-    anchor.current++;
+    anchor.current = anchor.current + invalid.length + 1;
     console.log('Hydrate not found', textNode);
     return max > anchor.current
         ? target.insertBefore(textNode, target.childNodes[anchor.current])

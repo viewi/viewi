@@ -45,15 +45,16 @@ export function renderComponent(name: string) {
         rootChildren && render(counterTarget, instance, rootChildren);
     }
     console.log(anchors);
+    // return;
     for (let a in anchors) {
         const anchor = anchors[a];
+        // clean up what's left
+        for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
+            anchor.target.childNodes[i].remove();
+        }
         // clean up not matched
         for (let i = anchor.invalid.length - 1; i >= 0; i--) {
             anchor.target.childNodes[anchor.invalid[i]].remove();
-        }
-        // clean up what's left
-        for (let i = anchor.current + 1; i < anchor.target.childNodes.length; i++) {
-            anchor.target.childNodes[i].remove();
         }
     }
 }

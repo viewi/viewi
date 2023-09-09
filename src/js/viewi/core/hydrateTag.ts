@@ -20,9 +20,10 @@ export function hydrateTag(target: Node, tag: string): Node {
         invalid.push(i);
     }
     anchor.added++;
+    anchor.invalid = anchor.invalid.concat(invalid);
     console.log('Hydrate not found', tag);
     const element = document.createElement(tag);
-    anchor.current++;
+    anchor.current = anchor.current + invalid.length + 1;
     return max > anchor.current
         ? target.insertBefore(element, target.childNodes[anchor.current])
         : target.appendChild(element);

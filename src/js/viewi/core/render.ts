@@ -25,6 +25,7 @@ export function render(
         let element: Node = target;
         // let hydrate = true;
         let breakAndContinue = false;
+        let withAttributes = false;
         switch (node.type) {
             case <NodeType>'tag':
                 {
@@ -138,6 +139,7 @@ export function render(
                                 }
                                 default: {
                                     console.warn('Directive not implemented', directive.content, directive);
+                                    breakAndContinue = true;
                                     break;
                                 }
                             }
@@ -154,6 +156,7 @@ export function render(
                         nextInsert = insert;
                         break;
                     }
+                    withAttributes = true;
                     const content = node.expression
                         ? instance.$$t[node.code!](instance)
                         : (node.content ?? '');
@@ -213,45 +216,64 @@ export function render(
                 break;
             }
         }
-        if (node.attributes) {
-            for (let a in node.attributes) {
-                const attribute = node.attributes[a];
-                const attrName = attribute.expression
-                    ? instance.$$t[attribute.code!](instance)
-                    : (attribute.content ?? '');
-                if (attrName[0] === '(') {
-                    // event
-                    const eventName = attrName.substring(1, attrName.length - 1);
-                    if (attribute.children) {
-                        const eventHandler =
-                            instance.$$t[
-                                attribute.dynamic
-                                    ? attribute.dynamic.code!
-                                    : attribute.children[0].code!
-                            ](instance) as EventListener;
-                        element.addEventListener(eventName, eventHandler);
-                        console.log('Event', attribute, eventName, eventHandler);
-                    }
-                } else {
-                    renderAttributeValue(instance, attribute, <HTMLElement>element, attrName);
-                    let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
-                    if (attribute.children) {
-                        for (let av in attribute.children) {
-                            const attributeValue = attribute.children[av];
-                            if (attributeValue.subs) {
-                                valueSubs = valueSubs.concat(attributeValue.subs as never[]);
+        if (withAttributes) {
+            if (node.attributes) {
+                const toRemove: string[] | null = hydrate
+                    ? (<HTMLElement>element).getAttributeNames()
+                    : null;
+                const hasMap: { [key: string]: boolean } | null = hydrate ? {} : null;
+                for (let a in node.attributes) {
+                    const attribute = node.attributes[a];
+                    const attrName = attribute.expression
+                        ? instance.$$t[attribute.code!](instance)
+                        : (attribute.content ?? '');
+                    if (attrName[0] === '(') {
+                        // event
+                        const eventName = attrName.substring(1, attrName.length - 1);
+                        if (attribute.children) {
+                            const eventHandler =
+                                instance.$$t[
+                                    attribute.dynamic
+                                        ? attribute.dynamic.code!
+                                        : attribute.children[0].code!
+                                ](instance) as EventListener;
+                            element.addEventListener(eventName, eventHandler);
+                            console.log('Event', attribute, eventName, eventHandler);
+                        }
+                    } else {
+                        hydrate && (hasMap![attrName] = true);
+                        renderAttributeValue(instance, attribute, <HTMLElement>element, attrName);
+                        let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
+                        if (attribute.children) {
+                            for (let av in attribute.children) {
+                                const attributeValue = attribute.children[av];
+                                if (attributeValue.subs) {
+                                    valueSubs = valueSubs.concat(attributeValue.subs as never[]);
+                                }
+                            }
+                        }
+                        if (valueSubs) {
+                            for (let subI in valueSubs) {
+                                const trackingPath = valueSubs[subI];
+                                if (!instance.$$r[trackingPath]) {
+                                    instance.$$r[trackingPath] = [];
+                                }
+                                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
                             }
                         }
                     }
-                    if (valueSubs) {
-                        for (let subI in valueSubs) {
-                            const trackingPath = valueSubs[subI];
-                            if (!instance.$$r[trackingPath]) {
-                                instance.$$r[trackingPath] = [];
-                            }
-                            instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
+                }
+                if (hydrate) {
+                    for (let ai = 0; ai < toRemove!.length; ai++) {
+                        if (!(toRemove![ai] in hasMap!)) {
+                            (<HTMLElement>element).removeAttribute(toRemove![ai]);
                         }
                     }
+                }
+            } else if (hydrate) {
+                const toRemove: string[] = (<HTMLElement>element).getAttributeNames();
+                for (let ai = 0; ai < toRemove.length; ai++) {
+                    (<HTMLElement>element).removeAttribute(toRemove[ai]);
                 }
             }
         }
