@@ -304,8 +304,9 @@ class Builder
                 $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
                 // inline expressions
                 $exprComma = '';
-                foreach ($buildItem->RenderFunction->inlineExpressions as $code => $expression) {
-                    $expressionsJs .= $exprComma . "    function (_component) { return $expression; }";
+                foreach ($buildItem->RenderFunction->inlineExpressions as $code => [$expression, $arguments]) {
+                    $funcArguments = implode(', ', ['_component', ...$arguments]);
+                    $expressionsJs .= $exprComma . "    function ($funcArguments) { return $expression; }";
                     $exprComma = ',' . PHP_EOL;
                 }
             }
