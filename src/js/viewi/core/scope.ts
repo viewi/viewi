@@ -1,0 +1,1 @@
+export type DataScope = { arguments: any[], map: { [key: string]: number } }

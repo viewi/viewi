@@ -8,6 +8,7 @@ import { NodeType, TemplateNode } from "./node";
 import { renderAttributeValue } from "./renderAttributeValue";
 import { renderIf } from "./renderIf";
 import { renderText } from "./renderText";
+import { DataScope } from "./scope";
 import { updateComment } from "./updateComment";
 
 export function render(
@@ -16,7 +17,8 @@ export function render(
     nodes: TemplateNode[],
     directives?: DirectiveMap,
     hydrate: boolean = true,
-    insert: boolean = false
+    insert: boolean = false,
+    scope?: DataScope
 ) {
     let ifConditions: ConditionalDirective | null = null;
     let nextInsert = false;
@@ -32,9 +34,12 @@ export function render(
                     // if, else-if, else, foreach
                     if (node.directives) {
                         const localDirectiveMap: DirectiveMap = directives || { map: {}, storage: {} };
-
+                        let callArguments = [instance];
+                        if (scope) {
+                            callArguments = callArguments.concat(scope.arguments);
+                        }
                         for (let d = 0; d < node.directives.length; d++) {
-                            const directive = node.directives[d];
+                            const directive: TemplateNode = node.directives[d];
                             if (d in localDirectiveMap.map) { // already processed                                 
                                 // console.log('skipping', localDirectiveMap, directive);
                                 continue;
@@ -46,12 +51,12 @@ export function render(
                                     ifConditions = <ConditionalDirective>{ values: [], index: 0, subs: [] };
                                     const nextValue = !!(instance.$$t[
                                         directive.children![0].code!
-                                    ](instance));
+                                    ].apply(null, callArguments));
                                     ifConditions.values.push(nextValue);
                                     const anchor = getAnchor(target);
                                     createAnchorNode(anchor, target); // begin if
                                     if (nextValue) {
-                                        render(target, instance, [node], localDirectiveMap);
+                                        render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                                     }
                                     const anchorNode = createAnchorNode(anchor, target); // end if
                                     if (directive.children![0].subs) {
@@ -79,12 +84,12 @@ export function render(
                                         nextValue = nextValue && !ifConditions.values[ifConditions.index - 1]
                                             && !!(instance.$$t[
                                                 directive.children![0].code!
-                                            ](instance));
+                                            ].apply(null, callArguments));
                                         ifConditions.values.push(nextValue);
                                         const anchor = getAnchor(target);
                                         createAnchorNode(anchor, target); // begin else-if
                                         if (nextValue) {
-                                            render(target, instance, [node], localDirectiveMap);
+                                            render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                                         }
                                         const anchorNode = createAnchorNode(anchor, target); // end else-if
                                         if (directive.children![0].subs) {
@@ -118,7 +123,7 @@ export function render(
                                         const anchor = getAnchor(target);
                                         createAnchorNode(anchor, target); // begin else
                                         if (nextValue) {
-                                            render(target, instance, [node], localDirectiveMap);
+                                            render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                                         }
                                         const anchorNode = createAnchorNode(anchor, target); // end else
                                         for (let subI in ifConditions.subs) {
@@ -135,6 +140,27 @@ export function render(
                                     } else {
                                         console.warn('Directive else has missing previous if/else-if', directive.content, directive);
                                     }
+                                    break;
+                                }
+                                case <DirectiveType>'foreach': {
+                                    const data = instance.$$t[
+                                        directive.children![0].forData!
+                                    ].apply(null, callArguments);
+                                    const isNumeric = Array.isArray(data);
+                                    for (let forKey in data) {
+                                        const dataKey = isNumeric ? +forKey : forKey;
+                                        const dataItem = data[dataKey];
+                                        let nextScope: DataScope = scope
+                                            ? { map: { ...scope.map }, arguments: [...scope.arguments] }
+                                            : { map: {}, arguments: [] };
+                                        nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
+                                        nextScope.arguments.push(dataKey);
+                                        nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
+                                        nextScope.arguments.push(dataItem);
+                                        // console.log('foreach', data, dataKey, dataItem, nextScope);
+                                        render(target, instance, [node], { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } }, hydrate, insert, nextScope);
+                                    }
+                                    breakAndContinue = true;
                                     break;
                                 }
                                 default: {
@@ -172,7 +198,7 @@ export function render(
                 {
                     let textNode: Text;
                     if (hydrate) {
-                        textNode = hydrateText(target, instance, node);
+                        textNode = hydrateText(target, instance, node, scope);
                     } else {
                         textNode = document.createTextNode('');
                         renderText(instance, node, textNode);
@@ -186,7 +212,7 @@ export function render(
                             if (!instance.$$r[trackingPath]) {
                                 instance.$$r[trackingPath] = [];
                             }
-                            instance.$$r[trackingPath].push([renderText, [instance, node, textNode]]);
+                            instance.$$r[trackingPath].push([renderText, [instance, node, textNode, scope]]);
                         }
                     }
                     break;
@@ -242,7 +268,7 @@ export function render(
                         }
                     } else {
                         hydrate && (hasMap![attrName] = true);
-                        renderAttributeValue(instance, attribute, <HTMLElement>element, attrName);
+                        renderAttributeValue(instance, attribute, <HTMLElement>element, attrName, scope);
                         let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
                         if (attribute.children) {
                             for (let av in attribute.children) {
@@ -258,7 +284,7 @@ export function render(
                                 if (!instance.$$r[trackingPath]) {
                                     instance.$$r[trackingPath] = [];
                                 }
-                                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName]]);
+                                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName, scope]]);
                             }
                         }
                     }
@@ -278,7 +304,7 @@ export function render(
             }
         }
         if (node.children) {
-            render(element, instance, node.children, undefined, hydrate, nextInsert);
+            render(element, instance, node.children, undefined, hydrate, nextInsert, scope);
         }
     }
 }

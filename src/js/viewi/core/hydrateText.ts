@@ -2,8 +2,9 @@ import { BaseComponent } from "./BaseComponent";
 import { getAnchor } from "./anchor";
 import { TemplateNode } from "./node";
 import { renderText } from "./renderText";
+import { DataScope } from "./scope";
 
-export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode): Text {
+export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode, scope?: DataScope): Text {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;
@@ -21,7 +22,7 @@ export function hydrateText(target: Node, instance: BaseComponent<any>, node: Te
             }
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);
-            renderText(instance, node, potentialNode as Text);
+            renderText(instance, node, potentialNode as Text, scope);
             // console.log('Hydrate match', potentialNode);
             return potentialNode as Text;
         }
@@ -30,7 +31,7 @@ export function hydrateText(target: Node, instance: BaseComponent<any>, node: Te
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
     const textNode = document.createTextNode('');
-    renderText(instance, node, textNode);
+    renderText(instance, node, textNode, scope);
     anchor.current = anchor.current + invalid.length + 1;
     console.log('Hydrate not found', textNode);
     return max > anchor.current

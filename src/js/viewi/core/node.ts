@@ -19,6 +19,9 @@ export type TemplateNode = {
     directives?: TemplateNode[],
     unpacked?: boolean,
     dynamic?: TemplateNode,
+    forData?: number,
+    forItem?: string,
+    forKey?: string,
     func: Function
 }
 
