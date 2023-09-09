@@ -4,7 +4,7 @@ import { BaseComponent } from "../../viewi/core/BaseComponent";
 class StatefulCounter extends BaseComponent {
     _name = 'StatefulCounter';
     counter = null;
-    $message = 'Secret message';
+    $message = "Secret message";
     count = null;
 
     constructor(count) {
@@ -14,13 +14,15 @@ class StatefulCounter extends BaseComponent {
     }
 
     $calculate() {
-        this.$.count++;
+        this.count++;
     }
 }
 
 export const StatefulCounter_x = [
+    function (_component) { return function (event) { _component.counter.decrement(); }; },
     function (_component) { return _component.__id; },
-    function (_component) { return _component.counter.count; }
+    function (_component) { return _component.counter.count; },
+    function (_component) { return function (event) { _component.counter.increment(); }; }
 ];
 
 export { StatefulCounter }

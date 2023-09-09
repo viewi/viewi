@@ -6,7 +6,8 @@ class TodoList extends BaseComponent {
 }
 
 export const TodoList_x = [
-    function (_component) { return item; }
+    function (_component) { return _component.items; },
+    function (_component, _key1, item) { return item; }
 ];
 
 export { TodoList }

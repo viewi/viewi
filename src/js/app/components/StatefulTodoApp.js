@@ -5,7 +5,7 @@ import { count } from "../functions/count";
 
 class StatefulTodoApp extends BaseComponent {
     _name = 'StatefulTodoApp';
-    text = '';
+    text = "";
     todo = null;
 
     constructor(todo) {
@@ -15,17 +15,18 @@ class StatefulTodoApp extends BaseComponent {
 
     handleSubmit(event) {
         event.preventDefault();
-        if (strlen(this.$.text) == 0) {
+        if (strlen(this.text) == 0) {
             return;
         }
-        this.$.todo.addNewItem(this.$.text);
-        this.$.text = '';
+        this.todo.addNewItem(this.text);
+        this.text = "";
     }
 }
 
 export const StatefulTodoApp_x = [
+    function (_component) { return function (event) { _component.handleSubmit(event); }; },
     function (_component) { return _component.text; },
-    function (_component) { return count(_component.todo.items) + 1; },
+    function (_component) { return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    "; },
     function (_component) { return _component.todo.items; }
 ];
 

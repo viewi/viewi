@@ -2,7 +2,7 @@ class TodoReducer {
     items = [];
 
     addNewItem(text) {
-        this.$.items.push(text);
+        this.items.push(text);
     }
 }
 
