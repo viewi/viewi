@@ -435,6 +435,9 @@ class JsTranspiler
                             $rawItem[] = $this->jsCode;
                             $this->jsCode = '';
                         }
+                        if ($item->unpack) {
+                            $this->jsCode .= '...';
+                        }
                         $this->processStmts([$item->value]);
                         $rawItem[] = $this->jsCode;
                         $this->jsCode = '';
