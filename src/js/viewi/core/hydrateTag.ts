@@ -21,7 +21,7 @@ export function hydrateTag(target: Node, tag: string): Node {
     }
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
-    console.log('Hydrate not found', tag);
+    console.warn('Hydrate not found', tag);
     const element = document.createElement(tag);
     anchor.current = anchor.current + invalid.length + 1;
     return max > anchor.current

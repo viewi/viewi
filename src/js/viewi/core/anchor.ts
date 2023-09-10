@@ -8,7 +8,7 @@ export type Anchor = {
 let anchorId = 0;
 export const anchors: { [key: string]: Anchor } = {};
 
-export type TextAnchor = Text & { _anchor?: boolean, previousSibling: (ChildNode & TextAnchor) };
+export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor) };
 
 export type NodeAnchor = Node & { __aid?: number };
 
@@ -20,12 +20,14 @@ export function getAnchor(target: NodeAnchor): Anchor {
     return anchors[target.__aid];
 }
 
-export function createAnchorNode(anchor: Anchor, target: NodeAnchor): TextAnchor {
+export function createAnchorNode(target: NodeAnchor, insert: boolean = false, anchor?: Anchor, name?: string): TextAnchor {
     const anchorNode = document.createTextNode('') as TextAnchor;
-    anchorNode._anchor = true;
-    anchor.current++;
-    target.childNodes.length > anchor.current
-        ? target.insertBefore(anchorNode, target.childNodes[anchor.current])
+    anchorNode._anchor = name ?? '#';
+    if (anchor) {
+        anchor.current++;
+    }
+    (insert || (anchor && target.childNodes.length > anchor.current))
+        ? (anchor ? target : target.parentElement)!.insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target)
         : target.appendChild(anchorNode);
     return anchorNode;
 }

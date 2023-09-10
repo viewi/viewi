@@ -41,10 +41,10 @@ export function renderComponent(name: string) {
             root.unpacked = true;
         }
         const rootChildren = root.children;
-        console.log(counterTarget, instance, rootChildren);
+        // console.log(counterTarget, instance, rootChildren);
         rootChildren && render(counterTarget, instance, rootChildren);
     }
-    console.log(anchors);
+    // console.log(anchors);
     // return;
     for (let a in anchors) {
         const anchor = anchors[a];
