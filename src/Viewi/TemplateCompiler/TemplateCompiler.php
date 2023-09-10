@@ -240,6 +240,9 @@ class TemplateCompiler
                                 $phpCode = preg_replace('/\b' . $input . '\b/', '$' . $replacement, $phpCode);
                             }
                         }
+                        $subs = $jsOutput->getDeps();
+                        $classSubs = $this->buildItem->JsOutput->getDeps();
+                        $foreachTagValue->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
                         $foreachTagValue->PhpExpression = $phpCode;
                         $foreachLoop = $foreachParts[1];
                         $foreachAsParts = explode('=>', $foreachLoop);
