@@ -20,6 +20,16 @@ class TestComponent extends BaseComponent {
         return name ?? "DefaultName";
     }
 
+    addTodo() {
+        this.arr = [...this.arr, "Viewi"];
+        // Test cases
+        // $this->arr = ['E', 'a'];
+        // $this->arr = ['c', 'b', 'a'];
+        // $this->arr = ['c', 'b', 'c', 'c'];
+        // $this->arr = [...$this->arr, 'Viewi', ...$this->arr];
+        // $this->arr = ['g', 'b', 'a', 'c'];
+    }
+
     onEvent(event) {
         event.preventDefault();
     }
@@ -43,6 +53,7 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return _component.addTodo.bind(_component); },
     function (_component) { return _component.arr; },
     function (_component, _key1, item) { return item; },
     function (_component, _key1, item) { return item; },

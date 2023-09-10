@@ -249,6 +249,9 @@
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
     }
+    addTodo() {
+      this.arr = [...this.arr, "Viewi"];
+    }
     onEvent(event) {
       event.preventDefault();
     }
@@ -286,6 +289,9 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.addTodo.bind(_component);
     },
     function(_component) {
       return _component.arr;
@@ -484,11 +490,13 @@
     }
     return anchors[target.__aid];
   }
-  function createAnchorNode(anchor, target) {
+  function createAnchorNode(target, insert = false, anchor, name) {
     const anchorNode = document.createTextNode("");
-    anchorNode._anchor = true;
-    anchor.current++;
-    target.childNodes.length > anchor.current ? target.insertBefore(anchorNode, target.childNodes[anchor.current]) : target.appendChild(anchorNode);
+    anchorNode._anchor = name ?? "#";
+    if (anchor) {
+      anchor.current++;
+    }
+    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
     return anchorNode;
   }
 
@@ -553,7 +561,7 @@
     }
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
-    console.log("Hydrate not found", tag);
+    console.warn("Hydrate not found", tag);
     const element = document.createElement(tag);
     anchor.current = anchor.current + invalid.length + 1;
     return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(element);
@@ -595,7 +603,6 @@
     const textNode = document.createTextNode("");
     renderText(instance, node, textNode, scope);
     anchor.current = anchor.current + invalid.length + 1;
-    console.log("Hydrate not found", textNode);
     return max > anchor.current ? target.insertBefore(textNode, target.childNodes[anchor.current]) : target.appendChild(textNode);
   }
 
@@ -618,6 +625,74 @@
       valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
     } else {
       element.removeAttribute(attrName);
+    }
+  }
+
+  // viewi/core/renderForeach.ts
+  function renderForeach(instance, node, directive, anchorNode, currentArrayScope, localDirectiveMap, scope) {
+    let callArguments = [instance];
+    if (scope) {
+      callArguments = callArguments.concat(scope.arguments);
+    }
+    const data = instance.$$t[directive.children[0].forData].apply(null, callArguments);
+    const isNumeric = Array.isArray(data);
+    let insertTarget = anchorNode;
+    let between = false;
+    const usedMap = {};
+    const deleteMap = {};
+    for (let forKey in data) {
+      const dataKey = isNumeric ? +forKey : forKey;
+      const dataItem = data[dataKey];
+      let nextScope = scope ? { map: { ...scope.map }, arguments: [...scope.arguments] } : { map: {}, arguments: [] };
+      let found = false;
+      for (let di in currentArrayScope) {
+        if (currentArrayScope[di] === dataItem) {
+          found = true;
+          between = false;
+          insertTarget = anchorNode;
+          break;
+        } else if (!between && !(dataKey in usedMap)) {
+          insertTarget = currentArrayScope[di].begin;
+          between = true;
+        }
+      }
+      usedMap[dataKey] = true;
+      if (!found) {
+        nextScope.map[directive.children[0].forKey] = nextScope.arguments.length;
+        nextScope.arguments.push(dataKey);
+        nextScope.map[directive.children[0].forItem] = nextScope.arguments.length;
+        nextScope.arguments.push(dataItem);
+        const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+        const itemBeginAnchor = createAnchorNode(insertTarget, true, void 0, "b" /* BeginAnchor */);
+        render(insertTarget, instance, [node], nextDirectives, false, true, nextScope);
+        const itemEndAnchor = createAnchorNode(insertTarget, true, void 0, "e" /* EndAnchor */);
+        if (dataKey in currentArrayScope) {
+          deleteMap[dataKey] = currentArrayScope[dataKey];
+        }
+        currentArrayScope[dataKey] = {
+          key: dataKey,
+          value: dataItem,
+          begin: itemBeginAnchor,
+          end: itemEndAnchor
+        };
+      }
+    }
+    for (let di in currentArrayScope) {
+      if (!(di in usedMap)) {
+        while (currentArrayScope[di].end.previousSibling._anchor !== "b" /* BeginAnchor */) {
+          currentArrayScope[di].end.previousSibling.remove();
+        }
+        currentArrayScope[di].begin.remove();
+        currentArrayScope[di].end.remove();
+        delete currentArrayScope[di];
+      }
+    }
+    for (let di in deleteMap) {
+      while (deleteMap[di].end.previousSibling._anchor !== "b" /* BeginAnchor */) {
+        deleteMap[di].end.previousSibling.remove();
+      }
+      deleteMap[di].begin.remove();
+      deleteMap[di].end.remove();
     }
   }
 
@@ -677,11 +752,11 @@
                   const nextValue = !!instance.$$t[directive.children[0].code].apply(null, callArguments);
                   ifConditions.values.push(nextValue);
                   const anchor = getAnchor(target);
-                  createAnchorNode(anchor, target);
+                  createAnchorNode(target, false, anchor);
                   if (nextValue) {
                     render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                   }
-                  const anchorNode = createAnchorNode(anchor, target);
+                  const anchorNode = createAnchorNode(target, false, anchor);
                   if (directive.children[0].subs) {
                     for (let subI in directive.children[0].subs) {
                       const trackingPath = directive.children[0].subs[subI];
@@ -705,11 +780,11 @@
                     nextValue = nextValue && !ifConditions.values[ifConditions.index - 1] && !!instance.$$t[directive.children[0].code].apply(null, callArguments);
                     ifConditions.values.push(nextValue);
                     const anchor = getAnchor(target);
-                    createAnchorNode(anchor, target);
+                    createAnchorNode(target, false, anchor);
                     if (nextValue) {
                       render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                     }
-                    const anchorNode = createAnchorNode(anchor, target);
+                    const anchorNode = createAnchorNode(target, false, anchor);
                     if (directive.children[0].subs) {
                       ifConditions.subs = ifConditions.subs.concat(directive.children[0].subs);
                     }
@@ -735,11 +810,11 @@
                     }
                     ifConditions.values.push(nextValue);
                     const anchor = getAnchor(target);
-                    createAnchorNode(anchor, target);
+                    createAnchorNode(target, false, anchor);
                     if (nextValue) {
                       render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
                     }
-                    const anchorNode = createAnchorNode(anchor, target);
+                    const anchorNode = createAnchorNode(target, false, anchor);
                     for (let subI in ifConditions.subs) {
                       const trackingPath = ifConditions.subs[subI];
                       if (!instance.$$r[trackingPath]) {
@@ -756,7 +831,10 @@
                 }
                 case "foreach": {
                   const data = instance.$$t[directive.children[0].forData].apply(null, callArguments);
+                  const anchor = getAnchor(target);
+                  createAnchorNode(target, false, anchor);
                   const isNumeric = Array.isArray(data);
+                  const dataArrayScope = {};
                   for (let forKey in data) {
                     const dataKey = isNumeric ? +forKey : forKey;
                     const dataItem = data[dataKey];
@@ -765,7 +843,32 @@
                     nextScope.arguments.push(dataKey);
                     nextScope.map[directive.children[0].forItem] = nextScope.arguments.length;
                     nextScope.arguments.push(dataItem);
-                    render(target, instance, [node], { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } }, hydrate, insert, nextScope);
+                    const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                    const itemBeginAnchor = createAnchorNode(target, false, anchor, "b" /* BeginAnchor */);
+                    render(target, instance, [node], nextDirectives, hydrate, insert, nextScope);
+                    const itemEndAnchor = createAnchorNode(target, false, anchor, "e" /* EndAnchor */);
+                    dataArrayScope[dataKey] = {
+                      key: dataKey,
+                      value: dataItem,
+                      begin: itemBeginAnchor,
+                      end: itemEndAnchor
+                    };
+                  }
+                  const anchorNode = createAnchorNode(target, false, anchor);
+                  if (directive.children[0].subs) {
+                    for (let subI in directive.children[0].subs) {
+                      const trackingPath = directive.children[0].subs[subI];
+                      if (!instance.$$r[trackingPath]) {
+                        instance.$$r[trackingPath] = [];
+                      }
+                      const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                      instance.$$r[trackingPath].push(
+                        [
+                          renderForeach,
+                          [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]
+                        ]
+                      );
+                    }
                   }
                   breakAndContinue = true;
                   break;
@@ -799,7 +902,7 @@
             textNode = hydrateText(target, instance, node, scope);
           } else {
             textNode = document.createTextNode("");
-            renderText(instance, node, textNode);
+            renderText(instance, node, textNode, scope);
             insert ? target.parentElement.insertBefore(textNode, target) : target.appendChild(textNode);
           }
           if (node.subs) {
@@ -828,7 +931,7 @@
           break;
         }
         default: {
-          console.log("Not implemented", node);
+          console.warn("Node type not implemented", node);
           break;
         }
       }
@@ -844,7 +947,6 @@
               if (attribute.children) {
                 const eventHandler = instance.$$t[attribute.dynamic ? attribute.dynamic.code : attribute.children[0].code](instance);
                 element.addEventListener(eventName, eventHandler);
-                console.log("Event", attribute, eventName, eventHandler);
               }
             } else {
               hydrate && (hasMap[attrName] = true);
@@ -986,10 +1088,8 @@
         root.unpacked = true;
       }
       const rootChildren = root.children;
-      console.log(counterTarget, instance, rootChildren);
       rootChildren && render(counterTarget, instance, rootChildren);
     }
-    console.log(anchors);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
