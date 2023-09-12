@@ -6,6 +6,7 @@ export type Anchor = {
 }
 
 let anchorId = 0;
+let anchorNodeId = 0;
 export const anchors: { [key: string]: Anchor } = {};
 
 export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor) };
@@ -20,9 +21,13 @@ export function getAnchor(target: NodeAnchor): Anchor {
     return anchors[target.__aid];
 }
 
+export function nextAnchorNodeId(): number {
+    return ++anchorNodeId;
+}
+
 export function createAnchorNode(target: NodeAnchor, insert: boolean = false, anchor?: Anchor, name?: string): TextAnchor {
     const anchorNode = document.createTextNode('') as TextAnchor;
-    anchorNode._anchor = name ?? '#';
+    anchorNode._anchor = name ?? ('#' + ++anchorNodeId);
     if (anchor) {
         anchor.current++;
     }

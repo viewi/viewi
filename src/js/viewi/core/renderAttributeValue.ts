@@ -1,13 +1,13 @@
 import { BaseComponent } from "./BaseComponent";
 import { TemplateNode } from "./node";
-import { DataScope } from "./scope";
+import { ContextScope } from "./contextScope";
 
 export function renderAttributeValue(
     instance: BaseComponent<any>,
     attribute: TemplateNode,
     element: HTMLElement,
     attrName: string,
-    scope?: DataScope
+    scope?: ContextScope
 ) {
     let valueContent: string | null = null;
     if (attribute.children) {

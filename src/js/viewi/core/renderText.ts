@@ -1,8 +1,8 @@
 import { BaseComponent } from "./BaseComponent";
 import { TemplateNode } from "./node";
-import { DataScope } from "./scope";
+import { ContextScope } from "./contextScope";
 
-export function renderText(instance: BaseComponent<any>, node: TemplateNode, textNode: Text, scope?: DataScope) {
+export function renderText(instance: BaseComponent<any>, node: TemplateNode, textNode: Text, scope?: ContextScope) {
     let callArguments = [instance];
     if (scope) {
         callArguments = callArguments.concat(scope.arguments);

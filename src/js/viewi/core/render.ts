@@ -1,5 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
-import { TextAnchor, createAnchorNode, getAnchor } from "./anchor";
+import { TextAnchor, createAnchorNode, getAnchor, nextAnchorNodeId } from "./anchor";
 import { ArrayScope, ForeachAnchorEnum } from "./arrayScope";
 import { ConditionalDirective, Directive, DirectiveMap, DirectiveStorageType, DirectiveType } from "./directive";
 import { hydrateComment } from "./hydrateComment";
@@ -10,17 +10,17 @@ import { renderAttributeValue } from "./renderAttributeValue";
 import { renderForeach } from "./renderForeach";
 import { renderIf } from "./renderIf";
 import { renderText } from "./renderText";
-import { DataScope } from "./scope";
+import { ContextScope, track } from "./contextScope";
 import { updateComment } from "./updateComment";
 
 export function render(
     target: Node,
     instance: BaseComponent<any>,
     nodes: TemplateNode[],
+    scope: ContextScope,
     directives?: DirectiveMap,
     hydrate: boolean = true,
-    insert: boolean = false,
-    scope?: DataScope
+    insert: boolean = false
 ) {
     let ifConditions: ConditionalDirective | null = null;
     let nextInsert = false;
@@ -55,20 +55,18 @@ export function render(
                                         directive.children![0].code!
                                     ].apply(null, callArguments));
                                     ifConditions.values.push(nextValue);
-                                    const anchor = getAnchor(target);
-                                    createAnchorNode(target, false, anchor); // begin if
+                                    const anchor = hydrate ? getAnchor(target) : undefined;
+                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin if
+                                    const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                                     if (nextValue) {
-                                        render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
+                                        render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
                                     }
-                                    const anchorNode = createAnchorNode(target, false, anchor); // end if
+                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end if
                                     if (directive.children![0].subs) {
                                         for (let subI in directive.children![0].subs) {
                                             const trackingPath = directive.children![0].subs[subI];
                                             ifConditions.subs.push(trackingPath);
-                                            if (!instance.$$r[trackingPath]) {
-                                                instance.$$r[trackingPath] = [];
-                                            }
-                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                                            track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                                         }
                                     }
                                     ifConditions.index++;
@@ -88,22 +86,20 @@ export function render(
                                                 directive.children![0].code!
                                             ].apply(null, callArguments));
                                         ifConditions.values.push(nextValue);
-                                        const anchor = getAnchor(target);
-                                        createAnchorNode(target, false, anchor); // begin else-if
+                                        const anchor = hydrate ? getAnchor(target) : undefined;
+                                        const anchorBegin = createAnchorNode(target, insert, anchor); // begin else-if
+                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                                         if (nextValue) {
-                                            render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
+                                            render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
                                         }
-                                        const anchorNode = createAnchorNode(target, false, anchor); // end else-if
+                                        const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else-if
                                         if (directive.children![0].subs) {
                                             // TODO: filter out unique
                                             ifConditions.subs = ifConditions.subs.concat(directive.children![0].subs);
                                         }
                                         for (let subI in ifConditions.subs) {
                                             const trackingPath = ifConditions.subs[subI];
-                                            if (!instance.$$r[trackingPath]) {
-                                                instance.$$r[trackingPath] = [];
-                                            }
-                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                                            track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                                         }
 
                                         ifConditions.index++;
@@ -122,18 +118,17 @@ export function render(
                                             nextValue = nextValue && !ifConditions.values[ifv];
                                         }
                                         ifConditions.values.push(nextValue);
-                                        const anchor = getAnchor(target);
-                                        createAnchorNode(target, false, anchor); // begin else
+                                        const anchor = hydrate ? getAnchor(target) : undefined;
+                                        const anchorBegin = createAnchorNode(target, insert, anchor); // begin else
+                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+
                                         if (nextValue) {
-                                            render(target, instance, [node], localDirectiveMap, hydrate, insert, scope);
+                                            render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
                                         }
-                                        const anchorNode = createAnchorNode(target, false, anchor); // end else
+                                        const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else
                                         for (let subI in ifConditions.subs) {
                                             const trackingPath = ifConditions.subs[subI];
-                                            if (!instance.$$r[trackingPath]) {
-                                                instance.$$r[trackingPath] = [];
-                                            }
-                                            instance.$$r[trackingPath].push([renderIf, [instance, node, directive, anchorNode, ifConditions, { ...localDirectiveMap }, ifConditions.index]]);
+                                            track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                                         }
 
                                         ifConditions.index++;
@@ -148,16 +143,16 @@ export function render(
                                     const data = instance.$$t[
                                         directive.children![0].forData!
                                     ].apply(null, callArguments);
-                                    const anchor = getAnchor(target);
-                                    createAnchorNode(target, false, anchor); // begin foreach
+                                    const anchor = hydrate ? getAnchor(target) : undefined;
+                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin foreach
                                     const isNumeric = Array.isArray(data);
                                     const dataArrayScope: ArrayScope = {};
                                     for (let forKey in data) {
                                         const dataKey = isNumeric ? +forKey : forKey;
                                         const dataItem = data[dataKey];
-                                        let nextScope: DataScope = scope
-                                            ? { map: { ...scope.map }, arguments: [...scope.arguments] }
-                                            : { map: {}, arguments: [] };
+                                        let nextScope: ContextScope = scope
+                                            ? { map: { ...scope.map }, arguments: [...scope.arguments], components: [], track: [] }
+                                            : { map: {}, arguments: [], components: [], track: [] };
                                         nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
                                         nextScope.arguments.push(dataKey);
                                         nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
@@ -165,9 +160,9 @@ export function render(
 
                                         // console.log('foreach', data, dataKey, dataItem, nextScope);
                                         const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                                        const itemBeginAnchor = createAnchorNode(target, false, anchor, ForeachAnchorEnum.BeginAnchor); // begin foreach item
-                                        render(target, instance, [node], nextDirectives, hydrate, insert, nextScope);
-                                        const itemEndAnchor = createAnchorNode(target, false, anchor, ForeachAnchorEnum.EndAnchor); // end foreach item
+                                        const itemBeginAnchor = createAnchorNode(target, insert, anchor, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
+                                        render(target, instance, [node], nextScope, nextDirectives, hydrate, insert);
+                                        const itemEndAnchor = createAnchorNode(target, insert, anchor, itemBeginAnchor._anchor); // end foreach item
                                         dataArrayScope[dataKey] = {
                                             key: dataKey,
                                             value: dataItem,
@@ -175,18 +170,14 @@ export function render(
                                             end: itemEndAnchor
                                         };
                                     }
-                                    const anchorNode = createAnchorNode(target, false, anchor); // end foreach
+                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end foreach
 
                                     if (directive.children![0].subs) {
                                         for (let subI in directive.children![0].subs) {
                                             const trackingPath = directive.children![0].subs[subI];
-                                            if (!instance.$$r[trackingPath]) {
-                                                instance.$$r[trackingPath] = [];
-                                            }
                                             const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                                            instance.$$r[trackingPath].push([renderForeach,
-                                                [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]]
-                                            );
+                                            track(instance, trackingPath, [renderForeach,
+                                                [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]]);
                                         }
                                     }
 
@@ -239,10 +230,7 @@ export function render(
                     if (node.subs) {
                         for (let subI in node.subs) {
                             const trackingPath = node.subs[subI];
-                            if (!instance.$$r[trackingPath]) {
-                                instance.$$r[trackingPath] = [];
-                            }
-                            instance.$$r[trackingPath].push([renderText, [instance, node, textNode, scope]]);
+                            track(instance, trackingPath, [renderText, [instance, node, textNode, scope]]);
                         }
                     }
                     break;
@@ -259,10 +247,7 @@ export function render(
                 if (node.subs) {
                     for (let subI in node.subs) {
                         const trackingPath = node.subs[subI];
-                        if (!instance.$$r[trackingPath]) {
-                            instance.$$r[trackingPath] = [];
-                        }
-                        instance.$$r[trackingPath].push([updateComment, [instance, node, commentNode]]);
+                        track(instance, trackingPath, [updateComment, [instance, node, commentNode]]);
                     }
                 }
                 break;
@@ -311,10 +296,7 @@ export function render(
                         if (valueSubs) {
                             for (let subI in valueSubs) {
                                 const trackingPath = valueSubs[subI];
-                                if (!instance.$$r[trackingPath]) {
-                                    instance.$$r[trackingPath] = [];
-                                }
-                                instance.$$r[trackingPath].push([renderAttributeValue, [instance, attribute, element, attrName, scope]]);
+                                track(instance, trackingPath, [renderAttributeValue, [instance, attribute, element, attrName, scope]]);
                             }
                         }
                     }
@@ -334,7 +316,7 @@ export function render(
             }
         }
         if (node.children) {
-            render(element, instance, node.children, undefined, hydrate, nextInsert, scope);
+            render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
         }
     }
 }

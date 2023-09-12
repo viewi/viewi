@@ -1,10 +1,10 @@
 import { BaseComponent } from "./BaseComponent";
-import { TextAnchor, createAnchorNode } from "./anchor";
+import { TextAnchor, createAnchorNode, nextAnchorNodeId } from "./anchor";
 import { ArrayScope, ForeachAnchorEnum } from "./arrayScope";
 import { DirectiveMap } from "./directive";
 import { TemplateNode } from "./node";
 import { render } from "./render";
-import { DataScope } from "./scope";
+import { ContextScope } from "./contextScope";
 
 export function renderForeach(
     instance: BaseComponent<any>,
@@ -13,7 +13,7 @@ export function renderForeach(
     anchorNode: TextAnchor,
     currentArrayScope: ArrayScope,
     localDirectiveMap: DirectiveMap,
-    scope?: DataScope
+    scope?: ContextScope
 ) {
     let callArguments = [instance];
     if (scope) {
@@ -31,9 +31,9 @@ export function renderForeach(
     for (let forKey in data) {
         const dataKey = isNumeric ? +forKey : forKey;
         const dataItem = data[dataKey];
-        let nextScope: DataScope = scope
-            ? { map: { ...scope.map }, arguments: [...scope.arguments] }
-            : { map: {}, arguments: [] };
+        let nextScope: ContextScope = scope
+            ? { map: { ...scope.map }, arguments: [...scope.arguments], components:[], track: [] }
+            : { map: {}, arguments: [], components:[], track: [] };
         // if (!(dataKey in currentArrayScope)) { // if unique key provided
         // }
         let found = false;
@@ -55,9 +55,9 @@ export function renderForeach(
             nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
             nextScope.arguments.push(dataItem);
             const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-            const itemBeginAnchor = createAnchorNode(insertTarget, true, undefined, ForeachAnchorEnum.BeginAnchor); // begin foreach item
-            render(insertTarget, instance, [node], nextDirectives, false, true, nextScope);
-            const itemEndAnchor = createAnchorNode(insertTarget, true, undefined, ForeachAnchorEnum.EndAnchor); // end foreach item
+            const itemBeginAnchor = createAnchorNode(insertTarget, true, undefined, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
+            render(insertTarget, instance, [node], nextScope, nextDirectives, false, true);
+            const itemEndAnchor = createAnchorNode(insertTarget, true, undefined, itemBeginAnchor._anchor); // end foreach item
             if (dataKey in currentArrayScope) { // same key, different value
                 deleteMap[dataKey] = currentArrayScope[dataKey];
             }
@@ -72,19 +72,21 @@ export function renderForeach(
     // removing what's missing
     for (let di in currentArrayScope) {
         if (!(di in usedMap)) {
-            while (currentArrayScope[di].end.previousSibling._anchor !== ForeachAnchorEnum.BeginAnchor) {
-                currentArrayScope[di].end.previousSibling!.remove();
+            const endAnchor = currentArrayScope[di].end;
+            while (endAnchor.previousSibling._anchor !== endAnchor._anchor) {
+                endAnchor.previousSibling!.remove();
             }
             currentArrayScope[di].begin.remove();
-            currentArrayScope[di].end.remove();
+            endAnchor.remove();
             delete currentArrayScope[di];
         }
     }
     for (let di in deleteMap) {
-        while (deleteMap[di].end.previousSibling._anchor !== ForeachAnchorEnum.BeginAnchor) {
-            deleteMap[di].end.previousSibling!.remove();
+        const endAnchor = deleteMap[di].end;
+        while (endAnchor.previousSibling._anchor !== endAnchor._anchor) {
+            endAnchor.previousSibling!.remove();
         }
         deleteMap[di].begin.remove();
-        deleteMap[di].end.remove();
+        endAnchor.remove();
     }
 }

@@ -22,14 +22,15 @@ export function renderIf(
             directive.children[0].code!
         ](instance));
     }
+    const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
     if (ifConditions.values[index] !== nextValue) {
         ifConditions.values[index] = nextValue;
         if (nextValue) {
             // render
-            render(anchorNode, instance, [node], { ...localDirectiveMap }, false, true);
+            render(anchorNode, instance, [node], { arguments: [], components: [], track: [], map: {} }, nextDirectives, false, true);
         } else {
             // remove and dispose
-            while (!anchorNode.previousSibling._anchor) {
+            while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
                 anchorNode.previousSibling!.remove();
             }
         }

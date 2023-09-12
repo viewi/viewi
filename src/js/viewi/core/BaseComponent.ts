@@ -7,7 +7,7 @@ export abstract class BaseComponent<T> {
     _slots: { [key: string]: any } = {};
     _element: Node | null = null;
     $$t: Function[] = []; // template inline expressions
-    $$r: { [key: string]: [Function, any[]][] } = {}; // reactivity callbacks
+    $$r: { [key: string]: { [key: string]: [Function, any[]] } } = {}; // reactivity callbacks
     $: T;
     _name: string = 'BaseComponent';
     emitEvent(name: string, event?: any) {

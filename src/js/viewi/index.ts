@@ -42,7 +42,12 @@ export function renderComponent(name: string) {
         }
         const rootChildren = root.children;
         // console.log(counterTarget, instance, rootChildren);
-        rootChildren && render(counterTarget, instance, rootChildren);
+        rootChildren && render(counterTarget, instance, rootChildren, {
+            arguments: [],
+            components: [],
+            map: {},
+            track: []
+        });
     }
     // console.log(anchors);
     // return;
