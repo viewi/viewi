@@ -21,7 +21,7 @@ class TestComponent extends BaseComponent {
     }
 
     addTodo() {
-        this.arr = [...this.arr, "Viewi"];
+        this.arrNested = {"a": {"a": "Apple", "b": "Orange", "c": "Lemon"}, "d": {"R": "Rat", "T": "Dog", "G": "Cat"}, "b": {"a": "Apple", "b": "Orange", "c": "Lemon"}};
         // Test cases
         // $this->arr = ['E', 'a'];
         // $this->arr = ['c', 'b', 'a'];
@@ -71,6 +71,7 @@ export const TestComponent_x = [
     function (_component, index, item) { return index; },
     function (_component, index, item) { return item; },
     function (_component, index, item) { return item; },
+    function (_component) { return _component.ifValue; },
     function (_component) { return _component.arrNested; },
     function (_component, key, subArr) { return subArr; },
     function (_component, key, subArr, subKey, subItem) { return key; },
