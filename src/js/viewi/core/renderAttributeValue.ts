@@ -7,7 +7,7 @@ export function renderAttributeValue(
     attribute: TemplateNode,
     element: HTMLElement,
     attrName: string,
-    scope?: ContextScope
+    scope: ContextScope
 ) {
     let valueContent: string | null = null;
     if (attribute.children) {

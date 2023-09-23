@@ -5,6 +5,7 @@ import { DirectiveMap } from "./directive";
 import { TemplateNode } from "./node";
 import { render } from "./render";
 import { ContextScope } from "./contextScope";
+import { dispose } from "./dispose";
 
 export function renderForeach(
     instance: BaseComponent<any>,
@@ -13,10 +14,10 @@ export function renderForeach(
     anchorNode: TextAnchor,
     currentArrayScope: ArrayScope,
     localDirectiveMap: DirectiveMap,
-    scope?: ContextScope
+    scope: ContextScope
 ) {
     let callArguments = [instance];
-    if (scope) {
+    if (scope.arguments) {
         callArguments = callArguments.concat(scope.arguments);
     }
     const data = instance.$$t[
@@ -31,9 +32,18 @@ export function renderForeach(
     for (let forKey in data) {
         const dataKey = isNumeric ? +forKey : forKey;
         const dataItem = data[dataKey];
-        let nextScope: ContextScope = scope
-            ? { map: { ...scope.map }, arguments: [...scope.arguments], components:[], track: [] }
-            : { map: {}, arguments: [], components:[], track: [] };
+        const scopeId = ++scope.counter;
+        const nextScope: ContextScope = {
+            id: scopeId,
+            arguments: [...scope.arguments],
+            components: [],
+            map: { ...scope.map },
+            track: [],
+            parent: scope,
+            children: {},
+            counter: 0
+        };
+        scope.children[scopeId] = nextScope;
         // if (!(dataKey in currentArrayScope)) { // if unique key provided
         // }
         let found = false;
@@ -65,7 +75,8 @@ export function renderForeach(
                 key: dataKey,
                 value: dataItem,
                 begin: itemBeginAnchor,
-                end: itemEndAnchor
+                end: itemEndAnchor,
+                scope: nextScope
             };
         }
     }
@@ -78,6 +89,7 @@ export function renderForeach(
             }
             currentArrayScope[di].begin.remove();
             endAnchor.remove();
+            dispose(currentArrayScope[di].scope, instance);
             delete currentArrayScope[di];
         }
     }
@@ -87,6 +99,7 @@ export function renderForeach(
             endAnchor.previousSibling!.remove();
         }
         deleteMap[di].begin.remove();
+        dispose(deleteMap[di].scope, instance);
         endAnchor.remove();
     }
 }

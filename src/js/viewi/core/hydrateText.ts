@@ -4,7 +4,7 @@ import { TemplateNode } from "./node";
 import { renderText } from "./renderText";
 import { ContextScope } from "./contextScope";
 
-export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode, scope?: ContextScope): Text {
+export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope): Text {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;

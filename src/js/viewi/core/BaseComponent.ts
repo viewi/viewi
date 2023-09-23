@@ -1,5 +1,3 @@
-import { TemplateNode } from "./node";
-
 export abstract class BaseComponent<T> {
     _props: { [key: string]: any } = {};
     $_callbacks: { [key: string]: Function } = {};

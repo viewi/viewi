@@ -43,10 +43,13 @@ export function renderComponent(name: string) {
         const rootChildren = root.children;
         // console.log(counterTarget, instance, rootChildren);
         rootChildren && render(counterTarget, instance, rootChildren, {
+            id: 0,
             arguments: [],
             components: [],
             map: {},
-            track: []
+            track: [],
+            children: {},
+            counter: 0
         });
     }
     // console.log(anchors);

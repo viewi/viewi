@@ -1,12 +1,15 @@
 import { BaseComponent } from "./BaseComponent";
 import { TextAnchor } from "./anchor";
+import { ContextScope } from "./contextScope";
 import { ConditionalDirective, DirectiveMap } from "./directive";
+import { dispose } from "./dispose";
 import { TemplateNode } from "./node";
 import { render } from "./render";
 
 export function renderIf(
     instance: BaseComponent<any>,
     node: TemplateNode,
+    scope: ContextScope,
     directive: TemplateNode,
     anchorNode: TextAnchor,
     ifConditions: ConditionalDirective,
@@ -27,9 +30,22 @@ export function renderIf(
         ifConditions.values[index] = nextValue;
         if (nextValue) {
             // render
-            render(anchorNode, instance, [node], { arguments: [], components: [], track: [], map: {} }, nextDirectives, false, true);
+            const scopeId = ++scope.parent!.counter;
+            const nextScope: ContextScope = {
+                id: scopeId,
+                arguments: scope.parent!.arguments,
+                components: scope.components,
+                map: scope.parent!.map,
+                track: scope.track,
+                parent: scope.parent,
+                children: {},
+                counter: 0
+            };
+            scope.parent!.children[scopeId] = nextScope;
+            render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
         } else {
             // remove and dispose
+            dispose(scope, instance);
             while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
                 anchorNode.previousSibling!.remove();
             }
