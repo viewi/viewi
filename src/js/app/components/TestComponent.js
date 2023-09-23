@@ -14,6 +14,7 @@ class TestComponent extends BaseComponent {
     arrNested = {"a": {"a": "Apple", "b": "Orange", "c": "Lemon"}, "b": {"a": "Apple", "b": "Orange", "c": "Lemon"}, "c": {"a": "Apple", "b": "Orange", "c": "Lemon"}};
     ifValue = true;
     ifElseValue = true;
+    nestedIf = true;
 
     getName(name) {
         var sum = (1 + 5) * 10;
@@ -36,6 +37,7 @@ class TestComponent extends BaseComponent {
 
     toggleIf() {
         this.ifValue = !this.ifValue;
+        this.arr = this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
     }
 
     toggleElseIf() {
@@ -54,10 +56,15 @@ export const TestComponent_x = [
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
     function (_component) { return _component.addTodo.bind(_component); },
+    function (_component) { return _component.nestedIf; },
+    function (_component) { return _component.name; },
     function (_component) { return _component.arr; },
+    function (_component, _key1, item) { return _component.ifElseValue; },
     function (_component, _key1, item) { return item; },
     function (_component, _key1, item) { return item; },
     function (_component, _key1, item) { return item; },
+    function (_component, _key1, item) { return _component.nestedIf; },
+    function (_component, _key1, item) { return _component.name; },
     function (_component) { return _component.arr; },
     function (_component, index, item) { return index; },
     function (_component, index, item) { return item; },
@@ -87,6 +94,8 @@ export const TestComponent_x = [
     function (_component, key, subArr, subKey, subItem) { return key + ". " + subKey + ". " + subItem; },
     function (_component) { return _component.toggleIf.bind(_component); },
     function (_component) { return _component.toggleElseIf.bind(_component); },
+    function (_component) { return function (event) { _component.nestedIf = !_component.nestedIf; }; },
+    function (_component) { return function (event) { _component.name = "Viewi Junior"; }; },
     function (_component) { return _component.ifValue; },
     function (_component) { return _component.ifElseValue; },
     function (_component) { return _component.ifValue; },

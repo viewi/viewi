@@ -245,6 +245,7 @@
     arrNested = { "a": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "b": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "c": { "a": "Apple", "b": "Orange", "c": "Lemon" } };
     ifValue = true;
     ifElseValue = true;
+    nestedIf = true;
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -257,6 +258,7 @@
     }
     toggleIf() {
       this.ifValue = !this.ifValue;
+      this.arr = this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
     }
     toggleElseIf() {
       this.ifElseValue = !this.ifElseValue;
@@ -294,16 +296,31 @@
       return _component.addTodo.bind(_component);
     },
     function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
+      return _component.name;
+    },
+    function(_component) {
       return _component.arr;
     },
     function(_component, _key1, item) {
-      return item;
+      return _component.ifElseValue;
     },
     function(_component, _key1, item) {
       return item;
     },
     function(_component, _key1, item) {
       return item;
+    },
+    function(_component, _key1, item) {
+      return item;
+    },
+    function(_component, _key1, item) {
+      return _component.nestedIf;
+    },
+    function(_component, _key1, item) {
+      return _component.name;
     },
     function(_component) {
       return _component.arr;
@@ -391,6 +408,16 @@
     },
     function(_component) {
       return _component.toggleElseIf.bind(_component);
+    },
+    function(_component) {
+      return function(event) {
+        _component.nestedIf = !_component.nestedIf;
+      };
+    },
+    function(_component) {
+      return function(event) {
+        _component.name = "Viewi Junior";
+      };
     },
     function(_component) {
       return _component.ifValue;
@@ -635,10 +662,29 @@
     }
   }
 
+  // viewi/core/dispose.ts
+  function dispose(scope, instance) {
+    for (let reactivityIndex in scope.track) {
+      const reactivityItem = scope.track[reactivityIndex];
+      delete instance.$$r[reactivityItem.path][reactivityItem.id];
+    }
+    scope.track = [];
+    scope.components = [];
+    if (scope.children) {
+      for (let i in scope.children) {
+        dispose(scope.children[i], instance);
+      }
+      scope.children = {};
+    }
+    if (scope.parent) {
+      delete scope.parent.children[scope.id];
+    }
+  }
+
   // viewi/core/renderForeach.ts
   function renderForeach(instance, node, directive, anchorNode, currentArrayScope, localDirectiveMap, scope) {
     let callArguments = [instance];
-    if (scope) {
+    if (scope.arguments) {
       callArguments = callArguments.concat(scope.arguments);
     }
     const data = instance.$$t[directive.children[0].forData].apply(null, callArguments);
@@ -650,7 +696,18 @@
     for (let forKey in data) {
       const dataKey = isNumeric ? +forKey : forKey;
       const dataItem = data[dataKey];
-      let nextScope = scope ? { map: { ...scope.map }, arguments: [...scope.arguments], components: [], track: [] } : { map: {}, arguments: [], components: [], track: [] };
+      const scopeId = ++scope.counter;
+      const nextScope = {
+        id: scopeId,
+        arguments: [...scope.arguments],
+        components: [],
+        map: { ...scope.map },
+        track: [],
+        parent: scope,
+        children: {},
+        counter: 0
+      };
+      scope.children[scopeId] = nextScope;
       let found = false;
       for (let di in currentArrayScope) {
         if (currentArrayScope[di] === dataItem) {
@@ -680,7 +737,8 @@
           key: dataKey,
           value: dataItem,
           begin: itemBeginAnchor,
-          end: itemEndAnchor
+          end: itemEndAnchor,
+          scope: nextScope
         };
       }
     }
@@ -692,6 +750,7 @@
         }
         currentArrayScope[di].begin.remove();
         endAnchor.remove();
+        dispose(currentArrayScope[di].scope, instance);
         delete currentArrayScope[di];
       }
     }
@@ -701,12 +760,13 @@
         endAnchor.previousSibling.remove();
       }
       deleteMap[di].begin.remove();
+      dispose(deleteMap[di].scope, instance);
       endAnchor.remove();
     }
   }
 
   // viewi/core/renderIf.ts
-  function renderIf(instance, node, directive, anchorNode, ifConditions, localDirectiveMap, index) {
+  function renderIf(instance, node, scope, directive, anchorNode, ifConditions, localDirectiveMap, index) {
     let nextValue = true;
     for (let i = 0; i < index; i++) {
       nextValue = nextValue && !ifConditions.values[i];
@@ -718,8 +778,21 @@
     if (ifConditions.values[index] !== nextValue) {
       ifConditions.values[index] = nextValue;
       if (nextValue) {
-        render(anchorNode, instance, [node], { arguments: [], components: [], track: [], map: {} }, nextDirectives, false, true);
+        const scopeId = ++scope.parent.counter;
+        const nextScope = {
+          id: scopeId,
+          arguments: scope.parent.arguments,
+          components: scope.components,
+          map: scope.parent.map,
+          track: scope.track,
+          parent: scope.parent,
+          children: {},
+          counter: 0
+        };
+        scope.parent.children[scopeId] = nextScope;
+        render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
       } else {
+        dispose(scope, instance);
         while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
           anchorNode.previousSibling.remove();
         }
@@ -727,19 +800,21 @@
     }
   }
 
-  // viewi/core/contextScope.ts
-  var trackingId = 0;
-  function track(instance, trackingPath, action) {
-    if (!instance.$$r[trackingPath]) {
-      instance.$$r[trackingPath] = {};
-    }
-    instance.$$r[trackingPath][++trackingId] = action;
-  }
-
   // viewi/core/updateComment.ts
   function updateComment(instance, node, commentNode) {
     const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
     commentNode.nodeValue !== content && (commentNode.nodeValue = content);
+  }
+
+  // viewi/core/track.ts
+  var trackingId = 0;
+  function track(instance, trackingPath, scope, action) {
+    if (!instance.$$r[trackingPath]) {
+      instance.$$r[trackingPath] = {};
+    }
+    const trackId = ++trackingId;
+    scope.track.push({ id: trackId, path: trackingPath });
+    instance.$$r[trackingPath][trackId] = action;
   }
 
   // viewi/core/render.ts
@@ -756,7 +831,7 @@
           if (node.directives) {
             const localDirectiveMap = directives || { map: {}, storage: {} };
             let callArguments = [instance];
-            if (scope) {
+            if (scope.arguments) {
               callArguments = callArguments.concat(scope.arguments);
             }
             for (let d = 0; d < node.directives.length; d++) {
@@ -773,15 +848,27 @@
                   const anchor = hydrate ? getAnchor(target) : void 0;
                   const anchorBegin = createAnchorNode(target, insert, anchor);
                   const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                  const scopeId = ++scope.counter;
+                  const nextScope = {
+                    id: scopeId,
+                    arguments: scope.arguments,
+                    components: [],
+                    map: scope.map,
+                    track: [],
+                    parent: scope,
+                    children: {},
+                    counter: 0
+                  };
+                  scope.children[scopeId] = nextScope;
                   if (nextValue) {
-                    render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
+                    render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
                   }
                   const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
                   if (directive.children[0].subs) {
                     for (let subI in directive.children[0].subs) {
                       const trackingPath = directive.children[0].subs[subI];
                       ifConditions.subs.push(trackingPath);
-                      track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                   }
                   ifConditions.index++;
@@ -799,8 +886,20 @@
                     const anchor = hydrate ? getAnchor(target) : void 0;
                     const anchorBegin = createAnchorNode(target, insert, anchor);
                     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                    const scopeId = ++scope.counter;
+                    const nextScope = {
+                      id: scopeId,
+                      arguments: scope.arguments,
+                      components: [],
+                      map: scope.map,
+                      track: [],
+                      parent: scope,
+                      children: {},
+                      counter: 0
+                    };
+                    scope.children[scopeId] = nextScope;
                     if (nextValue) {
-                      render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
+                      render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
                     }
                     const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
                     if (directive.children[0].subs) {
@@ -808,7 +907,7 @@
                     }
                     for (let subI in ifConditions.subs) {
                       const trackingPath = ifConditions.subs[subI];
-                      track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                     ifConditions.index++;
                     breakAndContinue = true;
@@ -827,13 +926,25 @@
                     const anchor = hydrate ? getAnchor(target) : void 0;
                     const anchorBegin = createAnchorNode(target, insert, anchor);
                     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                    const scopeId = ++scope.counter;
+                    const nextScope = {
+                      id: scopeId,
+                      arguments: scope.arguments,
+                      components: [],
+                      map: scope.map,
+                      track: [],
+                      parent: scope,
+                      children: {},
+                      counter: 0
+                    };
+                    scope.children[scopeId] = nextScope;
                     if (nextValue) {
-                      render(target, instance, [node], scope, localDirectiveMap, hydrate, insert);
+                      render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
                     }
                     const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
                     for (let subI in ifConditions.subs) {
                       const trackingPath = ifConditions.subs[subI];
-                      track(instance, trackingPath, [renderIf, [instance, node, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                     ifConditions.index++;
                     breakAndContinue = true;
@@ -851,7 +962,18 @@
                   for (let forKey in data) {
                     const dataKey = isNumeric ? +forKey : forKey;
                     const dataItem = data[dataKey];
-                    let nextScope = scope ? { map: { ...scope.map }, arguments: [...scope.arguments], components: [], track: [] } : { map: {}, arguments: [], components: [], track: [] };
+                    const scopeId = ++scope.counter;
+                    const nextScope = {
+                      id: scopeId,
+                      arguments: [...scope.arguments],
+                      components: [],
+                      map: { ...scope.map },
+                      track: [],
+                      parent: scope,
+                      children: {},
+                      counter: 0
+                    };
+                    scope.children[scopeId] = nextScope;
                     nextScope.map[directive.children[0].forKey] = nextScope.arguments.length;
                     nextScope.arguments.push(dataKey);
                     nextScope.map[directive.children[0].forItem] = nextScope.arguments.length;
@@ -864,7 +986,8 @@
                       key: dataKey,
                       value: dataItem,
                       begin: itemBeginAnchor,
-                      end: itemEndAnchor
+                      end: itemEndAnchor,
+                      scope: nextScope
                     };
                   }
                   const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
@@ -872,7 +995,7 @@
                     for (let subI in directive.children[0].subs) {
                       const trackingPath = directive.children[0].subs[subI];
                       const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                      track(instance, trackingPath, [
+                      track(instance, trackingPath, scope, [
                         renderForeach,
                         [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]
                       ]);
@@ -916,7 +1039,7 @@
           if (node.subs) {
             for (let subI in node.subs) {
               const trackingPath = node.subs[subI];
-              track(instance, trackingPath, [renderText, [instance, node, textNode, scope]]);
+              track(instance, trackingPath, scope, [renderText, [instance, node, textNode, scope]]);
             }
           }
           break;
@@ -927,7 +1050,7 @@
           if (node.subs) {
             for (let subI in node.subs) {
               const trackingPath = node.subs[subI];
-              track(instance, trackingPath, [updateComment, [instance, node, commentNode]]);
+              track(instance, trackingPath, scope, [updateComment, [instance, node, commentNode]]);
             }
           }
           break;
@@ -965,7 +1088,7 @@
               if (valueSubs) {
                 for (let subI in valueSubs) {
                   const trackingPath = valueSubs[subI];
-                  track(instance, trackingPath, [renderAttributeValue, [instance, attribute, element, attrName, scope]]);
+                  track(instance, trackingPath, scope, [renderAttributeValue, [instance, attribute, element, attrName, scope]]);
                 }
               }
             }
@@ -1088,10 +1211,13 @@
       }
       const rootChildren = root.children;
       rootChildren && render(counterTarget, instance, rootChildren, {
+        id: 0,
         arguments: [],
         components: [],
         map: {},
-        track: []
+        track: [],
+        children: {},
+        counter: 0
       });
     }
     for (let a in anchors) {
