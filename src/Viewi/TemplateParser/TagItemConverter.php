@@ -41,10 +41,19 @@ class TagItemConverter
         if (isset($tagItem->DynamicChild)) {
             $node['dynamic'] = self::getRaw($tagItem->DynamicChild);
         }
+        if (isset($tagItem->Slots)) {
+            $node['slots'] = [];
+            foreach ($tagItem->Slots as $slotName => &$child) {
+                $node['slots'][$slotName] = self::getRaw($child);
+            }
+        }
         foreach ($tagItem->getChildren() as &$child) {
             if (
-                $child->Type->Name === TagItemType::TextContent
-                && $child->Skip
+                ($child->Type->Name === TagItemType::TextContent
+                    && $child->Skip)
+                || ($child->Type->Name === TagItemType::Tag
+                    && $child->Content === 'slotContent'
+                )
             ) {
                 continue;
             }

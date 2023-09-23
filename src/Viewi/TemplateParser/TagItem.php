@@ -22,6 +22,7 @@ class TagItem
     public ?DataExpression $DataExpression = null;
     /** @var TagItem[] */
     private ?array $Children;
+    public array $Slots;
 
     // TODO: get rid of Parent to avoid recursion
     public function &parent(): ?TagItem
@@ -32,6 +33,14 @@ class TagItem
     public function prependChild(TagItem $item): void
     {
         array_unshift($this->Children, $item);
+    }
+
+    public function addSlot(string $name, TagItem $item): void
+    {
+        if (!isset($this->Slots)) {
+            $this->Slots = [];
+        }
+        $this->Slots[$name] = $item;
     }
 
     public function setChildren(array $children): void
