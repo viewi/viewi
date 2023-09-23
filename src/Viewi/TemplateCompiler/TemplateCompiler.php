@@ -367,8 +367,9 @@ class TemplateCompiler
                     false
                 );
                 $this->restore($lastState);
-                $this->slots[] = [$slotContentRawName, $slotFunction];
+                $this->slots[] = [$slotContentRawName, $slotFunction, $slotRoot];
                 // Helpers::debug($slotFunction);
+                // $tagItem->setChildren([]);
                 return;
             }
             // == COMPONENT ==
@@ -425,7 +426,8 @@ class TemplateCompiler
                 $this->level++;
                 $trackMap = [];
                 if (!$slotFunction->empty) {
-                    $this->slots[] = ['default', $slotFunction];
+                    $this->slots[] = ['default', $slotFunction, $slotRoot];
+                    $tagItem->addSlot('default', $slotRoot);
                     $defaultRenderName = var_export($slotFunction->renderName, true);
                     $passThroughSlots[] = "{$comma}'default' => $defaultRenderName";
                     $trackMap = ['default' => true];
@@ -433,6 +435,7 @@ class TemplateCompiler
                 }
                 foreach ($slotFunction->slots as $childSlot) {
                     $this->slots[] = $childSlot;
+                    $tagItem->addSlot($childSlot[0], $childSlot[2]);
                     if (!isset($trackMap[$childSlot[0]])) {
                         $slotKey = var_export($childSlot[0], true);
                         $renderName = var_export($childSlot[1]->renderName, true);

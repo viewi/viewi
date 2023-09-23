@@ -2,6 +2,8 @@
 
 namespace Viewi\TemplateCompiler;
 
+use Viewi\TemplateParser\TagItem;
+
 class RenderItem
 {
     /**
@@ -9,7 +11,7 @@ class RenderItem
      * @param string $renderCode 
      * @param bool $empty 
      * @param string $renderName 
-     * @param array<string|RenderItem[]> $slots 
+     * @param array<string|RenderItem[]|TagItem> $slots 
      * @param array<string, bool> $usedFunctions 
      * @return void 
      */
