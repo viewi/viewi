@@ -258,6 +258,16 @@
     }
   ];
 
+  // app/components/ItemComponent.js
+  var ItemComponent = class extends BaseComponent {
+    _name = "ItemComponent";
+  };
+
+  // app/components/SomeComponent.js
+  var SomeComponent = class extends BaseComponent {
+    _name = "SomeComponent";
+  };
+
   // app/components/TestComponent.js
   var TestComponent = class extends BaseComponent {
     _name = "TestComponent";
@@ -319,6 +329,21 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return "custom " + _component.name + " slot";
+    },
+    function(_component) {
+      return "Custom " + _component.name + " Slot";
+    },
+    function(_component) {
+      return "Custom " + _component.name + " slot\n        ";
+    },
+    function(_component) {
+      return "Custom header " + _component.name + " inside div";
+    },
+    function(_component) {
+      return "Custom " + _component.name + " footer";
     },
     function(_component) {
       return _component.addTodo.bind(_component);
@@ -530,6 +555,8 @@
     StatefulCounter,
     StatefulTodoApp_x,
     StatefulTodoApp,
+    ItemComponent,
+    SomeComponent,
     TestComponent_x,
     TestComponent,
     TodoApp_x,
@@ -821,6 +848,76 @@
     instance.$$r[trackingPath][trackId] = action;
   }
 
+  // viewi/core/unpack.ts
+  function unpack(item) {
+    let nodeType = "value";
+    switch (item.t) {
+      case "t": {
+        nodeType = "tag";
+        break;
+      }
+      case "a": {
+        nodeType = "attr";
+        break;
+      }
+      case void 0:
+      case "v": {
+        nodeType = "value";
+        break;
+      }
+      case "c": {
+        nodeType = "component";
+        break;
+      }
+      case "x": {
+        nodeType = "text";
+        break;
+      }
+      case "m": {
+        nodeType = "comment";
+        break;
+      }
+      case "r": {
+        nodeType = "root";
+        break;
+      }
+      default:
+        throw new Error("Type " + item.t + " is not defined in build");
+    }
+    item.type = nodeType;
+    delete item.t;
+    if (item.c) {
+      item.content = item.c;
+      delete item.c;
+    }
+    if (item.e) {
+      item.expression = item.e;
+      delete item.e;
+    }
+    if (item.a) {
+      item.attributes = item.a;
+      delete item.a;
+      for (let i in item.attributes) {
+        unpack(item.attributes[i]);
+      }
+    }
+    if (item.i) {
+      item.directives = item.i;
+      delete item.i;
+      for (let i in item.directives) {
+        unpack(item.directives[i]);
+      }
+    }
+    if (item.h) {
+      item.children = item.h;
+      delete item.h;
+      for (let i in item.children) {
+        unpack(item.children[i]);
+      }
+    }
+    ;
+  }
+
   // viewi/core/render.ts
   function render(target, instance, nodes, scope, directives, hydrate = true, insert = false) {
     let ifConditions = null;
@@ -1026,6 +1123,30 @@
             nextInsert = insert;
             break;
           }
+          if (node.content === "slot") {
+            nextInsert = insert;
+            let slotName = "default";
+            if (node.attributes) {
+              for (let attrIndex in node.attributes) {
+                if (node.attributes[attrIndex].content === "name") {
+                  slotName = node.attributes[attrIndex].children[0].content;
+                }
+              }
+            }
+            if (slotName in scope.slots) {
+              const slot = scope.slots[slotName];
+              if (!slot.node.unpacked) {
+                unpack(slot.node);
+                slot.node.unpacked = true;
+              }
+              render(element, slot.instance, slot.node.children, slot.scope, void 0, hydrate, nextInsert);
+            } else {
+              if (node.children) {
+                render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
+              }
+            }
+            continue;
+          }
           withAttributes = true;
           const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
           element = hydrate ? hydrateTag(target, content) : insert ? target.parentElement.insertBefore(document.createElement(content), target) : target.appendChild(document.createElement(content));
@@ -1060,8 +1181,30 @@
           break;
         }
         case "component": {
-          renderComponent(target, node.content);
-          break;
+          const scopeId = ++scope.counter;
+          const nextScope = {
+            id: scopeId,
+            arguments: [...scope.arguments],
+            components: [],
+            map: { ...scope.map },
+            track: [],
+            parent: scope,
+            children: {},
+            counter: 0
+          };
+          scope.children[scopeId] = nextScope;
+          nextScope.slots = {};
+          if (node.slots) {
+            for (let slotName in node.slots) {
+              nextScope.slots[slotName] = {
+                node: node.slots[slotName],
+                scope,
+                instance
+              };
+            }
+          }
+          renderComponent(target, node.content, nextScope);
+          continue;
         }
         default: {
           console.warn("Node type not implemented", node);
@@ -1121,78 +1264,8 @@
     }
   }
 
-  // viewi/core/unpack.ts
-  function unpack(item) {
-    let nodeType = "value";
-    switch (item.t) {
-      case "t": {
-        nodeType = "tag";
-        break;
-      }
-      case "a": {
-        nodeType = "attr";
-        break;
-      }
-      case void 0:
-      case "v": {
-        nodeType = "value";
-        break;
-      }
-      case "c": {
-        nodeType = "component";
-        break;
-      }
-      case "x": {
-        nodeType = "text";
-        break;
-      }
-      case "m": {
-        nodeType = "comment";
-        break;
-      }
-      case "r": {
-        nodeType = "root";
-        break;
-      }
-      default:
-        throw new Error("Type " + item.t + " is not defined in build");
-    }
-    item.type = nodeType;
-    delete item.t;
-    if (item.c) {
-      item.content = item.c;
-      delete item.c;
-    }
-    if (item.e) {
-      item.expression = item.e;
-      delete item.e;
-    }
-    if (item.a) {
-      item.attributes = item.a;
-      delete item.a;
-      for (let i in item.attributes) {
-        unpack(item.attributes[i]);
-      }
-    }
-    if (item.i) {
-      item.directives = item.i;
-      delete item.i;
-      for (let i in item.directives) {
-        unpack(item.directives[i]);
-      }
-    }
-    if (item.h) {
-      item.children = item.h;
-      delete item.h;
-      for (let i in item.children) {
-        unpack(item.children[i]);
-      }
-    }
-    ;
-  }
-
   // viewi/core/renderComponent.ts
-  function renderComponent(target, name) {
+  function renderComponent(target, name, scope) {
     if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
     }
@@ -1211,15 +1284,7 @@
         root.unpacked = true;
       }
       const rootChildren = root.children;
-      rootChildren && render(target, instance, rootChildren, {
-        id: 0,
-        arguments: [],
-        components: [],
-        map: {},
-        track: [],
-        children: {},
-        counter: 0
-      });
+      rootChildren && render(target, instance, rootChildren, scope);
     }
   }
 
@@ -1231,7 +1296,15 @@
   console.log("Viewi entry");
   var counterTarget = document.getElementById("counter");
   function renderApp(name) {
-    renderComponent(counterTarget, name);
+    renderComponent(counterTarget, name, {
+      id: 0,
+      arguments: [],
+      components: [],
+      map: {},
+      track: [],
+      children: {},
+      counter: 0
+    });
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
