@@ -1,4 +1,32 @@
 (() => {
+  // viewi/core/anchor.ts
+  var anchorId = 0;
+  var anchorNodeId = 0;
+  var anchors = {};
+  function getAnchor(target) {
+    if (!target.__aid) {
+      target.__aid = ++anchorId;
+      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
+    }
+    return anchors[target.__aid];
+  }
+  function nextAnchorNodeId() {
+    return ++anchorNodeId;
+  }
+  function createAnchorNode(target, insert = false, anchor, name) {
+    const anchorNode = document.createTextNode("");
+    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
+    if (anchor) {
+      anchor.current++;
+    }
+    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
+    return anchorNode;
+  }
+
+  // viewi/core/componentsMeta.ts
+  var componentsMeta = { list: {} };
+  var componentsMeta_default = componentsMeta;
+
   // app/components/CounterReducer.js
   var CounterReducer = class {
     count = 0;
@@ -509,30 +537,6 @@
     TodoList_x,
     TodoList
   };
-
-  // viewi/core/anchor.ts
-  var anchorId = 0;
-  var anchorNodeId = 0;
-  var anchors = {};
-  function getAnchor(target) {
-    if (!target.__aid) {
-      target.__aid = ++anchorId;
-      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
-    }
-    return anchors[target.__aid];
-  }
-  function nextAnchorNodeId() {
-    return ++anchorNodeId;
-  }
-  function createAnchorNode(target, insert = false, anchor, name) {
-    const anchorNode = document.createTextNode("");
-    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
-    if (anchor) {
-      anchor.current++;
-    }
-    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
-    return anchorNode;
-  }
 
   // viewi/core/makeProxy.ts
   function makeProxy(component) {
@@ -1055,6 +1059,10 @@
           }
           break;
         }
+        case "component": {
+          renderComponent(target, node.content);
+          break;
+        }
         default: {
           console.warn("Node type not implemented", node);
           break;
@@ -1183,34 +1191,27 @@
     ;
   }
 
-  // viewi/index.ts
-  var componentsMeta = {};
-  var Viewi = () => ({
-    version: "2.0.1"
-  });
-  globalThis.Viewi = Viewi;
-  console.log("Viewi entry");
-  var counterTarget = document.getElementById("counter");
-  function renderComponent(name) {
-    if (!(name in componentsMeta)) {
+  // viewi/core/renderComponent.ts
+  function renderComponent(target, name) {
+    if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
     }
     if (!(name in components)) {
       throw new Error(`Component ${name} not found.`);
     }
-    const root = componentsMeta[name].nodes;
+    const root = componentsMeta_default.list[name].nodes;
     const instance = makeProxy(new components[name]());
     const inlineExpressions = name + "_x";
     if (inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
     }
-    if (counterTarget && root) {
+    if (target && root) {
       if (!root.unpacked) {
         unpack(root);
         root.unpacked = true;
       }
       const rootChildren = root.children;
-      rootChildren && render(counterTarget, instance, rootChildren, {
+      rootChildren && render(target, instance, rootChildren, {
         id: 0,
         arguments: [],
         components: [],
@@ -1220,6 +1221,17 @@
         counter: 0
       });
     }
+  }
+
+  // viewi/index.ts
+  var Viewi = () => ({
+    version: "2.0.1"
+  });
+  globalThis.Viewi = Viewi;
+  console.log("Viewi entry");
+  var counterTarget = document.getElementById("counter");
+  function renderApp(name) {
+    renderComponent(counterTarget, name);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
@@ -1231,7 +1243,7 @@
     }
   }
   (async () => {
-    componentsMeta = await (await fetch("/assets/components.json")).json();
-    setTimeout(() => renderComponent("TestComponent"), 500);
+    componentsMeta_default.list = await (await fetch("/assets/components.json")).json();
+    setTimeout(() => renderApp("TestComponent"), 500);
   })();
 })();
