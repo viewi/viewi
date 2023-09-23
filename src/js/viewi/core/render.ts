@@ -13,6 +13,7 @@ import { renderText } from "./renderText";
 import { ContextScope } from "./contextScope";
 import { updateComment } from "./updateComment";
 import { track } from "./track";
+import { renderComponent } from "./renderComponent";
 
 export function render(
     target: Node,
@@ -297,6 +298,10 @@ export function render(
                         track(instance, trackingPath, scope, [updateComment, [instance, node, commentNode]]);
                     }
                 }
+                break;
+            }
+            case <NodeType>'component': {
+                renderComponent(target, node.content!);
                 break;
             }
             default: {
