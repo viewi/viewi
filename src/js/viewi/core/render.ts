@@ -1,7 +1,7 @@
 import { BaseComponent } from "./BaseComponent";
-import { TextAnchor, createAnchorNode, getAnchor, nextAnchorNodeId } from "./anchor";
+import { createAnchorNode, getAnchor, nextAnchorNodeId } from "./anchor";
 import { ArrayScope, ForeachAnchorEnum } from "./arrayScope";
-import { ConditionalDirective, Directive, DirectiveMap, DirectiveStorageType, DirectiveType } from "./directive";
+import { ConditionalDirective, DirectiveMap, DirectiveType } from "./directive";
 import { hydrateComment } from "./hydrateComment";
 import { hydrateTag } from "./hydrateTag";
 import { hydrateText } from "./hydrateText";
@@ -14,6 +14,7 @@ import { ContextScope } from "./contextScope";
 import { updateComment } from "./updateComment";
 import { track } from "./track";
 import { renderComponent } from "./renderComponent";
+import { unpack } from "./unpack";
 
 export function render(
     target: Node,
@@ -251,6 +252,30 @@ export function render(
                         nextInsert = insert;
                         break;
                     }
+                    if (node.content === 'slot') {
+                        nextInsert = insert;
+                        let slotName: string = 'default';
+                        if (node.attributes) {
+                            for (let attrIndex in node.attributes) {
+                                if (node.attributes[attrIndex].content === 'name') {
+                                    slotName = node.attributes![attrIndex]!.children![0]!.content!;
+                                }
+                            }
+                        }
+                        if (slotName in scope.slots!) { // slot from parent
+                            const slot = scope.slots![slotName];
+                            if (!slot.node.unpacked) {
+                                unpack(slot.node);
+                                slot.node.unpacked = true;
+                            }
+                            render(element, slot.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
+                        } else { // default slot content
+                            if (node.children) {
+                                render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
+                            }
+                        }
+                        continue;
+                    }
                     withAttributes = true;
                     const content = node.expression
                         ? instance.$$t[node.code!](instance)
@@ -301,8 +326,31 @@ export function render(
                 break;
             }
             case <NodeType>'component': {
-                renderComponent(target, node.content!);
-                break;
+                const scopeId = ++scope.counter;
+                const nextScope: ContextScope = {
+                    id: scopeId,
+                    arguments: [...scope.arguments],
+                    components: [],
+                    map: { ...scope.map },
+                    track: [],
+                    parent: scope,
+                    children: {},
+                    counter: 0
+                };
+                scope.children[scopeId] = nextScope;
+                nextScope.slots = {};
+                if (node.slots) {
+                    for (let slotName in node.slots) {
+                        nextScope.slots[slotName] = {
+                            node: node.slots[slotName],
+                            scope: scope,
+                            instance: instance
+                        };
+                    }
+                }
+
+                renderComponent(target, node.content!, nextScope);
+                continue;
             }
             default: {
                 console.warn('Node type not implemented', node);

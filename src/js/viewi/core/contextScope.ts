@@ -1,4 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
+import { TemplateNode } from "./node";
 
 export type ContextScope = {
     counter: number, // current id counter
@@ -8,5 +9,6 @@ export type ContextScope = {
     components: BaseComponent<any>[], // disposable components
     track: { path: string, id: number }[], // disposable reactivity items
     parent?: ContextScope,
-    children: { [key: string]: ContextScope } // all nested scopes from directives and components, tree disposal
+    children: { [key: string]: ContextScope }, // all nested scopes from directives and components, tree disposal
+    slots?: { [key: string]: { node: TemplateNode, scope: ContextScope, instance: BaseComponent<any> } }
 }

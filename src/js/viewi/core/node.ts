@@ -16,6 +16,7 @@ export type TemplateNode = {
     a?: TemplateNode[],
     attributes?: TemplateNode[],
     i?: TemplateNode[],
+    slots?: TemplateNode[],
     directives?: TemplateNode[],
     unpacked?: boolean,
     dynamic?: TemplateNode,
