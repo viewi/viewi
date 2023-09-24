@@ -55,7 +55,6 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
-    function (_component) { return "custom " + _component.name + " slot"; },
     function (_component) { return "Custom " + _component.name + " Slot"; },
     function (_component) { return "Custom " + _component.name + " slot\n        "; },
     function (_component) { return "Custom header " + _component.name + " inside div"; },

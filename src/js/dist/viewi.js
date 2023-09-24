@@ -331,9 +331,6 @@
       return _component.onEvent.bind(_component);
     },
     function(_component) {
-      return "custom " + _component.name + " slot";
-    },
-    function(_component) {
       return "Custom " + _component.name + " Slot";
     },
     function(_component) {
