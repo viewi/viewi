@@ -11,7 +11,7 @@ class RenderItem
      * @param string $renderCode 
      * @param bool $empty 
      * @param string $renderName 
-     * @param array<string|RenderItem[]|TagItem> $slots 
+     * @param array<array<string|TagItem|RenderItem>> $slots 
      * @param array<string, bool> $usedFunctions 
      * @return void 
      */

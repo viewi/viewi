@@ -435,7 +435,14 @@ class TemplateCompiler
                 }
                 foreach ($slotFunction->slots as $childSlot) {
                     $this->slots[] = $childSlot;
-                    $tagItem->addSlot($childSlot[0], $childSlot[2]);
+                    $nextSlotName = $childSlot[0];
+                    // $nextSlotId = 0;
+                    // while (isset($tagItem->Slots[$nextSlotName])) {
+                    //     $nextSlotName = $childSlot[0] . '_' . (++$nextSlotId);
+                    // }
+                    if (!isset($tagItem->Slots[$nextSlotName])) {
+                        $tagItem->addSlot($nextSlotName, $childSlot[2]);
+                    }
                     if (!isset($trackMap[$childSlot[0]])) {
                         $slotKey = var_export($childSlot[0], true);
                         $renderName = var_export($childSlot[1]->renderName, true);
