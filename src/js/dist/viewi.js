@@ -284,6 +284,8 @@
     ifValue = true;
     ifElseValue = true;
     nestedIf = true;
+    dynamic = "div";
+    dynamic2 = "ItemComponent";
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -329,6 +331,26 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return function(event) {
+        _component.dynamic = _component.dynamic === "div" ? "ItemComponent" : "div";
+      };
+    },
+    function(_component) {
+      return "\n" + _component.dynamic + " " + _component.dynamic2 + "\n";
+    },
+    function(_component) {
+      return _component.dynamic;
+    },
+    function(_component) {
+      return "Tag or component " + _component.dynamic + " " + _component.dynamic2;
+    },
+    function(_component) {
+      return _component.dynamic2;
+    },
+    function(_component) {
+      return "Tag or component " + _component.dynamic + " " + _component.dynamic2;
     },
     function(_component) {
       return "Custom " + _component.name + " Slot";
@@ -637,6 +659,9 @@
     }
     const content = node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content ?? "";
     textNode.nodeValue !== content && (textNode.nodeValue = content);
+    if (textNode.parentNode && !document.body.contains(textNode)) {
+      console.log("Element is missing from the page", textNode);
+    }
   }
 
   // viewi/core/hydrateText.ts
@@ -706,6 +731,7 @@
     }
     if (scope.parent) {
       delete scope.parent.children[scope.id];
+      delete scope.parent;
     }
   }
 
@@ -794,7 +820,7 @@
   }
 
   // viewi/core/renderIf.ts
-  function renderIf(instance, node, scope, directive, anchorNode, ifConditions, localDirectiveMap, index) {
+  function renderIf(instance, node, scopeContainer, directive, ifConditions, localDirectiveMap, index) {
     let nextValue = true;
     for (let i = 0; i < index; i++) {
       nextValue = nextValue && !ifConditions.values[i];
@@ -802,25 +828,38 @@
     if (directive.children) {
       nextValue = nextValue && !!instance.$$t[directive.children[0].code](instance);
     }
+    const anchorNode = scopeContainer.anchorNode;
     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
     if (ifConditions.values[index] !== nextValue) {
+      const scope = scopeContainer.scope.parent;
       ifConditions.values[index] = nextValue;
       if (nextValue) {
-        const scopeId = ++scope.parent.counter;
+        const scopeId = ++scope.counter;
         const nextScope = {
           id: scopeId,
-          arguments: scope.parent.arguments,
-          components: scope.components,
-          map: scope.parent.map,
-          track: scope.track,
-          parent: scope.parent,
+          arguments: [...scope.arguments],
+          components: [],
+          map: { ...scope.map },
+          track: [],
+          parent: scope,
           children: {},
           counter: 0
         };
-        scope.parent.children[scopeId] = nextScope;
+        scopeContainer.scope = nextScope;
+        scope.children[scopeId] = nextScope;
         render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
       } else {
-        dispose(scope, instance);
+        dispose(scopeContainer.scope, instance);
+        scopeContainer.scope = {
+          id: -1,
+          arguments: [],
+          components: [],
+          map: {},
+          track: [],
+          parent: scope,
+          children: {},
+          counter: 0
+        };
         while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
           anchorNode.previousSibling.remove();
         }
@@ -915,6 +954,93 @@
     ;
   }
 
+  // viewi/core/renderDynamic.ts
+  function renderDynamic(instance, node, scopeContainer) {
+    const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+    const componentTag = node.type === "component" || node.expression && isComponent(content);
+    const anchorNode = scopeContainer.anchorNode;
+    const scope = scopeContainer.scope.parent;
+    dispose(scopeContainer.scope, instance);
+    while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
+      anchorNode.previousSibling.remove();
+    }
+    const scopeId = ++scope.counter;
+    const nextScope = {
+      id: scopeId,
+      arguments: [...scope.arguments],
+      components: [],
+      map: { ...scope.map },
+      track: [],
+      parent: scope,
+      children: {},
+      counter: 0
+    };
+    scopeContainer.scope = nextScope;
+    scope.children[scopeId] = nextScope;
+    if (componentTag) {
+      nextScope.slots = {};
+      if (node.slots) {
+        const scopeId2 = ++nextScope.counter;
+        const slotScope = {
+          id: scopeId2,
+          arguments: [...scope.arguments],
+          components: [],
+          map: { ...scope.map },
+          track: [],
+          parent: nextScope,
+          children: {},
+          counter: 0,
+          slots: scope.slots
+        };
+        nextScope.children[scopeId2] = slotScope;
+        for (let slotName in node.slots) {
+          nextScope.slots[slotName] = {
+            node: node.slots[slotName],
+            scope: slotScope,
+            instance
+          };
+        }
+      }
+      renderComponent(anchorNode, content, nextScope, false, true);
+      return;
+    } else {
+      const element = anchorNode.parentElement.insertBefore(document.createElement(content), anchorNode);
+      if (node.attributes) {
+        for (let a in node.attributes) {
+          const attribute = node.attributes[a];
+          const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
+          if (attrName[0] === "(") {
+            const eventName = attrName.substring(1, attrName.length - 1);
+            if (attribute.children) {
+              const eventHandler = instance.$$t[attribute.dynamic ? attribute.dynamic.code : attribute.children[0].code](instance);
+              element.addEventListener(eventName, eventHandler);
+            }
+          } else {
+            renderAttributeValue(instance, attribute, element, attrName, nextScope);
+            let valueSubs = [];
+            if (attribute.children) {
+              for (let av in attribute.children) {
+                const attributeValue = attribute.children[av];
+                if (attributeValue.subs) {
+                  valueSubs = valueSubs.concat(attributeValue.subs);
+                }
+              }
+            }
+            if (valueSubs) {
+              for (let subI in valueSubs) {
+                const trackingPath = valueSubs[subI];
+                track(instance, trackingPath, nextScope, [renderAttributeValue, [instance, attribute, element, attrName, nextScope]]);
+              }
+            }
+          }
+        }
+      }
+      if (node.children) {
+        render(element, instance, node.children, nextScope, void 0, false, false);
+      }
+    }
+  }
+
   // viewi/core/render.ts
   function render(target, instance, nodes, scope, directives, hydrate = true, insert = false) {
     let ifConditions = null;
@@ -924,8 +1050,10 @@
       let element = target;
       let breakAndContinue = false;
       let withAttributes = false;
+      let childScope = scope;
       switch (node.type) {
-        case "tag": {
+        case "tag":
+        case "component": {
           if (node.directives) {
             const localDirectiveMap = directives || { map: {}, storage: {} };
             let callArguments = [instance];
@@ -943,11 +1071,11 @@
                   ifConditions = { values: [], index: 0, subs: [] };
                   const nextValue = !!instance.$$t[directive.children[0].code].apply(null, callArguments);
                   ifConditions.values.push(nextValue);
-                  const anchor = hydrate ? getAnchor(target) : void 0;
-                  const anchorBegin = createAnchorNode(target, insert, anchor);
+                  const anchor2 = hydrate ? getAnchor(target) : void 0;
+                  const anchorBegin2 = createAnchorNode(target, insert, anchor2);
                   const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                   const scopeId = ++scope.counter;
-                  const nextScope = {
+                  const nextScope2 = {
                     id: scopeId,
                     arguments: scope.arguments,
                     components: [],
@@ -957,16 +1085,16 @@
                     children: {},
                     counter: 0
                   };
-                  scope.children[scopeId] = nextScope;
+                  scope.children[scopeId] = nextScope2;
                   if (nextValue) {
-                    render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
+                    render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
                   }
-                  const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+                  const anchorNode = createAnchorNode(target, insert, anchor2, anchorBegin2._anchor);
                   if (directive.children[0].subs) {
                     for (let subI in directive.children[0].subs) {
                       const trackingPath = directive.children[0].subs[subI];
                       ifConditions.subs.push(trackingPath);
-                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope2, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                   }
                   ifConditions.index++;
@@ -981,11 +1109,11 @@
                     }
                     nextValue = nextValue && !ifConditions.values[ifConditions.index - 1] && !!instance.$$t[directive.children[0].code].apply(null, callArguments);
                     ifConditions.values.push(nextValue);
-                    const anchor = hydrate ? getAnchor(target) : void 0;
-                    const anchorBegin = createAnchorNode(target, insert, anchor);
+                    const anchor2 = hydrate ? getAnchor(target) : void 0;
+                    const anchorBegin2 = createAnchorNode(target, insert, anchor2);
                     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                     const scopeId = ++scope.counter;
-                    const nextScope = {
+                    const nextScope2 = {
                       id: scopeId,
                       arguments: scope.arguments,
                       components: [],
@@ -995,17 +1123,17 @@
                       children: {},
                       counter: 0
                     };
-                    scope.children[scopeId] = nextScope;
+                    scope.children[scopeId] = nextScope2;
                     if (nextValue) {
-                      render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
+                      render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
                     }
-                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+                    const anchorNode = createAnchorNode(target, insert, anchor2, anchorBegin2._anchor);
                     if (directive.children[0].subs) {
                       ifConditions.subs = ifConditions.subs.concat(directive.children[0].subs);
                     }
                     for (let subI in ifConditions.subs) {
                       const trackingPath = ifConditions.subs[subI];
-                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope2, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                     ifConditions.index++;
                     breakAndContinue = true;
@@ -1021,11 +1149,11 @@
                       nextValue = nextValue && !ifConditions.values[ifv];
                     }
                     ifConditions.values.push(nextValue);
-                    const anchor = hydrate ? getAnchor(target) : void 0;
-                    const anchorBegin = createAnchorNode(target, insert, anchor);
+                    const anchor2 = hydrate ? getAnchor(target) : void 0;
+                    const anchorBegin2 = createAnchorNode(target, insert, anchor2);
                     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                     const scopeId = ++scope.counter;
-                    const nextScope = {
+                    const nextScope2 = {
                       id: scopeId,
                       arguments: scope.arguments,
                       components: [],
@@ -1035,14 +1163,14 @@
                       children: {},
                       counter: 0
                     };
-                    scope.children[scopeId] = nextScope;
+                    scope.children[scopeId] = nextScope2;
                     if (nextValue) {
-                      render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
+                      render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
                     }
-                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+                    const anchorNode = createAnchorNode(target, insert, anchor2, anchorBegin2._anchor);
                     for (let subI in ifConditions.subs) {
                       const trackingPath = ifConditions.subs[subI];
-                      track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
+                      track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope2, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
                     }
                     ifConditions.index++;
                     breakAndContinue = true;
@@ -1053,15 +1181,15 @@
                 }
                 case "foreach": {
                   const data = instance.$$t[directive.children[0].forData].apply(null, callArguments);
-                  const anchor = hydrate ? getAnchor(target) : void 0;
-                  const anchorBegin = createAnchorNode(target, insert, anchor);
+                  const anchor2 = hydrate ? getAnchor(target) : void 0;
+                  const anchorBegin2 = createAnchorNode(target, insert, anchor2);
                   const isNumeric = Array.isArray(data);
                   const dataArrayScope = {};
                   for (let forKey in data) {
                     const dataKey = isNumeric ? +forKey : forKey;
                     const dataItem = data[dataKey];
                     const scopeId = ++scope.counter;
-                    const nextScope = {
+                    const nextScope2 = {
                       id: scopeId,
                       arguments: [...scope.arguments],
                       components: [],
@@ -1071,24 +1199,24 @@
                       children: {},
                       counter: 0
                     };
-                    scope.children[scopeId] = nextScope;
-                    nextScope.map[directive.children[0].forKey] = nextScope.arguments.length;
-                    nextScope.arguments.push(dataKey);
-                    nextScope.map[directive.children[0].forItem] = nextScope.arguments.length;
-                    nextScope.arguments.push(dataItem);
+                    scope.children[scopeId] = nextScope2;
+                    nextScope2.map[directive.children[0].forKey] = nextScope2.arguments.length;
+                    nextScope2.arguments.push(dataKey);
+                    nextScope2.map[directive.children[0].forItem] = nextScope2.arguments.length;
+                    nextScope2.arguments.push(dataItem);
                     const nextDirectives = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                    const itemBeginAnchor = createAnchorNode(target, insert, anchor, "b" /* BeginAnchor */ + nextAnchorNodeId());
-                    render(target, instance, [node], nextScope, nextDirectives, hydrate, insert);
-                    const itemEndAnchor = createAnchorNode(target, insert, anchor, itemBeginAnchor._anchor);
+                    const itemBeginAnchor = createAnchorNode(target, insert, anchor2, "b" /* BeginAnchor */ + nextAnchorNodeId());
+                    render(target, instance, [node], nextScope2, nextDirectives, hydrate, insert);
+                    const itemEndAnchor = createAnchorNode(target, insert, anchor2, itemBeginAnchor._anchor);
                     dataArrayScope[dataKey] = {
                       key: dataKey,
                       value: dataItem,
                       begin: itemBeginAnchor,
                       end: itemEndAnchor,
-                      scope: nextScope
+                      scope: nextScope2
                     };
                   }
-                  const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+                  const anchorNode = createAnchorNode(target, insert, anchor2, anchorBegin2._anchor);
                   if (directive.children[0].subs) {
                     for (let subI in directive.children[0].subs) {
                       const trackingPath = directive.children[0].subs[subI];
@@ -1116,37 +1244,100 @@
               continue;
             }
           }
-          if (node.content === "template") {
-            nextInsert = insert;
-            break;
+          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
+          const isDynamic = node.subs;
+          const componentTag = node.type === "component" || node.expression && isComponent(content);
+          let anchor;
+          let anchorBegin;
+          let nextScope;
+          if (isDynamic) {
+            anchor = hydrate ? getAnchor(target) : void 0;
+            anchorBegin = createAnchorNode(target, insert, anchor);
           }
-          if (node.content === "slot") {
-            nextInsert = insert;
-            let slotName = "default";
-            if (node.attributes) {
-              for (let attrIndex in node.attributes) {
-                if (node.attributes[attrIndex].content === "name") {
-                  slotName = node.attributes[attrIndex].children[0].content;
+          if (isDynamic || componentTag) {
+            const scopeId = ++scope.counter;
+            nextScope = {
+              id: scopeId,
+              arguments: [...scope.arguments],
+              components: [],
+              map: { ...scope.map },
+              track: [],
+              parent: scope,
+              children: {},
+              counter: 0
+            };
+            scope.children[scopeId] = nextScope;
+            childScope = nextScope;
+          }
+          if (componentTag) {
+            nextScope.slots = {};
+            if (node.slots) {
+              const scopeId = ++nextScope.counter;
+              const slotScope = {
+                id: scopeId,
+                arguments: [...scope.arguments],
+                components: [],
+                map: { ...scope.map },
+                track: [],
+                parent: nextScope,
+                children: {},
+                counter: 0,
+                slots: scope.slots
+              };
+              nextScope.children[scopeId] = slotScope;
+              for (let slotName in node.slots) {
+                nextScope.slots[slotName] = {
+                  node: node.slots[slotName],
+                  scope: slotScope,
+                  instance
+                };
+              }
+            }
+            renderComponent(target, content, nextScope, hydrate, insert);
+          } else {
+            if (node.content === "template") {
+              nextInsert = insert;
+              break;
+            }
+            if (node.content === "slot") {
+              nextInsert = insert;
+              let slotName = "default";
+              if (node.attributes) {
+                for (let attrIndex in node.attributes) {
+                  if (node.attributes[attrIndex].content === "name") {
+                    slotName = node.attributes[attrIndex].children[0].content;
+                  }
                 }
               }
-            }
-            if (slotName in scope.slots) {
-              const slot = scope.slots[slotName];
-              if (!slot.node.unpacked) {
-                unpack(slot.node);
-                slot.node.unpacked = true;
+              if (slotName in scope.slots) {
+                const slot = scope.slots[slotName];
+                if (!slot.node.unpacked) {
+                  unpack(slot.node);
+                  slot.node.unpacked = true;
+                }
+                render(element, slot.instance, slot.node.children, slot.scope, void 0, hydrate, nextInsert);
+              } else {
+                if (node.children) {
+                  render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
+                }
               }
-              render(element, slot.instance, slot.node.children, slot.scope, void 0, hydrate, nextInsert);
-            } else {
-              if (node.children) {
-                render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
+              continue;
+            }
+            withAttributes = true;
+            element = hydrate ? hydrateTag(target, content) : insert ? target.parentElement.insertBefore(document.createElement(content), target) : target.appendChild(document.createElement(content));
+          }
+          if (isDynamic) {
+            const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+            if (node.subs) {
+              for (let subI in node.subs) {
+                const trackingPath = node.subs[subI];
+                track(instance, trackingPath, scope, [renderDynamic, [instance, node, { scope: nextScope, anchorNode }]]);
               }
             }
+          }
+          if (componentTag) {
             continue;
           }
-          withAttributes = true;
-          const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-          element = hydrate ? hydrateTag(target, content) : insert ? target.parentElement.insertBefore(document.createElement(content), target) : target.appendChild(document.createElement(content));
           break;
         }
         case "text": {
@@ -1176,32 +1367,6 @@
             }
           }
           break;
-        }
-        case "component": {
-          const scopeId = ++scope.counter;
-          const nextScope = {
-            id: scopeId,
-            arguments: [...scope.arguments],
-            components: [],
-            map: { ...scope.map },
-            track: [],
-            parent: scope,
-            children: {},
-            counter: 0
-          };
-          scope.children[scopeId] = nextScope;
-          nextScope.slots = {};
-          if (node.slots) {
-            for (let slotName in node.slots) {
-              nextScope.slots[slotName] = {
-                node: node.slots[slotName],
-                scope,
-                instance
-              };
-            }
-          }
-          renderComponent(target, node.content, nextScope);
-          continue;
         }
         default: {
           console.warn("Node type not implemented", node);
@@ -1256,13 +1421,13 @@
         }
       }
       if (node.children) {
-        render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
+        render(element, instance, node.children, childScope, void 0, hydrate, nextInsert);
       }
     }
   }
 
   // viewi/core/renderComponent.ts
-  function renderComponent(target, name, scope) {
+  function renderComponent(target, name, scope, hydrate = false, insert = false) {
     if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
     }
@@ -1281,8 +1446,11 @@
         root.unpacked = true;
       }
       const rootChildren = root.children;
-      rootChildren && render(target, instance, rootChildren, scope);
+      rootChildren && render(target, instance, rootChildren, scope, void 0, hydrate, insert);
     }
+  }
+  function isComponent(name) {
+    return name in componentsMeta_default.list;
   }
 
   // viewi/index.ts
@@ -1301,7 +1469,7 @@
       track: [],
       children: {},
       counter: 0
-    });
+    }, true, false);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {

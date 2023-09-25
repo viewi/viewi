@@ -15,6 +15,8 @@ class TestComponent extends BaseComponent {
     ifValue = true;
     ifElseValue = true;
     nestedIf = true;
+    dynamic = "div";
+    dynamic2 = "ItemComponent";
 
     getName(name) {
         var sum = (1 + 5) * 10;
@@ -55,6 +57,12 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return function (event) { _component.dynamic = _component.dynamic === "div" ? "ItemComponent" : "div"; }; },
+    function (_component) { return "\n" + _component.dynamic + " " + _component.dynamic2 + "\n"; },
+    function (_component) { return _component.dynamic; },
+    function (_component) { return "Tag or component " + _component.dynamic + " " + _component.dynamic2; },
+    function (_component) { return _component.dynamic2; },
+    function (_component) { return "Tag or component " + _component.dynamic + " " + _component.dynamic2; },
     function (_component) { return "Custom " + _component.name + " Slot"; },
     function (_component) { return "Custom " + _component.name + " slot\n        "; },
     function (_component) { return "Custom header " + _component.name + " inside div"; },
