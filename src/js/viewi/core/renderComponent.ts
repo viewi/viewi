@@ -7,7 +7,7 @@ import { TemplateNode } from "./node";
 import { render } from "./render";
 import { unpack } from "./unpack";
 
-export function renderComponent(target: Node, name: string, scope: ContextScope) {
+export function renderComponent(target: Node, name: string, scope: ContextScope, hydrate = false, insert = false) {
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
     }
@@ -26,10 +26,14 @@ export function renderComponent(target: Node, name: string, scope: ContextScope)
     ) {
         if (!root.unpacked) {
             unpack(root);
-            root.unpacked = true;            
+            root.unpacked = true;
         }
         const rootChildren = root.children;
         // console.log(counterTarget, instance, rootChildren);
-        rootChildren && render(target, instance, rootChildren, scope);
+        rootChildren && render(target, instance, rootChildren, scope, undefined, hydrate, insert);
     }
+}
+
+export function isComponent(name: string) {
+    return (name in componentsMeta.list);
 }

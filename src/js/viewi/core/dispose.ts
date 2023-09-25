@@ -18,5 +18,6 @@ export function dispose(scope: ContextScope, instance: BaseComponent<any>) {
     }
     if (scope.parent) {
         delete scope.parent.children[scope.id];
+        delete scope.parent;
     }
 }

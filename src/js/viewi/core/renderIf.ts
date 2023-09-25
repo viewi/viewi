@@ -9,9 +9,8 @@ import { render } from "./render";
 export function renderIf(
     instance: BaseComponent<any>,
     node: TemplateNode,
-    scope: ContextScope,
+    scopeContainer: { scope: ContextScope, anchorNode: TextAnchor },
     directive: TemplateNode,
-    anchorNode: TextAnchor,
     ifConditions: ConditionalDirective,
     localDirectiveMap: DirectiveMap,
     index: number
@@ -25,27 +24,40 @@ export function renderIf(
             directive.children[0].code!
         ](instance));
     }
+    const anchorNode = scopeContainer.anchorNode;
     const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
     if (ifConditions.values[index] !== nextValue) {
+        const scope = scopeContainer.scope.parent!;
         ifConditions.values[index] = nextValue;
         if (nextValue) {
             // render
-            const scopeId = ++scope.parent!.counter;
+            const scopeId = ++scope.counter;
             const nextScope: ContextScope = {
                 id: scopeId,
-                arguments: scope.parent!.arguments,
-                components: scope.components,
-                map: scope.parent!.map,
-                track: scope.track,
-                parent: scope.parent,
+                arguments: [...scope.arguments],
+                components: [],
+                map: { ...scope.map },
+                track: [],
+                parent: scope,
                 children: {},
                 counter: 0
             };
-            scope.parent!.children[scopeId] = nextScope;
+            scopeContainer.scope = nextScope;
+            scope.children[scopeId] = nextScope;
             render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
         } else {
             // remove and dispose
-            dispose(scope, instance);
+            dispose(scopeContainer.scope, instance);
+            scopeContainer.scope = {
+                id: -1,
+                arguments: [],
+                components: [],
+                map: {},
+                track: [],
+                parent: scope,
+                children: {},
+                counter: 0
+            };
             while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
                 anchorNode.previousSibling!.remove();
             }

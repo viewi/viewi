@@ -1,5 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
-import { createAnchorNode, getAnchor, nextAnchorNodeId } from "./anchor";
+import { Anchor, TextAnchor, createAnchorNode, getAnchor, nextAnchorNodeId } from "./anchor";
 import { ArrayScope, ForeachAnchorEnum } from "./arrayScope";
 import { ConditionalDirective, DirectiveMap, DirectiveType } from "./directive";
 import { hydrateComment } from "./hydrateComment";
@@ -13,8 +13,9 @@ import { renderText } from "./renderText";
 import { ContextScope } from "./contextScope";
 import { updateComment } from "./updateComment";
 import { track } from "./track";
-import { renderComponent } from "./renderComponent";
+import { isComponent, renderComponent } from "./renderComponent";
 import { unpack } from "./unpack";
+import { renderDynamic } from "./renderDynamic";
 
 export function render(
     target: Node,
@@ -33,33 +34,77 @@ export function render(
         // let hydrate = true;
         let breakAndContinue = false;
         let withAttributes = false;
+        let childScope = scope;
         switch (node.type) {
             case <NodeType>'tag':
-                {
-                    // if, else-if, else, foreach
-                    if (node.directives) {
-                        const localDirectiveMap: DirectiveMap = directives || { map: {}, storage: {} };
-                        let callArguments = [instance];
-                        if (scope.arguments) {
-                            callArguments = callArguments.concat(scope.arguments);
+            case <NodeType>'component': {
+                // if, else-if, else, foreach
+                if (node.directives) {
+                    const localDirectiveMap: DirectiveMap = directives || { map: {}, storage: {} };
+                    let callArguments = [instance];
+                    if (scope.arguments) {
+                        callArguments = callArguments.concat(scope.arguments);
+                    }
+                    for (let d = 0; d < node.directives.length; d++) {
+                        const directive: TemplateNode = node.directives[d];
+                        if (d in localDirectiveMap.map) { // already processed                                 
+                            // console.log('skipping', localDirectiveMap, directive);
+                            continue;
                         }
-                        for (let d = 0; d < node.directives.length; d++) {
-                            const directive: TemplateNode = node.directives[d];
-                            if (d in localDirectiveMap.map) { // already processed                                 
-                                // console.log('skipping', localDirectiveMap, directive);
-                                continue;
+                        localDirectiveMap.map[d] = true;
+                        switch (directive.content) {
+                            case <DirectiveType>'if': {
+                                // new conditions
+                                ifConditions = <ConditionalDirective>{ values: [], index: 0, subs: [] };
+                                const nextValue = !!(instance.$$t[
+                                    directive.children![0].code!
+                                ].apply(null, callArguments));
+                                ifConditions.values.push(nextValue);
+                                const anchor = hydrate ? getAnchor(target) : undefined;
+                                const anchorBegin = createAnchorNode(target, insert, anchor); // begin if
+                                const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                                const scopeId = ++scope.counter;
+                                const nextScope: ContextScope = {
+                                    id: scopeId,
+                                    arguments: scope.arguments,
+                                    components: [],
+                                    map: scope.map,
+                                    track: [],
+                                    parent: scope,
+                                    children: {},
+                                    counter: 0
+                                };
+                                scope.children[scopeId] = nextScope;
+                                if (nextValue) {
+                                    render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
+                                }
+                                const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end if
+                                if (directive.children![0].subs) {
+                                    for (let subI in directive.children![0].subs) {
+                                        const trackingPath = directive.children![0].subs[subI];
+                                        ifConditions.subs.push(trackingPath);
+                                        track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
+                                    }
+                                }
+                                ifConditions.index++;
+                                // continue to the next node
+                                breakAndContinue = true;
+                                break;
                             }
-                            localDirectiveMap.map[d] = true;
-                            switch (directive.content) {
-                                case <DirectiveType>'if': {
-                                    // new conditions
-                                    ifConditions = <ConditionalDirective>{ values: [], index: 0, subs: [] };
-                                    const nextValue = !!(instance.$$t[
-                                        directive.children![0].code!
-                                    ].apply(null, callArguments));
+                            case <DirectiveType>'else-if': {
+                                // console.log('else if', ifConditions);
+                                if (ifConditions) {
+                                    let nextValue = true;
+                                    for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                                        nextValue = nextValue && !ifConditions.values[ifv];
+                                    }
+                                    nextValue = nextValue && !ifConditions.values[ifConditions.index - 1]
+                                        && !!(instance.$$t[
+                                            directive.children![0].code!
+                                        ].apply(null, callArguments));
                                     ifConditions.values.push(nextValue);
                                     const anchor = hydrate ? getAnchor(target) : undefined;
-                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin if
+                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin else-if
                                     const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
@@ -76,177 +121,190 @@ export function render(
                                     if (nextValue) {
                                         render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
                                     }
-                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end if
+                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else-if
                                     if (directive.children![0].subs) {
-                                        for (let subI in directive.children![0].subs) {
-                                            const trackingPath = directive.children![0].subs[subI];
-                                            ifConditions.subs.push(trackingPath);
-                                            track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
-                                        }
+                                        // TODO: filter out unique
+                                        ifConditions.subs = ifConditions.subs.concat(directive.children![0].subs);
                                     }
+                                    for (let subI in ifConditions.subs) {
+                                        const trackingPath = ifConditions.subs[subI];
+                                        track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
+                                    }
+
                                     ifConditions.index++;
                                     // continue to the next node
                                     breakAndContinue = true;
-                                    break;
+                                } else {
+                                    console.warn('Directive else-if has missing previous if/else-if', directive.content, directive);
                                 }
-                                case <DirectiveType>'else-if': {
-                                    // console.log('else if', ifConditions);
-                                    if (ifConditions) {
-                                        let nextValue = true;
-                                        for (let ifv = 0; ifv < ifConditions.index; ifv++) {
-                                            nextValue = nextValue && !ifConditions.values[ifv];
-                                        }
-                                        nextValue = nextValue && !ifConditions.values[ifConditions.index - 1]
-                                            && !!(instance.$$t[
-                                                directive.children![0].code!
-                                            ].apply(null, callArguments));
-                                        ifConditions.values.push(nextValue);
-                                        const anchor = hydrate ? getAnchor(target) : undefined;
-                                        const anchorBegin = createAnchorNode(target, insert, anchor); // begin else-if
-                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                                        const scopeId = ++scope.counter;
-                                        const nextScope: ContextScope = {
-                                            id: scopeId,
-                                            arguments: scope.arguments,
-                                            components: [],
-                                            map: scope.map,
-                                            track: [],
-                                            parent: scope,
-                                            children: {},
-                                            counter: 0
-                                        };
-                                        scope.children[scopeId] = nextScope;
-                                        if (nextValue) {
-                                            render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
-                                        }
-                                        const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else-if
-                                        if (directive.children![0].subs) {
-                                            // TODO: filter out unique
-                                            ifConditions.subs = ifConditions.subs.concat(directive.children![0].subs);
-                                        }
-                                        for (let subI in ifConditions.subs) {
-                                            const trackingPath = ifConditions.subs[subI];
-                                            track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
-                                        }
-
-                                        ifConditions.index++;
-                                        // continue to the next node
-                                        breakAndContinue = true;
-                                    } else {
-                                        console.warn('Directive else-if has missing previous if/else-if', directive.content, directive);
-                                    }
-                                    // console.log(ifConditions);
-                                    break;
-                                }
-                                case <DirectiveType>'else': {
-                                    if (ifConditions) {
-                                        let nextValue = true;
-                                        for (let ifv = 0; ifv < ifConditions.index; ifv++) {
-                                            nextValue = nextValue && !ifConditions.values[ifv];
-                                        }
-                                        ifConditions.values.push(nextValue);
-                                        const anchor = hydrate ? getAnchor(target) : undefined;
-                                        const anchorBegin = createAnchorNode(target, insert, anchor); // begin else
-                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-
-                                        const scopeId = ++scope.counter;
-                                        const nextScope: ContextScope = {
-                                            id: scopeId,
-                                            arguments: scope.arguments,
-                                            components: [],
-                                            map: scope.map,
-                                            track: [],
-                                            parent: scope,
-                                            children: {},
-                                            counter: 0
-                                        };
-                                        scope.children[scopeId] = nextScope;
-                                        if (nextValue) {
-                                            render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
-                                        }
-                                        const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else
-                                        for (let subI in ifConditions.subs) {
-                                            const trackingPath = ifConditions.subs[subI];
-                                            track(instance, trackingPath, scope, [renderIf, [instance, node, nextScope, directive, anchorNode, ifConditions, nextDirectives, ifConditions.index]]);
-                                        }
-
-                                        ifConditions.index++;
-                                        // continue to the next node
-                                        breakAndContinue = true;
-                                    } else {
-                                        console.warn('Directive else has missing previous if/else-if', directive.content, directive);
-                                    }
-                                    break;
-                                }
-                                case <DirectiveType>'foreach': {
-                                    const data = instance.$$t[
-                                        directive.children![0].forData!
-                                    ].apply(null, callArguments);
-                                    const anchor = hydrate ? getAnchor(target) : undefined;
-                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin foreach
-                                    const isNumeric = Array.isArray(data);
-                                    const dataArrayScope: ArrayScope = {};
-                                    for (let forKey in data) {
-                                        const dataKey = isNumeric ? +forKey : forKey;
-                                        const dataItem = data[dataKey];
-                                        const scopeId = ++scope.counter;
-                                        const nextScope: ContextScope = {
-                                            id: scopeId,
-                                            arguments: [...scope.arguments],
-                                            components: [],
-                                            map: { ...scope.map },
-                                            track: [],
-                                            parent: scope,
-                                            children: {},
-                                            counter: 0
-                                        };
-                                        scope.children[scopeId] = nextScope;
-                                        nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
-                                        nextScope.arguments.push(dataKey);
-                                        nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
-                                        nextScope.arguments.push(dataItem);
-
-                                        // console.log('foreach', data, dataKey, dataItem, nextScope);
-                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                                        const itemBeginAnchor = createAnchorNode(target, insert, anchor, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
-                                        render(target, instance, [node], nextScope, nextDirectives, hydrate, insert);
-                                        const itemEndAnchor = createAnchorNode(target, insert, anchor, itemBeginAnchor._anchor); // end foreach item
-                                        dataArrayScope[dataKey] = {
-                                            key: dataKey,
-                                            value: dataItem,
-                                            begin: itemBeginAnchor,
-                                            end: itemEndAnchor,
-                                            scope: nextScope
-                                        };
-                                    }
-                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end foreach
-
-                                    if (directive.children![0].subs) {
-                                        for (let subI in directive.children![0].subs) {
-                                            const trackingPath = directive.children![0].subs[subI];
-                                            const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-                                            track(instance, trackingPath, scope, [renderForeach,
-                                                [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]]);
-                                        }
-                                    }
-
-                                    breakAndContinue = true;
-                                    break;
-                                }
-                                default: {
-                                    console.warn('Directive not implemented', directive.content, directive);
-                                    breakAndContinue = true;
-                                    break;
-                                }
+                                // console.log(ifConditions);
+                                break;
                             }
-                            if (breakAndContinue) {
+                            case <DirectiveType>'else': {
+                                if (ifConditions) {
+                                    let nextValue = true;
+                                    for (let ifv = 0; ifv < ifConditions.index; ifv++) {
+                                        nextValue = nextValue && !ifConditions.values[ifv];
+                                    }
+                                    ifConditions.values.push(nextValue);
+                                    const anchor = hydrate ? getAnchor(target) : undefined;
+                                    const anchorBegin = createAnchorNode(target, insert, anchor); // begin else
+                                    const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+
+                                    const scopeId = ++scope.counter;
+                                    const nextScope: ContextScope = {
+                                        id: scopeId,
+                                        arguments: scope.arguments,
+                                        components: [],
+                                        map: scope.map,
+                                        track: [],
+                                        parent: scope,
+                                        children: {},
+                                        counter: 0
+                                    };
+                                    scope.children[scopeId] = nextScope;
+                                    if (nextValue) {
+                                        render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
+                                    }
+                                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end else
+                                    for (let subI in ifConditions.subs) {
+                                        const trackingPath = ifConditions.subs[subI];
+                                        track(instance, trackingPath, scope, [renderIf, [instance, node, { scope: nextScope, anchorNode }, directive, ifConditions, nextDirectives, ifConditions.index]]);
+                                    }
+
+                                    ifConditions.index++;
+                                    // continue to the next node
+                                    breakAndContinue = true;
+                                } else {
+                                    console.warn('Directive else has missing previous if/else-if', directive.content, directive);
+                                }
+                                break;
+                            }
+                            case <DirectiveType>'foreach': {
+                                const data = instance.$$t[
+                                    directive.children![0].forData!
+                                ].apply(null, callArguments);
+                                const anchor = hydrate ? getAnchor(target) : undefined;
+                                const anchorBegin = createAnchorNode(target, insert, anchor); // begin foreach
+                                const isNumeric = Array.isArray(data);
+                                const dataArrayScope: ArrayScope = {};
+                                for (let forKey in data) {
+                                    const dataKey = isNumeric ? +forKey : forKey;
+                                    const dataItem = data[dataKey];
+                                    const scopeId = ++scope.counter;
+                                    const nextScope: ContextScope = {
+                                        id: scopeId,
+                                        arguments: [...scope.arguments],
+                                        components: [],
+                                        map: { ...scope.map },
+                                        track: [],
+                                        parent: scope,
+                                        children: {},
+                                        counter: 0
+                                    };
+                                    scope.children[scopeId] = nextScope;
+                                    nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
+                                    nextScope.arguments.push(dataKey);
+                                    nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
+                                    nextScope.arguments.push(dataItem);
+
+                                    // console.log('foreach', data, dataKey, dataItem, nextScope);
+                                    const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                                    const itemBeginAnchor = createAnchorNode(target, insert, anchor, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
+                                    render(target, instance, [node], nextScope, nextDirectives, hydrate, insert);
+                                    const itemEndAnchor = createAnchorNode(target, insert, anchor, itemBeginAnchor._anchor); // end foreach item
+                                    dataArrayScope[dataKey] = {
+                                        key: dataKey,
+                                        value: dataItem,
+                                        begin: itemBeginAnchor,
+                                        end: itemEndAnchor,
+                                        scope: nextScope
+                                    };
+                                }
+                                const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor); // end foreach
+
+                                if (directive.children![0].subs) {
+                                    for (let subI in directive.children![0].subs) {
+                                        const trackingPath = directive.children![0].subs[subI];
+                                        const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
+                                        track(instance, trackingPath, scope, [renderForeach,
+                                            [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]]);
+                                    }
+                                }
+
+                                breakAndContinue = true;
+                                break;
+                            }
+                            default: {
+                                console.warn('Directive not implemented', directive.content, directive);
+                                breakAndContinue = true;
                                 break;
                             }
                         }
                         if (breakAndContinue) {
-                            continue;
+                            break;
                         }
                     }
+                    if (breakAndContinue) {
+                        continue;
+                    }
+                }
+                const content = node.expression
+                    ? instance.$$t[node.code!](instance)
+                    : (node.content ?? '');
+                const isDynamic = node.subs;
+                const componentTag = node.type === "component"
+                    || (node.expression && isComponent(content));
+
+                let anchor: Anchor | undefined;
+                let anchorBegin: TextAnchor | undefined;
+                let nextScope: ContextScope | undefined;
+                if (isDynamic) {
+                    anchor = hydrate ? getAnchor(target) : undefined;
+                    anchorBegin = createAnchorNode(target, insert, anchor); // begin dynamic                    
+                }
+                if (isDynamic || componentTag) {
+                    const scopeId = ++scope.counter;
+                    nextScope = {
+                        id: scopeId,
+                        arguments: [...scope.arguments],
+                        components: [],
+                        map: { ...scope.map },
+                        track: [],
+                        parent: scope,
+                        children: {},
+                        counter: 0
+                    };
+                    scope.children[scopeId] = nextScope;
+                    childScope = nextScope;
+                }
+                // component
+                if (componentTag) {
+                    nextScope!.slots = {};
+                    if (node.slots) {
+                        const scopeId = ++nextScope!.counter;
+                        const slotScope: ContextScope = {
+                            id: scopeId,
+                            arguments: [...scope.arguments],
+                            components: [],
+                            map: { ...scope.map },
+                            track: [],
+                            parent: nextScope,
+                            children: {},
+                            counter: 0,
+                            slots: scope.slots
+                        };
+                        nextScope!.children[scopeId] = slotScope;
+                        for (let slotName in node.slots) {
+                            nextScope!.slots[slotName] = {
+                                node: node.slots[slotName],
+                                scope: slotScope,
+                                instance: instance
+                            };
+                        }
+                    }
+                    renderComponent(target, content, nextScope!, hydrate, insert);
+                } else {
                     // template
                     if (node.content === 'template') {
                         nextInsert = insert;
@@ -277,17 +335,27 @@ export function render(
                         continue;
                     }
                     withAttributes = true;
-                    const content = node.expression
-                        ? instance.$$t[node.code!](instance)
-                        : (node.content ?? '');
+
                     element = hydrate
                         ? hydrateTag(target, content)
                         : (insert
                             ? target.parentElement!.insertBefore(document.createElement(content), target)
                             : target.appendChild(document.createElement(content)));
-                    // TODO: reactive tag/component
-                    break;
                 }
+                if (isDynamic) {
+                    const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin!._anchor); // end dynamic
+                    if (node.subs) {
+                        for (let subI in node.subs) {
+                            const trackingPath = node.subs[subI];
+                            track(instance, trackingPath, scope, [renderDynamic, [instance, node, { scope: nextScope, anchorNode }]]);
+                        }
+                    }
+                }
+                if (componentTag) {
+                    continue;
+                }
+                break;
+            }
             case <NodeType>'text':
                 {
                     let textNode: Text;
@@ -324,33 +392,6 @@ export function render(
                     }
                 }
                 break;
-            }
-            case <NodeType>'component': {
-                const scopeId = ++scope.counter;
-                const nextScope: ContextScope = {
-                    id: scopeId,
-                    arguments: [...scope.arguments],
-                    components: [],
-                    map: { ...scope.map },
-                    track: [],
-                    parent: scope,
-                    children: {},
-                    counter: 0
-                };
-                scope.children[scopeId] = nextScope;
-                nextScope.slots = {};
-                if (node.slots) {
-                    for (let slotName in node.slots) {
-                        nextScope.slots[slotName] = {
-                            node: node.slots[slotName],
-                            scope: scope,
-                            instance: instance
-                        };
-                    }
-                }
-
-                renderComponent(target, node.content!, nextScope);
-                continue;
             }
             default: {
                 console.warn('Node type not implemented', node);
@@ -416,7 +457,7 @@ export function render(
             }
         }
         if (node.children) {
-            render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
+            render(element, instance, node.children, childScope, undefined, hydrate, nextInsert);
         }
     }
 }
