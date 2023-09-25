@@ -45,4 +45,9 @@ class Engine
         $renderFunc = $componentMeta['Function'];
         return $renderFunc($this, $classInstance, $slots, $scope);
     }
+
+    public function isComponent(string $name)
+    {
+        return isset($this->meta['components'][$name]);
+    }
 }
