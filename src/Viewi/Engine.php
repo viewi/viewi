@@ -38,11 +38,38 @@ class Engine
         ) {
             throw new Exception("Component '$component' not found.");
         }
+        /**
+         * @var array{inputs: array, components: array}
+         */
         $componentMeta = $this->meta['components'][$component];
         $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
         $classInstance = new $fullClassName();
         include_once $this->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
+        // Helpers::debug([$props, $componentMeta]);
+        foreach ($props as $key => $inputValue) {
+            if ($key === '_props') {
+                // passing props as object (array)
+                foreach ($inputValue as $propKey => $propInputValue) {
+                    if (isset($componentMeta['inputs'][$propKey])) {
+                        $classInstance->{$propKey} = $propInputValue;
+                    }
+                    $classInstance->_props[$propKey] = $propInputValue;
+                }
+                // $this->debug(['all props', $inputValue, $classInstance]);
+            } else {
+                if ($key === 'model') {
+                    if (isset($componentMeta['inputs']['modelValue'])) {
+                        $classInstance->modelValue = $inputValue;
+                    }
+                } else {
+                    if (isset($componentMeta['inputs'][$key])) {
+                        $classInstance->{$key} = $inputValue;
+                    }
+                    $classInstance->_props[$key] = $inputValue;
+                }
+            }
+        }
         return $renderFunc($this, $classInstance, $slots, $scope);
     }
 
