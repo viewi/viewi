@@ -355,14 +355,31 @@
       return _component.onEvent.bind(_component);
     },
     function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
       return _component.name;
     },
     function(_component) {
       return "Custom " + (_component.name ?? "");
     },
     function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
+      return { "id": "myid", "title": "Custom " + _component.name, "class": "mui-btn--accent" };
+    },
+    function(_component) {
+      return "Custom " + (_component.name ?? "") + "\n";
+    },
+    function(_component) {
       return function(event) {
         _component.name = "Viewi Junior";
+      };
+    },
+    function(_component) {
+      return function(event) {
+        _component.nestedIf = !_component.nestedIf;
       };
     },
     function(_component) {
@@ -789,16 +806,16 @@
   }
 
   // viewi/core/dispose.ts
-  function dispose(scope, instance) {
+  function dispose(scope) {
     for (let reactivityIndex in scope.track) {
       const reactivityItem = scope.track[reactivityIndex];
-      delete instance.$$r[reactivityItem.path][reactivityItem.id];
+      delete scope.instance.$$r[reactivityItem.path][reactivityItem.id];
     }
     scope.track = [];
     scope.components = [];
     if (scope.children) {
       for (let i in scope.children) {
-        dispose(scope.children[i], instance);
+        dispose(scope.children[i]);
       }
       scope.children = {};
     }
@@ -826,6 +843,7 @@
       const scopeId = ++scope.counter;
       const nextScope = {
         id: scopeId,
+        instance,
         arguments: [...scope.arguments],
         components: [],
         map: { ...scope.map },
@@ -877,7 +895,7 @@
         }
         currentArrayScope[di].begin.remove();
         endAnchor.remove();
-        dispose(currentArrayScope[di].scope, instance);
+        dispose(currentArrayScope[di].scope);
         delete currentArrayScope[di];
       }
     }
@@ -887,7 +905,7 @@
         endAnchor.previousSibling.remove();
       }
       deleteMap[di].begin.remove();
-      dispose(deleteMap[di].scope, instance);
+      dispose(deleteMap[di].scope);
       endAnchor.remove();
     }
   }
@@ -910,6 +928,7 @@
         const scopeId = ++scope.counter;
         const nextScope = {
           id: scopeId,
+          instance,
           arguments: [...scope.arguments],
           components: [],
           map: { ...scope.map },
@@ -922,9 +941,10 @@
         scope.children[scopeId] = nextScope;
         render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
       } else {
-        dispose(scopeContainer.scope, instance);
+        dispose(scopeContainer.scope);
         scopeContainer.scope = {
           id: -1,
+          instance,
           arguments: [],
           components: [],
           map: {},
@@ -1033,7 +1053,7 @@
     const componentTag = node.type === "component" || node.expression && isComponent(content);
     const anchorNode = scopeContainer.anchorNode;
     const scope = scopeContainer.scope.parent;
-    dispose(scopeContainer.scope, instance);
+    dispose(scopeContainer.scope);
     while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
       anchorNode.previousSibling.remove();
     }
@@ -1044,6 +1064,7 @@
       components: [],
       map: { ...scope.map },
       track: [],
+      instance,
       parent: scope,
       children: {},
       counter: 0
@@ -1051,7 +1072,7 @@
     scopeContainer.scope = nextScope;
     scope.children[scopeId] = nextScope;
     if (componentTag) {
-      nextScope.slots = {};
+      const slots = {};
       if (node.slots) {
         const scopeId2 = ++nextScope.counter;
         const slotScope = {
@@ -1065,16 +1086,14 @@
           counter: 0,
           slots: scope.slots
         };
-        nextScope.children[scopeId2] = slotScope;
         for (let slotName in node.slots) {
-          nextScope.slots[slotName] = {
+          slots[slotName] = {
             node: node.slots[slotName],
-            scope: slotScope,
-            instance
+            scope: slotScope
           };
         }
       }
-      renderComponent(anchorNode, content, nextScope, { attributes: node.attributes, scope, instance }, false, true);
+      renderComponent(anchorNode, content, { attributes: node.attributes, scope, instance }, slots, false, true);
       return;
     } else {
       const element = anchorNode.parentElement.insertBefore(document.createElement(content), anchorNode);
@@ -1153,6 +1172,7 @@
                     arguments: scope.arguments,
                     components: [],
                     map: scope.map,
+                    instance,
                     track: [],
                     parent: scope,
                     children: {},
@@ -1188,6 +1208,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      instance,
                       arguments: scope.arguments,
                       components: [],
                       map: scope.map,
@@ -1228,6 +1249,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      instance,
                       arguments: scope.arguments,
                       components: [],
                       map: scope.map,
@@ -1264,6 +1286,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      instance,
                       arguments: [...scope.arguments],
                       components: [],
                       map: { ...scope.map },
@@ -1335,6 +1358,7 @@
               components: [],
               map: { ...scope.map },
               track: [],
+              instance,
               parent: scope,
               children: {},
               counter: 0
@@ -1343,7 +1367,7 @@
             childScope = nextScope;
           }
           if (componentTag) {
-            nextScope.slots = {};
+            const slots = {};
             if (node.slots) {
               const scopeId = ++nextScope.counter;
               const slotScope = {
@@ -1353,20 +1377,20 @@
                 map: { ...scope.map },
                 track: [],
                 parent: nextScope,
+                instance,
                 children: {},
                 counter: 0,
                 slots: scope.slots
               };
               nextScope.children[scopeId] = slotScope;
               for (let slotName in node.slots) {
-                nextScope.slots[slotName] = {
+                slots[slotName] = {
                   node: node.slots[slotName],
-                  scope: slotScope,
-                  instance
+                  scope: slotScope
                 };
               }
             }
-            renderComponent(target, content, nextScope, { attributes: node.attributes, scope, instance }, hydrate, insert);
+            renderComponent(target, content, { attributes: node.attributes, scope }, slots, hydrate, insert);
           } else {
             if (node.content === "template") {
               nextInsert = insert;
@@ -1388,7 +1412,7 @@
                   unpack(slot.node);
                   slot.node.unpacked = true;
                 }
-                render(element, slot.instance, slot.node.children, slot.scope, void 0, hydrate, nextInsert);
+                render(element, slot.scope.instance, slot.node.children, slot.scope, void 0, hydrate, nextInsert);
               } else {
                 if (node.children) {
                   render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
@@ -1501,7 +1525,7 @@
 
   // viewi/core/updateProp.ts
   function updateProp(instance, attribute, props) {
-    const parentInstance = props.instance;
+    const parentInstance = props.scope.instance;
     const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
     if (attrName[0] === "(") {
     } else {
@@ -1521,13 +1545,20 @@
           }
         }
       }
-      instance[attrName] = valueContent;
-      instance._props[attrName] = valueContent;
+      if (attrName === "_props" && valueContent) {
+        for (let propName in valueContent) {
+          instance[propName] = valueContent[propName];
+          instance._props[propName] = valueContent[propName];
+        }
+      } else {
+        instance[attrName] = valueContent;
+        instance._props[attrName] = valueContent;
+      }
     }
   }
 
   // viewi/core/renderComponent.ts
-  function renderComponent(target, name, scope, props, hydrate = false, insert = false) {
+  function renderComponent(target, name, props, slots, hydrate = false, insert = false) {
     if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
     }
@@ -1540,8 +1571,21 @@
     if (inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
     }
+    const scopeId = props ? ++props.scope.counter : 0;
+    const scope = {
+      id: scopeId,
+      arguments: props ? [...props.scope.arguments] : [],
+      components: [],
+      instance,
+      map: props ? { ...props.scope.map } : {},
+      track: [],
+      children: {},
+      counter: 0,
+      parent: props ? props.scope : void 0,
+      slots
+    };
     if (props && props.attributes) {
-      const parentInstance = props.instance;
+      const parentInstance = props.scope.instance;
       for (let a in props.attributes) {
         const attribute = props.attributes[a];
         const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
@@ -1563,8 +1607,15 @@
               }
             }
           }
-          instance[attrName] = valueContent;
-          instance._props[attrName] = valueContent;
+          if (attrName === "_props" && valueContent) {
+            for (let propName in valueContent) {
+              instance[propName] = valueContent[propName];
+              instance._props[propName] = valueContent[propName];
+            }
+          } else {
+            instance[attrName] = valueContent;
+            instance._props[attrName] = valueContent;
+          }
           if (valueSubs) {
             for (let subI in valueSubs) {
               const trackingPath = valueSubs[subI];
@@ -1595,15 +1646,7 @@
   console.log("Viewi entry");
   var counterTarget = document.getElementById("counter");
   function renderApp(name) {
-    renderComponent(counterTarget, name, {
-      id: 0,
-      arguments: [],
-      components: [],
-      map: {},
-      track: [],
-      children: {},
-      counter: 0
-    }, void 0, true, false);
+    renderComponent(counterTarget, name, void 0, {}, true, false);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
