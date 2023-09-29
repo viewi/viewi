@@ -11,6 +11,8 @@ Full-stack UI framework for PHP with reactivity on front-end and efficient SSR.
 
 Viewi is not about avoiding javascript, it's about integration same code into both worlds for mutual benefits.
 
+Front-end framework designed for PHP.
+
 How? - by transpiling PHP/HTML code into javacript to fuel front-end.
 
 Transpiling works with a limited subset of PHP (not everything can be converted into PHP), but even then, it is still more than enough for building advanced web applications. And if you need more custom JS - there is a way to inject it.
