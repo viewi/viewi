@@ -558,7 +558,7 @@ class TemplateCompiler
                                             $textTagItem->ItsExpression || $neigbourText->ItsExpression;
                                         $textTagItem->Content .= ' . ' .
                                             ($neigbourText->ItsExpression
-                                                ? '(' . $neigbourText->Content . ')'
+                                                ? '((' . $neigbourText->Content . ') ?? \'\')'
                                                 : var_export($neigbourText->Content, true));
                                         $neigbourText->Skip = true;
                                     }
@@ -781,6 +781,7 @@ class TemplateCompiler
         $this->inlineExpressions[] = [$tagItem->JsExpression, $this->localScopeArguments];
         $tagItem->JsExpressionCode = count($this->inlineExpressions) - 1;
         $tagItem->PhpExpression = $phpCode;
+        // Helpers::debug([$tagItem->JsExpression, $phpCode]);
     }
 
     private function appendExpression(TagItem &$tagItem)
