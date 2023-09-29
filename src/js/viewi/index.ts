@@ -21,7 +21,7 @@ export function renderApp(name: string) {
         track: [],
         children: {},
         counter: 0
-    }, true, false);
+    }, undefined, true, false);
     // console.log(anchors);
     // return;
     for (let a in anchors) {

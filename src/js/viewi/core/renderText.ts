@@ -7,9 +7,9 @@ export function renderText(instance: BaseComponent<any>, node: TemplateNode, tex
     if (scope) {
         callArguments = callArguments.concat(scope.arguments);
     }
-    const content = node.expression
+    const content = (node.expression
         ? instance.$$t[node.code as number].apply(null, callArguments)
-        : (node.content ?? '');
+        : node.content) ?? '';
     textNode.nodeValue !== content && (textNode.nodeValue = content);
     // debug purposes, TODO: debug/dev mode logs
     // if (textNode.parentNode && !document.body.contains(textNode)) {

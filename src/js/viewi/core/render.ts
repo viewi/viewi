@@ -16,6 +16,7 @@ import { track } from "./track";
 import { isComponent, renderComponent } from "./renderComponent";
 import { unpack } from "./unpack";
 import { renderDynamic } from "./renderDynamic";
+import { PropsContext } from "./propsContext";
 
 export function render(
     target: Node,
@@ -303,7 +304,7 @@ export function render(
                             };
                         }
                     }
-                    renderComponent(target, content, nextScope!, hydrate, insert);
+                    renderComponent(target, content, nextScope!, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, hydrate, insert);
                 } else {
                     // template
                     if (node.content === 'template') {
@@ -407,7 +408,7 @@ export function render(
                 for (let a in node.attributes) {
                     const attribute = node.attributes[a];
                     const attrName = attribute.expression
-                        ? instance.$$t[attribute.code!](instance)
+                        ? instance.$$t[attribute.code!](instance) // TODO: arguments
                         : (attribute.content ?? '');
                     if (attrName[0] === '(') {
                         // event

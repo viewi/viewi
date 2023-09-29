@@ -3,6 +3,7 @@ import { TextAnchor } from "./anchor";
 import { ContextScope } from "./contextScope";
 import { dispose } from "./dispose";
 import { TemplateNode } from "./node";
+import { PropsContext } from "./propsContext";
 import { render } from "./render";
 import { renderAttributeValue } from "./renderAttributeValue";
 import { isComponent, renderComponent } from "./renderComponent";
@@ -58,7 +59,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
                 };
             }
         }
-        renderComponent(anchorNode, content, nextScope, false, true);
+        renderComponent(anchorNode, content, nextScope, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, false, true);
         return;
     } else {
         const element = anchorNode.parentElement!.insertBefore(document.createElement(content), anchorNode);

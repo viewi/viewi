@@ -15,7 +15,7 @@ export function renderAttributeValue(
         for (let av = 0; av < attribute.children.length; av++) {
             const attributeValue = attribute.children[av];
             let callArguments = [instance];
-            if (scope) {
+            if (scope.arguments) {
                 callArguments = callArguments.concat(scope.arguments);
             }
             const childContent = attributeValue.expression
