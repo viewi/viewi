@@ -100,10 +100,10 @@
       return _component.count % 10 + 12;
     },
     function(_component) {
-      return "\n    Count " + _component.count + " " + strlen(_component.message) + "\n";
+      return "\n    Count " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n";
     },
     function(_component) {
-      return "\nCount " + _component.count + " " + strlen(_component.message) + "\n";
+      return "\nCount " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n";
     },
     function(_component) {
       return function(event) {
@@ -144,7 +144,7 @@
   };
   var Layout_x = [
     function(_component) {
-      return "\n        " + _component.title + " | Viewi\n    ";
+      return "\n        " + (_component.title ?? "") + " | Viewi\n    ";
     }
   ];
 
@@ -268,6 +268,28 @@
     _name = "SomeComponent";
   };
 
+  // app/components/TestButton.js
+  var TestButton = class extends BaseComponent {
+    _name = "TestButton";
+    id = null;
+    title = null;
+    class = null;
+  };
+  var TestButton_x = [
+    function(_component) {
+      return _component.id;
+    },
+    function(_component) {
+      return _component.title;
+    },
+    function(_component) {
+      return _component.class;
+    },
+    function(_component) {
+      return " " + (_component.title ?? "") + "\n";
+    }
+  ];
+
   // app/components/TestComponent.js
   var TestComponent = class extends BaseComponent {
     _name = "TestComponent";
@@ -306,10 +328,10 @@
   };
   var TestComponent_x = [
     function(_component) {
-      return "Tag test " + _component.name + " " + _component._name2_Test;
+      return "Tag test " + (_component.name ?? "") + " " + (_component._name2_Test ?? "");
     },
     function(_component) {
-      return "\n    $notAVar " + _component.getName() + " " + _component.getName(_component.name) + "\n    Nested\n    ";
+      return "\n    $notAVar " + (_component.getName() ?? "") + " " + (_component.getName(_component.name) ?? "") + "\n    Nested\n    ";
     },
     function(_component) {
       return _component.url;
@@ -333,36 +355,88 @@
       return _component.onEvent.bind(_component);
     },
     function(_component) {
+      return _component.name;
+    },
+    function(_component) {
+      return "Custom " + (_component.name ?? "");
+    },
+    function(_component) {
+      return function(event) {
+        _component.name = "Viewi Junior";
+      };
+    },
+    function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
+      return "Custom " + (_component.name ?? "") + " Slot";
+    },
+    function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
+      return _component.arrNested;
+    },
+    function(_component, key, subArr) {
+      return "\n    Custom " + (_component.name ?? "") + " Slot\n    ";
+    },
+    function(_component, key, subArr) {
+      return subArr;
+    },
+    function(_component, key, subArr, subKey, subItem) {
+      return key;
+    },
+    function(_component, key, subArr, subKey, subItem) {
+      return subKey;
+    },
+    function(_component, key, subArr, subKey, subItem) {
+      return subItem;
+    },
+    function(_component, key, subArr, subKey, subItem) {
+      return key + ". " + (subKey ?? "") + ". " + (subItem ?? "");
+    },
+    function(_component, key, subArr) {
+      return _component.nestedIf;
+    },
+    function(_component, key, subArr) {
+      return _component.name;
+    },
+    function(_component) {
+      return function(event) {
+        _component.nestedIf = !_component.nestedIf;
+      };
+    },
+    function(_component) {
       return function(event) {
         _component.dynamic = _component.dynamic === "div" ? "ItemComponent" : "div";
       };
     },
     function(_component) {
-      return "\n" + _component.dynamic + " " + _component.dynamic2 + "\n";
+      return "\n" + (_component.dynamic ?? "") + " " + (_component.dynamic2 ?? "") + "\n";
     },
     function(_component) {
       return _component.dynamic;
     },
     function(_component) {
-      return "Tag or component " + _component.dynamic + " " + _component.dynamic2;
+      return "Tag or component " + (_component.dynamic ?? "") + " " + (_component.dynamic2 ?? "");
     },
     function(_component) {
       return _component.dynamic2;
     },
     function(_component) {
-      return "Tag or component " + _component.dynamic + " " + _component.dynamic2;
+      return "Tag or component " + (_component.dynamic ?? "") + " " + (_component.dynamic2 ?? "");
     },
     function(_component) {
-      return "Custom " + _component.name + " Slot";
+      return "Custom " + (_component.name ?? "") + " Slot";
     },
     function(_component) {
-      return "Custom " + _component.name + " slot\n        ";
+      return "Custom " + (_component.name ?? "") + " slot\n        ";
     },
     function(_component) {
-      return "Custom header " + _component.name + " inside div";
+      return "Custom header " + (_component.name ?? "") + " inside div";
     },
     function(_component) {
-      return "Custom " + _component.name + " footer";
+      return "Custom " + (_component.name ?? "") + " footer";
     },
     function(_component) {
       return _component.addTodo.bind(_component);
@@ -452,7 +526,7 @@
       return subItem;
     },
     function(_component, key, subArr, subKey, subItem) {
-      return key + ". " + subKey + ". " + subItem;
+      return key + ". " + (subKey ?? "") + ". " + (subItem ?? "");
     },
     function(_component) {
       return _component.arrNested;
@@ -473,7 +547,7 @@
       return subItem;
     },
     function(_component, key, subArr, subKey, subItem) {
-      return key + ". " + subKey + ". " + subItem;
+      return key + ". " + (subKey ?? "") + ". " + (subItem ?? "");
     },
     function(_component) {
       return _component.toggleIf.bind(_component);
@@ -576,6 +650,8 @@
     StatefulTodoApp,
     ItemComponent,
     SomeComponent,
+    TestButton_x,
+    TestButton,
     TestComponent_x,
     TestComponent,
     TodoApp_x,
@@ -657,11 +733,8 @@
     if (scope) {
       callArguments = callArguments.concat(scope.arguments);
     }
-    const content = node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content ?? "";
+    const content = (node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content) ?? "";
     textNode.nodeValue !== content && (textNode.nodeValue = content);
-    if (textNode.parentNode && !document.body.contains(textNode)) {
-      console.log("Element is missing from the page", textNode);
-    }
   }
 
   // viewi/core/hydrateText.ts
@@ -701,7 +774,7 @@
       for (let av = 0; av < attribute.children.length; av++) {
         const attributeValue = attribute.children[av];
         let callArguments = [instance];
-        if (scope) {
+        if (scope.arguments) {
           callArguments = callArguments.concat(scope.arguments);
         }
         const childContent = attributeValue.expression ? instance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
@@ -1001,7 +1074,7 @@
           };
         }
       }
-      renderComponent(anchorNode, content, nextScope, false, true);
+      renderComponent(anchorNode, content, nextScope, { attributes: node.attributes, scope, instance }, false, true);
       return;
     } else {
       const element = anchorNode.parentElement.insertBefore(document.createElement(content), anchorNode);
@@ -1293,7 +1366,7 @@
                 };
               }
             }
-            renderComponent(target, content, nextScope, hydrate, insert);
+            renderComponent(target, content, nextScope, { attributes: node.attributes, scope, instance }, hydrate, insert);
           } else {
             if (node.content === "template") {
               nextInsert = insert;
@@ -1426,8 +1499,35 @@
     }
   }
 
+  // viewi/core/updateProp.ts
+  function updateProp(instance, attribute, props) {
+    const parentInstance = props.instance;
+    const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
+    if (attrName[0] === "(") {
+    } else {
+      let valueContent = null;
+      let valueSubs = [];
+      if (attribute.children) {
+        for (let av = 0; av < attribute.children.length; av++) {
+          const attributeValue = attribute.children[av];
+          let callArguments = [parentInstance];
+          if (props.scope.arguments) {
+            callArguments = callArguments.concat(props.scope.arguments);
+          }
+          const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
+          valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
+          if (attributeValue.subs) {
+            valueSubs = valueSubs.concat(attributeValue.subs);
+          }
+        }
+      }
+      instance[attrName] = valueContent;
+      instance._props[attrName] = valueContent;
+    }
+  }
+
   // viewi/core/renderComponent.ts
-  function renderComponent(target, name, scope, hydrate = false, insert = false) {
+  function renderComponent(target, name, scope, props, hydrate = false, insert = false) {
     if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
     }
@@ -1439,6 +1539,40 @@
     const inlineExpressions = name + "_x";
     if (inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
+    }
+    if (props && props.attributes) {
+      const parentInstance = props.instance;
+      for (let a in props.attributes) {
+        const attribute = props.attributes[a];
+        const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
+        if (attrName[0] === "(") {
+        } else {
+          let valueContent = null;
+          let valueSubs = [];
+          if (attribute.children) {
+            for (let av = 0; av < attribute.children.length; av++) {
+              const attributeValue = attribute.children[av];
+              let callArguments = [parentInstance];
+              if (props.scope.arguments) {
+                callArguments = callArguments.concat(props.scope.arguments);
+              }
+              const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
+              valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
+              if (attributeValue.subs) {
+                valueSubs = valueSubs.concat(attributeValue.subs);
+              }
+            }
+          }
+          instance[attrName] = valueContent;
+          instance._props[attrName] = valueContent;
+          if (valueSubs) {
+            for (let subI in valueSubs) {
+              const trackingPath = valueSubs[subI];
+              track(parentInstance, trackingPath, scope, [updateProp, [instance, attribute, props]]);
+            }
+          }
+        }
+      }
     }
     if (target && root) {
       if (!root.unpacked) {
@@ -1469,7 +1603,7 @@
       track: [],
       children: {},
       counter: 0
-    }, true, false);
+    }, void 0, true, false);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {

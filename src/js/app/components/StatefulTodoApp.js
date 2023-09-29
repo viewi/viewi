@@ -26,7 +26,7 @@ class StatefulTodoApp extends BaseComponent {
 export const StatefulTodoApp_x = [
     function (_component) { return function (event) { _component.handleSubmit(event); }; },
     function (_component) { return _component.text; },
-    function (_component) { return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    "; },
+    function (_component) { return "\n        Add #" + (count(_component.todo.items) + 1 ?? "") + "\n    "; },
     function (_component) { return _component.todo.items; }
 ];
 

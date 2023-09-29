@@ -6,7 +6,7 @@ class Layout extends BaseComponent {
 }
 
 export const Layout_x = [
-    function (_component) { return "\n        " + _component.title + " | Viewi\n    "; }
+    function (_component) { return "\n        " + (_component.title ?? "") + " | Viewi\n    "; }
 ];
 
 export { Layout }
