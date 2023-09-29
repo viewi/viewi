@@ -34,6 +34,7 @@ export function renderIf(
             const scopeId = ++scope.counter;
             const nextScope: ContextScope = {
                 id: scopeId,
+                instance: instance,
                 arguments: [...scope.arguments],
                 components: [],
                 map: { ...scope.map },
@@ -47,9 +48,10 @@ export function renderIf(
             render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
         } else {
             // remove and dispose
-            dispose(scopeContainer.scope, instance);
+            dispose(scopeContainer.scope);
             scopeContainer.scope = {
                 id: -1,
+                instance: instance,
                 arguments: [],
                 components: [],
                 map: {},

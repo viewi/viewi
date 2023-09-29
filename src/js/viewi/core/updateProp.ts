@@ -3,7 +3,7 @@ import { TemplateNode } from "./node";
 import { PropsContext } from "./propsContext";
 
 export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode, props: PropsContext) {
-    const parentInstance = props.instance;
+    const parentInstance = props.scope.instance;
     const attrName = attribute.expression
         ? parentInstance.$$t[attribute.code!](parentInstance) // TODO: arguments
         : (attribute.content ?? '');
@@ -28,8 +28,15 @@ export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode
                 }
             }
         }
-        instance[attrName] = valueContent;
-        instance._props[attrName] = valueContent;
-        // TODO: _props, model
+        if (attrName === '_props' && valueContent) {
+            for (let propName in valueContent) {
+                instance[propName] = valueContent[propName];
+                instance._props[propName] = valueContent[propName];
+            }
+        } else {
+            instance[attrName] = valueContent;
+            instance._props[attrName] = valueContent;
+        }
+        // TODO: model
     }
 }

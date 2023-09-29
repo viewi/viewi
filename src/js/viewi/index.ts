@@ -13,15 +13,7 @@ console.log('Viewi entry');
 const counterTarget = document.getElementById('counter');
 
 export function renderApp(name: string) {
-    renderComponent(counterTarget!, name, {
-        id: 0,
-        arguments: [],
-        components: [],
-        map: {},
-        track: [],
-        children: {},
-        counter: 0
-    }, undefined, true, false);
+    renderComponent(counterTarget!, name, undefined, {}, true, false);
     // console.log(anchors);
     // return;
     for (let a in anchors) {

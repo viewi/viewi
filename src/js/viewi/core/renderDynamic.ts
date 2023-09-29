@@ -17,7 +17,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         || (node.expression && isComponent(content));
     const anchorNode = scopeContainer.anchorNode;
     const scope = scopeContainer.scope.parent!;
-    dispose(scopeContainer.scope, instance);
+    dispose(scopeContainer.scope);
     while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
         anchorNode.previousSibling!.remove();
     }
@@ -28,6 +28,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         components: [],
         map: { ...scope.map },
         track: [],
+        instance: instance,
         parent: scope,
         children: {},
         counter: 0
@@ -36,7 +37,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
     scope.children[scopeId] = nextScope;
     // component
     if (componentTag) {
-        nextScope.slots = {};
+        const slots = {};
         if (node.slots) {
             const scopeId = ++nextScope!.counter;
             const slotScope = {
@@ -50,16 +51,14 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
                 counter: 0,
                 slots: scope.slots
             };
-            nextScope!.children[scopeId] = slotScope;
             for (let slotName in node.slots) {
-                nextScope.slots[slotName] = {
+                slots[slotName] = {
                     node: node.slots[slotName],
-                    scope: slotScope,
-                    instance: instance
+                    scope: slotScope
                 };
             }
         }
-        renderComponent(anchorNode, content, nextScope, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, false, true);
+        renderComponent(anchorNode, content, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, slots, false, true);
         return;
     } else {
         const element = anchorNode.parentElement!.insertBefore(document.createElement(content), anchorNode);

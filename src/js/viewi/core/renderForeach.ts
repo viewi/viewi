@@ -35,6 +35,7 @@ export function renderForeach(
         const scopeId = ++scope.counter;
         const nextScope: ContextScope = {
             id: scopeId,
+            instance: instance,
             arguments: [...scope.arguments],
             components: [],
             map: { ...scope.map },
@@ -89,7 +90,7 @@ export function renderForeach(
             }
             currentArrayScope[di].begin.remove();
             endAnchor.remove();
-            dispose(currentArrayScope[di].scope, instance);
+            dispose(currentArrayScope[di].scope);
             delete currentArrayScope[di];
         }
     }
@@ -99,7 +100,7 @@ export function renderForeach(
             endAnchor.previousSibling!.remove();
         }
         deleteMap[di].begin.remove();
-        dispose(deleteMap[di].scope, instance);
+        dispose(deleteMap[di].scope);
         endAnchor.remove();
     }
 }

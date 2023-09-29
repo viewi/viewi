@@ -17,6 +17,7 @@ import { isComponent, renderComponent } from "./renderComponent";
 import { unpack } from "./unpack";
 import { renderDynamic } from "./renderDynamic";
 import { PropsContext } from "./propsContext";
+import { Slots } from "./slots";
 
 export function render(
     target: Node,
@@ -70,6 +71,7 @@ export function render(
                                     arguments: scope.arguments,
                                     components: [],
                                     map: scope.map,
+                                    instance: instance,
                                     track: [],
                                     parent: scope,
                                     children: {},
@@ -110,6 +112,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        instance: instance,
                                         arguments: scope.arguments,
                                         components: [],
                                         map: scope.map,
@@ -155,6 +158,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        instance: instance,
                                         arguments: scope.arguments,
                                         components: [],
                                         map: scope.map,
@@ -195,6 +199,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        instance: instance,
                                         arguments: [...scope.arguments],
                                         components: [],
                                         map: { ...scope.map },
@@ -272,6 +277,7 @@ export function render(
                         components: [],
                         map: { ...scope.map },
                         track: [],
+                        instance: instance,
                         parent: scope,
                         children: {},
                         counter: 0
@@ -281,7 +287,7 @@ export function render(
                 }
                 // component
                 if (componentTag) {
-                    nextScope!.slots = {};
+                    const slots: Slots = {};
                     if (node.slots) {
                         const scopeId = ++nextScope!.counter;
                         const slotScope: ContextScope = {
@@ -291,20 +297,20 @@ export function render(
                             map: { ...scope.map },
                             track: [],
                             parent: nextScope,
+                            instance: instance,
                             children: {},
                             counter: 0,
                             slots: scope.slots
                         };
                         nextScope!.children[scopeId] = slotScope;
                         for (let slotName in node.slots) {
-                            nextScope!.slots[slotName] = {
+                            slots[slotName] = {
                                 node: node.slots[slotName],
-                                scope: slotScope,
-                                instance: instance
+                                scope: slotScope
                             };
                         }
                     }
-                    renderComponent(target, content, nextScope!, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, hydrate, insert);
+                    renderComponent(target, content, <PropsContext>{ attributes: node.attributes, scope: scope }, slots, hydrate, insert);
                 } else {
                     // template
                     if (node.content === 'template') {
@@ -327,7 +333,7 @@ export function render(
                                 unpack(slot.node);
                                 slot.node.unpacked = true;
                             }
-                            render(element, slot.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
+                            render(element, slot.scope.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
                         } else { // default slot content
                             if (node.children) {
                                 render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
