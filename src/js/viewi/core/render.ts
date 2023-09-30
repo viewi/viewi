@@ -18,6 +18,7 @@ import { unpack } from "./unpack";
 import { renderDynamic } from "./renderDynamic";
 import { PropsContext } from "./propsContext";
 import { Slots } from "./slots";
+import { renderRaw } from "./renderRaw";
 
 export function render(
     target: Node,
@@ -267,7 +268,7 @@ export function render(
                 let nextScope: ContextScope | undefined;
                 if (isDynamic) {
                     anchor = hydrate ? getAnchor(target) : undefined;
-                    anchorBegin = createAnchorNode(target, insert, anchor); // begin dynamic                    
+                    anchorBegin = createAnchorNode(target, insert, anchor); // begin dynamic
                 }
                 if (isDynamic || componentTag) {
                     const scopeId = ++scope.counter;
@@ -365,6 +366,63 @@ export function render(
             }
             case <NodeType>'text':
                 {
+                    if (node.raw) {
+                        const parentTagNode = insert ? target.parentElement! : target;
+                        const vdom = document.createElement(parentTagNode.nodeName);
+                        let callArguments = [instance];
+                        if (scope.arguments) {
+                            callArguments = callArguments.concat(scope.arguments);
+                        }
+                        const content = (node.expression
+                            ? instance.$$t[node.code as number].apply(null, callArguments)
+                            : node.content) ?? '';
+                        vdom.innerHTML = content;
+                        const anchor: Anchor | undefined = hydrate ? getAnchor(target) : undefined;
+                        const anchorBegin = createAnchorNode(target, insert, anchor); // begin raw
+                        if (hydrate) {
+                            if (vdom.childNodes.length > 0) {
+                                const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+                                for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
+                                    const rawNode = rawNodes[rawNodeI];
+                                    const rawNodeType = rawNode.nodeType;
+                                    if (rawNodeType === 3) {
+                                        // text
+                                    } else {
+                                        // other
+                                        anchor!.current++;
+                                        const currentTargetNode = target.childNodes[anchor!.current];
+                                        if (
+                                            currentTargetNode.nodeType !== rawNodeType
+                                            || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
+                                        ) {
+                                            // mismatch
+                                            console.log('Missmatch');
+                                            // TODO: handle mismatch
+                                        }
+                                        // matched, continue
+                                    }
+                                }
+                            }
+                        } else {
+                            if (vdom.childNodes.length > 0) {
+                                const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+                                for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
+                                    const rawNode = rawNodes[rawNodeI];
+                                    insert
+                                        ? target.parentElement!.insertBefore(rawNode, target)
+                                        : target.appendChild(rawNode);
+                                }
+                            }
+                        }
+                        const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin!._anchor); // end raw
+                        if (node.subs) {
+                            for (let subI in node.subs) {
+                                const trackingPath = node.subs[subI];
+                                track(instance, trackingPath, scope, [renderRaw, [instance, node, scope, anchorNode]]);
+                            }
+                        }
+                        break;
+                    }
                     let textNode: Text;
                     if (hydrate) {
                         textNode = hydrateText(target, instance, node, scope);

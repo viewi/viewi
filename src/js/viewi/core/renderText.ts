@@ -4,7 +4,7 @@ import { ContextScope } from "./contextScope";
 
 export function renderText(instance: BaseComponent<any>, node: TemplateNode, textNode: Text, scope: ContextScope) {
     let callArguments = [instance];
-    if (scope) {
+    if (scope.arguments) {
         callArguments = callArguments.concat(scope.arguments);
     }
     const content = (node.expression
