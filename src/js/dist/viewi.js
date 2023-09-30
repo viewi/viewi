@@ -370,7 +370,7 @@
       return { "id": "myid", "title": "Custom " + _component.name, "class": "mui-btn--accent" };
     },
     function(_component) {
-      return "Custom " + (_component.name ?? "") + "\n";
+      return "\n    Custom " + (_component.name ?? "") + "\n";
     },
     function(_component) {
       return function(event) {
@@ -463,6 +463,18 @@
     },
     function(_component) {
       return _component.name;
+    },
+    function(_component) {
+      return _component.ifValue;
+    },
+    function(_component) {
+      return _component.arrNested;
+    },
+    function(_component, key, subArr) {
+      return subArr;
+    },
+    function(_component, key, subArr, subKey, subItem) {
+      return key + ". " + (subKey ?? "") + ". " + (subItem ?? "");
     },
     function(_component) {
       return _component.arr;
@@ -752,6 +764,9 @@
     }
     const content = (node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content) ?? "";
     textNode.nodeValue !== content && (textNode.nodeValue = content);
+    if (textNode.parentNode && !document.body.contains(textNode)) {
+      console.log("Element is missing from the page", textNode);
+    }
   }
 
   // viewi/core/hydrateText.ts
@@ -1584,6 +1599,7 @@
       parent: props ? props.scope : void 0,
       slots
     };
+    props && (props.scope.children[scopeId] = scope);
     if (props && props.attributes) {
       const parentInstance = props.scope.instance;
       for (let a in props.attributes) {
@@ -1619,7 +1635,7 @@
           if (valueSubs) {
             for (let subI in valueSubs) {
               const trackingPath = valueSubs[subI];
-              track(parentInstance, trackingPath, scope, [updateProp, [instance, attribute, props]]);
+              track(parentInstance, trackingPath, props.scope, [updateProp, [instance, attribute, props]]);
             }
           }
         }
