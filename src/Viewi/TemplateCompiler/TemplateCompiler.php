@@ -536,10 +536,17 @@ class TemplateCompiler
                     $lastIndex = $childrenCount - 1;
                     foreach ($children as $order => &$childItem) {
                         $notText = true;
-                        if ($childItem->Type->Name === TagItemType::TextContent) {
-                            $textCollection[] = &$childItem;
-                            $textsCout++;
-                            $notText = false;
+                        $raw = false;
+                        if (
+                            $childItem->Type->Name === TagItemType::TextContent
+                        ) {
+                            if ($childItem->ItsExpression && $childItem->Content[0] === '{') {
+                                $raw = true;
+                            } else {
+                                $textCollection[] = &$childItem;
+                                $textsCout++;
+                                $notText = false;
+                            }
                         }
                         $lastChild = $lastIndex === $order;
                         if ($notText || $lastChild) {
@@ -574,6 +581,9 @@ class TemplateCompiler
                             }
                             if ($childItem->Type->Name === TagItemType::Comment) {
                                 $this->plainItems[] = '<!--' . htmlentities($childItem->Content) . '-->';
+                            } elseif ($raw) {
+                                $this->appendExpression($childItem);
+                                // Helpers::debug([$childItem->Type->Name, $childItem->Content]);
                             } elseif ($notText) {
                                 $this->buildTag($childItem);
                             }
@@ -731,6 +741,11 @@ class TemplateCompiler
             return;
         }
         $phpCode = $tagItem->Content;
+        if ($phpCode[0] === '{' && $phpCode[strlen($phpCode) - 1] === '}') {
+            $phpCode = substr($phpCode, 1, strlen($phpCode) - 2);
+            $tagItem->RawHtml = true;
+            // Helpers::debug([$phpCode, $tagItem->Content]);
+        }
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
         $tagItem->JsExpression = $jsOutput->__toString();
         $transforms = $jsOutput->getTransforms();
@@ -788,7 +803,7 @@ class TemplateCompiler
     {
         $this->buildExpression($tagItem);
         $this->flushBuffer();
-        $this->code .= PHP_EOL . $this->i() . '$_content .= ' . "htmlentities({$tagItem->PhpExpression} ?? '')" . ';';
+        $this->code .= PHP_EOL . $this->i() . '$_content .= ' . ($tagItem->RawHtml ? $tagItem->PhpExpression : "htmlentities({$tagItem->PhpExpression} ?? '')") . ';';
     }
 
     private function i(): string
