@@ -18,6 +18,7 @@ class TestComponent extends BaseComponent {
     dynamic = "div";
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text<\/i><\/b>";
+    isDisabled = false;
 
     getName(name) {
         var sum = (1 + 5) * 10;
@@ -58,6 +59,9 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return _component.isDisabled; },
+    function (_component) { return !_component.isDisabled; },
+    function (_component) { return function (event) { _component.isDisabled = !_component.isDisabled; }; },
     function (_component) { return _component.raw; },
     function (_component) { return _component.raw; },
     function (_component) { return function (event) { _component.raw = _component.raw[0] === "<" ? "New RAW: <span><i>Another content<\/i><\/span>" : "<b><i>Raw html text<\/i><\/b>"; }; },

@@ -24,7 +24,7 @@
   }
 
   // viewi/core/componentsMeta.ts
-  var componentsMeta = { list: {} };
+  var componentsMeta = { list: {}, booleanAttributes: {} };
   var componentsMeta_default = componentsMeta;
 
   // app/components/CounterReducer.js
@@ -309,6 +309,7 @@
     dynamic = "div";
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text</i></b>";
+    isDisabled = false;
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -354,6 +355,17 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.isDisabled;
+    },
+    function(_component) {
+      return !_component.isDisabled;
+    },
+    function(_component) {
+      return function(event) {
+        _component.isDisabled = !_component.isDisabled;
+      };
     },
     function(_component) {
       return _component.raw;
@@ -822,10 +834,18 @@
         valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
       }
     }
-    if (valueContent !== null) {
-      valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+    if (attrName.toLowerCase() in componentsMeta_default.booleanAttributes) {
+      if (valueContent) {
+        attrName !== element.getAttribute(attrName) && element.setAttribute(attrName, attrName);
+      } else {
+        element.removeAttribute(attrName);
+      }
     } else {
-      element.removeAttribute(attrName);
+      if (valueContent !== null) {
+        valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+      } else {
+        element.removeAttribute(attrName);
+      }
     }
   }
 
@@ -1495,8 +1515,9 @@
             const anchorBegin = createAnchorNode(target, insert, anchor);
             if (hydrate) {
               if (vdom.childNodes.length > 0) {
-                for (let rawNodeI = 0; rawNodeI < vdom.childNodes.length; rawNodeI++) {
-                  const rawNode = vdom.childNodes[rawNodeI];
+                const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+                for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
+                  const rawNode = rawNodes[rawNodeI];
                   const rawNodeType = rawNode.nodeType;
                   if (rawNodeType === 3) {
                   } else {
@@ -1747,7 +1768,12 @@
     }
   }
   (async () => {
-    componentsMeta_default.list = await (await fetch("/assets/components.json")).json();
+    const data = await (await fetch("/assets/components.json")).json();
+    componentsMeta_default.list = data;
+    const booleanArray = data._meta["boolean"].split(",");
+    for (let i = 0; i < booleanArray.length; i++) {
+      componentsMeta_default.booleanAttributes[booleanArray[i]] = true;
+    }
     setTimeout(() => renderApp("TestComponent"), 500);
   })();
 })();
