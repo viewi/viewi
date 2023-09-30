@@ -36,6 +36,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         parent: props ? props.scope : undefined,
         slots: slots
     };
+    props && (props.scope.children[scopeId] = scope);
     // set props
     if (props && props.attributes) {
         const parentInstance = props.scope.instance;
@@ -79,7 +80,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                 if (valueSubs) {
                     for (let subI in valueSubs) {
                         const trackingPath = valueSubs[subI];
-                        track(parentInstance, trackingPath, scope, [updateProp, [instance, attribute, props]]);
+                        track(parentInstance, trackingPath, props.scope, [updateProp, [instance, attribute, props]]);
                     }
                 }
             }
