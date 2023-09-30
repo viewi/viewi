@@ -1,6 +1,7 @@
 import { BaseComponent } from "./BaseComponent";
 import { TemplateNode } from "./node";
 import { ContextScope } from "./contextScope";
+import componentsMeta from "./componentsMeta";
 
 export function renderAttributeValue(
     instance: BaseComponent<any>,
@@ -24,9 +25,17 @@ export function renderAttributeValue(
             valueContent = av === 0 ? childContent : valueContent + (childContent ?? '');
         }
     }
-    if (valueContent !== null) {
-        valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+    if (attrName.toLowerCase() in componentsMeta.booleanAttributes) {
+        if (valueContent) {
+            attrName !== element.getAttribute(attrName) && element.setAttribute(attrName, attrName);
+        } else {
+            element.removeAttribute(attrName);
+        }
     } else {
-        element.removeAttribute(attrName);
+        if (valueContent !== null) {
+            valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+        } else {
+            element.removeAttribute(attrName);
+        }
     }
 };

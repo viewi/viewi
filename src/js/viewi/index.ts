@@ -31,6 +31,13 @@ export function renderApp(name: string) {
 
 // testing Counter
 (async () => {
-    componentsMeta.list = await (await fetch('/assets/components.json')).json();
+    const data = await (await fetch('/assets/components.json')).json();
+    componentsMeta.list = data;
+    const booleanArray = (<{
+        _meta: { boolean: string }
+    }>data)._meta['boolean'].split(',');
+    for (let i = 0; i < booleanArray.length; i++) {
+        componentsMeta.booleanAttributes[booleanArray[i]] = true;
+    }
     setTimeout(() => renderApp('TestComponent'), 500);
 })();
