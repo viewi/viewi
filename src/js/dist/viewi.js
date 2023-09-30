@@ -308,6 +308,7 @@
     nestedIf = true;
     dynamic = "div";
     dynamic2 = "ItemComponent";
+    raw = "<b><i>Raw html text</i></b>";
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -353,6 +354,17 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.raw;
+    },
+    function(_component) {
+      return _component.raw;
+    },
+    function(_component) {
+      return function(event) {
+        _component.raw = _component.raw[0] === "<" ? "New RAW: <span><i>Another content</i></span>" : "<b><i>Raw html text</i></b>";
+      };
     },
     function(_component) {
       return _component.nestedIf;
@@ -759,14 +771,11 @@
   // viewi/core/renderText.ts
   function renderText(instance, node, textNode, scope) {
     let callArguments = [instance];
-    if (scope) {
+    if (scope.arguments) {
       callArguments = callArguments.concat(scope.arguments);
     }
     const content = (node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content) ?? "";
     textNode.nodeValue !== content && (textNode.nodeValue = content);
-    if (textNode.parentNode && !document.body.contains(textNode)) {
-      console.log("Element is missing from the page", textNode);
-    }
   }
 
   // viewi/core/hydrateText.ts
@@ -1148,6 +1157,26 @@
     }
   }
 
+  // viewi/core/renderRaw.ts
+  function renderRaw(instance, node, scope, anchorNode) {
+    while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
+      anchorNode.previousSibling.remove();
+    }
+    const parentTagNode = anchorNode.parentElement;
+    const vdom = document.createElement(parentTagNode.nodeName);
+    let callArguments = [instance];
+    if (scope.arguments) {
+      callArguments = callArguments.concat(scope.arguments);
+    }
+    const content = (node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content) ?? "";
+    vdom.innerHTML = content;
+    const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+    for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
+      const rawNode = rawNodes[rawNodeI];
+      parentTagNode.insertBefore(rawNode, anchorNode);
+    }
+  }
+
   // viewi/core/render.ts
   function render(target, instance, nodes, scope, directives, hydrate = true, insert = false) {
     let ifConditions = null;
@@ -1453,6 +1482,50 @@
           break;
         }
         case "text": {
+          if (node.raw) {
+            const parentTagNode = insert ? target.parentElement : target;
+            const vdom = document.createElement(parentTagNode.nodeName);
+            let callArguments = [instance];
+            if (scope.arguments) {
+              callArguments = callArguments.concat(scope.arguments);
+            }
+            const content = (node.expression ? instance.$$t[node.code].apply(null, callArguments) : node.content) ?? "";
+            vdom.innerHTML = content;
+            const anchor = hydrate ? getAnchor(target) : void 0;
+            const anchorBegin = createAnchorNode(target, insert, anchor);
+            if (hydrate) {
+              if (vdom.childNodes.length > 0) {
+                for (let rawNodeI = 0; rawNodeI < vdom.childNodes.length; rawNodeI++) {
+                  const rawNode = vdom.childNodes[rawNodeI];
+                  const rawNodeType = rawNode.nodeType;
+                  if (rawNodeType === 3) {
+                  } else {
+                    anchor.current++;
+                    const currentTargetNode = target.childNodes[anchor.current];
+                    if (currentTargetNode.nodeType !== rawNodeType || rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName) {
+                      console.log("Missmatch");
+                    }
+                  }
+                }
+              }
+            } else {
+              if (vdom.childNodes.length > 0) {
+                const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+                for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
+                  const rawNode = rawNodes[rawNodeI];
+                  insert ? target.parentElement.insertBefore(rawNode, target) : target.appendChild(rawNode);
+                }
+              }
+            }
+            const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
+            if (node.subs) {
+              for (let subI in node.subs) {
+                const trackingPath = node.subs[subI];
+                track(instance, trackingPath, scope, [renderRaw, [instance, node, scope, anchorNode]]);
+              }
+            }
+            break;
+          }
           let textNode;
           if (hydrate) {
             textNode = hydrateText(target, instance, node, scope);
