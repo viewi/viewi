@@ -376,6 +376,7 @@ class Builder
         // functions/index.js
         file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
         file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+        $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
         $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
         // Run NPM command

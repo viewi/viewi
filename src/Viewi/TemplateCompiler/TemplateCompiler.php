@@ -29,6 +29,12 @@ class TemplateCompiler
 
     /** @var array<string,string> */
     private array $voidTags;
+    /** @var array<string,string> */
+    private array $booleanAttributes;
+    private string $booleanAttributesString = 'async,autofocus,autoplay,checked,controls,' .
+        'default,defer,disabled,formnovalidate,hidden,ismap,itemscope,loop,' .
+        'multiple,muted,nomodule,novalidate,open,readonly,required,reversed,' .
+        'selected';
     private string $_CompileJsComponentName = '_component';
     private BuildItem $buildItem;
     private ?string $parentComponentName = null;
@@ -46,6 +52,12 @@ class TemplateCompiler
     public function __construct(private JsTranspiler $jsTranspiler)
     {
         $this->voidTags = array_flip(explode(',', $this->voidTagsString));
+        $this->booleanAttributes = array_flip(explode(',', $this->booleanAttributesString));
+    }
+
+    public function getBooleanAttributesString()
+    {
+        return $this->booleanAttributesString;
     }
 
     public function compile(
@@ -677,17 +689,26 @@ class TemplateCompiler
             $this->buildExpression($attributeValue);
             $this->flushBuffer();
             $this->code .= PHP_EOL . $this->i() . "\$tempVal = {$attributeValue->PhpExpression};";
-            $this->code .= PHP_EOL . $this->i() . 'if ($tempVal !== null) {';
-            $this->level++;
-            if ($attributeItem->ItsExpression) {
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= ' ' . {$attributeItem->PhpExpression}";
-                $this->code .= ' . \'="\' . htmlentities($tempVal ?? \'\') . \'"\';';
+            if (isset($this->booleanAttributes[strtolower($attributeItem->Content)])) {
+                // boolean attribute
+                $this->code .= PHP_EOL . $this->i() . 'if ($tempVal) {';
+                $this->level++;
+                $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(' ' . $attributeItem->Content . '="' . $attributeItem->Content . '"', true) . ';';
+                $this->level--;
+                $this->code .= PHP_EOL . $this->i() . "}";
             } else {
-                $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(' ' . $attributeItem->Content . '="', true);
-                $this->code .= ' . htmlentities($tempVal ?? \'\') . \'"\';';
+                $this->code .= PHP_EOL . $this->i() . 'if ($tempVal !== null) {';
+                $this->level++;
+                if ($attributeItem->ItsExpression) {
+                    $this->code .= PHP_EOL . $this->i() . "\$_content .= ' ' . {$attributeItem->PhpExpression}";
+                    $this->code .= ' . \'="\' . htmlentities($tempVal ?? \'\') . \'"\';';
+                } else {
+                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export(' ' . $attributeItem->Content . '="', true);
+                    $this->code .= ' . htmlentities($tempVal ?? \'\') . \'"\';';
+                }
+                $this->level--;
+                $this->code .= PHP_EOL . $this->i() . "}";
             }
-            $this->level--;
-            $this->code .= PHP_EOL . $this->i() . "}";
         } elseif ($childrenCount > 0) {
             if ($attributeItem->ItsExpression) {
                 $this->code .= PHP_EOL . $this->i() . '$_content .= ' . "' ' . htmlentities({$attributeItem->PhpExpression} ?? '')" . ';';
