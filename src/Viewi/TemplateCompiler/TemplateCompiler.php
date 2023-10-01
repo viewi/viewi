@@ -506,9 +506,7 @@ class TemplateCompiler
                     $this->plainItems[] = '<' . $tagItem->Content . ($hasAttributes ? '' : '>');
                 }
                 if ($hasAttributes) {
-                    foreach ($attributes as &$attributeItem) {
-                        $this->buildAttribute($attributeItem);
-                    }
+                    $this->buildAttributes($attributes);
                     $this->plainItems[] = '>';
                 }
             }
@@ -635,6 +633,51 @@ class TemplateCompiler
             }
         }
         return null;
+    }
+
+    /**
+     * 
+     * @param TagItem[] $attributes 
+     * @return void 
+     * @throws Exception 
+     */
+    private function buildAttributes(array &$attributes)
+    {
+        /**
+         * @var TagItem[]
+         */
+        $attributeMap = [];
+        foreach ($attributes as &$attributeItem) {
+            $attributeName = $attributeItem->Content;
+            $valueToReplace = false;
+            if (!$attributeItem->ItsExpression && strpos($attributeName, '.') !== false) {
+                $parts = explode('.', $attributeName, 2);
+                $attributeName = $parts[0];
+                $valueToReplace = $parts[1];
+                $attributeItem->Content = $attributeName;
+            }
+            $mutated = isset($attributeMap[$attributeName]);
+            $attributeItem->Skip = $mutated;
+            $attributeChildren = $attributeItem->getChildren();
+            foreach ($attributeChildren as $aci => &$attributeChild) {
+                $space = $mutated && $aci === 0 ? ' ' : '';
+                if ($valueToReplace) {
+                    if ($attributeChild->ItsExpression) {
+                        $attributeChild->Content = "{$attributeChild->Content} ? '{$space}$valueToReplace' : ''";
+                    } else {
+                        $attributeChild->Content = $space . $attributeChild->Content;
+                    }
+                }
+                if ($mutated) {
+                    $attributeMap[$attributeName]->addChild($attributeChild);
+                } else {
+                    $attributeMap[$attributeName] = $attributeItem;
+                }
+            }
+        }
+        foreach ($attributeMap as &$attributeItem) {
+            $this->buildAttribute($attributeItem);
+        }
     }
 
     private function buildAttribute(TagItem &$attributeItem)

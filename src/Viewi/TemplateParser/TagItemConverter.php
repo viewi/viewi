@@ -51,6 +51,8 @@ class TagItemConverter
             if (
                 ($child->Type->Name === TagItemType::TextContent
                     && $child->Skip)
+                || ($child->Type->Name === TagItemType::Attribute
+                    && $child->Skip)
                 || ($child->Type->Name === TagItemType::Tag
                     && $child->Content === 'slotContent'
                 )
