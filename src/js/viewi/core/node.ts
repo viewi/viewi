@@ -7,7 +7,7 @@ export type TemplateNode = {
     c?: string,
     content?: string,
     code?: number,
-    subs?: any[],
+    subs?: string[],
     e?: boolean,
     expression?: boolean,
     raw?: boolean,

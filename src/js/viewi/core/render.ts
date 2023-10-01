@@ -19,6 +19,8 @@ import { renderDynamic } from "./renderDynamic";
 import { PropsContext } from "./propsContext";
 import { Slots } from "./slots";
 import { renderRaw } from "./renderRaw";
+import { getModelHandler } from "./getModelHandler";
+import { updateModelValue } from "./updateModelValue";
 
 export function render(
     target: Node,
@@ -469,11 +471,12 @@ export function render(
                     ? (<HTMLElement>element).getAttributeNames()
                     : null;
                 const hasMap: { [key: string]: boolean } | null = hydrate ? {} : null;
-                for (let a in node.attributes) {
-                    const attribute = node.attributes[a];
+                for (let a = 0; a < node.attributes.length; a++) {
+                    const attribute: TemplateNode = node.attributes[a];
                     const attrName = attribute.expression
                         ? instance.$$t[attribute.code!](instance) // TODO: arguments
                         : (attribute.content ?? '');
+                    const isModel = attrName === 'model';
                     if (attrName[0] === '(') {
                         // event
                         const eventName = attrName.substring(1, attrName.length - 1);
@@ -487,6 +490,25 @@ export function render(
                             element.addEventListener(eventName, eventHandler);
                             // console.log('Event', attribute, eventName, eventHandler);
                         }
+                    } else if (isModel) {
+                        const isCheckbox = (<HTMLElement>element).getAttribute('type') === 'checkbox';
+                        const isRadio = (<HTMLElement>element).getAttribute('type') === 'radio';
+                        const isSelect = (<HTMLElement>element).tagName === 'SELECT';
+                        const isMultiple = isSelect && (<HTMLSelectElement>element).multiple;
+                        const isBoolean = isCheckbox
+                            || isRadio;
+                        const valueNode = attribute.children![0];
+                        const getterSetter: [(_component: BaseComponent<any>) => any, (_component: BaseComponent<any>, value: any) => void] = instance.$$t[valueNode.code!](instance);
+                        const eventName = isBoolean || isSelect ? 'change' : 'input';
+                        // set initial value
+                        updateModelValue(<HTMLInputElement>element, instance, getterSetter[0], getterSetter[1]);
+                        // watch for property changes
+                        for (let subI in valueNode.subs!) {
+                            const trackingPath = valueNode.subs[subI];
+                            track(instance, trackingPath, scope, [updateModelValue, [element, instance, getterSetter[0], getterSetter[1]]]);
+                        }
+                        // handle input change
+                        (<HTMLElement>element).addEventListener(eventName, getModelHandler(instance, getterSetter[0], getterSetter[1]));
                     } else {
                         hydrate && (hasMap![attrName] = true);
                         renderAttributeValue(instance, attribute, <HTMLElement>element, attrName, scope);
