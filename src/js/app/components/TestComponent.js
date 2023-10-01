@@ -18,7 +18,7 @@ class TestComponent extends BaseComponent {
     dynamic = "div";
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text<\/i><\/b>";
-    isDisabled = false;
+    isDisabled = true;
 
     getName(name) {
         var sum = (1 + 5) * 10;
@@ -61,6 +61,10 @@ export const TestComponent_x = [
     function (_component) { return _component.onEvent.bind(_component); },
     function (_component) { return _component.isDisabled; },
     function (_component) { return !_component.isDisabled; },
+    function (_component) { return _component.isDisabled ? " mui-btn" : ""; },
+    function (_component) { return _component.isDisabled ? " mui-btn--primary" : ""; },
+    function (_component) { return !_component.isDisabled ? " mui-btn--accent" : ""; },
+    function (_component) { return function (event) { _component.isDisabled = !_component.isDisabled; }; },
     function (_component) { return function (event) { _component.isDisabled = !_component.isDisabled; }; },
     function (_component) { return _component.raw; },
     function (_component) { return _component.raw; },

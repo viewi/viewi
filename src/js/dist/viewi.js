@@ -309,7 +309,7 @@
     dynamic = "div";
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text</i></b>";
-    isDisabled = false;
+    isDisabled = true;
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -361,6 +361,20 @@
     },
     function(_component) {
       return !_component.isDisabled;
+    },
+    function(_component) {
+      return _component.isDisabled ? " mui-btn" : "";
+    },
+    function(_component) {
+      return _component.isDisabled ? " mui-btn--primary" : "";
+    },
+    function(_component) {
+      return !_component.isDisabled ? " mui-btn--accent" : "";
+    },
+    function(_component) {
+      return function(event) {
+        _component.isDisabled = !_component.isDisabled;
+      };
     },
     function(_component) {
       return function(event) {
