@@ -691,7 +691,8 @@ class TemplateCompiler
             $this->level++;
         }
 
-        if (!$attributeItem->Content || $attributeItem->Content[0] === '(' || $attributeItem->ItsExpression) {
+        $itsModel = $attributeItem->Content === 'model';
+        if (!$attributeItem->Content || $attributeItem->Content[0] === '(' || $attributeItem->ItsExpression || $itsModel) {
             $expression = '';
             foreach ($children as &$subValue) {
                 $expression .= $subValue->Content;
@@ -703,6 +704,9 @@ class TemplateCompiler
             } else {
                 $attributeTagValue = &$children[0];
             }
+            if ($itsModel) {
+                $expression = "[function (\${$this->_CompileJsComponentName}) { return $expression; }, function (\${$this->_CompileJsComponentName}, \$value) { $expression = \$value; }]";
+            }
             $attributeTagValue->ItsExpression = true;
             $attributeTagValue->Content = $expression;
             $this->localScope['event'] = true;
@@ -713,10 +717,12 @@ class TemplateCompiler
             $jsEventCodeTupple = array_pop($this->inlineExpressions);
             $jsEventCode = $jsEventCodeTupple[0];
             $funcArguments = implode(', ', $jsEventCodeTupple[1]);
-            if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
-                $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
-            } else {
-                $jsEventCode = "$jsEventCode.bind(_component)";
+            if (!$itsModel) {
+                if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
+                    $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
+                } else {
+                    $jsEventCode = "$jsEventCode.bind(_component)";
+                }
             }
             $this->inlineExpressions[] = [$jsEventCode, $this->localScopeArguments];
             if (!$attributeItem->ItsExpression) {
