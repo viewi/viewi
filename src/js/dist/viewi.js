@@ -248,7 +248,11 @@
       };
     },
     function(_component) {
-      return _component.text;
+      return [function(_component2) {
+        return _component2.text;
+      }, function(_component2, value) {
+        _component2.text = value;
+      }];
     },
     function(_component) {
       return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    ";
@@ -294,6 +298,7 @@
   var TestComponent = class extends BaseComponent {
     _name = "TestComponent";
     name = "MyName";
+    name2 = "";
     _name2_Test = "MyName_2";
     empty = "";
     null = null;
@@ -330,7 +335,7 @@
   };
   var TestComponent_x = [
     function(_component) {
-      return "Tag test " + (_component.name ?? "") + " " + (_component._name2_Test ?? "");
+      return "Tag test " + (_component.name ?? "") + " " + (_component.name2 ?? "") + " " + (_component._name2_Test ?? "");
     },
     function(_component) {
       return "\n    $notAVar " + (_component.getName() ?? "") + " " + (_component.getName(_component.name) ?? "") + "\n    Nested\n    ";
@@ -355,6 +360,33 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.name;
+      }, function(_component2, value) {
+        _component2.name = value;
+      }];
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.name;
+      }, function(_component2, value) {
+        _component2.name = value;
+      }];
+    },
+    function(_component) {
+      return "\n    " + (_component.name ?? "") + "\n";
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.name2;
+      }, function(_component2, value) {
+        _component2.name2 = value;
+      }];
+    },
+    function(_component) {
+      return "\n    " + (_component.name2 ?? "") + "\n";
     },
     function(_component) {
       return _component.isDisabled;
@@ -673,7 +705,11 @@
       };
     },
     function(_component) {
-      return _component.text;
+      return [function(_component2) {
+        return _component2.text;
+      }, function(_component2, value) {
+        _component2.text = value;
+      }];
     },
     function(_component) {
       return "\n        Add #" + (count(_component.items) + 1) + "\n    ";
@@ -1211,6 +1247,18 @@
     }
   }
 
+  // viewi/core/getModelHandler.ts
+  function getModelHandler(instance, getter, setter) {
+    return function(event) {
+      setter(instance, event.target.value);
+    };
+  }
+
+  // viewi/core/updateModelValue.ts
+  function updateModelValue(target, instance, getter, setter) {
+    target.value = getter(instance);
+  }
+
   // viewi/core/render.ts
   function render(target, instance, nodes, scope, directives, hydrate = true, insert = false) {
     let ifConditions = null;
@@ -1597,15 +1645,31 @@
         if (node.attributes) {
           const toRemove = hydrate ? element.getAttributeNames() : null;
           const hasMap = hydrate ? {} : null;
-          for (let a in node.attributes) {
+          for (let a = 0; a < node.attributes.length; a++) {
             const attribute = node.attributes[a];
             const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
+            const isModel = attrName === "model";
             if (attrName[0] === "(") {
               const eventName = attrName.substring(1, attrName.length - 1);
               if (attribute.children) {
                 const eventHandler = instance.$$t[attribute.dynamic ? attribute.dynamic.code : attribute.children[0].code](instance);
                 element.addEventListener(eventName, eventHandler);
               }
+            } else if (isModel) {
+              const isCheckbox = element.getAttribute("type") === "checkbox";
+              const isRadio = element.getAttribute("type") === "radio";
+              const isSelect = element.tagName === "SELECT";
+              const isMultiple = isSelect && element.multiple;
+              const isBoolean = isCheckbox || isRadio;
+              const valueNode = attribute.children[0];
+              const getterSetter = instance.$$t[valueNode.code](instance);
+              const eventName = isBoolean || isSelect ? "change" : "input";
+              updateModelValue(element, instance, getterSetter[0], getterSetter[1]);
+              for (let subI in valueNode.subs) {
+                const trackingPath = valueNode.subs[subI];
+                track(instance, trackingPath, scope, [updateModelValue, [element, instance, getterSetter[0], getterSetter[1]]]);
+              }
+              element.addEventListener(eventName, getModelHandler(instance, getterSetter[0], getterSetter[1]));
             } else {
               hydrate && (hasMap[attrName] = true);
               renderAttributeValue(instance, attribute, element, attrName, scope);

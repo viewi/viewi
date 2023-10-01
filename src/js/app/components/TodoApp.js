@@ -19,7 +19,11 @@ class TodoApp extends BaseComponent {
 
 export const TodoApp_x = [
     function (_component) { return function (event) { _component.handleSubmit(event); }; },
-    function (_component) { return _component.text; },
+    function (_component) { return [function(_component) {
+    return _component.text;
+}, function(_component, value) {
+    _component.text = value;
+}]; },
     function (_component) { return "\n        Add #" + (count(_component.items) + 1 ?? "") + "\n    "; },
     function (_component) { return _component.items; }
 ];

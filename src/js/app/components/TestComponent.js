@@ -3,6 +3,7 @@ import { BaseComponent } from "../../viewi/core/BaseComponent";
 class TestComponent extends BaseComponent {
     _name = 'TestComponent';
     name = "MyName";
+    name2 = "";
     _name2_Test = "MyName_2";
     empty = "";
     null = null;
@@ -50,7 +51,7 @@ class TestComponent extends BaseComponent {
 }
 
 export const TestComponent_x = [
-    function (_component) { return "Tag test " + (_component.name ?? "") + " " + (_component._name2_Test ?? ""); },
+    function (_component) { return "Tag test " + (_component.name ?? "") + " " + (_component.name2 ?? "") + " " + (_component._name2_Test ?? ""); },
     function (_component) { return "\n    $notAVar " + (_component.getName() ?? "") + " " + (_component.getName(_component.name) ?? "") + "\n    Nested\n    "; },
     function (_component) { return _component.url; },
     function (_component) { return _component.empty; },
@@ -59,6 +60,23 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return [function(_component) {
+    return _component.name;
+}, function(_component, value) {
+    _component.name = value;
+}]; },
+    function (_component) { return [function(_component) {
+    return _component.name;
+}, function(_component, value) {
+    _component.name = value;
+}]; },
+    function (_component) { return "\n    " + (_component.name ?? "") + "\n"; },
+    function (_component) { return [function(_component) {
+    return _component.name2;
+}, function(_component, value) {
+    _component.name2 = value;
+}]; },
+    function (_component) { return "\n    " + (_component.name2 ?? "") + "\n"; },
     function (_component) { return _component.isDisabled; },
     function (_component) { return !_component.isDisabled; },
     function (_component) { return _component.isDisabled ? " mui-btn" : ""; },
