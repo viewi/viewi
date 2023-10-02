@@ -1,6 +1,6 @@
 import { BaseComponent } from "./BaseComponent";
 import { getAnchor } from "./anchor";
-import { TemplateNode } from "./node";
+import { TemplateNode } from "./templateNode";
 import { renderText } from "./renderText";
 import { ContextScope } from "./contextScope";
 

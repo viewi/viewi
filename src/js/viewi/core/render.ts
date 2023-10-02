@@ -5,7 +5,7 @@ import { ConditionalDirective, DirectiveMap, DirectiveType } from "./directive";
 import { hydrateComment } from "./hydrateComment";
 import { hydrateTag } from "./hydrateTag";
 import { hydrateText } from "./hydrateText";
-import { NodeType, TemplateNode } from "./node";
+import { NodeType, TemplateNode } from "./templateNode";
 import { renderAttributeValue } from "./renderAttributeValue";
 import { renderForeach } from "./renderForeach";
 import { renderIf } from "./renderIf";
@@ -21,6 +21,8 @@ import { Slots } from "./slots";
 import { renderRaw } from "./renderRaw";
 import { getModelHandler } from "./getModelHandler";
 import { updateModelValue } from "./updateModelValue";
+import { InputType } from "./inputType";
+import { ModelHandler } from "./modelHandler";
 
 export function render(
     target: Node,
@@ -491,24 +493,35 @@ export function render(
                             // console.log('Event', attribute, eventName, eventHandler);
                         }
                     } else if (isModel) {
-                        const isCheckbox = (<HTMLElement>element).getAttribute('type') === 'checkbox';
-                        const isRadio = (<HTMLElement>element).getAttribute('type') === 'radio';
-                        const isSelect = (<HTMLElement>element).tagName === 'SELECT';
-                        const isMultiple = isSelect && (<HTMLSelectElement>element).multiple;
-                        const isBoolean = isCheckbox
-                            || isRadio;
+                        let inputType: InputType = "text";
+                        (<HTMLElement>element).getAttribute('type') === 'checkbox' && (inputType = "checkbox");
+                        (<HTMLElement>element).getAttribute('type') === 'radio' && (inputType = "radio");
+                        if ((<HTMLElement>element).tagName === 'SELECT') {
+                            inputType = "select";
+                            const isMultiple = (<HTMLSelectElement>element).multiple;
+                        }
+                        const isOnChange = inputType === "checkbox"
+                            || inputType === "radio" || inputType === "select";
                         const valueNode = attribute.children![0];
                         const getterSetter: [(_component: BaseComponent<any>) => any, (_component: BaseComponent<any>, value: any) => void] = instance.$$t[valueNode.code!](instance);
-                        const eventName = isBoolean || isSelect ? 'change' : 'input';
+                        const eventName = isOnChange ? 'change' : 'input';
+                        const inputOptions: ModelHandler = {
+                            getter: getterSetter[0],
+                            setter: getterSetter[1],
+                            inputType: inputType
+                        };
                         // set initial value
-                        updateModelValue(<HTMLInputElement>element, instance, getterSetter[0], getterSetter[1]);
+                        updateModelValue(<HTMLInputElement>element, instance, inputOptions);
                         // watch for property changes
                         for (let subI in valueNode.subs!) {
                             const trackingPath = valueNode.subs[subI];
-                            track(instance, trackingPath, scope, [updateModelValue, [element, instance, getterSetter[0], getterSetter[1]]]);
+                            track(instance, trackingPath, scope, [updateModelValue, [element, instance, inputOptions]]);
                         }
                         // handle input change
-                        (<HTMLElement>element).addEventListener(eventName, getModelHandler(instance, getterSetter[0], getterSetter[1]));
+                        (<HTMLElement>element).addEventListener(eventName, getModelHandler(
+                            instance,
+                            inputOptions
+                        ));
                     } else {
                         hydrate && (hasMap![attrName] = true);
                         renderAttributeValue(instance, attribute, <HTMLElement>element, attrName, scope);

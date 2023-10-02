@@ -3,7 +3,7 @@ import { TextAnchor } from "./anchor";
 import { ContextScope } from "./contextScope";
 import { ConditionalDirective, DirectiveMap } from "./directive";
 import { dispose } from "./dispose";
-import { TemplateNode } from "./node";
+import { TemplateNode } from "./templateNode";
 import { render } from "./render";
 
 export function renderIf(

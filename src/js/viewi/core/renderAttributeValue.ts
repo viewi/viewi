@@ -1,5 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
-import { TemplateNode } from "./node";
+import { TemplateNode } from "./templateNode";
 import { ContextScope } from "./contextScope";
 import componentsMeta from "./componentsMeta";
 

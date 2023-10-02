@@ -2,7 +2,7 @@ import { BaseComponent } from "./BaseComponent";
 import { TextAnchor, createAnchorNode, nextAnchorNodeId } from "./anchor";
 import { ArrayScope, ForeachAnchorEnum } from "./arrayScope";
 import { DirectiveMap } from "./directive";
-import { TemplateNode } from "./node";
+import { TemplateNode } from "./templateNode";
 import { render } from "./render";
 import { ContextScope } from "./contextScope";
 import { dispose } from "./dispose";

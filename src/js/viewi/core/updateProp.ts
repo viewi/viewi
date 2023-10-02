@@ -1,5 +1,5 @@
 import { BaseComponent } from "./BaseComponent";
-import { TemplateNode } from "./node";
+import { TemplateNode } from "./templateNode";
 import { PropsContext } from "./propsContext";
 
 export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode, props: PropsContext) {
