@@ -10,7 +10,7 @@ export function renderAttributeValue(
     attrName: string,
     scope: ContextScope
 ) {
-    let valueContent: string | null = null;
+    let valueContent: string | boolean | null = null;
     if (attribute.children) {
         valueContent = '';
         for (let av = 0; av < attribute.children.length; av++) {
@@ -26,14 +26,14 @@ export function renderAttributeValue(
         }
     }
     if (attrName.toLowerCase() in componentsMeta.booleanAttributes) {
-        if (valueContent) {
+        if (valueContent === true || valueContent === null) {
             attrName !== element.getAttribute(attrName) && element.setAttribute(attrName, attrName);
         } else {
             element.removeAttribute(attrName);
         }
     } else {
         if (valueContent !== null) {
-            valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, valueContent);
+            valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, <string>valueContent);
         } else {
             element.removeAttribute(attrName);
         }
