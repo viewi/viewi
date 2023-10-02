@@ -1,4 +1,5 @@
 import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { json_encode } from "../functions/json_encode";
 
 class TestComponent extends BaseComponent {
     _name = 'TestComponent';
@@ -20,6 +21,15 @@ class TestComponent extends BaseComponent {
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text<\/i><\/b>";
     isDisabled = true;
+    message = "Some message";
+    checked = false;
+    checked2 = true;
+    checkedNames = [];
+    picked = "One";
+
+    getNames() {
+        return json_encode(this.checkedNames);
+    }
 
     getName(name) {
         var sum = (1 + 5) * 10;
@@ -77,6 +87,51 @@ export const TestComponent_x = [
     _component.name2 = value;
 }]; },
     function (_component) { return "\n    " + (_component.name2 ?? "") + "\n"; },
+    function (_component) { return [function(_component) {
+    return _component.message;
+}, function(_component, value) {
+    _component.message = value;
+}]; },
+    function (_component) { return _component.message; },
+    function (_component) { return [function(_component) {
+    return _component.checked;
+}, function(_component, value) {
+    _component.checked = value;
+}]; },
+    function (_component) { return _component.checked; },
+    function (_component) { return [function(_component) {
+    return _component.checked2;
+}, function(_component, value) {
+    _component.checked2 = value;
+}]; },
+    function (_component) { return _component.checked2; },
+    function (_component) { return [function(_component) {
+    return _component.checkedNames;
+}, function(_component, value) {
+    _component.checkedNames = value;
+}]; },
+    function (_component) { return [function(_component) {
+    return _component.checkedNames;
+}, function(_component, value) {
+    _component.checkedNames = value;
+}]; },
+    function (_component) { return [function(_component) {
+    return _component.checkedNames;
+}, function(_component, value) {
+    _component.checkedNames = value;
+}]; },
+    function (_component) { return "Checked names: " + (_component.getNames() ?? ""); },
+    function (_component) { return [function(_component) {
+    return _component.picked;
+}, function(_component, value) {
+    _component.picked = value;
+}]; },
+    function (_component) { return [function(_component) {
+    return _component.picked;
+}, function(_component, value) {
+    _component.picked = value;
+}]; },
+    function (_component) { return "Picked: " + (_component.picked ?? ""); },
     function (_component) { return _component.isDisabled; },
     function (_component) { return !_component.isDisabled; },
     function (_component) { return _component.isDisabled ? " mui-btn" : ""; },

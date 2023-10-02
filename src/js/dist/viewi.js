@@ -294,6 +294,116 @@
     }
   ];
 
+  // app/functions/json_encode.js
+  function json_encode(mixedVal) {
+    var $global = typeof window !== "undefined" ? window : global;
+    $global.$locutus = $global.$locutus || {};
+    var $locutus = $global.$locutus;
+    $locutus.php = $locutus.php || {};
+    var json = $global.JSON;
+    var retVal;
+    try {
+      if (typeof json === "object" && typeof json.stringify === "function") {
+        retVal = json.stringify(mixedVal);
+        if (retVal === void 0) {
+          throw new SyntaxError("json_encode");
+        }
+        return retVal;
+      }
+      var value = mixedVal;
+      var quote = function(string) {
+        var escapeChars = [
+          "\0-",
+          "\x7F-\x9F",
+          "\xAD",
+          "\u0600-\u0604",
+          "\u070F",
+          "\u17B4",
+          "\u17B5",
+          "\u200C-\u200F",
+          "\u2028-\u202F",
+          "\u2060-\u206F",
+          "\uFEFF",
+          "\uFFF0-\uFFFF"
+        ].join("");
+        var escapable = new RegExp('[\\"' + escapeChars + "]", "g");
+        var meta = {
+          "\b": "\\b",
+          "	": "\\t",
+          "\n": "\\n",
+          "\f": "\\f",
+          "\r": "\\r",
+          '"': '\\"',
+          "\\": "\\\\"
+        };
+        escapable.lastIndex = 0;
+        return escapable.test(string) ? '"' + string.replace(escapable, function(a) {
+          var c = meta[a];
+          return typeof c === "string" ? c : "\\u" + ("0000" + a.charCodeAt(0).toString(16)).slice(-4);
+        }) + '"' : '"' + string + '"';
+      };
+      var _str = function(key, holder) {
+        var gap = "";
+        var indent = "    ";
+        var i = 0;
+        var k = "";
+        var v = "";
+        var length = 0;
+        var mind = gap;
+        var partial = [];
+        var value2 = holder[key];
+        if (value2 && typeof value2 === "object" && typeof value2.toJSON === "function") {
+          value2 = value2.toJSON(key);
+        }
+        switch (typeof value2) {
+          case "string":
+            return quote(value2);
+          case "number":
+            return isFinite(value2) ? String(value2) : "null";
+          case "boolean":
+            return String(value2);
+          case "object":
+            if (!value2) {
+              return "null";
+            }
+            gap += indent;
+            partial = [];
+            if (Object.prototype.toString.apply(value2) === "[object Array]") {
+              length = value2.length;
+              for (i = 0; i < length; i += 1) {
+                partial[i] = _str(i, value2) || "null";
+              }
+              v = partial.length === 0 ? "[]" : gap ? "[\n" + gap + partial.join(",\n" + gap) + "\n" + mind + "]" : "[" + partial.join(",") + "]";
+              return v;
+            }
+            for (k in value2) {
+              if (Object.hasOwnProperty.call(value2, k)) {
+                v = _str(k, value2);
+                if (v) {
+                  partial.push(quote(k) + (gap ? ": " : ":") + v);
+                }
+              }
+            }
+            v = partial.length === 0 ? "{}" : gap ? "{\n" + gap + partial.join(",\n" + gap) + "\n" + mind + "}" : "{" + partial.join(",") + "}";
+            return v;
+          case "undefined":
+          case "function":
+          default:
+            throw new SyntaxError("json_encode");
+        }
+      };
+      return _str("", {
+        "": value
+      });
+    } catch (err) {
+      if (!(err instanceof SyntaxError)) {
+        throw new Error("Unexpected error type in json_encode()");
+      }
+      $locutus.php.last_error_json = 4;
+      return null;
+    }
+  }
+
   // app/components/TestComponent.js
   var TestComponent = class extends BaseComponent {
     _name = "TestComponent";
@@ -315,6 +425,14 @@
     dynamic2 = "ItemComponent";
     raw = "<b><i>Raw html text</i></b>";
     isDisabled = true;
+    message = "Some message";
+    checked = false;
+    checked2 = true;
+    checkedNames = [];
+    picked = "One";
+    getNames() {
+      return json_encode(this.checkedNames);
+    }
     getName(name) {
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
@@ -387,6 +505,77 @@
     },
     function(_component) {
       return "\n    " + (_component.name2 ?? "") + "\n";
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.message;
+      }, function(_component2, value) {
+        _component2.message = value;
+      }];
+    },
+    function(_component) {
+      return _component.message;
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.checked;
+      }, function(_component2, value) {
+        _component2.checked = value;
+      }];
+    },
+    function(_component) {
+      return _component.checked;
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.checked2;
+      }, function(_component2, value) {
+        _component2.checked2 = value;
+      }];
+    },
+    function(_component) {
+      return _component.checked2;
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.checkedNames;
+      }, function(_component2, value) {
+        _component2.checkedNames = value;
+      }];
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.checkedNames;
+      }, function(_component2, value) {
+        _component2.checkedNames = value;
+      }];
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.checkedNames;
+      }, function(_component2, value) {
+        _component2.checkedNames = value;
+      }];
+    },
+    function(_component) {
+      return "Checked names: " + (_component.getNames() ?? "");
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.picked;
+      }, function(_component2, value) {
+        _component2.picked = value;
+      }];
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.picked;
+      }, function(_component2, value) {
+        _component2.picked = value;
+      }];
+    },
+    function(_component) {
+      return "Picked: " + (_component.picked ?? "");
     },
     function(_component) {
       return _component.isDisabled;
@@ -1248,15 +1437,72 @@
   }
 
   // viewi/core/getModelHandler.ts
-  function getModelHandler(instance, getter, setter) {
+  function getModelHandler(instance, options) {
     return function(event) {
-      setter(instance, event.target.value);
+      if (options.inputType === "checkbox") {
+        const currentValue = options.getter(instance);
+        const inputValue = event.target.value;
+        if (Array.isArray(currentValue)) {
+          const newValue = currentValue.slice();
+          const valuePosition = newValue.indexOf(inputValue);
+          if (valuePosition === -1) {
+            if (event.target.checked) {
+              newValue.push(inputValue);
+            }
+          } else {
+            if (!event.target.checked) {
+              newValue.splice(valuePosition, 1);
+            }
+          }
+          options.setter(instance, newValue);
+        } else {
+          options.setter(instance, event.target.checked);
+        }
+      } else if (options.inputType === "radio") {
+        const inputValue = event.target.value;
+        options.setter(instance, inputValue);
+      } else {
+        options.setter(instance, event.target.value);
+      }
     };
   }
 
   // viewi/core/updateModelValue.ts
-  function updateModelValue(target, instance, getter, setter) {
-    target.value = getter(instance);
+  function updateModelValue(target, instance, options) {
+    if (options.inputType === "checkbox") {
+      const currentValue = options.getter(instance);
+      if (Array.isArray(currentValue)) {
+        const inputValue = target.value;
+        const valuePosition = currentValue.indexOf(inputValue);
+        if (valuePosition === -1) {
+          target.removeAttribute("checked");
+          target.checked = false;
+        } else {
+          target.setAttribute("checked", "checked");
+          target.checked = true;
+        }
+      } else {
+        if (currentValue) {
+          target.setAttribute("checked", "checked");
+          target.checked = true;
+        } else {
+          target.removeAttribute("checked");
+          target.checked = false;
+        }
+      }
+    } else if (options.inputType === "radio") {
+      const currentValue = options.getter(instance);
+      const inputValue = target.value;
+      if (currentValue === inputValue) {
+        target.setAttribute("checked", "checked");
+        target.checked = true;
+      } else {
+        target.removeAttribute("checked");
+        target.checked = false;
+      }
+    } else {
+      target.value = options.getter(instance);
+    }
   }
 
   // viewi/core/render.ts
@@ -1656,20 +1902,31 @@
                 element.addEventListener(eventName, eventHandler);
               }
             } else if (isModel) {
-              const isCheckbox = element.getAttribute("type") === "checkbox";
-              const isRadio = element.getAttribute("type") === "radio";
-              const isSelect = element.tagName === "SELECT";
-              const isMultiple = isSelect && element.multiple;
-              const isBoolean = isCheckbox || isRadio;
+              let inputType = "text";
+              element.getAttribute("type") === "checkbox" && (inputType = "checkbox");
+              element.getAttribute("type") === "radio" && (inputType = "radio");
+              if (element.tagName === "SELECT") {
+                inputType = "select";
+                const isMultiple = element.multiple;
+              }
+              const isOnChange = inputType === "checkbox" || inputType === "radio" || inputType === "select";
               const valueNode = attribute.children[0];
               const getterSetter = instance.$$t[valueNode.code](instance);
-              const eventName = isBoolean || isSelect ? "change" : "input";
-              updateModelValue(element, instance, getterSetter[0], getterSetter[1]);
+              const eventName = isOnChange ? "change" : "input";
+              const inputOptions = {
+                getter: getterSetter[0],
+                setter: getterSetter[1],
+                inputType
+              };
+              updateModelValue(element, instance, inputOptions);
               for (let subI in valueNode.subs) {
                 const trackingPath = valueNode.subs[subI];
-                track(instance, trackingPath, scope, [updateModelValue, [element, instance, getterSetter[0], getterSetter[1]]]);
+                track(instance, trackingPath, scope, [updateModelValue, [element, instance, inputOptions]]);
               }
-              element.addEventListener(eventName, getModelHandler(instance, getterSetter[0], getterSetter[1]));
+              element.addEventListener(eventName, getModelHandler(
+                instance,
+                inputOptions
+              ));
             } else {
               hydrate && (hasMap[attrName] = true);
               renderAttributeValue(instance, attribute, element, attrName, scope);
