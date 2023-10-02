@@ -3,6 +3,7 @@
 namespace Viewi\TemplateParser;
 
 use Exception;
+use Viewi\Helpers;
 
 class TemplateParser
 {
@@ -42,15 +43,15 @@ class TemplateParser
         $this->components = $components;
     }
 
-    public function parse(string $content): TagItem
+    public function parse(string $htmlContent): TagItem
     {
         $template = new TagItem();
         $template->Type = new TagItemType(TagItemType::Root);
-        $raw = str_split($content);
+        $raw = str_split($htmlContent);
         $currentParent = &$template;
         $currentType = new TagItemType(TagItemType::TextContent);
         $nextType = new TagItemType(TagItemType::TextContent);
-        $content = '';
+        $content = false;
         $saveContent = false;
         $nextIsExpression = false;
         $itsExpression = false;
@@ -183,7 +184,7 @@ class TemplateParser
                             }
                             if ($currentType->Name === TagItemType::Tag) { // <tag/> or </tag>
                                 $skipCount = 1;
-                                if ($content === '' || ctype_space($content)) { // </tag> closing tag
+                                if ($content === false || $content === '' || ctype_space($content)) { // </tag> closing tag
                                     // ignore next until '>'
                                     $waitForTagEnd = true;
                                 } else { // <tag/> selfClosingTag
@@ -328,7 +329,10 @@ class TemplateParser
                 $skipCount = 1;
             }
             if ($saveContent) {
-                if ($content !== '') {
+                if ($content === false && !$nextIsExpression && $currentType->Name === TagItemType::AttributeValue && !$currentParent->hasChildren()) {
+                    $content = '';
+                }
+                if ($content !== false) {
                     $child = $currentParent->newChild();
                     $child->Type = $currentType;
                     $child->Content = $content;
@@ -353,7 +357,7 @@ class TemplateParser
                 }
                 $saveContent = false;
                 $currentType = $nextType;
-                $content = '';
+                $content = false;
                 if ($goDown && !$goUp) {
                     if ($currentParent->getChildren()) {
                         $currentParent = &$currentParent->currentChild();
@@ -384,7 +388,7 @@ class TemplateParser
             $i++;
         }
 
-        if ($content !== '') {
+        if ($content !== false) {
             $child = $currentParent->newChild();
             $child->Type = $currentType;
             $child->Content = $content;

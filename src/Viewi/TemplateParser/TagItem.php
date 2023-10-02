@@ -48,6 +48,14 @@ class TagItem
         $this->Children = $children;
     }
 
+    public function hasChildren(): bool
+    {
+        if (!isset($this->Children)) {
+            return false;
+        }
+        return count($this->Children) > 0;
+    }
+
     /**
      * 
      * @return TagItem[] 
