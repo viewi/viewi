@@ -659,18 +659,24 @@ class TemplateCompiler
             $mutated = isset($attributeMap[$attributeName]);
             $attributeItem->Skip = $mutated;
             $attributeChildren = $attributeItem->getChildren();
-            foreach ($attributeChildren as $aci => &$attributeChild) {
-                $space = $mutated && $aci === 0 ? ' ' : '';
-                if ($valueToReplace) {
-                    if ($attributeChild->ItsExpression) {
-                        $attributeChild->Content = "{$attributeChild->Content} ? '{$space}$valueToReplace' : ''";
+            if (count($attributeChildren) > 0) {
+                foreach ($attributeChildren as $aci => &$attributeChild) {
+                    $space = $mutated && $aci === 0 ? ' ' : '';
+                    if ($valueToReplace) {
+                        if ($attributeChild->ItsExpression) {
+                            $attributeChild->Content = "{$attributeChild->Content} ? '{$space}$valueToReplace' : ''";
+                        } else {
+                            $attributeChild->Content = $space . $attributeChild->Content;
+                        }
+                    }
+                    if ($mutated) {
+                        $attributeMap[$attributeName]->addChild($attributeChild);
                     } else {
-                        $attributeChild->Content = $space . $attributeChild->Content;
+                        $attributeMap[$attributeName] = $attributeItem;
                     }
                 }
-                if ($mutated) {
-                    $attributeMap[$attributeName]->addChild($attributeChild);
-                } else {
+            } else {
+                if (!$mutated) {
                     $attributeMap[$attributeName] = $attributeItem;
                 }
             }
@@ -758,22 +764,27 @@ class TemplateCompiler
                 $this->level--;
                 $this->code .= PHP_EOL . $this->i() . "}";
             }
-        } elseif ($childrenCount > 0) {
+        } else {
             if ($attributeItem->ItsExpression) {
                 $this->code .= PHP_EOL . $this->i() . '$_content .= ' . "' ' . htmlentities({$attributeItem->PhpExpression} ?? '')" . ';';
-                $this->plainItems[] =  '="';
             } else {
-                $this->plainItems[] = ' ' . $attributeItem->Content . '="';
+                $this->plainItems[] = ' ' . $attributeItem->Content;
             }
-            foreach ($children as &$attributeValue) {
-                if ($attributeValue->ItsExpression) {
-                    $this->appendExpression($attributeValue);
-                } else {
-                    $this->plainItems[] = htmlentities($attributeValue->Content);
+            if ($childrenCount > 0) {
+                $this->plainItems[] =  '="';
+                foreach ($children as &$attributeValue) {
+                    if ($attributeValue->ItsExpression) {
+                        $this->appendExpression($attributeValue);
+                    } else {
+                        $this->plainItems[] = htmlentities($attributeValue->Content);
+                    }
                 }
+                $this->plainItems[] = '"';
+            } elseif (isset($this->booleanAttributes[strtolower($attributeItem->Content)])) {
+                $this->plainItems[] =  "=\"{$attributeItem->Content}\"";
             }
-            $this->plainItems[] = '"';
         }
+
         if ($attributeItem->ItsExpression) {
             $this->flushBuffer();
             $this->level--;
