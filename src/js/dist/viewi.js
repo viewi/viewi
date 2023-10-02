@@ -430,6 +430,7 @@
     checked2 = true;
     checkedNames = [];
     picked = "One";
+    selected = "";
     getNames() {
       return json_encode(this.checkedNames);
     }
@@ -576,6 +577,16 @@
     },
     function(_component) {
       return "Picked: " + (_component.picked ?? "");
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.selected;
+      }, function(_component2, value) {
+        _component2.selected = value;
+      }];
+    },
+    function(_component) {
+      return "Selected: " + (_component.selected ?? "");
     },
     function(_component) {
       return _component.isDisabled;
@@ -1074,7 +1085,7 @@
       }
     }
     if (attrName.toLowerCase() in componentsMeta_default.booleanAttributes) {
-      if (valueContent) {
+      if (valueContent === true || valueContent === null) {
         attrName !== element.getAttribute(attrName) && element.setAttribute(attrName, attrName);
       } else {
         element.removeAttribute(attrName);

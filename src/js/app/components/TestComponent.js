@@ -26,6 +26,7 @@ class TestComponent extends BaseComponent {
     checked2 = true;
     checkedNames = [];
     picked = "One";
+    selected = "";
 
     getNames() {
         return json_encode(this.checkedNames);
@@ -132,6 +133,12 @@ export const TestComponent_x = [
     _component.picked = value;
 }]; },
     function (_component) { return "Picked: " + (_component.picked ?? ""); },
+    function (_component) { return [function(_component) {
+    return _component.selected;
+}, function(_component, value) {
+    _component.selected = value;
+}]; },
+    function (_component) { return "Selected: " + (_component.selected ?? ""); },
     function (_component) { return _component.isDisabled; },
     function (_component) { return !_component.isDisabled; },
     function (_component) { return _component.isDisabled ? " mui-btn" : ""; },
