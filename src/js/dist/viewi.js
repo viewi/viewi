@@ -431,6 +431,7 @@
     checkedNames = [];
     picked = "One";
     selected = "";
+    selectedList = ["A", "C"];
     getNames() {
       return json_encode(this.checkedNames);
     }
@@ -587,6 +588,23 @@
     },
     function(_component) {
       return "Selected: " + (_component.selected ?? "");
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.selectedList;
+      }, function(_component2, value) {
+        _component2.selectedList = value;
+      }];
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.selectedList;
+      }, function(_component2, value) {
+        _component2.selectedList = value;
+      }];
+    },
+    function(_component) {
+      return "Selected: " + (json_encode(_component.selectedList) ?? "");
     },
     function(_component) {
       return _component.isDisabled;
@@ -1472,6 +1490,16 @@
       } else if (options.inputType === "radio") {
         const inputValue = event.target.value;
         options.setter(instance, inputValue);
+      } else if (options.isMultiple) {
+        const inputOptions = event.target.options;
+        const newValue = [];
+        for (let i = 0; i < inputOptions.length; i++) {
+          const currentOption = inputOptions[i];
+          if (currentOption.selected) {
+            newValue.push(currentOption.value);
+          }
+        }
+        options.setter(instance, newValue);
       } else {
         options.setter(instance, event.target.value);
       }
@@ -1510,6 +1538,18 @@
       } else {
         target.removeAttribute("checked");
         target.checked = false;
+      }
+    } else if (options.isMultiple) {
+      const inputOptions = target.options;
+      const currentValue = options.getter(instance);
+      for (let i = 0; i < inputOptions.length; i++) {
+        const currentOption = inputOptions[i];
+        const index = currentValue.indexOf(currentOption.value);
+        if (index === -1) {
+          currentOption.selected = false;
+        } else {
+          currentOption.selected = true;
+        }
       }
     } else {
       target.value = options.getter(instance);
@@ -1916,9 +1956,10 @@
               let inputType = "text";
               element.getAttribute("type") === "checkbox" && (inputType = "checkbox");
               element.getAttribute("type") === "radio" && (inputType = "radio");
+              let isMultiple = false;
               if (element.tagName === "SELECT") {
                 inputType = "select";
-                const isMultiple = element.multiple;
+                isMultiple = element.multiple;
               }
               const isOnChange = inputType === "checkbox" || inputType === "radio" || inputType === "select";
               const valueNode = attribute.children[0];
@@ -1927,7 +1968,8 @@
               const inputOptions = {
                 getter: getterSetter[0],
                 setter: getterSetter[1],
-                inputType
+                inputType,
+                isMultiple
               };
               updateModelValue(element, instance, inputOptions);
               for (let subI in valueNode.subs) {
