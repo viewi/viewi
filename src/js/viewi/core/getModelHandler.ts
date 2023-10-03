@@ -1,12 +1,13 @@
 import { BaseComponent } from "./BaseComponent";
 import { ModelHandler } from "./modelHandler";
+import { HTMLModelInputElement } from "./updateModelValue";
 
 export function getModelHandler(
     instance: BaseComponent<any>,
     options: ModelHandler
 ): EventListener {
     return <EventListener>function (event: Event & {
-        target: HTMLInputElement
+        target: HTMLModelInputElement
     }) {
         if (options.inputType === "checkbox") {
             const currentValue = options.getter(instance);
@@ -30,6 +31,16 @@ export function getModelHandler(
         } else if (options.inputType === "radio") {
             const inputValue = event.target.value;
             options.setter(instance, inputValue);
+        } else if (options.isMultiple) {
+            const inputOptions = event.target.options;
+            const newValue: string[] = [];
+            for (let i = 0; i < inputOptions.length; i++) {
+                const currentOption = inputOptions[i];
+                if (currentOption.selected) {
+                    newValue.push(currentOption.value);
+                }
+            }
+            options.setter(instance, newValue);
         } else {
             options.setter(instance, event.target.value);
         }

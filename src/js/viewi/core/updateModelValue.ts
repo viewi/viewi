@@ -1,8 +1,10 @@
 import { BaseComponent } from "./BaseComponent";
 import { ModelHandler } from "./modelHandler";
 
+export type HTMLModelInputElement = HTMLInputElement & HTMLSelectElement;
+
 export function updateModelValue(
-    target: HTMLInputElement,
+    target: HTMLModelInputElement,
     instance: BaseComponent<any>,
     options: ModelHandler
 ): void {
@@ -36,6 +38,18 @@ export function updateModelValue(
         } else {
             target.removeAttribute('checked');
             target.checked = false;
+        }
+    } else if (options.isMultiple) {
+        const inputOptions = target.options;
+        const currentValue = options.getter(instance);
+        for (let i = 0; i < inputOptions.length; i++) {
+            const currentOption = inputOptions[i];
+            const index = currentValue.indexOf(currentOption.value);
+            if (index === -1) {
+                currentOption.selected = false;
+            } else {
+                currentOption.selected = true;
+            }
         }
     } else {
         target.value = options.getter(instance);

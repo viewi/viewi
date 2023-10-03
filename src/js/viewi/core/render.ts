@@ -20,7 +20,7 @@ import { PropsContext } from "./propsContext";
 import { Slots } from "./slots";
 import { renderRaw } from "./renderRaw";
 import { getModelHandler } from "./getModelHandler";
-import { updateModelValue } from "./updateModelValue";
+import { HTMLModelInputElement, updateModelValue } from "./updateModelValue";
 import { InputType } from "./inputType";
 import { ModelHandler } from "./modelHandler";
 
@@ -496,9 +496,10 @@ export function render(
                         let inputType: InputType = "text";
                         (<HTMLElement>element).getAttribute('type') === 'checkbox' && (inputType = "checkbox");
                         (<HTMLElement>element).getAttribute('type') === 'radio' && (inputType = "radio");
+                        let isMultiple = false;
                         if ((<HTMLElement>element).tagName === 'SELECT') {
                             inputType = "select";
-                            const isMultiple = (<HTMLSelectElement>element).multiple;
+                            isMultiple = (<HTMLSelectElement>element).multiple;
                         }
                         const isOnChange = inputType === "checkbox"
                             || inputType === "radio" || inputType === "select";
@@ -508,10 +509,11 @@ export function render(
                         const inputOptions: ModelHandler = {
                             getter: getterSetter[0],
                             setter: getterSetter[1],
-                            inputType: inputType
+                            inputType: inputType,
+                            isMultiple: isMultiple
                         };
                         // set initial value
-                        updateModelValue(<HTMLInputElement>element, instance, inputOptions);
+                        updateModelValue(<HTMLModelInputElement>element, instance, inputOptions);
                         // watch for property changes
                         for (let subI in valueNode.subs!) {
                             const trackingPath = valueNode.subs[subI];
