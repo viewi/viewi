@@ -72,6 +72,8 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return _component.name; },
+    function (_component) { return "Custom " + (_component.name ?? ""); },
     function (_component) { return [function(_component) {
     return _component.name;
 }, function(_component, value) {

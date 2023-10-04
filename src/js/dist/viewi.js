@@ -278,10 +278,15 @@
     id = null;
     title = null;
     class = null;
+    disabled = false;
+    loading = false;
   };
   var TestButton_x = [
     function(_component) {
       return _component.id;
+    },
+    function(_component) {
+      return _component.disabled;
     },
     function(_component) {
       return _component.title;
@@ -290,7 +295,10 @@
       return _component.class;
     },
     function(_component) {
-      return " " + (_component.title ?? "") + "\n";
+      return " " + (_component.title ?? "") + "\n    ";
+    },
+    function(_component) {
+      return _component.loading;
     }
   ];
 
@@ -480,6 +488,12 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.name;
+    },
+    function(_component) {
+      return "Custom " + (_component.name ?? "");
     },
     function(_component) {
       return [function(_component2) {
@@ -2104,6 +2118,8 @@
                 valueSubs = valueSubs.concat(attributeValue.subs);
               }
             }
+          } else {
+            valueContent = true;
           }
           if (attrName === "_props" && valueContent) {
             for (let propName in valueContent) {
