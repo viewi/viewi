@@ -65,6 +65,8 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                             valueSubs = valueSubs.concat(attributeValue.subs as never[]);
                         }
                     }
+                } else {
+                    valueContent = true; // empty property conosidered bollean true
                 }
                 if (attrName === '_props' && valueContent) {
                     for (let propName in valueContent) {
