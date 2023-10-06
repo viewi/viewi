@@ -485,7 +485,9 @@ class JsTranspiler
                     // if ($isThis) {
                     //     $this->propertyFetchQueue[] = 'this';
                     // }
+                    $prevPath = $this->currentPath;
                     $this->processStmts([$node->var]);
+
                     $this->jsCode .= '.' . $node->name->name;
                     if ($isThis) {
                         // $this->debug($this->propertyFetchQueue);
@@ -500,9 +502,19 @@ class JsTranspiler
                         $this->variablePaths[$this->currentClass][$this->currentMethod][$path] = true;
                         $this->propertyFetchQueue = [];
                     } else {
+                        if ($this->inlineExpression) {
+                            $this->variablePaths[implode('.', $this->currentPath) . '.' . $node->name->name] = true;
+                            // if ($this->phpCode === '$user->name') {
+                            //     Helpers::debug([$node, $this->variablePaths, $this->propertyFetchQueue, $this->currentPath]);
+                            // }
+                        }
                         array_pop($this->propertyFetchQueue);
                     }
+                    $this->currentPath = $prevPath;
                 }
+                // if ($this->phpCode === '$user->name') {
+                //     Helpers::debug([$node, $this->variablePaths, $this->propertyFetchQueue]);
+                // }
                 // $this->debug($node);
             } else if ($node instanceof MethodCall) {
                 if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
@@ -607,6 +619,7 @@ class JsTranspiler
                 $this->jsCode .= $isThis ? ($this->currentConstructor ? 'this' : 'this') : $node->name;
                 if ($this->inlineExpression) {
                     $this->variablePaths[$node->name] = true;
+                    $this->currentPath[] = $node->name;
                 }
                 // TODO: variable declaration
             } else if ($node instanceof Isset_) {

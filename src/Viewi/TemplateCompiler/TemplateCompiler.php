@@ -828,6 +828,10 @@ class TemplateCompiler
             // Helpers::debug([$phpCode, $tagItem->Content]);
         }
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
+        
+        // if ($phpCode === '$user->name') {
+        //     Helpers::debug([$tagItem->JsExpression, $phpCode, $jsOutput->getDeps()]);
+        // }
         $tagItem->JsExpression = $jsOutput->__toString();
         $transforms = $jsOutput->getTransforms();
         foreach ($transforms as $input => $replacement) {
@@ -877,7 +881,9 @@ class TemplateCompiler
         $this->inlineExpressions[] = [$tagItem->JsExpression, $this->localScopeArguments];
         $tagItem->JsExpressionCode = count($this->inlineExpressions) - 1;
         $tagItem->PhpExpression = $phpCode;
-        // Helpers::debug([$tagItem->JsExpression, $phpCode]);
+        // if ($tagItem->JsExpression === '_component.user.name') {
+        //     Helpers::debug([$tagItem->JsExpression, $phpCode, $tagItem->Subscriptions]);
+        // }
     }
 
     private function appendExpression(TagItem &$tagItem)
