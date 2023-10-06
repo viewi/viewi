@@ -42,8 +42,8 @@ class Engine
          * @var array{inputs: array, components: array}
          */
         $componentMeta = $this->meta['components'][$component];
-        $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
-        $classInstance = new $fullClassName();
+        // Helpers::debug([$componentMeta]);
+        $classInstance = $this->resolve($componentMeta);
         include_once $this->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
@@ -76,5 +76,52 @@ class Engine
     public function isComponent(string $name)
     {
         return isset($this->meta['components'][$name]);
+    }
+
+    /**
+     * 
+     * @param array{inputs: array, components: array} $componentMeta 
+     * @return mixed 
+     */
+    private function resolve(array $componentMeta, array $params = [])
+    {
+        $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
+        $instance = false;
+        if (empty($componentMeta['dependencies'])) {
+            $instance = new $fullClassName();
+        } else {
+            $arguments = [];
+            foreach ($componentMeta['dependencies'] as $argName => $type) {
+                // resolve router param
+                if (isset($params[$argName])) {
+                    $arguments[] = in_array($type['name'], ['int', 'float'])
+                        ? (float)$params[$argName]
+                        : $params[$argName];
+                } else if (isset($type['default'])) {
+                    $arguments[] = $type['default'];
+                } else if (isset($type['null'])) {
+                    $arguments[] = null;
+                } else if (isset($type['builtIn'])) {
+                    switch ($type['name']) { // TODO: more types
+                        case 'string': {
+                                $arguments[] = '';
+                                break;
+                            }
+                        case 'int': {
+                                $arguments[] = 0;
+                                break;
+                            }
+                        default: {
+                                throw new Exception("Type '{$type['name']}' is not configured.");
+                                break;
+                            }
+                    }
+                } else {
+                    $arguments[] = $this->resolve($this->meta['components'][$type['name']]);
+                }
+            }
+            $instance = new $fullClassName(...$arguments);
+        }
+        return $instance;
     }
 }
