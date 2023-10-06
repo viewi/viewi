@@ -6,6 +6,7 @@ use Exception;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
 use Viewi\Helpers;
 use Viewi\JsTranspile\BaseFunction;
@@ -50,6 +51,10 @@ class Builder
      * @var array{meta: array, components: array}
      */
     private array $meta = [];
+    private array $systemClasses = [
+        'Attribute' => true,
+        'Viewi\DI\Singleton' => true
+    ];
 
     public function __construct()
     {
@@ -180,6 +185,15 @@ class Builder
     {
         foreach ($buildItem->Uses as $baseName => $useItem) {
             if ($useItem->Type === UseItem::Class_) {
+                if (!isset($this->components[$baseName])) {
+                    $className = implode('\\', $useItem->Parts);
+                    if (!isset($this->systemClasses[$className])) {
+                        // Helpers::debug($useItem);
+                        throw new Exception("Class '$className' can not be found.");
+                    }
+                    $useItem->Skip = true;
+                    continue;
+                }
                 if (!$this->components[$baseName]->Include) {
                     $this->components[$baseName]->Include = true;
                     $this->collectIncludes($this->components[$baseName]);
@@ -213,7 +227,10 @@ class Builder
                 if ($useItem->Type === UseItem::Class_) {
                     if (!isset($this->components[$baseName])) {
                         $fullName = implode('\\', $useItem->Parts);
-                        throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                        if (!isset($this->systemClasses[$fullName])) {
+                            throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                        }
+                        $useItem->Skip = true;
                     }
                 } elseif ($useItem->Type === UseItem::Function) {
                     if (!isset($this->avaliableFunctions[$baseName])) {
@@ -281,6 +298,20 @@ class Builder
                     $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
                 }
             }
+            $attributes = $rf->getAttributes();
+            foreach ($attributes as $attribute) {
+                $attributeClass = $attribute->getName();
+                switch ($attributeClass) {
+                    case Singleton::class: {
+                            $componentMeta['di'] = 'Singleton';
+                            $publicJson[$buildItem->ComponentName]['di'] = 'Singleton';
+                            break;
+                        }
+                    default: // none 
+                        break;
+                }
+                // Helpers::debug($attributeClass);
+            }
             $componentMeta['inputs'] = $this->getProps($rf);
             // template, render function
             $expressionsJs = '';
@@ -317,16 +348,18 @@ class Builder
                 $jsComponentCode = '';
                 $comma = '';
                 foreach ($buildItem->Uses as $importName => $useItem) {
-                    if ($useItem->Type === UseItem::Class_) {
-                        if ($importName === 'BaseComponent') {
-                            $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/BaseComponent";' . PHP_EOL;
-                        } else {
-                            $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                    if (!$useItem->Skip) {
+                        if ($useItem->Type === UseItem::Class_) {
+                            if ($importName === 'BaseComponent') {
+                                $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/BaseComponent";' . PHP_EOL;
+                            } else {
+                                $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                            }
+                        } elseif ($useItem->Type === UseItem::Function) {
+                            $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
                         }
-                    } elseif ($useItem->Type === UseItem::Function) {
-                        $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+                        $comma = PHP_EOL;
                     }
-                    $comma = PHP_EOL;
                 }
                 // if ($buildItem->RenderFunction !== null) {
                 //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
