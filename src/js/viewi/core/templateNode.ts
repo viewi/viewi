@@ -26,8 +26,12 @@ export type TemplateNode = {
     func: Function
 }
 
-export type ComponentMeta = {
-    [key: string]: {
-        nodes?: TemplateNode
-    }
+export type ComponentMetaData = {
+    nodes?: TemplateNode,
+    dependencies?: any[],
+    di?: 'Singleton' | 'Scoped' | 'Transient'
+}
+
+export type ComponentMetaDataList = {
+    [key: string]: ComponentMetaData
 }

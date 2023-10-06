@@ -13,6 +13,7 @@ console.log('Viewi entry');
 const counterTarget = document.getElementById('counter');
 
 export function renderApp(name: string) {
+    console.time('renderApp');
     renderComponent(counterTarget!, name, undefined, {}, true, false);
     // console.log(anchors);
     // return;
@@ -27,6 +28,9 @@ export function renderApp(name: string) {
             anchor.target.childNodes[anchor.invalid[i]].remove();
         }
     }
+    // console.timeEnd('renderApp');
+    // console.timeLog('renderApp');
+    console.timeEnd('renderApp');
 }
 
 // testing Counter

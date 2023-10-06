@@ -10,6 +10,46 @@ import { track } from "./track";
 import { unpack } from "./unpack";
 import { updateProp } from "./updateProp";
 
+const injectionCache: { [key: string]: any } = {};
+const singletonContainer: { [key: string]: any } = {};
+
+export function resolve(name: string, params: any[] = []) {
+    const info = componentsMeta.list[name];
+    let instance = null;
+    const isSingleton = info.di === "Singleton";
+    if (isSingleton && (name in singletonContainer)) {
+        console.log('Returning from cache', name, singletonContainer[name]);
+        return singletonContainer[name];
+    }
+    if (!info.dependencies) {
+        instance = new components[name]();
+    } else {
+        const constructArguments: any[] = [];
+        for (let i in info.dependencies) {
+            const dependency = info.dependencies[i];
+            var argument: any = null; // d.null
+            if (params && (dependency.argName in params)) {
+                argument = params[dependency.argName];
+            }
+            else if (dependency.default) {
+                argument = dependency.default; // TODO: copy object or array
+            } else if (dependency.null) {
+                argument = null;
+            } else if (dependency.builtIn) {
+                argument = dependency.name === 'string' ? '' : 0;
+            } else {
+                argument = resolve(dependency.name);
+            }
+            constructArguments.push(argument);
+        }
+        instance = new components[name](...constructArguments);
+    }
+    if (isSingleton) {
+        singletonContainer[name] = instance;
+    }
+    return instance;
+}
+
 export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false) {
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
@@ -18,7 +58,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         throw new Error(`Component ${name} not found.`);
     }
     const root = componentsMeta.list[name].nodes;
-    const instance: BaseComponent<any> = makeProxy(new components[name]());
+    const instance: BaseComponent<any> = makeProxy(resolve(name));
     const inlineExpressions = name + '_x';
     if (inlineExpressions in components) {
         instance.$$t = components[inlineExpressions];
@@ -29,6 +69,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         arguments: props ? [...props.scope.arguments] : [],
         components: [],
         instance: instance,
+        main: true,
         map: props ? { ...props.scope.map } : {},
         track: [],
         children: {},
