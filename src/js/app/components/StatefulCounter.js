@@ -4,17 +4,11 @@ import { BaseComponent } from "../../viewi/core/BaseComponent";
 class StatefulCounter extends BaseComponent {
     _name = 'StatefulCounter';
     counter = null;
-    $message = "Secret message";
     count = null;
-
-    constructor(count) {
+    constructor(counter, count) {
         super();
+        this.counter = counter;
         this.count = count === undefined ? 0 : count;
-        this.counter = new CounterReducer();
-    }
-
-    $calculate() {
-        this.count++;
     }
 }
 

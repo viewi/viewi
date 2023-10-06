@@ -1,3 +1,4 @@
+import { UserModel } from "./UserModel";
 import { CounterReducer } from "./CounterReducer";
 import { TodoReducer } from "./TodoReducer";
 import { MenuBar } from "./MenuBar";
@@ -17,6 +18,7 @@ import { TodoApp, TodoApp_x } from "./TodoApp";
 import { TodoList, TodoList_x } from "./TodoList";
 
 export const components = {
+    UserModel,
     CounterReducer,
     TodoReducer,
     MenuBar,

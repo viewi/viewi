@@ -1,3 +1,5 @@
+import { UserModel } from "./UserModel";
+import { CounterReducer } from "./CounterReducer";
 import { BaseComponent } from "../../viewi/core/BaseComponent";
 import { json_encode } from "../functions/json_encode";
 
@@ -28,6 +30,16 @@ class TestComponent extends BaseComponent {
     picked = "One";
     selected = "";
     selectedList = ["A", "C"];
+    user = null;
+    counterReducer = null;
+
+    constructor(counterReducer) {
+        super();
+        this.counterReducer = counterReducer;
+        this.user = new UserModel();
+        this.user.id = 1;
+        this.user.name = "Miki the cat";
+    }
 
     getNames() {
         return json_encode(this.checkedNames);
@@ -72,6 +84,16 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return function (event) { _component.counterReducer.increment(); }; },
+    function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
+    function (_component) { return function (event) { _component.nestedIf = !_component.nestedIf; }; },
+    function (_component) { return _component.nestedIf; },
+    function (_component) { return [function(_component) {
+    return _component.user.name;
+}, function(_component, value) {
+    _component.user.name = value;
+}]; },
+    function (_component) { return _component.user.name; },
     function (_component) { return _component.name; },
     function (_component) { return "Custom " + (_component.name ?? ""); },
     function (_component) { return [function(_component) {

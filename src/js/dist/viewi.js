@@ -27,6 +27,12 @@
   var componentsMeta = { list: {}, booleanAttributes: {} };
   var componentsMeta_default = componentsMeta;
 
+  // app/components/UserModel.js
+  var UserModel = class {
+    id = null;
+    name = null;
+  };
+
   // app/components/CounterReducer.js
   var CounterReducer = class {
     count = 0;
@@ -57,6 +63,8 @@
     // template inline expressions
     $$r = {};
     // reactivity callbacks
+    $$p = [];
+    // shared reactivity track ids
     $;
     _name = "BaseComponent";
     emitEvent(name, event) {
@@ -64,6 +72,18 @@
         this.$_callbacks[name](event);
       }
     }
+  };
+  var ReserverProps = {
+    _props: true,
+    $_callbacks: true,
+    _refs: true,
+    _slots: true,
+    _element: true,
+    $$t: true,
+    $$r: true,
+    $: true,
+    _name: true,
+    emitEvent: true
   };
 
   // app/components/MenuBar.js
@@ -167,15 +187,11 @@
   var StatefulCounter = class extends BaseComponent {
     _name = "StatefulCounter";
     counter = null;
-    $message = "Secret message";
     count = null;
-    constructor(count2) {
+    constructor(counter, count2) {
       super();
+      this.counter = counter;
       this.count = count2 === void 0 ? 0 : count2;
-      this.counter = new CounterReducer();
-    }
-    $calculate() {
-      this.count++;
     }
   };
   var StatefulCounter_x = [
@@ -440,6 +456,15 @@
     picked = "One";
     selected = "";
     selectedList = ["A", "C"];
+    user = null;
+    counterReducer = null;
+    constructor(counterReducer) {
+      super();
+      this.counterReducer = counterReducer;
+      this.user = new UserModel();
+      this.user.id = 1;
+      this.user.name = "Miki the cat";
+    }
     getNames() {
       return json_encode(this.checkedNames);
     }
@@ -488,6 +513,32 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return function(event) {
+        _component.counterReducer.increment();
+      };
+    },
+    function(_component) {
+      return "Clicked " + (_component.counterReducer.count ?? "");
+    },
+    function(_component) {
+      return function(event) {
+        _component.nestedIf = !_component.nestedIf;
+      };
+    },
+    function(_component) {
+      return _component.nestedIf;
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.user.name;
+      }, function(_component2, value) {
+        _component2.user.name = value;
+      }];
+    },
+    function(_component) {
+      return _component.user.name;
     },
     function(_component) {
       return _component.name;
@@ -967,6 +1018,7 @@
 
   // app/components/index.js
   var components = {
+    UserModel,
     CounterReducer,
     TodoReducer,
     MenuBar,
@@ -996,11 +1048,60 @@
   };
 
   // viewi/core/makeProxy.ts
+  var reactiveId = 0;
+  function makeReactive(componentProperty, component, path) {
+    const targetObject = componentProperty.$ ?? componentProperty;
+    if (!targetObject.$) {
+      Object.defineProperty(targetObject, "$", {
+        enumerable: false,
+        writable: true,
+        value: targetObject
+      });
+      Object.defineProperty(targetObject, "$$r", {
+        enumerable: false,
+        writable: true,
+        value: {}
+      });
+    }
+    const proxy = new Proxy(targetObject, {
+      set(obj, prop, value) {
+        const react = obj[prop] !== value;
+        const ret = Reflect.set(obj, prop, value);
+        if (react) {
+          for (let id in obj.$$r) {
+            const path2 = obj.$$r[id][0];
+            const component2 = obj.$$r[id][1];
+            const propertyPath = path2 + "." + prop;
+            if (propertyPath in component2.$$r) {
+              for (let i in component2.$$r[propertyPath]) {
+                const callbackFunc = component2.$$r[propertyPath][i];
+                callbackFunc[0].apply(null, callbackFunc[1]);
+              }
+            }
+          }
+        }
+        return ret;
+      }
+    });
+    return proxy;
+  }
   function makeProxy(component) {
+    let keys = Object.keys(component);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const val = component[key];
+      if (!(key in ReserverProps) && val !== null && typeof val === "object" && !Array.isArray(val)) {
+        const activated = makeReactive(val, component, key);
+        component[key] = activated;
+        const trackerId = ++reactiveId + "";
+        activated.$$r[trackerId] = [key, component];
+        component.$$p.push([trackerId, activated]);
+      }
+    }
     const proxy = new Proxy(component, {
       set(obj, prop, value) {
-        var react = obj[prop] !== value;
-        var ret = Reflect.set(obj, prop, value);
+        const react = obj[prop] !== value;
+        const ret = Reflect.set(obj, prop, value);
         if (react && prop in obj.$$r) {
           for (let i in obj.$$r[prop]) {
             const callbackFunc = obj.$$r[prop][i];
@@ -1144,6 +1245,12 @@
         dispose(scope.children[i]);
       }
       scope.children = {};
+    }
+    if (scope.main) {
+      for (let i = 0; i < scope.instance.$$p.length; i++) {
+        const trackGroup = scope.instance.$$p[i];
+        delete trackGroup[1].$$r[trackGroup[0]];
+      }
     }
     if (scope.parent) {
       delete scope.parent.children[scope.id];
@@ -2069,6 +2176,42 @@
   }
 
   // viewi/core/renderComponent.ts
+  var singletonContainer = {};
+  function resolve(name, params = []) {
+    const info = componentsMeta_default.list[name];
+    let instance = null;
+    const isSingleton = info.di === "Singleton";
+    if (isSingleton && name in singletonContainer) {
+      console.log("Returning from cache", name, singletonContainer[name]);
+      return singletonContainer[name];
+    }
+    if (!info.dependencies) {
+      instance = new components[name]();
+    } else {
+      const constructArguments = [];
+      for (let i in info.dependencies) {
+        const dependency = info.dependencies[i];
+        var argument = null;
+        if (params && dependency.argName in params) {
+          argument = params[dependency.argName];
+        } else if (dependency.default) {
+          argument = dependency.default;
+        } else if (dependency.null) {
+          argument = null;
+        } else if (dependency.builtIn) {
+          argument = dependency.name === "string" ? "" : 0;
+        } else {
+          argument = resolve(dependency.name);
+        }
+        constructArguments.push(argument);
+      }
+      instance = new components[name](...constructArguments);
+    }
+    if (isSingleton) {
+      singletonContainer[name] = instance;
+    }
+    return instance;
+  }
   function renderComponent(target, name, props, slots, hydrate = false, insert = false) {
     if (!(name in componentsMeta_default.list)) {
       throw new Error(`Component ${name} not found.`);
@@ -2077,7 +2220,7 @@
       throw new Error(`Component ${name} not found.`);
     }
     const root = componentsMeta_default.list[name].nodes;
-    const instance = makeProxy(new components[name]());
+    const instance = makeProxy(resolve(name));
     const inlineExpressions = name + "_x";
     if (inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
@@ -2088,6 +2231,7 @@
       arguments: props ? [...props.scope.arguments] : [],
       components: [],
       instance,
+      main: true,
       map: props ? { ...props.scope.map } : {},
       track: [],
       children: {},
@@ -2160,6 +2304,7 @@
   console.log("Viewi entry");
   var counterTarget = document.getElementById("counter");
   function renderApp(name) {
+    console.time("renderApp");
     renderComponent(counterTarget, name, void 0, {}, true, false);
     for (let a in anchors) {
       const anchor = anchors[a];
@@ -2170,6 +2315,7 @@
         anchor.target.childNodes[anchor.invalid[i]].remove();
       }
     }
+    console.timeEnd("renderApp");
   }
   (async () => {
     const data = await (await fetch("/assets/components.json")).json();
