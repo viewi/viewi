@@ -5,6 +5,7 @@ export type ContextScope = {
     counter: number, // current id counter
     id: number, // unique per parent scope
     instance: BaseComponent<any>,
+    main?: boolean, // first scope of the instance and should be disposed
     arguments: any[], // array (foreach directive) arguments
     map: { [key: string]: number }, // array (foreach directive) arguments positions
     components: BaseComponent<any>[], // disposable components

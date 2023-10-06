@@ -1,3 +1,5 @@
+import { ReactiveProxy } from "./makeProxy";
+
 export abstract class BaseComponent<T> {
     _props: { [key: string]: any } = {};
     $_callbacks: { [key: string]: Function } = {};
@@ -6,6 +8,7 @@ export abstract class BaseComponent<T> {
     _element: Node | null = null;
     $$t: Function[] = []; // template inline expressions
     $$r: { [key: string]: { [key: string]: [Function, any[]] } } = {}; // reactivity callbacks
+    $$p: [trackerId: string, activated: ReactiveProxy][] = []; // shared reactivity track ids
     $: T;
     _name: string = 'BaseComponent';
     emitEvent(name: string, event?: any) {
@@ -13,4 +16,17 @@ export abstract class BaseComponent<T> {
             this.$_callbacks[name](event);
         }
     }
+}
+
+export const ReserverProps = {
+    _props: true,
+    $_callbacks: true,
+    _refs: true,
+    _slots: true,
+    _element: true,
+    $$t: true,
+    $$r: true,
+    $: true,
+    _name: true,
+    emitEvent: true
 }
