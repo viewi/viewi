@@ -198,6 +198,15 @@ class JsTranspiler
                     $itsBase = $extendClass === 'BaseComponent';
                     $this->currentExtend = $extendClass;
                 }
+                if ($node->attrGroups) {
+                    $exportItem->Attributes['attrs'] = [];
+                    foreach ($node->attrGroups as $attributeGroup) {
+                        foreach ($attributeGroup->attrs as $attribute) {
+                            $attributeParts = $attribute->name->getParts();
+                            $exportItem->Attributes['attrs'][$attribute->name->getLast()] = $attributeParts;
+                        }
+                    }
+                }
                 $this->jsCode .= "class {$node->name}{$extendsCode} {";
                 $this->level++;
                 $this->currentClass = $node->name;
