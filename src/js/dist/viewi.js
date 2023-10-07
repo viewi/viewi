@@ -54,6 +54,7 @@
 
   // viewi/core/BaseComponent.ts
   var BaseComponent = class {
+    __id = "";
     _props = {};
     $_callbacks = {};
     _refs = {};
@@ -464,6 +465,7 @@
       this.user = new UserModel();
       this.user.id = 1;
       this.user.name = "Miki the cat";
+      this.counterReducer.increment();
     }
     getNames() {
       return json_encode(this.checkedNames);
@@ -513,6 +515,15 @@
     },
     function(_component) {
       return _component.onEvent.bind(_component);
+    },
+    function(_component) {
+      return _component.__id;
+    },
+    function(_component) {
+      return "First Name (" + (_component.__id ?? "") + ")";
+    },
+    function(_component) {
+      return _component.__id;
     },
     function(_component) {
       return function(event) {
@@ -1966,6 +1977,9 @@
             }
             withAttributes = true;
             element = hydrate ? hydrateTag(target, content) : insert ? target.parentElement.insertBefore(document.createElement(content), target) : target.appendChild(document.createElement(content));
+            if (node.first) {
+              instance._element = element;
+            }
           }
           if (isDynamic) {
             const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin._anchor);
@@ -2176,14 +2190,20 @@
   }
 
   // viewi/core/renderComponent.ts
+  var scopedContainer = {};
   var singletonContainer = {};
+  var nextInstanceId = 0;
   function resolve(name, params = []) {
     const info = componentsMeta_default.list[name];
     let instance = null;
-    const isSingleton = info.di === "Singleton";
-    if (isSingleton && name in singletonContainer) {
-      console.log("Returning from cache", name, singletonContainer[name]);
-      return singletonContainer[name];
+    let container = false;
+    if (info.di === "Singleton") {
+      container = singletonContainer;
+    } else if (info.di === "Scoped") {
+      container = scopedContainer;
+    }
+    if (container && name in container) {
+      return container[name];
     }
     if (!info.dependencies) {
       instance = new components[name]();
@@ -2207,8 +2227,11 @@
       }
       instance = new components[name](...constructArguments);
     }
-    if (isSingleton) {
-      singletonContainer[name] = instance;
+    if (info.base) {
+      instance.__id = ++nextInstanceId + "";
+    }
+    if (container) {
+      container[name] = instance;
     }
     return instance;
   }
@@ -2289,7 +2312,10 @@
         root.unpacked = true;
       }
       const rootChildren = root.children;
-      rootChildren && render(target, instance, rootChildren, scope, void 0, hydrate, insert);
+      if (rootChildren) {
+        rootChildren[0].first = true;
+        render(target, instance, rootChildren, scope, void 0, hydrate, insert);
+      }
     }
   }
   function isComponent(name) {

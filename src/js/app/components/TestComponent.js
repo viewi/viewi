@@ -39,6 +39,7 @@ class TestComponent extends BaseComponent {
         this.user = new UserModel();
         this.user.id = 1;
         this.user.name = "Miki the cat";
+        this.counterReducer.increment();
     }
 
     getNames() {
@@ -84,6 +85,9 @@ export const TestComponent_x = [
     function (_component) { return expression.bind(_component); },
     function (_component) { return _component.event; },
     function (_component) { return _component.onEvent.bind(_component); },
+    function (_component) { return _component.__id; },
+    function (_component) { return "First Name (" + (_component.__id ?? "") + ")"; },
+    function (_component) { return _component.__id; },
     function (_component) { return function (event) { _component.counterReducer.increment(); }; },
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
     function (_component) { return function (event) { _component.nestedIf = !_component.nestedIf; }; },
