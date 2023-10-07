@@ -353,6 +353,9 @@ export function render(
                         : (insert
                             ? target.parentElement!.insertBefore(document.createElement(content), target)
                             : target.appendChild(document.createElement(content)));
+                    if (node.first) {
+                        instance._element = element;
+                    }
                 }
                 if (isDynamic) {
                     const anchorNode = createAnchorNode(target, insert, anchor, anchorBegin!._anchor); // end dynamic

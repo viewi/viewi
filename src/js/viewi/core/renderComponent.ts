@@ -10,16 +10,24 @@ import { track } from "./track";
 import { unpack } from "./unpack";
 import { updateProp } from "./updateProp";
 
-const injectionCache: { [key: string]: any } = {};
-const singletonContainer: { [key: string]: any } = {};
+type DIContainer = { [key: string]: any };
+
+const scopedContainer: DIContainer = {}; // TODO: dispose on route change, TODO: expose dispose to public use
+const singletonContainer: DIContainer = {};
+let nextInstanceId = 0;
 
 export function resolve(name: string, params: any[] = []) {
     const info = componentsMeta.list[name];
-    let instance = null;
-    const isSingleton = info.di === "Singleton";
-    if (isSingleton && (name in singletonContainer)) {
-        console.log('Returning from cache', name, singletonContainer[name]);
-        return singletonContainer[name];
+    let instance: any = null;
+    let container: boolean | DIContainer = false;
+    if (info.di === "Singleton") {
+        container = singletonContainer;
+    } else if (info.di === "Scoped") {
+        container = scopedContainer;
+    }
+    if (container && (name in container)) {
+        // console.log('Returning from cache', name, container[name]);
+        return container[name];
     }
     if (!info.dependencies) {
         instance = new components[name]();
@@ -44,8 +52,11 @@ export function resolve(name: string, params: any[] = []) {
         }
         instance = new components[name](...constructArguments);
     }
-    if (isSingleton) {
-        singletonContainer[name] = instance;
+    if (info.base) {
+        (<BaseComponent<any>>instance).__id = ++nextInstanceId + '';
+    }
+    if (container) {
+        container[name] = instance;
     }
     return instance;
 }
@@ -139,8 +150,12 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
             root.unpacked = true;
         }
         const rootChildren = root.children;
-        // console.log(counterTarget, instance, rootChildren);
-        rootChildren && render(target, instance, rootChildren, scope, undefined, hydrate, insert);
+        if (rootChildren) {
+            // console.log(target, instance, rootChildren);
+            rootChildren[0].first = true;
+            render(target, instance, rootChildren, scope, undefined, hydrate, insert);
+            // console.log(name, instance, rootChildren);
+        }
     }
 }
 

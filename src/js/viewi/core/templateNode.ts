@@ -23,13 +23,15 @@ export type TemplateNode = {
     forData?: number,
     forItem?: string,
     forKey?: string,
-    func: Function
+    func: Function,
+    first?: boolean
 }
 
 export type ComponentMetaData = {
     nodes?: TemplateNode,
     dependencies?: any[],
-    di?: 'Singleton' | 'Scoped' | 'Transient'
+    di?: 'Singleton' | 'Scoped' | 'Transient',
+    base?: boolean
 }
 
 export type ComponentMetaDataList = {
