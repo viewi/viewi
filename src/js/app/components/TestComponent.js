@@ -31,6 +31,7 @@ class TestComponent extends BaseComponent {
     selected = "";
     selectedList = ["A", "C"];
     user = null;
+    NameInput = null;
     counterReducer = null;
 
     constructor(counterReducer) {

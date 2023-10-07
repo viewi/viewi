@@ -458,6 +458,7 @@
     selected = "";
     selectedList = ["A", "C"];
     user = null;
+    NameInput = null;
     counterReducer = null;
     constructor(counterReducer) {
       super();
@@ -1296,6 +1297,9 @@
         children: {},
         counter: 0
       };
+      if (scope.refs) {
+        nextScope.refs = scope.refs;
+      }
       scope.children[scopeId] = nextScope;
       let found = false;
       for (let di in currentArrayScope) {
@@ -1381,6 +1385,9 @@
           children: {},
           counter: 0
         };
+        if (scope.refs) {
+          nextScope.refs = scope.refs;
+        }
         scopeContainer.scope = nextScope;
         scope.children[scopeId] = nextScope;
         render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);
@@ -1513,6 +1520,9 @@
       children: {},
       counter: 0
     };
+    if (scope.refs) {
+      nextScope.refs = scope.refs;
+    }
     scopeContainer.scope = nextScope;
     scope.children[scopeId] = nextScope;
     if (componentTag) {
@@ -1733,6 +1743,9 @@
                     children: {},
                     counter: 0
                   };
+                  if (scope.refs) {
+                    nextScope2.refs = scope.refs;
+                  }
                   scope.children[scopeId] = nextScope2;
                   if (nextValue) {
                     render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
@@ -1772,6 +1785,9 @@
                       children: {},
                       counter: 0
                     };
+                    if (scope.refs) {
+                      nextScope2.refs = scope.refs;
+                    }
                     scope.children[scopeId] = nextScope2;
                     if (nextValue) {
                       render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
@@ -1813,6 +1829,9 @@
                       children: {},
                       counter: 0
                     };
+                    if (scope.refs) {
+                      nextScope2.refs = scope.refs;
+                    }
                     scope.children[scopeId] = nextScope2;
                     if (nextValue) {
                       render(target, instance, [node], nextScope2, localDirectiveMap, hydrate, insert);
@@ -1850,6 +1869,9 @@
                       children: {},
                       counter: 0
                     };
+                    if (scope.refs) {
+                      nextScope2.refs = scope.refs;
+                    }
                     scope.children[scopeId] = nextScope2;
                     nextScope2.map[directive.children[0].forKey] = nextScope2.arguments.length;
                     nextScope2.arguments.push(dataKey);
@@ -1918,6 +1940,9 @@
               children: {},
               counter: 0
             };
+            if (scope.refs) {
+              nextScope.refs = scope.refs;
+            }
             scope.children[scopeId] = nextScope;
             childScope = nextScope;
           }
@@ -1937,6 +1962,9 @@
                 counter: 0,
                 slots: scope.slots
               };
+              if (scope.refs) {
+                slotScope.refs = scope.refs;
+              }
               nextScope.children[scopeId] = slotScope;
               for (let slotName in node.slots) {
                 slots[slotName] = {
@@ -2080,6 +2108,14 @@
           for (let a = 0; a < node.attributes.length; a++) {
             const attribute = node.attributes[a];
             const attrName = attribute.expression ? instance.$$t[attribute.code](instance) : attribute.content ?? "";
+            if (attrName[0] === "#") {
+              const refName = attrName.substring(1, attrName.length);
+              instance._refs[refName] = element;
+              if (scope.refs && refName in scope.refs) {
+                instance[refName] = element;
+              }
+              continue;
+            }
             const isModel = attrName === "model";
             if (attrName[0] === "(") {
               const eventName = attrName.substring(1, attrName.length - 1);
@@ -2242,7 +2278,8 @@
     if (!(name in components)) {
       throw new Error(`Component ${name} not found.`);
     }
-    const root = componentsMeta_default.list[name].nodes;
+    const info = componentsMeta_default.list[name];
+    const root = info.nodes;
     const instance = makeProxy(resolve(name));
     const inlineExpressions = name + "_x";
     if (inlineExpressions in components) {
@@ -2263,6 +2300,9 @@
       slots
     };
     props && (props.scope.children[scopeId] = scope);
+    if (info.refs) {
+      scope.refs = info.refs;
+    }
     if (props && props.attributes) {
       const parentInstance = props.scope.instance;
       for (let a in props.attributes) {
