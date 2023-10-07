@@ -696,8 +696,11 @@ class TemplateCompiler
             $this->code .= PHP_EOL . $this->i() . "if ({$attributeItem->PhpExpression} && {$attributeItem->PhpExpression}[0] !== '(') {";
             $this->level++;
         }
-
+        if ($attributeItem->Content[0] === '#') {
+            return;
+        }
         $itsModel = $attributeItem->Content === 'model';
+        // $itsRef = $attributeItem->Content[0] === '#';
         if (!$attributeItem->Content || $attributeItem->Content[0] === '(' || $attributeItem->ItsExpression || $itsModel) {
             $expression = '';
             foreach ($children as &$subValue) {
@@ -828,7 +831,7 @@ class TemplateCompiler
             // Helpers::debug([$phpCode, $tagItem->Content]);
         }
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
-        
+
         // if ($phpCode === '$user->name') {
         //     Helpers::debug([$tagItem->JsExpression, $phpCode, $jsOutput->getDeps()]);
         // }
