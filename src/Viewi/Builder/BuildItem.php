@@ -11,6 +11,8 @@ class BuildItem
 {
     public bool $Ready = false;
     public ?array $Extends = null;
+    public ?array $Attributes = null;
+    public bool $Skip = false;
     public ?string $Namespace = null;
     public ?string $TemplatePath = null;
     /**

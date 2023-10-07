@@ -3,9 +3,13 @@
 namespace Viewi\Builder;
 
 use Exception;
+use Reflection;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Viewi\Builder\Attributes\Skip;
+use Viewi\Components\BaseComponent;
+use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
 use Viewi\Helpers;
@@ -52,8 +56,10 @@ class Builder
      */
     private array $meta = [];
     private array $systemClasses = [
-        'Attribute' => true,
-        'Viewi\DI\Singleton' => true
+        Attribute::class => true,
+        Singleton::class => true,
+        Scoped::class => true,
+        Skip::class => true,
     ];
 
     public function __construct()
@@ -142,6 +148,12 @@ class Builder
                     if (isset($exportItem->Attributes['namespace'])) {
                         $this->components[$exportItem->Name]->Namespace = $exportItem->Attributes['namespace'];
                     }
+                    if (isset($exportItem->Attributes['attrs'])) {
+                        $this->components[$exportItem->Name]->Attributes = $exportItem->Attributes['attrs'];
+                        if ($this->components[$exportItem->Name]->Attributes && isset($this->components[$exportItem->Name]->Attributes['Skip'])) {
+                            $this->components[$exportItem->Name]->Skip = true;
+                        }
+                    }
                 }
                 $this->collectPublicNodes($this->components[$exportItem->Name], $exportItem->Children);
             }
@@ -188,10 +200,12 @@ class Builder
                 if (!isset($this->components[$baseName])) {
                     $className = implode('\\', $useItem->Parts);
                     if (!isset($this->systemClasses[$className])) {
-                        // Helpers::debug($useItem);
                         throw new Exception("Class '$className' can not be found.");
                     }
                     $useItem->Skip = true;
+                    continue;
+                }
+                if ($this->components[$baseName]->Skip) {
                     continue;
                 }
                 if (!$this->components[$baseName]->Include) {
@@ -283,6 +297,9 @@ class Builder
         $publicJson = [];
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
+            if ($buildItem->Skip) {
+                continue;
+            }
             $componentMeta = [
                 'Namespace' => $buildItem->Namespace,
                 'Name' => $buildItem->ComponentName
@@ -303,8 +320,13 @@ class Builder
                 $attributeClass = $attribute->getName();
                 switch ($attributeClass) {
                     case Singleton::class: {
-                            $componentMeta['di'] = 'Singleton';
-                            $publicJson[$buildItem->ComponentName]['di'] = 'Singleton';
+                            $componentMeta['di'] = Singleton::NAME;
+                            $publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
+                            break;
+                        }
+                    case Scoped::class: {
+                            $componentMeta['di'] = Scoped::NAME;
+                            $publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
                             break;
                         }
                     default: // none 
@@ -313,6 +335,10 @@ class Builder
                 // Helpers::debug($attributeClass);
             }
             $componentMeta['inputs'] = $this->getProps($rf);
+            if ($rf->isSubclassOf(BaseComponent::class)) {
+                $componentMeta['base'] = 1;
+                $publicJson[$buildItem->ComponentName]['base'] = 1;
+            }
             // template, render function
             $expressionsJs = '';
             if ($buildItem->RenderFunction !== null) {
