@@ -5,7 +5,7 @@ namespace Viewi\DI;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER)]
-class Singleton
+class Scoped
 {
-    public const NAME = 'Singleton';
+    public const NAME = 'Scoped';
 }
