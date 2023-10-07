@@ -3,11 +3,16 @@
 namespace Viewi;
 
 use Exception;
+use Viewi\Components\BaseComponent;
+use Viewi\DI\Scoped;
+use Viewi\DI\Singleton;
 
 class Engine
 {
     private bool $ready = false;
     private array $meta = [];
+    private array $DIContainer = [];
+    public int $instanceIdCounter = 0;
 
     public function __construct(private string $buildPath)
     {
@@ -87,6 +92,21 @@ class Engine
     {
         $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
         $instance = false;
+        $storeInContainer = false;
+        if (isset($componentMeta['di'])) {
+            switch ($componentMeta['di']) {
+                case Scoped::NAME: // Scoped and Singleton are the same on back-end (SSR)
+                case Singleton::NAME: {
+                        if (isset($this->DIContainer[$fullClassName])) {
+                            return $this->DIContainer[$fullClassName];
+                        }
+                        $storeInContainer = true;
+                        break;
+                    }
+                default: // skip
+                    break;
+            }
+        }
         if (empty($componentMeta['dependencies'])) {
             $instance = new $fullClassName();
         } else {
@@ -121,6 +141,15 @@ class Engine
                 }
             }
             $instance = new $fullClassName(...$arguments);
+        }
+        if ($storeInContainer) {
+            $this->DIContainer[$fullClassName] = $instance;
+        }
+        if (isset($componentMeta['base'])) {
+            /**
+             * @var BaseComponent $instance
+             */
+            $instance->__id = ++$this->instanceIdCounter;
         }
         return $instance;
     }
