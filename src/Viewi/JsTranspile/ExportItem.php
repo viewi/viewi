@@ -17,7 +17,7 @@ class ExportItem
     public array $Children = [];
     public ?array $Attributes = null;
 
-    public function __construct(public string $Type, public string $Name)
+    public function __construct(public string $Type, public string $Name, public $DataType = null, public bool $Nullable = false)
     {
     }
 
@@ -38,9 +38,9 @@ class ExportItem
         return new self(self::Method, $name);
     }
 
-    public static function NewProperty(string $name): self
+    public static function NewProperty(string $name, $type = null, bool $nullable = false): self
     {
-        return new self(self::Property, $name);
+        return new self(self::Property, $name, $type, $nullable);
     }
 
     public static function NewFunction(string $name): self

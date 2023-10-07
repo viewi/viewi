@@ -23,7 +23,9 @@ use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Ternary;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Scalar\Encapsed;
 use PhpParser\Node\Scalar\EncapsedStringPart;
 use PhpParser\Node\Scalar\LNumber;
@@ -247,7 +249,20 @@ class JsTranspiler
                         $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "\$$name = ";
                     }
                     if ($node->isPublic()) {
-                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name);
+                        // Helpers::debug([$name, $node->type]);
+                        $type = null;
+                        $nullable = false;
+                        if ($node->type instanceof Name) {
+                            $type = $node->type->getParts()[0];
+                        } elseif ($node->type instanceof NullableType) {
+                            $nullable = true;
+                            if ($node->type->type instanceof Name) {
+                                $type = $node->type->type->getParts()[0];
+                            } elseif ($node->type->type instanceof Identifier) {
+                                $type = $node->type->type->name;
+                            }
+                        }
+                        $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$name] = ExportItem::NewProperty($name, $type, $nullable);
                     }
                 }
                 if ($node->props[0]->default !== null) {
