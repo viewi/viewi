@@ -82,6 +82,9 @@ export function render(
                                     children: {},
                                     counter: 0
                                 };
+                                if (scope.refs) {
+                                    nextScope.refs = scope.refs;
+                                }
                                 scope.children[scopeId] = nextScope;
                                 if (nextValue) {
                                     render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
@@ -126,6 +129,9 @@ export function render(
                                         children: {},
                                         counter: 0
                                     };
+                                    if (scope.refs) {
+                                        nextScope.refs = scope.refs;
+                                    }
                                     scope.children[scopeId] = nextScope;
                                     if (nextValue) {
                                         render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
@@ -172,6 +178,9 @@ export function render(
                                         children: {},
                                         counter: 0
                                     };
+                                    if (scope.refs) {
+                                        nextScope.refs = scope.refs;
+                                    }
                                     scope.children[scopeId] = nextScope;
                                     if (nextValue) {
                                         render(target, instance, [node], nextScope, localDirectiveMap, hydrate, insert);
@@ -213,6 +222,9 @@ export function render(
                                         children: {},
                                         counter: 0
                                     };
+                                    if (scope.refs) {
+                                        nextScope.refs = scope.refs;
+                                    }
                                     scope.children[scopeId] = nextScope;
                                     nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
                                     nextScope.arguments.push(dataKey);
@@ -287,6 +299,9 @@ export function render(
                         children: {},
                         counter: 0
                     };
+                    if (scope.refs) {
+                        nextScope.refs = scope.refs;
+                    }
                     scope.children[scopeId] = nextScope;
                     childScope = nextScope;
                 }
@@ -307,6 +322,9 @@ export function render(
                             counter: 0,
                             slots: scope.slots
                         };
+                        if (scope.refs) {
+                            slotScope.refs = scope.refs;
+                        }
                         nextScope!.children[scopeId] = slotScope;
                         for (let slotName in node.slots) {
                             slots[slotName] = {
@@ -481,6 +499,14 @@ export function render(
                     const attrName = attribute.expression
                         ? instance.$$t[attribute.code!](instance) // TODO: arguments
                         : (attribute.content ?? '');
+                    if (attrName[0] === '#') {
+                        const refName = attrName.substring(1, attrName.length);
+                        instance._refs[refName] = element;
+                        if (scope.refs && refName in scope.refs) {
+                            instance[refName] = element;
+                        }
+                        continue;
+                    }
                     const isModel = attrName === 'model';
                     if (attrName[0] === '(') {
                         // event

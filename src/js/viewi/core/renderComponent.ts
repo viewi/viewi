@@ -68,7 +68,8 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
     if (!(name in components)) {
         throw new Error(`Component ${name} not found.`);
     }
-    const root = componentsMeta.list[name].nodes;
+    const info = componentsMeta.list[name];
+    const root = info.nodes;
     const instance: BaseComponent<any> = makeProxy(resolve(name));
     const inlineExpressions = name + '_x';
     if (inlineExpressions in components) {
@@ -89,6 +90,9 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         slots: slots
     };
     props && (props.scope.children[scopeId] = scope);
+    if (info.refs) {
+        scope.refs = info.refs;
+    }
     // set props
     if (props && props.attributes) {
         const parentInstance = props.scope.instance;
@@ -155,6 +159,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
             rootChildren[0].first = true;
             render(target, instance, rootChildren, scope, undefined, hydrate, insert);
             // console.log(name, instance, rootChildren);
+            // console.log(name, instance);
         }
     }
 }

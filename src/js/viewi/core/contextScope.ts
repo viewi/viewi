@@ -12,5 +12,6 @@ export type ContextScope = {
     track: { path: string, id: number }[], // disposable reactivity items
     parent?: ContextScope,
     children: { [key: string]: ContextScope }, // all nested scopes from directives and components, tree disposal
-    slots?: Slots
+    slots?: Slots,
+    refs?: { [key: string]: boolean }
 }

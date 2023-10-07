@@ -44,6 +44,9 @@ export function renderForeach(
             children: {},
             counter: 0
         };
+        if (scope.refs) {
+            nextScope.refs = scope.refs;
+        }
         scope.children[scopeId] = nextScope;
         // if (!(dataKey in currentArrayScope)) { // if unique key provided
         // }

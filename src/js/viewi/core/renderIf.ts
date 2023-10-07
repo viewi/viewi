@@ -43,6 +43,9 @@ export function renderIf(
                 children: {},
                 counter: 0
             };
+            if (scope.refs) {
+                nextScope.refs = scope.refs;
+            }
             scopeContainer.scope = nextScope;
             scope.children[scopeId] = nextScope;
             render(anchorNode, instance, [node], nextScope, nextDirectives, false, true);

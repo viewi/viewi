@@ -31,7 +31,8 @@ export type ComponentMetaData = {
     nodes?: TemplateNode,
     dependencies?: any[],
     di?: 'Singleton' | 'Scoped' | 'Transient',
-    base?: boolean
+    base?: boolean,
+    refs?: { [key: string]: boolean }
 }
 
 export type ComponentMetaDataList = {

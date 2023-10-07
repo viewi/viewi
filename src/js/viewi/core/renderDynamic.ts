@@ -33,6 +33,9 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         children: {},
         counter: 0
     };
+    if (scope.refs) {
+        nextScope.refs = scope.refs;
+    }
     scopeContainer.scope = nextScope;
     scope.children[scopeId] = nextScope;
     // component
