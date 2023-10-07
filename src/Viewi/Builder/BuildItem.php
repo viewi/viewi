@@ -22,6 +22,11 @@ class BuildItem
     public array $publicNodes = [];
     /**
      * 
+     * @var array<string, bool>
+     */
+    public array $refs = [];
+    /**
+     * 
      * @var array<string, UseItem>> 
      */
     public array $Uses = [];

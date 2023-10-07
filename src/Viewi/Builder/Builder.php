@@ -9,6 +9,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\DOM\HtmlNode;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
@@ -171,6 +172,9 @@ class Builder
         foreach ($exports as $exportItem) {
             if ($exportItem->Type === ExportItem::Property || $exportItem->Type === ExportItem::Method) {
                 $buildItem->publicNodes[$exportItem->Name] = $exportItem->Type;
+                if ($exportItem->DataType === 'HtmlNode') {
+                    $buildItem->refs[$exportItem->Name] = 1;
+                }
             }
         }
     }
@@ -338,6 +342,9 @@ class Builder
             if ($rf->isSubclassOf(BaseComponent::class)) {
                 $componentMeta['base'] = 1;
                 $publicJson[$buildItem->ComponentName]['base'] = 1;
+                if ($buildItem->refs) {
+                    $publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
+                }
             }
             // template, render function
             $expressionsJs = '';
@@ -378,7 +385,7 @@ class Builder
                         if ($useItem->Type === UseItem::Class_) {
                             if ($importName === 'BaseComponent') {
                                 $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/BaseComponent";' . PHP_EOL;
-                            } else {
+                            } elseif (!isset($this->components[$importName]) || !$this->components[$importName]->Skip) {
                                 $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
                             }
                         } elseif ($useItem->Type === UseItem::Function) {
@@ -476,7 +483,11 @@ class Builder
         $props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
         if (count($props) > 0) {
             foreach ($props as $propertyInfo) {
-                $inputs[$propertyInfo->getName()] = true;
+                // $type = $propertyInfo->getType();
+                // if ($type !== null && $type->getName() === HtmlNode::class) {
+
+                // }
+                $inputs[$propertyInfo->getName()] = 1;
             }
         }
         return $inputs;
