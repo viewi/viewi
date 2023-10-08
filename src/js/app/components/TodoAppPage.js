@@ -1,4 +1,4 @@
-import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { BaseComponent } from "../../viewi/core/component/baseComponent";
 
 class TodoAppPage extends BaseComponent {
     _name = 'TodoAppPage';

@@ -1,5 +1,5 @@
 import { TodoReducer } from "./TodoReducer";
-import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { BaseComponent } from "../../viewi/core/component/baseComponent";
 import { strlen } from "../functions/strlen";
 import { count } from "../functions/count";
 

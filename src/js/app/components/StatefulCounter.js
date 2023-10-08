@@ -1,5 +1,5 @@
 import { CounterReducer } from "./CounterReducer";
-import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { BaseComponent } from "../../viewi/core/component/baseComponent";
 
 class StatefulCounter extends BaseComponent {
     _name = 'StatefulCounter';

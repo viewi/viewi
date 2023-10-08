@@ -1,31 +1,9 @@
 (() => {
-  // viewi/core/anchor.ts
-  var anchorId = 0;
-  var anchorNodeId = 0;
+  // viewi/core/anchor/anchors.ts
   var anchors = {};
-  function getAnchor(target) {
-    if (!target.__aid) {
-      target.__aid = ++anchorId;
-      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
-    }
-    return anchors[target.__aid];
-  }
-  function nextAnchorNodeId() {
-    return ++anchorNodeId;
-  }
-  function createAnchorNode(target, insert = false, anchor, name) {
-    const anchorNode = document.createTextNode("");
-    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
-    if (anchor) {
-      anchor.current++;
-    }
-    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
-    return anchorNode;
-  }
 
-  // viewi/core/componentsMeta.ts
+  // viewi/core/component/componentsMeta.ts
   var componentsMeta = { list: {}, booleanAttributes: {} };
-  var componentsMeta_default = componentsMeta;
 
   // app/components/UserModel.js
   var UserModel = class {
@@ -52,7 +30,7 @@
     }
   };
 
-  // viewi/core/BaseComponent.ts
+  // viewi/core/component/baseComponent.ts
   var BaseComponent = class {
     __id = "";
     _props = {};
@@ -73,18 +51,6 @@
         this.$_callbacks[name](event);
       }
     }
-  };
-  var ReserverProps = {
-    _props: true,
-    $_callbacks: true,
-    _refs: true,
-    _slots: true,
-    _element: true,
-    $$t: true,
-    $$r: true,
-    $: true,
-    _name: true,
-    emitEvent: true
   };
 
   // app/components/MenuBar.js
@@ -1147,7 +1113,28 @@
     TodoList
   };
 
-  // viewi/core/makeProxy.ts
+  // viewi/core/getComponentModelHandler.ts
+  function getComponentModelHandler(instance, setter) {
+    return function(event) {
+      setter(instance, event);
+    };
+  }
+
+  // viewi/core/component/reserverProps.ts
+  var ReserverProps = {
+    _props: true,
+    $_callbacks: true,
+    _refs: true,
+    _slots: true,
+    _element: true,
+    $$t: true,
+    $$r: true,
+    $: true,
+    _name: true,
+    emitEvent: true
+  };
+
+  // viewi/core/reactivity/makeProxy.ts
   var reactiveId = 0;
   function makeReactive(componentProperty, component, path) {
     const targetObject = componentProperty.$ ?? componentProperty;
@@ -1215,7 +1202,17 @@
     return proxy;
   }
 
-  // viewi/core/hydrateComment.ts
+  // viewi/core/anchor/getAnchor.ts
+  var anchorId = 0;
+  function getAnchor(target) {
+    if (!target.__aid) {
+      target.__aid = ++anchorId;
+      anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
+    }
+    return anchors[target.__aid];
+  }
+
+  // viewi/core/hydrate/hydrateComment.ts
   function hydrateComment(target, content) {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
@@ -1239,7 +1236,7 @@
     return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(element);
   }
 
-  // viewi/core/hydrateTag.ts
+  // viewi/core/hydrate/hydrateTag.ts
   function hydrateTag(target, tag) {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
@@ -1263,7 +1260,7 @@
     return max > anchor.current ? target.insertBefore(element, target.childNodes[anchor.current]) : target.appendChild(element);
   }
 
-  // viewi/core/renderText.ts
+  // viewi/core/render/renderText.ts
   function renderText(instance, node, textNode, scope) {
     let callArguments = [instance];
     if (scope.arguments) {
@@ -1273,7 +1270,7 @@
     textNode.nodeValue !== content && (textNode.nodeValue = content);
   }
 
-  // viewi/core/hydrateText.ts
+  // viewi/core/hydrate/hydrateText.ts
   function hydrateText(target, instance, node, scope) {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
@@ -1302,7 +1299,7 @@
     return max > anchor.current ? target.insertBefore(textNode, target.childNodes[anchor.current]) : target.appendChild(textNode);
   }
 
-  // viewi/core/renderAttributeValue.ts
+  // viewi/core/render/renderAttributeValue.ts
   function renderAttributeValue(instance, attribute, element, attrName, scope) {
     let valueContent = null;
     if (attribute.children) {
@@ -1317,7 +1314,7 @@
         valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
       }
     }
-    if (attrName.toLowerCase() in componentsMeta_default.booleanAttributes) {
+    if (attrName.toLowerCase() in componentsMeta.booleanAttributes) {
       if (valueContent === true || valueContent === null) {
         attrName !== element.getAttribute(attrName) && element.setAttribute(attrName, attrName);
       } else {
@@ -1358,7 +1355,22 @@
     }
   }
 
-  // viewi/core/renderForeach.ts
+  // viewi/core/anchor/createAnchorNode.ts
+  var anchorNodeId = 0;
+  function nextAnchorNodeId() {
+    return ++anchorNodeId;
+  }
+  function createAnchorNode(target, insert = false, anchor, name) {
+    const anchorNode = document.createTextNode("");
+    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
+    if (anchor) {
+      anchor.current++;
+    }
+    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
+    return anchorNode;
+  }
+
+  // viewi/core/render/renderForeach.ts
   function renderForeach(instance, node, directive, anchorNode, currentArrayScope, localDirectiveMap, scope) {
     let callArguments = [instance];
     if (scope.arguments) {
@@ -1446,7 +1458,7 @@
     }
   }
 
-  // viewi/core/renderIf.ts
+  // viewi/core/render/renderIf.ts
   function renderIf(instance, node, scopeContainer, directive, ifConditions, localDirectiveMap, index) {
     let nextValue = true;
     for (let i = 0; i < index; i++) {
@@ -1505,7 +1517,7 @@
     commentNode.nodeValue !== content && (commentNode.nodeValue = content);
   }
 
-  // viewi/core/track.ts
+  // viewi/core/reactivity/track.ts
   var trackingId = 0;
   function track(instance, trackingPath, scope, action) {
     if (!instance.$$r[trackingPath]) {
@@ -1586,7 +1598,12 @@
     ;
   }
 
-  // viewi/core/renderDynamic.ts
+  // viewi/core/isComponent.ts
+  function isComponent(name) {
+    return name in componentsMeta.list;
+  }
+
+  // viewi/core/render/renderDynamic.ts
   function renderDynamic(instance, node, scopeContainer) {
     const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
     const componentTag = node.type === "component" || node.expression && isComponent(content);
@@ -1675,7 +1692,7 @@
     }
   }
 
-  // viewi/core/renderRaw.ts
+  // viewi/core/render/renderRaw.ts
   function renderRaw(instance, node, scope, anchorNode) {
     while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
       anchorNode.previousSibling.remove();
@@ -1786,7 +1803,7 @@
     }
   }
 
-  // viewi/core/render.ts
+  // viewi/core/render/render.ts
   function render(target, instance, nodes, scope, directives, hydrate = true, insert = false) {
     let ifConditions = null;
     let nextInsert = false;
@@ -2279,46 +2296,12 @@
     }
   }
 
-  // viewi/core/updateProp.ts
-  function updateProp(instance, attribute, props) {
-    const parentInstance = props.scope.instance;
-    const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
-    if (attrName[0] === "(") {
-    } else {
-      let valueContent = null;
-      let valueSubs = [];
-      if (attribute.children) {
-        for (let av = 0; av < attribute.children.length; av++) {
-          const attributeValue = attribute.children[av];
-          let callArguments = [parentInstance];
-          if (props.scope.arguments) {
-            callArguments = callArguments.concat(props.scope.arguments);
-          }
-          const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
-          valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
-          if (attributeValue.subs) {
-            valueSubs = valueSubs.concat(attributeValue.subs);
-          }
-        }
-      }
-      if (attrName === "_props" && valueContent) {
-        for (let propName in valueContent) {
-          instance[propName] = valueContent[propName];
-          instance._props[propName] = valueContent[propName];
-        }
-      } else {
-        instance[attrName] = valueContent;
-        instance._props[attrName] = valueContent;
-      }
-    }
-  }
-
-  // viewi/core/renderComponent.ts
+  // viewi/core/resolve.ts
   var scopedContainer = {};
   var singletonContainer = {};
   var nextInstanceId = 0;
   function resolve(name, params = []) {
-    const info = componentsMeta_default.list[name];
+    const info = componentsMeta.list[name];
     let instance = null;
     let container = false;
     if (info.di === "Singleton") {
@@ -2359,14 +2342,55 @@
     }
     return instance;
   }
+
+  // viewi/core/updateComponentModel.ts
+  function updateComponentModel(instance, attrName, getter, parentInstance) {
+    instance[attrName] = getter(parentInstance);
+  }
+
+  // viewi/core/updateProp.ts
+  function updateProp(instance, attribute, props) {
+    const parentInstance = props.scope.instance;
+    const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
+    if (attrName[0] === "(") {
+    } else {
+      let valueContent = null;
+      let valueSubs = [];
+      if (attribute.children) {
+        for (let av = 0; av < attribute.children.length; av++) {
+          const attributeValue = attribute.children[av];
+          let callArguments = [parentInstance];
+          if (props.scope.arguments) {
+            callArguments = callArguments.concat(props.scope.arguments);
+          }
+          const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
+          valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
+          if (attributeValue.subs) {
+            valueSubs = valueSubs.concat(attributeValue.subs);
+          }
+        }
+      }
+      if (attrName === "_props" && valueContent) {
+        for (let propName in valueContent) {
+          instance[propName] = valueContent[propName];
+          instance._props[propName] = valueContent[propName];
+        }
+      } else {
+        instance[attrName] = valueContent;
+        instance._props[attrName] = valueContent;
+      }
+    }
+  }
+
+  // viewi/core/render/renderComponent.ts
   function renderComponent(target, name, props, slots, hydrate = false, insert = false) {
-    if (!(name in componentsMeta_default.list)) {
+    if (!(name in componentsMeta.list)) {
       throw new Error(`Component ${name} not found.`);
     }
     if (!(name in components)) {
       throw new Error(`Component ${name} not found.`);
     }
-    const info = componentsMeta_default.list[name];
+    const info = componentsMeta.list[name];
     const root = info.nodes;
     const instance = makeProxy(resolve(name));
     const inlineExpressions = name + "_x";
@@ -2414,16 +2438,10 @@
             }
             const getterSetter = parentInstance.$$t[attributeValue.code].apply(null, callArguments);
             valueContent = getterSetter[0](parentInstance);
-            instance.$_callbacks[attrName] = function(_component, setter) {
-              return function(event) {
-                setter(_component, event);
-              };
-            }(parentInstance, getterSetter[1]);
+            instance.$_callbacks[attrName] = getComponentModelHandler(parentInstance, getterSetter[1]);
             for (let subI in attributeValue.subs) {
               const trackingPath = attributeValue.subs[subI];
-              track(parentInstance, trackingPath, props.scope, [function(instance2, attrName2, getter, parentInstance2) {
-                instance2[attrName2] = getter(parentInstance2);
-              }, [instance, attrName, getterSetter[0], parentInstance]]);
+              track(parentInstance, trackingPath, props.scope, [updateComponentModel, [instance, attrName, getterSetter[0], parentInstance]]);
             }
           } else {
             if (attribute.children) {
@@ -2473,9 +2491,6 @@
       }
     }
   }
-  function isComponent(name) {
-    return name in componentsMeta_default.list;
-  }
 
   // viewi/index.ts
   var Viewi = () => ({
@@ -2500,10 +2515,10 @@
   }
   (async () => {
     const data = await (await fetch("/assets/components.json")).json();
-    componentsMeta_default.list = data;
+    componentsMeta.list = data;
     const booleanArray = data._meta["boolean"].split(",");
     for (let i = 0; i < booleanArray.length; i++) {
-      componentsMeta_default.booleanAttributes[booleanArray[i]] = true;
+      componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
     setTimeout(() => renderApp("TestComponent"), 500);
   })();

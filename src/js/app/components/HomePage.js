@@ -1,4 +1,4 @@
-import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { BaseComponent } from "../../viewi/core/component/baseComponent";
 
 class HomePage extends BaseComponent {
     _name = 'HomePage';

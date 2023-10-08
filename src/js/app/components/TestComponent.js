@@ -1,6 +1,6 @@
 import { UserModel } from "./UserModel";
 import { CounterReducer } from "./CounterReducer";
-import { BaseComponent } from "../../viewi/core/BaseComponent";
+import { BaseComponent } from "../../viewi/core/component/baseComponent";
 import { json_encode } from "../functions/json_encode";
 
 class TestComponent extends BaseComponent {
