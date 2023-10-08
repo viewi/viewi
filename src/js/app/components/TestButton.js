@@ -7,6 +7,10 @@ class TestButton extends BaseComponent {
     class = null;
     disabled = false;
     loading = false;
+
+    onClick(event) {
+        this.emitEvent("click", event);
+    }
 }
 
 export const TestButton_x = [
@@ -14,6 +18,7 @@ export const TestButton_x = [
     function (_component) { return _component.disabled; },
     function (_component) { return _component.title; },
     function (_component) { return _component.class; },
+    function (_component) { return function (event) { _component.onClick(); }; },
     function (_component) { return " " + (_component.title ?? "") + "\n    "; },
     function (_component) { return _component.loading; }
 ];

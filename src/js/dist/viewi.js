@@ -69,7 +69,7 @@
     $;
     _name = "BaseComponent";
     emitEvent(name, event) {
-      if (this.$_callbacks && name in this.$_callbacks) {
+      if (name in this.$_callbacks) {
         this.$_callbacks[name](event);
       }
     }
@@ -137,7 +137,9 @@
       };
     },
     function(_component) {
-      return _component.increment.bind(_component);
+      return function(event) {
+        _component.increment();
+      };
     },
     function(_component) {
       return _component.message;
@@ -297,6 +299,9 @@
     class = null;
     disabled = false;
     loading = false;
+    onClick(event) {
+      this.emitEvent("click", event);
+    }
   };
   var TestButton_x = [
     function(_component) {
@@ -310,6 +315,11 @@
     },
     function(_component) {
       return _component.class;
+    },
+    function(_component) {
+      return function(event) {
+        _component.onClick();
+      };
     },
     function(_component) {
       return " " + (_component.title ?? "") + "\n    ";
@@ -509,13 +519,41 @@
       return _component.attr;
     },
     function(_component) {
-      return expression.bind(_component);
+      return function(event) {
+        expression();
+      };
     },
     function(_component) {
       return _component.event;
     },
     function(_component) {
-      return _component.onEvent.bind(_component);
+      return function(event) {
+        _component.onEvent();
+      };
+    },
+    function(_component) {
+      return function() {
+        _component.counterReducer.increment();
+      };
+    },
+    function(_component) {
+      return "Clicked " + (_component.counterReducer.count ?? "");
+    },
+    function(_component) {
+      return function() {
+        _component.counterReducer.increment();
+      };
+    },
+    function(_component) {
+      return "Clicked " + (_component.counterReducer.count ?? "");
+    },
+    function(_component) {
+      return function(event) {
+        _component.counterReducer.increment();
+      };
+    },
+    function(_component) {
+      return "Clicked " + (_component.counterReducer.count ?? "");
     },
     function(_component) {
       return _component.__id;
@@ -821,7 +859,9 @@
       return "Custom " + (_component.name ?? "") + " footer";
     },
     function(_component) {
-      return _component.addTodo.bind(_component);
+      return function(event) {
+        _component.addTodo();
+      };
     },
     function(_component) {
       return _component.nestedIf;
@@ -944,10 +984,14 @@
       return key + ". " + (subKey ?? "") + ". " + (subItem ?? "");
     },
     function(_component) {
-      return _component.toggleIf.bind(_component);
+      return function(event) {
+        _component.toggleIf();
+      };
     },
     function(_component) {
-      return _component.toggleElseIf.bind(_component);
+      return function(event) {
+        _component.toggleElseIf();
+      };
     },
     function(_component) {
       return function(event) {
@@ -2309,6 +2353,11 @@
         const attribute = props.attributes[a];
         const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
         if (attrName[0] === "(") {
+          const eventName = attrName.substring(1, attrName.length - 1);
+          if (attribute.children) {
+            const eventHandler = parentInstance.$$t[attribute.dynamic ? attribute.dynamic.code : attribute.children[0].code](parentInstance);
+            instance.$_callbacks[eventName] = eventHandler;
+          }
         } else {
           let valueContent = null;
           let valueSubs = [];
