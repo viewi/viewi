@@ -13,7 +13,7 @@ export abstract class BaseComponent<T> {
     $: T;
     _name: string = 'BaseComponent';
     emitEvent(name: string, event?: any) {
-        if (this.$_callbacks && name in this.$_callbacks) {
+        if (name in this.$_callbacks) {
             this.$_callbacks[name](event);
         }
     }

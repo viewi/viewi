@@ -102,7 +102,17 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                 ? parentInstance.$$t[attribute.code!](parentInstance) // TODO: arguments
                 : (attribute.content ?? '');
             if (attrName[0] === '(') {
-                // TODO: event
+                const eventName = attrName.substring(1, attrName.length - 1);
+                if (attribute.children) {
+                    const eventHandler =
+                    parentInstance.$$t[
+                            attribute.dynamic
+                                ? attribute.dynamic.code!
+                                : attribute.children[0].code!
+                        ](parentInstance) as EventListener;
+                    instance.$_callbacks[eventName] = eventHandler;
+                    // console.log('Event', attribute, eventName, eventHandler);
+                }
             } else {
                 let valueContent: any = null;
                 let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
