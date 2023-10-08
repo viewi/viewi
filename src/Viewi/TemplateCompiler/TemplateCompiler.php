@@ -401,11 +401,25 @@ class TemplateCompiler
                         $values = $attributeItem->getChildren();
                         $hasValues = count($values) > 0;
                         $combinedValue = $hasValues ? '' : 'true';
+                        $isEvent = $attributeItem->Content[0] === '(';
+                        if ($isEvent) {
+                            $combinedExpression = '';
+                            foreach ($values as &$subValue) {
+                                $combinedExpression .= $subValue->Content;
+                            }
+                            $attributeTagValue = new TagItem();
+                            $attributeTagValue->Type = new TagItemType(TagItemType::AttributeValue);
+                            $attributeTagValue->ItsExpression = true;
+                            $attributeTagValue->Content = $combinedExpression;
+                            $values = [$attributeTagValue];
+                            $attributeItem->setChildren($values);
+                        }
                         $concat = '';
+                        $single = count($values) === 1;
                         foreach ($values as &$attributeValue) {
                             if ($attributeValue->ItsExpression) {
                                 $this->buildExpression($attributeValue);
-                                $combinedValue .= $concat . "({$attributeValue->PhpExpression})";
+                                $combinedValue .= $concat . ($single ? $attributeValue->PhpExpression : "({$attributeValue->PhpExpression})");
                             } else {
                                 if (
                                     ctype_digit($attributeValue->Content)
@@ -418,6 +432,20 @@ class TemplateCompiler
                                 }
                             }
                             $concat = ' . ';
+                        }
+                        if ($isEvent) {
+                            $jsEventCode = $values[0]->JsExpression;
+                            if (!ctype_alnum(str_replace(['_', '->', '$'], '', $combinedValue))) { // closure
+                                $jsEventCode = "function () { $jsEventCode; }";
+                            } else {
+                                $jsEventCode = "function () { $jsEventCode(); }";
+                            }
+                            $lastExpression = array_pop($this->inlineExpressions);
+                            $lastExpression[0] = $jsEventCode;
+                            $values[0]->JsExpression = $jsEventCode;
+                            $this->inlineExpressions[] = $lastExpression;
+                            // Helpers::debug([$values[0], $this->inlineExpressions]);
+                            $combinedValue = "true";
                         }
                         $name = $attributeItem->PhpExpression ?? var_export($attributeItem->Content, true);
                         $inputArguments[] = "{$comma}$name => $combinedValue";
@@ -727,10 +755,10 @@ class TemplateCompiler
             $jsEventCode = $jsEventCodeTupple[0];
             $funcArguments = implode(', ', $jsEventCodeTupple[1]);
             if (!$itsModel) {
-                if (!ctype_alnum(str_replace('_', '', $expression))) { // closure
+                if (!ctype_alnum(str_replace(['_', '->', '$'], '', $expression))) { // closure
                     $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
                 } else {
-                    $jsEventCode = "$jsEventCode.bind(_component)";
+                    $jsEventCode = "function ($funcArguments) { $jsEventCode(); }";
                 }
             }
             $this->inlineExpressions[] = [$jsEventCode, $this->localScopeArguments];
