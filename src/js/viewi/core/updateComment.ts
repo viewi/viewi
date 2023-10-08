@@ -1,4 +1,4 @@
-import { BaseComponent } from "./BaseComponent";
+import { BaseComponent } from "./component/baseComponent";
 import { TemplateNode } from "./templateNode";
 
 export function updateComment(instance: BaseComponent<any>, node: TemplateNode, commentNode: Comment) {

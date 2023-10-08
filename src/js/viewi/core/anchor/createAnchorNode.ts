@@ -1,25 +1,8 @@
-export type Anchor = {
-    target: Node,
-    current: number,
-    added: number,
-    invalid: number[]
-}
+import { Anchor } from "./anchor";
+import { NodeAnchor } from "./nodeAnchor";
+import { TextAnchor } from "./textAnchor";
 
-let anchorId = 0;
 let anchorNodeId = 0;
-export const anchors: { [key: string]: Anchor } = {};
-
-export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor) };
-
-export type NodeAnchor = Node & { __aid?: number };
-
-export function getAnchor(target: NodeAnchor): Anchor {
-    if (!target.__aid) {
-        target.__aid = ++anchorId;
-        anchors[target.__aid] = { current: -1, target, invalid: [], added: 0 };
-    }
-    return anchors[target.__aid];
-}
 
 export function nextAnchorNodeId(): number {
     return ++anchorNodeId;

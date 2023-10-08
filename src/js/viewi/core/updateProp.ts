@@ -1,4 +1,4 @@
-import { BaseComponent } from "./BaseComponent";
+import { BaseComponent } from "./component/baseComponent";
 import { TemplateNode } from "./templateNode";
 import { PropsContext } from "./propsContext";
 
@@ -37,6 +37,5 @@ export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode
             instance[attrName] = valueContent;
             instance._props[attrName] = valueContent;
         }
-        // TODO: model
     }
 }

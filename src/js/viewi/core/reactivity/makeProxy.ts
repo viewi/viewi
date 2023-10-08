@@ -1,4 +1,5 @@
-import { BaseComponent, ReserverProps } from "./BaseComponent";
+import { BaseComponent } from "../component/baseComponent";
+import { ReserverProps } from "../component/reserverProps";
 
 let reactiveId = 0;
 

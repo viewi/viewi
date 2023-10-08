@@ -1,6 +1,6 @@
-import { anchors } from "./core/anchor";
-import componentsMeta from "./core/componentsMeta";
-import { renderComponent } from "./core/renderComponent";
+import { anchors } from "./core/anchor/anchors";
+import { componentsMeta } from "./core/component/componentsMeta";
+import { renderComponent } from "./core/render/renderComponent";
 
 const Viewi = () => ({
     version: '2.0.1'

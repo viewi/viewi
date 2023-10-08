@@ -384,7 +384,7 @@ class Builder
                     if (!$useItem->Skip) {
                         if ($useItem->Type === UseItem::Class_) {
                             if ($importName === 'BaseComponent') {
-                                $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/BaseComponent";' . PHP_EOL;
+                                $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/component/baseComponent";' . PHP_EOL;
                             } elseif (!isset($this->components[$importName]) || !$this->components[$importName]->Skip) {
                                 $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
                             }

@@ -1,6 +1,6 @@
-import { getAnchor } from "./anchor";
+import { getAnchor } from "../anchor/getAnchor";
 
-export function hydrateTag(target: Node, tag: string): Node {
+export function hydrateComment(target: Node, content: string): Comment {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;
@@ -9,20 +9,19 @@ export function hydrateTag(target: Node, tag: string): Node {
     for (let i = anchor.current + 1; i < end; i++) {
         const potentialNode = target.childNodes[i];
         if (
-            potentialNode.nodeType === 1
-            && potentialNode.nodeName.toLowerCase() === tag
+            potentialNode.nodeType === 8
         ) {
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);
             // console.log('Hydrate match', potentialNode);
-            return potentialNode as Node;
+            return potentialNode as Comment;
         }
         invalid.push(i);
     }
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
-    console.warn('Hydrate not found', tag);
-    const element = document.createElement(tag);
+    console.log('Hydrate comment not found', content);
+    const element = document.createComment(content);
     anchor.current = anchor.current + invalid.length + 1;
     return max > anchor.current
         ? target.insertBefore(element, target.childNodes[anchor.current])

@@ -1,6 +1,6 @@
-import { BaseComponent } from "./BaseComponent";
-import { TemplateNode } from "./templateNode";
-import { ContextScope } from "./contextScope";
+import { BaseComponent } from "../component/baseComponent";
+import { TemplateNode } from "../templateNode";
+import { ContextScope } from "../contextScope";
 
 export function renderText(instance: BaseComponent<any>, node: TemplateNode, textNode: Text, scope: ContextScope) {
     let callArguments = [instance];

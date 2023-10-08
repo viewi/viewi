@@ -1,0 +1,1 @@
+export type DirectiveType = 'if' | 'else-if' | 'else' | 'foreach';

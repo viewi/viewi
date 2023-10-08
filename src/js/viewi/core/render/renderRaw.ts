@@ -1,7 +1,7 @@
-import { BaseComponent } from "./BaseComponent";
-import { TextAnchor } from "./anchor";
-import { ContextScope } from "./contextScope";
-import { TemplateNode } from "./templateNode";
+import { BaseComponent } from "../component/baseComponent";
+import { TextAnchor } from "../anchor/textAnchor";
+import { ContextScope } from "../contextScope";
+import { TemplateNode } from "../templateNode";
 
 export function renderRaw(instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope, anchorNode: TextAnchor) {
     // remove

@@ -1,0 +1,1 @@
+export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor) };

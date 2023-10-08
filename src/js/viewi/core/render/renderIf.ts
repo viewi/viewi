@@ -1,10 +1,11 @@
-import { BaseComponent } from "./BaseComponent";
-import { TextAnchor } from "./anchor";
-import { ContextScope } from "./contextScope";
-import { ConditionalDirective, DirectiveMap } from "./directive";
-import { dispose } from "./dispose";
-import { TemplateNode } from "./templateNode";
+import { BaseComponent } from "../component/baseComponent";
+import { ContextScope } from "../contextScope";
+import { dispose } from "../dispose";
+import { TemplateNode } from "../templateNode";
 import { render } from "./render";
+import { ConditionalDirective } from "../directive/conditionalDirective";
+import { DirectiveMap } from "../directive/DirectiveMap";
+import { TextAnchor } from "../anchor/textAnchor";
 
 export function renderIf(
     instance: BaseComponent<any>,

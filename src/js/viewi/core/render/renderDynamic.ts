@@ -1,13 +1,14 @@
-import { BaseComponent } from "./BaseComponent";
-import { TextAnchor } from "./anchor";
-import { ContextScope } from "./contextScope";
-import { dispose } from "./dispose";
-import { TemplateNode } from "./templateNode";
-import { PropsContext } from "./propsContext";
+import { BaseComponent } from "../component/baseComponent";
+import { ContextScope } from "../contextScope";
+import { dispose } from "../dispose";
+import { TemplateNode } from "../templateNode";
+import { PropsContext } from "../propsContext";
 import { render } from "./render";
 import { renderAttributeValue } from "./renderAttributeValue";
-import { isComponent, renderComponent } from "./renderComponent";
-import { track } from "./track";
+import { renderComponent } from "./renderComponent";
+import { track } from "../reactivity/track";
+import { isComponent } from "../component/isComponent";
+import { TextAnchor } from "../anchor/textAnchor";
 
 export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, scopeContainer: { scope: ContextScope, anchorNode: TextAnchor }) {
     const content = node.expression

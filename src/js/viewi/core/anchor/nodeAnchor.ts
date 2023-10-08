@@ -1,0 +1,1 @@
+export type NodeAnchor = Node & { __aid?: number };

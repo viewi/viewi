@@ -1,4 +1,4 @@
-import { BaseComponent } from "./BaseComponent"
+import { BaseComponent } from "./component/baseComponent"
 import { InputType } from "./inputType"
 
 export type ModelHandler = {
