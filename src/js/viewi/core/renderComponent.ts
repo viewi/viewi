@@ -105,7 +105,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                 const eventName = attrName.substring(1, attrName.length - 1);
                 if (attribute.children) {
                     const eventHandler =
-                    parentInstance.$$t[
+                        parentInstance.$$t[
                             attribute.dynamic
                                 ? attribute.dynamic.code!
                                 : attribute.children[0].code!
@@ -114,25 +114,41 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                     // console.log('Event', attribute, eventName, eventHandler);
                 }
             } else {
+                const isModel = attrName === 'model';
                 let valueContent: any = null;
                 let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
-                if (attribute.children) {
-                    for (let av = 0; av < attribute.children.length; av++) {
-                        const attributeValue = attribute.children[av];
-                        let callArguments = [parentInstance];
-                        if (props.scope.arguments) {
-                            callArguments = callArguments.concat(props.scope.arguments);
-                        }
-                        const childContent = attributeValue.expression
-                            ? parentInstance.$$t[attributeValue.code as number].apply(null, callArguments)
-                            : (attributeValue.content ?? '');
-                        valueContent = av === 0 ? childContent : valueContent + (childContent ?? '');
-                        if (attributeValue.subs) {
-                            valueSubs = valueSubs.concat(attributeValue.subs as never[]);
-                        }
+                if (isModel) {
+                    const attributeValue = attribute.children![0];
+                    let callArguments = [parentInstance];
+                    if (props.scope.arguments) {
+                        callArguments = callArguments.concat(props.scope.arguments);
+                    }
+                    const getterSetter = parentInstance.$$t[attributeValue.code as number].apply(null, callArguments);
+                    valueContent = getterSetter[0](parentInstance);
+                    instance.$_callbacks[attrName] = (function (_component, setter) { return function (event: any) { setter(_component, event); } })(parentInstance, getterSetter[1]);
+                    for (let subI in attributeValue.subs!) {
+                        const trackingPath = attributeValue.subs[subI];
+                        track(parentInstance, trackingPath, props.scope, [function (instance, attrName, getter, parentInstance) { instance[attrName] = getter(parentInstance); }, [instance, attrName, getterSetter[0], parentInstance]]);
                     }
                 } else {
-                    valueContent = true; // empty property conosidered bollean true
+                    if (attribute.children) {
+                        for (let av = 0; av < attribute.children.length; av++) {
+                            const attributeValue = attribute.children[av];
+                            let callArguments = [parentInstance];
+                            if (props.scope.arguments) {
+                                callArguments = callArguments.concat(props.scope.arguments);
+                            }
+                            const childContent = attributeValue.expression
+                                ? parentInstance.$$t[attributeValue.code as number].apply(null, callArguments)
+                                : (attributeValue.content ?? '');
+                            valueContent = av === 0 ? childContent : valueContent + (childContent ?? '');
+                            if (attributeValue.subs) {
+                                valueSubs = valueSubs.concat(attributeValue.subs as never[]);
+                            }
+                        }
+                    } else {
+                        valueContent = true; // empty property conosidered bollean true
+                    }
                 }
                 if (attrName === '_props' && valueContent) {
                     for (let propName in valueContent) {
