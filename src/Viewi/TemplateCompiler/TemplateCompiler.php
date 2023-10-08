@@ -402,7 +402,8 @@ class TemplateCompiler
                         $hasValues = count($values) > 0;
                         $combinedValue = $hasValues ? '' : 'true';
                         $isEvent = $attributeItem->Content[0] === '(';
-                        if ($isEvent) {
+                        $itsModel = $attributeItem->Content === 'model';
+                        if ($isEvent || $itsModel) {
                             $combinedExpression = '';
                             foreach ($values as &$subValue) {
                                 $combinedExpression .= $subValue->Content;
@@ -410,10 +411,14 @@ class TemplateCompiler
                             $attributeTagValue = new TagItem();
                             $attributeTagValue->Type = new TagItemType(TagItemType::AttributeValue);
                             $attributeTagValue->ItsExpression = true;
+                            if ($itsModel) {
+                                $combinedExpression = "[function (\${$this->_CompileJsComponentName}) { return $combinedExpression; }, function (\${$this->_CompileJsComponentName}, \$value) { $combinedExpression = \$value; }]";
+                            }
                             $attributeTagValue->Content = $combinedExpression;
                             $values = [$attributeTagValue];
                             $attributeItem->setChildren($values);
-                        }
+                        }                        
+                        
                         $concat = '';
                         $single = count($values) === 1;
                         foreach ($values as &$attributeValue) {
@@ -758,7 +763,7 @@ class TemplateCompiler
                 if (!ctype_alnum(str_replace(['_', '->', '$'], '', $expression))) { // closure
                     $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
                 } else {
-                    $jsEventCode = "function ($funcArguments) { $jsEventCode(); }";
+                    $jsEventCode = "function ($funcArguments) { $jsEventCode($funcArguments); }";
                 }
             }
             $this->inlineExpressions[] = [$jsEventCode, $this->localScopeArguments];
