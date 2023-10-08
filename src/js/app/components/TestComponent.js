@@ -32,6 +32,7 @@ class TestComponent extends BaseComponent {
     selectedList = ["A", "C"];
     user = null;
     NameInput = null;
+    testModel = "some test";
     counterReducer = null;
 
     constructor(counterReducer) {
@@ -83,14 +84,25 @@ export const TestComponent_x = [
     function (_component) { return _component.empty; },
     function (_component) { return _component.null; },
     function (_component) { return _component.attr; },
-    function (_component) { return function (event) { expression(); }; },
+    function (_component) { return function (event) { expression(event); }; },
     function (_component) { return _component.event; },
-    function (_component) { return function (event) { _component.onEvent(); }; },
+    function (_component) { return function (event) { _component.onEvent(event); }; },
+    function (_component) { return [function(_component) {
+    return _component.testModel;
+}, function(_component, value) {
+    _component.testModel = value;
+}]; },
+    function (_component) { return _component.testModel; },
+    function (_component) { return [function(_component) {
+    return _component.testModel;
+}, function(_component, value) {
+    _component.testModel = value;
+}]; },
     function (_component) { return function () { _component.counterReducer.increment(); }; },
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
     function (_component) { return function () { _component.counterReducer.increment(); }; },
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
-    function (_component) { return function (event) { _component.counterReducer.increment(); }; },
+    function (_component) { return function (event) { _component.counterReducer.increment(event); }; },
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
     function (_component) { return _component.__id; },
     function (_component) { return "First Name (" + (_component.__id ?? "") + ")"; },
@@ -227,7 +239,7 @@ export const TestComponent_x = [
     function (_component) { return "Custom " + (_component.name ?? "") + " slot\n        "; },
     function (_component) { return "Custom header " + (_component.name ?? "") + " inside div"; },
     function (_component) { return "Custom " + (_component.name ?? "") + " footer"; },
-    function (_component) { return function (event) { _component.addTodo(); }; },
+    function (_component) { return function (event) { _component.addTodo(event); }; },
     function (_component) { return _component.nestedIf; },
     function (_component) { return _component.name; },
     function (_component) { return _component.ifValue; },
@@ -268,8 +280,8 @@ export const TestComponent_x = [
     function (_component, key, subArr, subKey, subItem) { return subKey; },
     function (_component, key, subArr, subKey, subItem) { return subItem; },
     function (_component, key, subArr, subKey, subItem) { return key + ". " + (subKey ?? "") + ". " + (subItem ?? ""); },
-    function (_component) { return function (event) { _component.toggleIf(); }; },
-    function (_component) { return function (event) { _component.toggleElseIf(); }; },
+    function (_component) { return function (event) { _component.toggleIf(event); }; },
+    function (_component) { return function (event) { _component.toggleElseIf(event); }; },
     function (_component) { return function (event) { _component.nestedIf = !_component.nestedIf; }; },
     function (_component) { return function (event) { _component.name = "Viewi Junior"; }; },
     function (_component) { return _component.ifValue; },

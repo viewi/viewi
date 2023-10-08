@@ -14,6 +14,7 @@ import { ItemComponent } from "./ItemComponent";
 import { SomeComponent } from "./SomeComponent";
 import { TestButton, TestButton_x } from "./TestButton";
 import { TestComponent, TestComponent_x } from "./TestComponent";
+import { TestInput, TestInput_x } from "./TestInput";
 import { TodoApp, TodoApp_x } from "./TodoApp";
 import { TodoList, TodoList_x } from "./TodoList";
 
@@ -41,6 +42,8 @@ export const components = {
     TestButton,
     TestComponent_x,
     TestComponent,
+    TestInput_x,
+    TestInput,
     TodoApp_x,
     TodoApp,
     TodoList_x,

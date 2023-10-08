@@ -23,7 +23,7 @@ export const Counter_x = [
     function (_component) { return "\nCount " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n"; },
     function (_component) { return function (event) { _component.increment(); }; },
     function (_component) { return function (event) { _component.increment(event); }; },
-    function (_component) { return function (event) { _component.increment(); }; },
+    function (_component) { return function (event) { _component.increment(event); }; },
     function (_component) { return _component.message; }
 ];
 

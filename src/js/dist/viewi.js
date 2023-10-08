@@ -138,7 +138,7 @@
     },
     function(_component) {
       return function(event) {
-        _component.increment();
+        _component.increment(event);
       };
     },
     function(_component) {
@@ -318,7 +318,7 @@
     },
     function(_component) {
       return function(event) {
-        _component.onClick();
+        _component.onClick(event);
       };
     },
     function(_component) {
@@ -469,6 +469,7 @@
     selectedList = ["A", "C"];
     user = null;
     NameInput = null;
+    testModel = "some test";
     counterReducer = null;
     constructor(counterReducer) {
       super();
@@ -520,7 +521,7 @@
     },
     function(_component) {
       return function(event) {
-        expression();
+        expression(event);
       };
     },
     function(_component) {
@@ -528,8 +529,25 @@
     },
     function(_component) {
       return function(event) {
-        _component.onEvent();
+        _component.onEvent(event);
       };
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.testModel;
+      }, function(_component2, value) {
+        _component2.testModel = value;
+      }];
+    },
+    function(_component) {
+      return _component.testModel;
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.testModel;
+      }, function(_component2, value) {
+        _component2.testModel = value;
+      }];
     },
     function(_component) {
       return function() {
@@ -549,7 +567,7 @@
     },
     function(_component) {
       return function(event) {
-        _component.counterReducer.increment();
+        _component.counterReducer.increment(event);
       };
     },
     function(_component) {
@@ -860,7 +878,7 @@
     },
     function(_component) {
       return function(event) {
-        _component.addTodo();
+        _component.addTodo(event);
       };
     },
     function(_component) {
@@ -985,12 +1003,12 @@
     },
     function(_component) {
       return function(event) {
-        _component.toggleIf();
+        _component.toggleIf(event);
       };
     },
     function(_component) {
       return function(event) {
-        _component.toggleElseIf();
+        _component.toggleElseIf(event);
       };
     },
     function(_component) {
@@ -1020,6 +1038,30 @@
     },
     function(_component, _key2, item) {
       return item;
+    }
+  ];
+
+  // app/components/TestInput.js
+  var TestInput = class extends BaseComponent {
+    _name = "TestInput";
+    id = null;
+    model = null;
+    onInput(event) {
+      this.emitEvent("model", event.target.value);
+    }
+  };
+  var TestInput_x = [
+    function(_component) {
+      return function(event) {
+        _component.onInput(event);
+      };
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.model;
+      }, function(_component2, value) {
+        _component2.model = value;
+      }];
     }
   ];
 
@@ -1097,6 +1139,8 @@
     TestButton,
     TestComponent_x,
     TestComponent,
+    TestInput_x,
+    TestInput,
     TodoApp_x,
     TodoApp,
     TodoList_x,
@@ -2359,23 +2403,45 @@
             instance.$_callbacks[eventName] = eventHandler;
           }
         } else {
+          const isModel = attrName === "model";
           let valueContent = null;
           let valueSubs = [];
-          if (attribute.children) {
-            for (let av = 0; av < attribute.children.length; av++) {
-              const attributeValue = attribute.children[av];
-              let callArguments = [parentInstance];
-              if (props.scope.arguments) {
-                callArguments = callArguments.concat(props.scope.arguments);
-              }
-              const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
-              valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
-              if (attributeValue.subs) {
-                valueSubs = valueSubs.concat(attributeValue.subs);
-              }
+          if (isModel) {
+            const attributeValue = attribute.children[0];
+            let callArguments = [parentInstance];
+            if (props.scope.arguments) {
+              callArguments = callArguments.concat(props.scope.arguments);
+            }
+            const getterSetter = parentInstance.$$t[attributeValue.code].apply(null, callArguments);
+            valueContent = getterSetter[0](parentInstance);
+            instance.$_callbacks[attrName] = function(_component, setter) {
+              return function(event) {
+                setter(_component, event);
+              };
+            }(parentInstance, getterSetter[1]);
+            for (let subI in attributeValue.subs) {
+              const trackingPath = attributeValue.subs[subI];
+              track(parentInstance, trackingPath, props.scope, [function(instance2, attrName2, getter, parentInstance2) {
+                instance2[attrName2] = getter(parentInstance2);
+              }, [instance, attrName, getterSetter[0], parentInstance]]);
             }
           } else {
-            valueContent = true;
+            if (attribute.children) {
+              for (let av = 0; av < attribute.children.length; av++) {
+                const attributeValue = attribute.children[av];
+                let callArguments = [parentInstance];
+                if (props.scope.arguments) {
+                  callArguments = callArguments.concat(props.scope.arguments);
+                }
+                const childContent = attributeValue.expression ? parentInstance.$$t[attributeValue.code].apply(null, callArguments) : attributeValue.content ?? "";
+                valueContent = av === 0 ? childContent : valueContent + (childContent ?? "");
+                if (attributeValue.subs) {
+                  valueSubs = valueSubs.concat(attributeValue.subs);
+                }
+              }
+            } else {
+              valueContent = true;
+            }
           }
           if (attrName === "_props" && valueContent) {
             for (let propName in valueContent) {
