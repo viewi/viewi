@@ -7,6 +7,12 @@ use Viewi\Builder\Attributes\Skip;
 #[Skip]
 abstract class HtmlNode
 {
+    /**
+     * 
+     * @var DOMFile[]
+     */
+    public ?array $files = null;
+    public $value;
     public $usedByRenderer = null;
     public $disabled = null;
     public $form = null;
@@ -17,7 +23,6 @@ abstract class HtmlNode
     public $formTarget = null;
     public $name = null;
     public $type = null;
-    public $value = null;
     public $willValidate = null;
     public $validity = null;
     public $validationMessage = null;
