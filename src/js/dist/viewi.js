@@ -1113,7 +1113,7 @@
     TodoList
   };
 
-  // viewi/core/getComponentModelHandler.ts
+  // viewi/core/reactivity/handlers/getComponentModelHandler.ts
   function getComponentModelHandler(instance, setter) {
     return function(event) {
       setter(instance, event);
@@ -1329,7 +1329,22 @@
     }
   }
 
-  // viewi/core/dispose.ts
+  // viewi/core/anchor/createAnchorNode.ts
+  var anchorNodeId = 0;
+  function nextAnchorNodeId() {
+    return ++anchorNodeId;
+  }
+  function createAnchorNode(target, insert = false, anchor, name) {
+    const anchorNode = document.createTextNode("");
+    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
+    if (anchor) {
+      anchor.current++;
+    }
+    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
+    return anchorNode;
+  }
+
+  // viewi/core/lifecycle/dispose.ts
   function dispose(scope) {
     for (let reactivityIndex in scope.track) {
       const reactivityItem = scope.track[reactivityIndex];
@@ -1353,21 +1368,6 @@
       delete scope.parent.children[scope.id];
       delete scope.parent;
     }
-  }
-
-  // viewi/core/anchor/createAnchorNode.ts
-  var anchorNodeId = 0;
-  function nextAnchorNodeId() {
-    return ++anchorNodeId;
-  }
-  function createAnchorNode(target, insert = false, anchor, name) {
-    const anchorNode = document.createTextNode("");
-    anchorNode._anchor = name ?? "#" + ++anchorNodeId;
-    if (anchor) {
-      anchor.current++;
-    }
-    insert || anchor && target.childNodes.length > anchor.current ? (anchor ? target : target.parentElement).insertBefore(anchorNode, anchor ? target.childNodes[anchor.current] : target) : target.appendChild(anchorNode);
-    return anchorNode;
   }
 
   // viewi/core/render/renderForeach.ts
@@ -1511,7 +1511,7 @@
     }
   }
 
-  // viewi/core/updateComment.ts
+  // viewi/core/reactivity/handlers/updateComment.ts
   function updateComment(instance, node, commentNode) {
     const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
     commentNode.nodeValue !== content && (commentNode.nodeValue = content);
@@ -1528,7 +1528,7 @@
     instance.$$r[trackingPath][trackId] = action;
   }
 
-  // viewi/core/unpack.ts
+  // viewi/core/node/unpack.ts
   function unpack(item) {
     let nodeType = "value";
     switch (item.t) {
@@ -1598,7 +1598,7 @@
     ;
   }
 
-  // viewi/core/isComponent.ts
+  // viewi/core/component/isComponent.ts
   function isComponent(name) {
     return name in componentsMeta.list;
   }
@@ -1712,7 +1712,7 @@
     }
   }
 
-  // viewi/core/getModelHandler.ts
+  // viewi/core/reactivity/handlers/getModelHandler.ts
   function getModelHandler(instance, options) {
     return function(event) {
       if (options.inputType === "checkbox") {
@@ -1753,7 +1753,7 @@
     };
   }
 
-  // viewi/core/updateModelValue.ts
+  // viewi/core/reactivity/handlers/updateModelValue.ts
   function updateModelValue(target, instance, options) {
     if (options.inputType === "checkbox") {
       const currentValue = options.getter(instance);
@@ -2296,7 +2296,7 @@
     }
   }
 
-  // viewi/core/resolve.ts
+  // viewi/core/di/resolve.ts
   var scopedContainer = {};
   var singletonContainer = {};
   var nextInstanceId = 0;
@@ -2343,12 +2343,12 @@
     return instance;
   }
 
-  // viewi/core/updateComponentModel.ts
+  // viewi/core/reactivity/handlers/updateComponentModel.ts
   function updateComponentModel(instance, attrName, getter, parentInstance) {
     instance[attrName] = getter(parentInstance);
   }
 
-  // viewi/core/updateProp.ts
+  // viewi/core/reactivity/handlers/updateProp.ts
   function updateProp(instance, attribute, props) {
     const parentInstance = props.scope.instance;
     const attrName = attribute.expression ? parentInstance.$$t[attribute.code](parentInstance) : attribute.content ?? "";
