@@ -461,6 +461,8 @@ class Builder
         }
         $distJsFile = $this->jsPath . $d . 'dist' . $d . 'viewi.js';
         copy($this->jsPath . $d . 'components.json', $this->jsPath . $d . 'dist' . $d . 'components.json');
+        $distJsMinFile = $this->jsPath . $d . 'dist' . $d . 'viewi.min.js';
+        file_put_contents("$distJsMinFile.gz", gzencode(file_get_contents($distJsMinFile), 5));
         // TODO: configurable paths
         // TODO: configurable minify
         if (!file_exists($distJsFile)) {
