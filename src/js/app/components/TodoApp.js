@@ -12,7 +12,7 @@ class TodoApp extends BaseComponent {
         if (strlen(this.text) == 0) {
             return;
         }
-        this.items.push(this.text);
+        this.items = [...this.items, this.text];
         this.text = "";
     }
 }
