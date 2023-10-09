@@ -1,5 +1,5 @@
-import { BaseComponent } from "./component/baseComponent"
-import { InputType } from "./inputType"
+import { BaseComponent } from "../../component/baseComponent"
+import { InputType } from "../../node/inputType"
 
 export type ModelHandler = {
     getter: (instance: BaseComponent<any>) => any,

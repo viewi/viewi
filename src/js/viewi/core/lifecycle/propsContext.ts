@@ -1,5 +1,5 @@
 import { ContextScope } from "./contextScope"
-import { TemplateNode } from "./templateNode"
+import { TemplateNode } from "../node/templateNode"
 
 export type PropsContext = {
     attributes: TemplateNode[]

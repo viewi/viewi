@@ -1,5 +1,5 @@
-import { BaseComponent } from "./component/baseComponent";
-import { Slots } from "./slots";
+import { BaseComponent } from "../component/baseComponent";
+import { Slots } from "../node/slots";
 
 export type ContextScope = {
     counter: number, // current id counter

@@ -1,4 +1,4 @@
-import { BaseComponent } from "./component/baseComponent";
+import { BaseComponent } from "../../component/baseComponent";
 import { ModelHandler } from "./modelHandler";
 import { HTMLModelInputElement } from "./updateModelValue";
 

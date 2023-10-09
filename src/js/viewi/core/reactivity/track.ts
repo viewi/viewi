@@ -1,5 +1,5 @@
 import { BaseComponent } from "../component/baseComponent";
-import { ContextScope } from "../contextScope";
+import { ContextScope } from "../lifecycle/contextScope";
 
 let trackingId = 0;
 export function nextTrackingId() {

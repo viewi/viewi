@@ -1,26 +1,24 @@
 import { BaseComponent } from "../component/baseComponent";
-import { ArrayScope } from "../arrayScope";
 import { hydrateComment } from "../hydrate/hydrateComment";
 import { hydrateTag } from "../hydrate/hydrateTag";
 import { hydrateText } from "../hydrate/hydrateText";
-import { NodeType, TemplateNode } from "../templateNode";
+import { TemplateNode } from "../node/templateNode";
 import { renderAttributeValue } from "./renderAttributeValue";
 import { renderForeach } from "./renderForeach";
 import { renderIf } from "./renderIf";
 import { renderText } from "./renderText";
-import { ContextScope } from "../contextScope";
-import { updateComment } from "../updateComment";
+import { updateComment } from "../reactivity/handlers/updateComment";
 import { track } from "../reactivity/track";
 import { renderComponent } from "./renderComponent";
-import { unpack } from "../unpack";
+import { unpack } from "../node/unpack";
 import { renderDynamic } from "./renderDynamic";
-import { PropsContext } from "../propsContext";
-import { Slots } from "../slots";
+import { PropsContext } from "../lifecycle/propsContext";
+import { Slots } from "../node/slots";
 import { renderRaw } from "./renderRaw";
-import { getModelHandler } from "../getModelHandler";
-import { HTMLModelInputElement, updateModelValue } from "../updateModelValue";
-import { InputType } from "../inputType";
-import { ModelHandler } from "../modelHandler";
+import { getModelHandler } from "../reactivity/handlers/getModelHandler";
+import { HTMLModelInputElement, updateModelValue } from "../reactivity/handlers/updateModelValue";
+import { InputType } from "../node/inputType";
+import { ModelHandler } from "../reactivity/handlers/modelHandler";
 import { isComponent } from "../component/isComponent";
 import { DirectiveMap } from "../directive/DirectiveMap";
 import { DirectiveType } from "../directive/DirectiveType";
@@ -30,6 +28,9 @@ import { createAnchorNode, nextAnchorNodeId } from "../anchor/createAnchorNode";
 import { getAnchor } from "../anchor/getAnchor";
 import { TextAnchor } from "../anchor/textAnchor";
 import { ForeachAnchorEnum } from "../anchor/foreachAnchorEnum";
+import { ContextScope } from "../lifecycle/contextScope";
+import { NodeType } from "../node/nodeType";
+import { ArrayScope } from "../lifecycle/arrayScope";
 
 export function render(
     target: Node,

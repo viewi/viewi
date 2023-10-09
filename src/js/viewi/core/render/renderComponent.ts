@@ -1,17 +1,17 @@
 import { components } from "../../../app/components";
 import { BaseComponent } from "../component/baseComponent";
 import { componentsMeta } from "../component/componentsMeta";
-import { ContextScope } from "../contextScope";
-import { getComponentModelHandler } from "../getComponentModelHandler";
+import { getComponentModelHandler } from "../reactivity/handlers/getComponentModelHandler";
 import { makeProxy } from "../reactivity/makeProxy";
-import { PropsContext } from "../propsContext";
+import { PropsContext } from "../lifecycle/propsContext";
 import { render } from "./render";
 import { resolve } from "../di/resolve";
-import { Slots } from "../slots";
+import { Slots } from "../node/slots";
 import { track } from "../reactivity/track";
-import { unpack } from "../unpack";
-import { updateComponentModel } from "../updateComponentModel";
-import { updateProp } from "../updateProp";
+import { unpack } from "../node/unpack";
+import { updateComponentModel } from "../reactivity/handlers/updateComponentModel";
+import { updateProp } from "../reactivity/handlers/updateProp";
+import { ContextScope } from "../lifecycle/contextScope";
 
 export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false) {
     if (!(name in componentsMeta.list)) {

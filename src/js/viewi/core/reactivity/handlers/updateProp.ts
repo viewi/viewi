@@ -1,6 +1,6 @@
-import { BaseComponent } from "./component/baseComponent";
-import { TemplateNode } from "./templateNode";
-import { PropsContext } from "./propsContext";
+import { BaseComponent } from "../../component/baseComponent";
+import { TemplateNode } from "../../node/templateNode";
+import { PropsContext } from "../../lifecycle/propsContext";
 
 export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode, props: PropsContext) {
     const parentInstance = props.scope.instance;

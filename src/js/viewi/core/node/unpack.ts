@@ -1,4 +1,5 @@
-import { TemplateNode, NodeType } from "./templateNode";
+import { NodeType } from "./nodeType";
+import { TemplateNode } from "./templateNode";
 
 export function unpack(item: TemplateNode) {
     let nodeType: NodeType = 'value';

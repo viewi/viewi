@@ -1,8 +1,8 @@
 import { BaseComponent } from "../component/baseComponent";
-import { TemplateNode } from "../templateNode";
-import { ContextScope } from "../contextScope";
+import { TemplateNode } from "../node/templateNode";
 import { getAnchor } from "../anchor/getAnchor";
 import { renderText } from "../render/renderText";
+import { ContextScope } from "../lifecycle/contextScope";
 
 export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope): Text {
     const anchor = getAnchor(target);

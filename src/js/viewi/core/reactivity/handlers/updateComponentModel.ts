@@ -1,4 +1,4 @@
-import { BaseComponent } from "./component/baseComponent";
+import { BaseComponent } from "../../component/baseComponent";
 
 export function updateComponentModel(
     instance: BaseComponent<any>,

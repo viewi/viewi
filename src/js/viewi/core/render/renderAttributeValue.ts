@@ -1,7 +1,7 @@
 import { BaseComponent } from "../component/baseComponent";
-import { TemplateNode } from "../templateNode";
-import { ContextScope } from "../contextScope";
+import { TemplateNode } from "../node/templateNode";
 import { componentsMeta } from "../component/componentsMeta";
+import { ContextScope } from "../lifecycle/contextScope";
 
 export function renderAttributeValue(
     instance: BaseComponent<any>,

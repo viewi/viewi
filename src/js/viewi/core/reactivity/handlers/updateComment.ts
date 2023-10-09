@@ -1,5 +1,5 @@
-import { BaseComponent } from "./component/baseComponent";
-import { TemplateNode } from "./templateNode";
+import { BaseComponent } from "../../component/baseComponent";
+import { TemplateNode } from "../../node/templateNode";
 
 export function updateComment(instance: BaseComponent<any>, node: TemplateNode, commentNode: Comment) {
     const content = node.expression

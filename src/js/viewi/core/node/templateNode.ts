@@ -1,5 +1,4 @@
-export type NodeType = 'tag' | 'attr' | 'value' | 'component' | 'text' | 'comment' | 'root' | undefined;
-export type NodeTypePacked = 't' | 'a' | 'v' | 'x' | 'm' | 'c' | 'r' | undefined;
+import { NodeType, NodeTypePacked } from "./nodeType"
 
 export type TemplateNode = {
     t: NodeTypePacked,
@@ -25,16 +24,4 @@ export type TemplateNode = {
     forKey?: string,
     func: Function,
     first?: boolean
-}
-
-export type ComponentMetaData = {
-    nodes?: TemplateNode,
-    dependencies?: any[],
-    di?: 'Singleton' | 'Scoped' | 'Transient',
-    base?: boolean,
-    refs?: { [key: string]: boolean }
-}
-
-export type ComponentMetaDataList = {
-    [key: string]: ComponentMetaData
 }

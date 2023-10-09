@@ -1,13 +1,13 @@
 import { BaseComponent } from "../component/baseComponent";
-import { ArrayScope } from "../arrayScope";
-import { TemplateNode } from "../templateNode";
+import { TemplateNode } from "../node/templateNode";
 import { render } from "./render";
-import { ContextScope } from "../contextScope";
-import { dispose } from "../dispose";
 import { DirectiveMap } from "../directive/DirectiveMap";
 import { createAnchorNode, nextAnchorNodeId } from "../anchor/createAnchorNode";
 import { TextAnchor } from "../anchor/textAnchor";
 import { ForeachAnchorEnum } from "../anchor/foreachAnchorEnum";
+import { ContextScope } from "../lifecycle/contextScope";
+import { ArrayScope } from "../lifecycle/arrayScope";
+import { dispose } from "../lifecycle/dispose";
 
 export function renderForeach(
     instance: BaseComponent<any>,
