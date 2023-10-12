@@ -12,7 +12,7 @@ class Engine
     private bool $ready = false;
     private array $meta = [];
     private array $DIContainer = [];
-    public int $instanceIdCounter = 0;
+    private int $instanceIdCounter = 0;
 
     public function __construct(private string $buildPath)
     {
