@@ -2,8 +2,143 @@
   // viewi/core/anchor/anchors.ts
   var anchors = {};
 
+  // viewi/core/router/routeItem.ts
+  var RouteItem = class {
+    method;
+    url;
+    action;
+    wheres;
+    defaults = null;
+    constructor(method, url, action, defaults = null, wheres) {
+      this.method = method;
+      this.url = url;
+      this.action = action;
+      this.wheres = {};
+      this.defaults = defaults;
+      if (wheres) {
+        this.wheres = wheres;
+      }
+    }
+    where(wheresOrName, expr) {
+      if (wheresOrName !== null && typeof wheresOrName === "object") {
+        this.wheres = Object.assign(this.where, wheresOrName);
+      } else if (expr) {
+        this.wheres[wheresOrName] = expr;
+      }
+      return this;
+    }
+  };
+
+  // viewi/core/router/router.ts
+  var Router = class {
+    routes;
+    trimExpr = /^\/|\/$/g;
+    setRoutes(routeList) {
+      this.routes = routeList;
+    }
+    getRoutes() {
+      return this.routes;
+    }
+    register(method, url, action, defaults = null, wheres) {
+      const item = new RouteItem(
+        method.toLowerCase(),
+        url,
+        action,
+        defaults,
+        wheres
+      );
+      this.routes.push(item);
+      return item;
+    }
+    get(url, action) {
+      return this.register("get", url, action);
+    }
+    resolve(url) {
+      url = url.replace(this.trimExpr, "");
+      const parts = url.split("/");
+      for (let k in this.routes) {
+        const params = {};
+        let valid = true;
+        const item = this.routes[k];
+        const targetUrl = item.url.replace(this.trimExpr, "");
+        const targetParts = targetUrl.split("/");
+        let pi = 0;
+        let skipAll = false;
+        for (pi; pi < targetParts.length; pi++) {
+          const urlExpr = targetParts[pi];
+          const hasWildCard = urlExpr.indexOf("*") !== -1;
+          if (hasWildCard) {
+            const beginning = urlExpr.slice(0, -1);
+            if (!beginning || parts[pi].indexOf(beginning) === 0) {
+              skipAll = true;
+              break;
+            }
+          }
+          const hasParams = urlExpr.indexOf("{") !== -1;
+          if (urlExpr !== parts[pi] && !hasParams) {
+            valid = false;
+            break;
+          }
+          if (hasParams) {
+            const bracketParts = urlExpr.split(/[{}]+/);
+            let paramName = bracketParts[1];
+            if (paramName[paramName.length - 1] === "?") {
+              paramName = paramName.slice(0, -1);
+            } else if (pi >= parts.length) {
+              valid = false;
+              break;
+            }
+            if (paramName.indexOf("<") !== -1) {
+              const matches = /<([^>]+)>/.exec(paramName);
+              if (matches) {
+                paramName = paramName.replace(/<([^>]+)>/g, "");
+                item.wheres[paramName] = matches[1];
+              }
+            }
+            if (item.wheres[paramName]) {
+              const regex = new RegExp(item.wheres[paramName], "g");
+              if (!regex.test(parts[pi])) {
+                valid = false;
+                break;
+              }
+              regex.lastIndex = 0;
+              if (regex.test("/")) {
+                skipAll = true;
+              }
+            }
+            let paramValue = pi < parts.length ? parts[pi] : null;
+            if (paramValue && bracketParts[0]) {
+              if (paramValue.indexOf(bracketParts[0]) !== 0) {
+                valid = false;
+                break;
+              } else {
+                paramValue = paramValue.slice(bracketParts[0].length);
+              }
+            }
+            params[paramName] = paramValue;
+            if (skipAll) {
+              params[paramName] = parts.slice(pi).join("/");
+              break;
+            }
+          }
+        }
+        if (pi < parts.length && !skipAll) {
+          valid = false;
+        }
+        if (valid) {
+          return { item, params };
+        }
+      }
+      return null;
+    }
+  };
+
   // viewi/core/component/componentsMeta.ts
-  var componentsMeta = { list: {}, booleanAttributes: {} };
+  var componentsMeta = {
+    list: {},
+    booleanAttributes: {},
+    router: new Router()
+  };
 
   // app/components/UserModel.js
   var UserModel = class {
@@ -2492,6 +2627,17 @@
     }
   }
 
+  // viewi/core/router/handleUrl.ts
+  var htmlElementA = document.createElement("a");
+  var getPathName = function(href) {
+    htmlElementA.href = href;
+    return htmlElementA.pathname;
+  };
+  function handleUrl(href) {
+    const match = componentsMeta.router.resolve(getPathName(href));
+    console.log(match);
+  }
+
   // viewi/index.ts
   var Viewi = () => ({
     version: "2.0.1"
@@ -2516,10 +2662,11 @@
   (async () => {
     const data = await (await fetch("/assets/components.json")).json();
     componentsMeta.list = data;
+    componentsMeta.router.setRoutes(data._routes);
     const booleanArray = data._meta["boolean"].split(",");
     for (let i = 0; i < booleanArray.length; i++) {
       componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
-    setTimeout(() => renderApp("TestComponent"), 500);
+    handleUrl(location.href);
   })();
 })();
