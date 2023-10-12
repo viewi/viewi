@@ -1,6 +1,8 @@
 import { anchors } from "./core/anchor/anchors";
+import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { renderComponent } from "./core/render/renderComponent";
+import { handleUrl } from "./core/router/handleUrl";
 
 const Viewi = () => ({
     version: '2.0.1'
@@ -35,13 +37,13 @@ export function renderApp(name: string) {
 
 // testing Counter
 (async () => {
-    const data = await (await fetch('/assets/components.json')).json();
+    const data = await (await fetch('/assets/components.json')).json() as ComponentsJson;
     componentsMeta.list = data;
-    const booleanArray = (<{
-        _meta: { boolean: string }
-    }>data)._meta['boolean'].split(',');
+    componentsMeta.router.setRoutes(data._routes);
+    const booleanArray = data._meta['boolean'].split(',');
     for (let i = 0; i < booleanArray.length; i++) {
         componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
-    setTimeout(() => renderApp('TestComponent'), 500);
+    handleUrl(location.href);
+    //setTimeout(() => renderApp('TestComponent'), 500);
 })();
