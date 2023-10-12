@@ -19,6 +19,8 @@ use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\JsTranspile\UseItem;
+use Viewi\Router\ComponentRoute;
+use Viewi\Router\Router;
 use Viewi\TemplateCompiler\TemplateCompiler;
 use Viewi\TemplateParser\TagItemConverter;
 use Viewi\TemplateParser\TemplateParser;
@@ -63,7 +65,7 @@ class Builder
         Skip::class => true,
     ];
 
-    public function __construct()
+    public function __construct(private Router $router)
     {
         $this->templateParser = new TemplateParser();
         $this->jsTranspiler = new JsTranspiler();
@@ -443,6 +445,18 @@ class Builder
         file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
         file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
         $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
+        $publicJson['_routes'] = [];
+        $routes = $this->router->getRoutes();
+        foreach ($routes as $route) {
+            if ($route->action instanceof ComponentRoute) {
+                $item = (array)$route;
+                $component = $route->action->component;
+                $item['action'] = strpos($component, '\\') !== false ?
+                    substr(strrchr($component, "\\"), 1)
+                    : $component;
+                $publicJson['_routes'][] = $item;
+            }
+        }
         $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
         // Run NPM command
