@@ -1,4 +1,5 @@
 import { componentsMeta } from "../component/componentsMeta";
+import { renderApp } from "../render/renderApp";
 
 const htmlElementA = document.createElement('a');
 
@@ -13,5 +14,5 @@ export function handleUrl(href: string) {
     if (routeItem == null) {
         throw 'Can\'t resolve route for uri: ' + urlPath;
     }
-    
+    renderApp(routeItem.item.action, routeItem.params);
 }
