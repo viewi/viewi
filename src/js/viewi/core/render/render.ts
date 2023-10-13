@@ -491,6 +491,13 @@ export function render(
                 }
                 break;
             }
+            case <NodeType>'doctype': {
+                if (hydrate) {
+                    const anchor: Anchor = getAnchor(target);
+                    anchor.current++;
+                }
+                break;
+            }
             default: {
                 console.warn('Node type not implemented', node);
                 break;
