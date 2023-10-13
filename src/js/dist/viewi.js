@@ -1,7 +1,4 @@
 (() => {
-  // viewi/core/anchor/anchors.ts
-  var anchors = {};
-
   // viewi/core/router/routeItem.ts
   var RouteItem = class {
     method;
@@ -140,6 +137,9 @@
     router: new Router()
   };
 
+  // viewi/core/anchor/anchors.ts
+  var anchors = {};
+
   // app/components/UserModel.js
   var UserModel = class {
     id = null;
@@ -229,6 +229,11 @@
     },
     function(_component) {
       return function(event) {
+        _component.count++;
+      };
+    },
+    function(_component) {
+      return function(event) {
         _component.increment();
       };
     },
@@ -280,6 +285,11 @@
   // app/components/CounterPage.js
   var CounterPage = class extends BaseComponent {
     _name = "CounterPage";
+  };
+
+  // app/components/TestPage.js
+  var TestPage = class extends BaseComponent {
+    _name = "TestPage";
   };
 
   // app/components/TodoAppPage.js
@@ -656,7 +666,7 @@
       };
     },
     function(_component) {
-      return "Clicked " + (_component.counterReducer.count ?? "");
+      return "Clicked " + (_component.counterReducer.count ?? "") + "\n";
     },
     function(_component) {
       return function() {
@@ -1229,6 +1239,7 @@
     Layout,
     NotFoundPage,
     CounterPage,
+    TestPage,
     TodoAppPage,
     StatefulCounter_x,
     StatefulCounter,
@@ -1372,6 +1383,7 @@
   }
 
   // viewi/core/hydrate/hydrateTag.ts
+  var specialTags = { body: true, head: true, html: true };
   function hydrateTag(target, tag) {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
@@ -1386,6 +1398,13 @@
         return potentialNode;
       }
       invalid.push(i);
+    }
+    if (tag in specialTags) {
+      const nodes = document.getElementsByTagName(tag);
+      if (nodes.length > 0) {
+        anchor.invalid = [];
+        return nodes[0];
+      }
     }
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
@@ -1692,8 +1711,15 @@
         nodeType = "comment";
         break;
       }
+      case "d": {
+        nodeType = "doctype";
+        break;
+      }
       case "r": {
         nodeType = "root";
+        if (item.h && item.h[0].t === "x" && item.h[0].c?.substring(0, 9) === "<!DOCTYPE") {
+          item.h[0].t = "d";
+        }
         break;
       }
       default:
@@ -1775,6 +1801,7 @@
           components: [],
           map: { ...scope.map },
           track: [],
+          instance,
           parent: nextScope,
           children: {},
           counter: 0,
@@ -2336,6 +2363,13 @@
           }
           break;
         }
+        case "doctype": {
+          if (hydrate) {
+            const anchor = getAnchor(target);
+            anchor.current++;
+          }
+          break;
+        }
         default: {
           console.warn("Node type not implemented", node);
           break;
@@ -2627,27 +2661,10 @@
     }
   }
 
-  // viewi/core/router/handleUrl.ts
-  var htmlElementA = document.createElement("a");
-  var getPathName = function(href) {
-    htmlElementA.href = href;
-    return htmlElementA.pathname;
-  };
-  function handleUrl(href) {
-    const match = componentsMeta.router.resolve(getPathName(href));
-    console.log(match);
-  }
-
-  // viewi/index.ts
-  var Viewi = () => ({
-    version: "2.0.1"
-  });
-  globalThis.Viewi = Viewi;
-  console.log("Viewi entry");
-  var counterTarget = document.getElementById("counter");
-  function renderApp(name) {
+  // viewi/core/render/renderApp.ts
+  function renderApp(name, params, target) {
     console.time("renderApp");
-    renderComponent(counterTarget, name, void 0, {}, true, false);
+    renderComponent(target ?? document, name, void 0, {}, true, false);
     for (let a in anchors) {
       const anchor = anchors[a];
       for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
@@ -2659,6 +2676,28 @@
     }
     console.timeEnd("renderApp");
   }
+
+  // viewi/core/router/handleUrl.ts
+  var htmlElementA = document.createElement("a");
+  var getPathName = function(href) {
+    htmlElementA.href = href;
+    return htmlElementA.pathname;
+  };
+  function handleUrl(href) {
+    const urlPath = getPathName(href);
+    const routeItem = componentsMeta.router.resolve(urlPath);
+    if (routeItem == null) {
+      throw "Can't resolve route for uri: " + urlPath;
+    }
+    renderApp(routeItem.item.action, routeItem.params);
+  }
+
+  // viewi/index.ts
+  var Viewi = () => ({
+    version: "2.0.1"
+  });
+  globalThis.Viewi = Viewi;
+  console.log("Viewi entry");
   (async () => {
     const data = await (await fetch("/assets/components.json")).json();
     componentsMeta.list = data;

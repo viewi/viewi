@@ -7,6 +7,7 @@ import { HomePage, HomePage_x } from "./HomePage";
 import { Layout, Layout_x } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
 import { CounterPage } from "./CounterPage";
+import { TestPage } from "./TestPage";
 import { TodoAppPage } from "./TodoAppPage";
 import { StatefulCounter, StatefulCounter_x } from "./StatefulCounter";
 import { StatefulTodoApp, StatefulTodoApp_x } from "./StatefulTodoApp";
@@ -31,6 +32,7 @@ export const components = {
     Layout,
     NotFoundPage,
     CounterPage,
+    TestPage,
     TodoAppPage,
     StatefulCounter_x,
     StatefulCounter,

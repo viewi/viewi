@@ -99,7 +99,7 @@ export const TestComponent_x = [
     _component.testModel = value;
 }]; },
     function (_component) { return function () { _component.counterReducer.increment(); }; },
-    function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
+    function (_component) { return "Clicked " + (_component.counterReducer.count ?? "") + "\n"; },
     function (_component) { return function () { _component.counterReducer.increment(); }; },
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
     function (_component) { return function (event) { _component.counterReducer.increment(event); }; },
