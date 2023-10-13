@@ -29,8 +29,16 @@ export function unpack(item: TemplateNode) {
             nodeType = 'comment';
             break;
         }
+        case 'd': {
+            nodeType = 'doctype';
+            break;
+        }
         case 'r': {
             nodeType = 'root';
+            // doctype node 10
+            if (item.h && item.h[0].t === "x" && item.h[0].c?.substring(0, 9) === '<!DOCTYPE') {
+                item.h[0].t = 'd';
+            }
             break;
         }
         default:
