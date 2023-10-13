@@ -44,12 +44,13 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         const slots = {};
         if (node.slots) {
             const scopeId = ++nextScope!.counter;
-            const slotScope = {
+            const slotScope: ContextScope= {
                 id: scopeId,
                 arguments: [...scope.arguments],
                 components: [],
                 map: { ...scope.map },
                 track: [],
+                instance: instance,
                 parent: nextScope,
                 children: {},
                 counter: 0,
