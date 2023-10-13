@@ -1,5 +1,7 @@
 import { getAnchor } from "../anchor/getAnchor";
 
+const specialTags = { body: true, head: true, html: true };
+
 export function hydrateTag(target: Node, tag: string): Node {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
@@ -18,6 +20,13 @@ export function hydrateTag(target: Node, tag: string): Node {
             return potentialNode as Node;
         }
         invalid.push(i);
+    }
+    if (tag in specialTags) {
+        const nodes = document.getElementsByTagName(tag);
+        if (nodes.length > 0) {
+            anchor.invalid = [];
+            return nodes[0];
+        }
     }
     anchor.added++;
     anchor.invalid = anchor.invalid.concat(invalid);
