@@ -31,6 +31,7 @@ import { ForeachAnchorEnum } from "../anchor/foreachAnchorEnum";
 import { ContextScope } from "../lifecycle/contextScope";
 import { NodeType } from "../node/nodeType";
 import { ArrayScope } from "../lifecycle/arrayScope";
+import { globalScope } from "../di/globalScope";
 
 export function render(
     target: Node,
@@ -81,6 +82,7 @@ export function render(
                                 const scopeId = ++scope.counter;
                                 const nextScope: ContextScope = {
                                     id: scopeId,
+                                    why: 'if',
                                     arguments: scope.arguments,
                                     components: [],
                                     map: scope.map,
@@ -128,6 +130,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        why: 'elseif',
                                         instance: instance,
                                         arguments: scope.arguments,
                                         components: [],
@@ -177,6 +180,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        why: "else",
                                         instance: instance,
                                         arguments: scope.arguments,
                                         components: [],
@@ -221,6 +225,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        why: "foreach",
                                         instance: instance,
                                         arguments: [...scope.arguments],
                                         components: [],
@@ -283,21 +288,22 @@ export function render(
                 const content = node.expression
                     ? instance.$$t[node.code!](instance)
                     : (node.content ?? '');
-                const isDynamic = node.subs;
+                const isDynamic = node.expression;
                 const componentTag = node.type === "component"
                     || (node.expression && isComponent(content));
 
                 let anchor: Anchor | undefined;
                 let anchorBegin: TextAnchor | undefined;
-                let nextScope: ContextScope | undefined;
+                let nextScope: ContextScope = scope;
                 if (isDynamic) {
                     anchor = hydrate ? getAnchor(target) : undefined;
                     anchorBegin = createAnchorNode(target, insert, anchor); // begin dynamic
                 }
-                if (isDynamic || componentTag) {
+                if (isDynamic) {
                     const scopeId = ++scope.counter;
                     nextScope = {
                         id: scopeId,
+                        why: 'dynamic',
                         arguments: [...scope.arguments],
                         components: [],
                         map: { ...scope.map },
@@ -320,6 +326,7 @@ export function render(
                         const scopeId = ++nextScope!.counter;
                         const slotScope: ContextScope = {
                             id: scopeId,
+                            why: "slot",
                             arguments: [...scope.arguments],
                             components: [],
                             map: { ...scope.map },
@@ -349,6 +356,9 @@ export function render(
                         break;
                     }
                     if (node.content === 'slot') {
+                        if (!anchor) {
+                            anchor = hydrate ? getAnchor(target) : undefined;
+                        }
                         nextInsert = insert;
                         let slotName: string = 'default';
                         if (node.attributes) {
@@ -358,6 +368,7 @@ export function render(
                                 }
                             }
                         }
+                        const anchorSlotBegin = createAnchorNode(target, insert, anchor); // begin slot
                         if (slotName in scope.slots!) { // slot from parent
                             const slot = scope.slots![slotName];
                             if (!slot.node.unpacked) {
@@ -369,6 +380,10 @@ export function render(
                             if (node.children) {
                                 render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
                             }
+                        }
+                        const anchorSlotNode = createAnchorNode(target, insert, anchor, anchorSlotBegin!._anchor); // end slot
+                        if (scope.instance._name in globalScope.iteration) {
+                            globalScope.iteration[scope.instance._name].slots[slotName] = anchorSlotNode;
                         }
                         continue;
                     }
