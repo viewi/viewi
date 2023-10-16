@@ -25,6 +25,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
     const scopeId = ++scope.counter;
     const nextScope: ContextScope = {
         id: scopeId,
+        why: 'dynamic',
         arguments: [...scope.arguments],
         components: [],
         map: { ...scope.map },
@@ -46,6 +47,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
             const scopeId = ++nextScope!.counter;
             const slotScope: ContextScope= {
                 id: scopeId,
+                why: 'slot',
                 arguments: [...scope.arguments],
                 components: [],
                 map: { ...scope.map },
