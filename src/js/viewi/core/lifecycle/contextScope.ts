@@ -4,6 +4,7 @@ import { Slots } from "../node/slots";
 export type ContextScope = {
     counter: number, // current id counter
     id: number, // unique per parent scope
+    why: ContextReason,
     instance: BaseComponent<any>,
     main?: boolean, // first scope of the instance and should be disposed
     arguments: any[], // array (foreach directive) arguments
@@ -15,3 +16,5 @@ export type ContextScope = {
     slots?: Slots,
     refs?: { [key: string]: boolean }
 }
+
+export type ContextReason = 'if' | 'elseif' | 'else' | 'foreach' | 'forItem' | 'dynamic' | 'slot' | 'component' | string
