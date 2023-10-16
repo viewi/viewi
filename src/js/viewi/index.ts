@@ -1,6 +1,7 @@
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { handleUrl } from "./core/router/handleUrl";
+import { watchLinks } from "./core/router/watchLinks";
 
 const Viewi = () => ({
     version: '2.0.1'
@@ -19,6 +20,7 @@ console.log('Viewi entry');
     for (let i = 0; i < booleanArray.length; i++) {
         componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
+    watchLinks();
     handleUrl(location.href);
     //setTimeout(() => renderApp('TestComponent'), 500);
 })();

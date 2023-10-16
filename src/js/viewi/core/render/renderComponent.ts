@@ -12,6 +12,7 @@ import { unpack } from "../node/unpack";
 import { updateComponentModel } from "../reactivity/handlers/updateComponentModel";
 import { updateProp } from "../reactivity/handlers/updateProp";
 import { ContextScope } from "../lifecycle/contextScope";
+import { globalScope } from "../di/globalScope";
 
 export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false) {
     if (!(name in componentsMeta.list)) {
@@ -22,14 +23,31 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
     }
     const info = componentsMeta.list[name];
     const root = info.nodes;
-    const instance: BaseComponent<any> = makeProxy(resolve(name));
+    // 'Reuse' is the concept of reusing same layout(s) to avoid rerendering the whole page and side-effects, including visual.
+    // Top level component tag should be reused along with their rendered content, except slots
+    // Duplicates are not allowed, otherwise the architecture is wrong and you must reconsider it
+    const lastIteration = globalScope.lastIteration;
+    const reuse = name in lastIteration;
+    if (reuse) {
+        // clean up previous page slots
+        const slotHolders = lastIteration[name].slots;
+        for (let slotName in slotHolders) {
+            const anchorNode = slotHolders[slotName];
+            while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
+                anchorNode.previousSibling!.remove();
+            }
+        }
+    }
+    const instance: BaseComponent<any> = reuse ? lastIteration[name].instance : makeProxy(resolve(name));
     const inlineExpressions = name + '_x';
-    if (inlineExpressions in components) {
+    if (!reuse && inlineExpressions in components) {
         instance.$$t = components[inlineExpressions];
     }
     const scopeId = props ? ++props.scope.counter : 0;
-    const scope: ContextScope = {
+    // TODO: on reuse - attach scope to a new parent
+    const scope: ContextScope = reuse ? lastIteration[name].scope : {
         id: scopeId,
+        why: name,
         arguments: props ? [...props.scope.arguments] : [],
         components: [],
         instance: instance,
@@ -122,6 +140,46 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
             }
         }
     }
+    reuse && console.log(`Reusing component: ${name}`);
+    if (name in globalScope.located) {
+        globalScope.iteration[name] = { instance, scope, slots: {} };
+    }
+    if (reuse) {
+        console.log('Resue: Rendering slots');
+        const slotHolders = lastIteration[name].slots;
+        for (let slotName in slotHolders) {
+            const anchorNode = slotHolders[slotName];
+            if (anchorNode.parentNode && document.body.contains(anchorNode)) { // slot is visible on page
+                if (slots && slotName in slots) { // slot has been passed
+                    const slot = slots[slotName];
+                    if (!slot.node.unpacked) {
+                        unpack(slot.node);
+                        slot.node.unpacked = true;
+                    }
+                    render(anchorNode, slot.scope.instance, slot.node.children!, slot.scope, undefined, false, true);
+                } else {
+                    // TODO: render default slot content
+                }
+                globalScope.iteration[name].slots[slotName] = anchorNode;
+            }
+        }
+        let componentName: string | false = name;
+        while (componentName) {
+            const componentInfo = componentsMeta.list[componentName];
+            componentName = false;
+            const componentRoot = componentInfo.nodes;
+            if (componentRoot) {
+                const rootChildren = componentRoot.children;
+                if (rootChildren) {
+                    if (rootChildren[0].type === 'component' && rootChildren[0].content! in lastIteration) {
+                        globalScope.iteration[rootChildren[0].content!] = lastIteration[rootChildren[0].content!];
+                        componentName = rootChildren[0].content!;
+                    }
+                }
+            }
+        }
+        return;
+    }
     // render
     if (
         target
@@ -133,6 +191,9 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         }
         const rootChildren = root.children;
         if (rootChildren) {
+            if (rootChildren[0].type === 'component') {
+                globalScope.located[rootChildren[0].content!] = true;
+            }
             // console.log(target, instance, rootChildren);
             rootChildren[0].first = true;
             render(target, instance, rootChildren, scope, undefined, hydrate, insert);
