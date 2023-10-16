@@ -1,10 +1,12 @@
 import { UserModel } from "./UserModel";
 import { CounterReducer } from "./CounterReducer";
 import { TodoReducer } from "./TodoReducer";
+import { DemoContainer } from "./DemoContainer";
 import { MenuBar } from "./MenuBar";
 import { Counter, Counter_x } from "./Counter";
 import { HomePage, HomePage_x } from "./HomePage";
 import { Layout, Layout_x } from "./Layout";
+import { PanelLayout, PanelLayout_x } from "./PanelLayout";
 import { NotFoundPage } from "./NotFoundPage";
 import { CounterPage } from "./CounterPage";
 import { TestPage } from "./TestPage";
@@ -23,6 +25,7 @@ export const components = {
     UserModel,
     CounterReducer,
     TodoReducer,
+    DemoContainer,
     MenuBar,
     Counter_x,
     Counter,
@@ -30,6 +33,8 @@ export const components = {
     HomePage,
     Layout_x,
     Layout,
+    PanelLayout_x,
+    PanelLayout,
     NotFoundPage,
     CounterPage,
     TestPage,

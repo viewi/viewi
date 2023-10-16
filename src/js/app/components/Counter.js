@@ -20,7 +20,7 @@ export const Counter_x = [
     function (_component) { return function (event) { _component.decrement(); }; },
     function (_component) { return _component.count % 10 + 12; },
     function (_component) { return "\n    Count " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n"; },
-    function (_component) { return "\nCount " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n"; },
+    function (_component) { return "\nCount " + (_component.count ?? "") + " strlen:" + (strlen(_component.message) ?? "") + "\n"; },
     function (_component) { return function (event) { _component.count++; }; },
     function (_component) { return function (event) { _component.increment(); }; },
     function (_component) { return function (event) { _component.increment(event); }; },

@@ -140,6 +140,15 @@
   // viewi/core/anchor/anchors.ts
   var anchors = {};
 
+  // viewi/core/di/globalScope.ts
+  var globalScope = {
+    hydrate: true,
+    // first time hydrate, TODO: configurable, MFE won't need hydration
+    located: {},
+    iteration: {},
+    lastIteration: {}
+  };
+
   // app/components/UserModel.js
   var UserModel = class {
     id = null;
@@ -161,7 +170,7 @@
   var TodoReducer = class {
     items = [];
     addNewItem(text) {
-      this.items.push(text);
+      this.items = [...this.items, text];
     }
   };
 
@@ -186,6 +195,11 @@
         this.$_callbacks[name](event);
       }
     }
+  };
+
+  // app/components/DemoContainer.js
+  var DemoContainer = class extends BaseComponent {
+    _name = "DemoContainer";
   };
 
   // app/components/MenuBar.js
@@ -225,7 +239,7 @@
       return "\n    Count " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n";
     },
     function(_component) {
-      return "\nCount " + (_component.count ?? "") + " " + (strlen(_component.message) ?? "") + "\n";
+      return "\nCount " + (_component.count ?? "") + " strlen:" + (strlen(_component.message) ?? "") + "\n";
     },
     function(_component) {
       return function(event) {
@@ -274,6 +288,20 @@
   var Layout_x = [
     function(_component) {
       return "\n        " + (_component.title ?? "") + " | Viewi\n    ";
+    }
+  ];
+
+  // app/components/PanelLayout.js
+  var PanelLayout = class extends BaseComponent {
+    _name = "PanelLayout";
+    title = "Viewi";
+  };
+  var PanelLayout_x = [
+    function(_component) {
+      return _component.title;
+    },
+    function(_component) {
+      return "Panel: " + (_component.title ?? "");
     }
   ];
 
@@ -1230,6 +1258,7 @@
     UserModel,
     CounterReducer,
     TodoReducer,
+    DemoContainer,
     MenuBar,
     Counter_x,
     Counter,
@@ -1237,6 +1266,8 @@
     HomePage,
     Layout_x,
     Layout,
+    PanelLayout_x,
+    PanelLayout,
     NotFoundPage,
     CounterPage,
     TestPage,
@@ -1542,6 +1573,7 @@
       const scopeId = ++scope.counter;
       const nextScope = {
         id: scopeId,
+        why: "forItem",
         instance,
         arguments: [...scope.arguments],
         components: [],
@@ -1630,6 +1662,7 @@
         const scopeId = ++scope.counter;
         const nextScope = {
           id: scopeId,
+          why: index === 0 ? "if" : directive.children ? "elseif" : "else",
           instance,
           arguments: [...scope.arguments],
           components: [],
@@ -1649,6 +1682,7 @@
         dispose(scopeContainer.scope);
         scopeContainer.scope = {
           id: -1,
+          why: "if",
           instance,
           arguments: [],
           components: [],
@@ -1777,6 +1811,7 @@
     const scopeId = ++scope.counter;
     const nextScope = {
       id: scopeId,
+      why: "dynamic",
       arguments: [...scope.arguments],
       components: [],
       map: { ...scope.map },
@@ -1797,6 +1832,7 @@
         const scopeId2 = ++nextScope.counter;
         const slotScope = {
           id: scopeId2,
+          why: "slot",
           arguments: [...scope.arguments],
           components: [],
           map: { ...scope.map },
@@ -2001,6 +2037,7 @@
                   const scopeId = ++scope.counter;
                   const nextScope2 = {
                     id: scopeId,
+                    why: "if",
                     arguments: scope.arguments,
                     components: [],
                     map: scope.map,
@@ -2043,6 +2080,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      why: "elseif",
                       instance,
                       arguments: scope.arguments,
                       components: [],
@@ -2087,6 +2125,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      why: "else",
                       instance,
                       arguments: scope.arguments,
                       components: [],
@@ -2127,6 +2166,7 @@
                     const scopeId = ++scope.counter;
                     const nextScope2 = {
                       id: scopeId,
+                      why: "foreach",
                       instance,
                       arguments: [...scope.arguments],
                       components: [],
@@ -2185,19 +2225,20 @@
             }
           }
           const content = node.expression ? instance.$$t[node.code](instance) : node.content ?? "";
-          const isDynamic = node.subs;
+          const isDynamic = node.expression;
           const componentTag = node.type === "component" || node.expression && isComponent(content);
           let anchor;
           let anchorBegin;
-          let nextScope;
+          let nextScope = scope;
           if (isDynamic) {
             anchor = hydrate ? getAnchor(target) : void 0;
             anchorBegin = createAnchorNode(target, insert, anchor);
           }
-          if (isDynamic || componentTag) {
+          if (isDynamic) {
             const scopeId = ++scope.counter;
             nextScope = {
               id: scopeId,
+              why: "dynamic",
               arguments: [...scope.arguments],
               components: [],
               map: { ...scope.map },
@@ -2219,6 +2260,7 @@
               const scopeId = ++nextScope.counter;
               const slotScope = {
                 id: scopeId,
+                why: "slot",
                 arguments: [...scope.arguments],
                 components: [],
                 map: { ...scope.map },
@@ -2247,6 +2289,9 @@
               break;
             }
             if (node.content === "slot") {
+              if (!anchor) {
+                anchor = hydrate ? getAnchor(target) : void 0;
+              }
               nextInsert = insert;
               let slotName = "default";
               if (node.attributes) {
@@ -2256,6 +2301,7 @@
                   }
                 }
               }
+              const anchorSlotBegin = createAnchorNode(target, insert, anchor);
               if (slotName in scope.slots) {
                 const slot = scope.slots[slotName];
                 if (!slot.node.unpacked) {
@@ -2267,6 +2313,10 @@
                 if (node.children) {
                   render(element, instance, node.children, scope, void 0, hydrate, nextInsert);
                 }
+              }
+              const anchorSlotNode = createAnchorNode(target, insert, anchor, anchorSlotBegin._anchor);
+              if (scope.instance._name in globalScope.iteration) {
+                globalScope.iteration[scope.instance._name].slots[slotName] = anchorSlotNode;
               }
               continue;
             }
@@ -2561,14 +2611,26 @@
     }
     const info = componentsMeta.list[name];
     const root = info.nodes;
-    const instance = makeProxy(resolve(name));
+    const lastIteration = globalScope.lastIteration;
+    const reuse = name in lastIteration;
+    if (reuse) {
+      const slotHolders = lastIteration[name].slots;
+      for (let slotName in slotHolders) {
+        const anchorNode = slotHolders[slotName];
+        while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
+          anchorNode.previousSibling.remove();
+        }
+      }
+    }
+    const instance = reuse ? lastIteration[name].instance : makeProxy(resolve(name));
     const inlineExpressions = name + "_x";
-    if (inlineExpressions in components) {
+    if (!reuse && inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
     }
     const scopeId = props ? ++props.scope.counter : 0;
-    const scope = {
+    const scope = reuse ? lastIteration[name].scope : {
       id: scopeId,
+      why: name,
       arguments: props ? [...props.scope.arguments] : [],
       components: [],
       instance,
@@ -2648,6 +2710,45 @@
         }
       }
     }
+    reuse && console.log(`Reusing component: ${name}`);
+    if (name in globalScope.located) {
+      globalScope.iteration[name] = { instance, scope, slots: {} };
+    }
+    if (reuse) {
+      console.log("Resue: Rendering slots");
+      const slotHolders = lastIteration[name].slots;
+      for (let slotName in slotHolders) {
+        const anchorNode = slotHolders[slotName];
+        if (anchorNode.parentNode && document.body.contains(anchorNode)) {
+          if (slots && slotName in slots) {
+            const slot = slots[slotName];
+            if (!slot.node.unpacked) {
+              unpack(slot.node);
+              slot.node.unpacked = true;
+            }
+            render(anchorNode, slot.scope.instance, slot.node.children, slot.scope, void 0, false, true);
+          } else {
+          }
+          globalScope.iteration[name].slots[slotName] = anchorNode;
+        }
+      }
+      let componentName = name;
+      while (componentName) {
+        const componentInfo = componentsMeta.list[componentName];
+        componentName = false;
+        const componentRoot = componentInfo.nodes;
+        if (componentRoot) {
+          const rootChildren = componentRoot.children;
+          if (rootChildren) {
+            if (rootChildren[0].type === "component" && rootChildren[0].content in lastIteration) {
+              globalScope.iteration[rootChildren[0].content] = lastIteration[rootChildren[0].content];
+              componentName = rootChildren[0].content;
+            }
+          }
+        }
+      }
+      return;
+    }
     if (target && root) {
       if (!root.unpacked) {
         unpack(root);
@@ -2655,6 +2756,9 @@
       }
       const rootChildren = root.children;
       if (rootChildren) {
+        if (rootChildren[0].type === "component") {
+          globalScope.located[rootChildren[0].content] = true;
+        }
         rootChildren[0].first = true;
         render(target, instance, rootChildren, scope, void 0, hydrate, insert);
       }
@@ -2664,32 +2768,79 @@
   // viewi/core/render/renderApp.ts
   function renderApp(name, params, target) {
     console.time("renderApp");
-    renderComponent(target ?? document, name, void 0, {}, true, false);
-    for (let a in anchors) {
-      const anchor = anchors[a];
-      for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
-        anchor.target.childNodes[i].remove();
-      }
-      for (let i = anchor.invalid.length - 1; i >= 0; i--) {
-        anchor.target.childNodes[anchor.invalid[i]].remove();
+    const hydrate = globalScope.hydrate;
+    globalScope.lastIteration = globalScope.iteration;
+    globalScope.iteration = {};
+    globalScope.located = {};
+    renderComponent(target ?? document, name, void 0, {}, hydrate, false);
+    globalScope.hydrate = false;
+    if (hydrate) {
+      for (let a in anchors) {
+        const anchor = anchors[a];
+        for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
+          anchor.target.childNodes[i].remove();
+        }
+        for (let i = anchor.invalid.length - 1; i >= 0; i--) {
+          anchor.target.childNodes[anchor.invalid[i]].remove();
+        }
       }
     }
     console.timeEnd("renderApp");
+    console.log(globalScope);
   }
 
-  // viewi/core/router/handleUrl.ts
+  // viewi/core/router/locationScope.ts
   var htmlElementA = document.createElement("a");
+  var locationScope = { link: htmlElementA, scrollTo: null };
+
+  // viewi/core/router/handleUrl.ts
   var getPathName = function(href) {
-    htmlElementA.href = href;
-    return htmlElementA.pathname;
+    locationScope.link.href = href;
+    return locationScope.link.pathname;
   };
-  function handleUrl(href) {
+  function handleUrl(href, forward = true) {
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {
       throw "Can't resolve route for uri: " + urlPath;
     }
     renderApp(routeItem.item.action, routeItem.params);
+    if (forward) {
+      window.history.pushState({ href }, "", href);
+    }
+  }
+
+  // viewi/core/router/watchLinks.ts
+  function watchLinks() {
+    document.addEventListener("click", function(event) {
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (!event.target) {
+        console.warn('Can not aquire event target at "watchLinks".');
+      }
+      const target = event.target;
+      let nextTarget = target;
+      while (nextTarget.parentElement && nextTarget.tagName !== "A") {
+        nextTarget = nextTarget.parentElement;
+      }
+      if (nextTarget.tagName === "A" && nextTarget.href && nextTarget.href.indexOf(location.origin) === 0) {
+        locationScope.scrollTo = null;
+        if (!locationScope.link.hash || locationScope.link.pathname !== location.pathname) {
+          event.preventDefault();
+          if (locationScope.link.hash) {
+            locationScope.scrollTo = locationScope.link.hash;
+          }
+          handleUrl(nextTarget.href, true);
+        }
+      }
+    }, false);
+    window.addEventListener("popstate", function(event) {
+      if (event.state)
+        handleUrl(event.state.href, false);
+      else
+        handleUrl(location.href, false);
+    });
   }
 
   // viewi/index.ts
@@ -2706,6 +2857,7 @@
     for (let i = 0; i < booleanArray.length; i++) {
       componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
+    watchLinks();
     handleUrl(location.href);
   })();
 })();
