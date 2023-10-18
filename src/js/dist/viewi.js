@@ -144,10 +144,42 @@
   var globalScope = {
     hydrate: true,
     // first time hydrate, TODO: configurable, MFE won't need hydration
+    rootScope: false,
     located: {},
     iteration: {},
     lastIteration: {}
   };
+
+  // viewi/core/lifecycle/dispose.ts
+  function dispose(scope) {
+    if (scope.keep)
+      return;
+    for (let reactivityIndex in scope.track) {
+      const reactivityItem = scope.track[reactivityIndex];
+      delete scope.instance.$$r[reactivityItem.path][reactivityItem.id];
+    }
+    scope.track = [];
+    if (scope.children) {
+      for (let i in scope.children) {
+        dispose(scope.children[i]);
+      }
+      scope.children = {};
+    }
+    if (scope.main) {
+      for (let i = 0; i < scope.instance.$$p.length; i++) {
+        const trackGroup = scope.instance.$$p[i];
+        delete trackGroup[1].$$r[trackGroup[0]];
+      }
+      const instance = scope.instance;
+      if (instance.destroy) {
+        instance.destroy();
+      }
+    }
+    if (scope.parent) {
+      delete scope.parent.children[scope.id];
+      delete scope.parent;
+    }
+  }
 
   // app/components/UserModel.js
   var UserModel = class {
@@ -270,6 +302,22 @@
   var HomePage = class extends BaseComponent {
     _name = "HomePage";
     title = "Viewi v2 - Build reactive front-end with PHP";
+    timerId = 0;
+    seconds = 0;
+    init() {
+      this.seconds = 100;
+      this.timerId = setInterval(() => this.tick(), 1e3);
+      ;
+    }
+    destroy() {
+      clearInterval(this.timerId);
+      ;
+    }
+    tick() {
+      this.seconds++;
+      console.log("HomePage time " + this.seconds);
+      ;
+    }
   };
   var HomePage_x = [
     function(_component) {
@@ -277,6 +325,9 @@
     },
     function(_component) {
       return _component.title;
+    },
+    function(_component) {
+      return "Seconds: " + (_component.seconds ?? "");
     }
   ];
 
@@ -295,13 +346,32 @@
   var PanelLayout = class extends BaseComponent {
     _name = "PanelLayout";
     title = "Viewi";
+    timerId = 0;
+    seconds = 0;
+    init() {
+      this.seconds = 500;
+      this.timerId = setInterval(() => this.tick(), 1e3);
+      ;
+    }
+    destroy() {
+      clearInterval(this.timerId);
+      ;
+    }
+    tick() {
+      this.seconds++;
+      console.log("PanelLayout time " + this.seconds);
+      ;
+    }
   };
   var PanelLayout_x = [
+    function(_component) {
+      return _component.seconds;
+    },
     function(_component) {
       return _component.title;
     },
     function(_component) {
-      return "Panel: " + (_component.title ?? "");
+      return "Panel: " + (_component.seconds ?? "") + " " + (_component.title ?? "");
     }
   ];
 
@@ -1529,32 +1599,6 @@
     return anchorNode;
   }
 
-  // viewi/core/lifecycle/dispose.ts
-  function dispose(scope) {
-    for (let reactivityIndex in scope.track) {
-      const reactivityItem = scope.track[reactivityIndex];
-      delete scope.instance.$$r[reactivityItem.path][reactivityItem.id];
-    }
-    scope.track = [];
-    scope.components = [];
-    if (scope.children) {
-      for (let i in scope.children) {
-        dispose(scope.children[i]);
-      }
-      scope.children = {};
-    }
-    if (scope.main) {
-      for (let i = 0; i < scope.instance.$$p.length; i++) {
-        const trackGroup = scope.instance.$$p[i];
-        delete trackGroup[1].$$r[trackGroup[0]];
-      }
-    }
-    if (scope.parent) {
-      delete scope.parent.children[scope.id];
-      delete scope.parent;
-    }
-  }
-
   // viewi/core/render/renderForeach.ts
   function renderForeach(instance, node, directive, anchorNode, currentArrayScope, localDirectiveMap, scope) {
     let callArguments = [instance];
@@ -2621,8 +2665,14 @@
           anchorNode.previousSibling.remove();
         }
       }
+      lastIteration[name].scope.keep = true;
     }
     const instance = reuse ? lastIteration[name].instance : makeProxy(resolve(name));
+    if (!reuse) {
+      if (info.hooks && info.hooks.init) {
+        instance.init();
+      }
+    }
     const inlineExpressions = name + "_x";
     if (!reuse && inlineExpressions in components) {
       instance.$$t = components[inlineExpressions];
@@ -2632,7 +2682,6 @@
       id: scopeId,
       why: name,
       arguments: props ? [...props.scope.arguments] : [],
-      components: [],
       instance,
       main: true,
       map: props ? { ...props.scope.map } : {},
@@ -2710,12 +2759,10 @@
         }
       }
     }
-    reuse && console.log(`Reusing component: ${name}`);
     if (name in globalScope.located) {
       globalScope.iteration[name] = { instance, scope, slots: {} };
     }
     if (reuse) {
-      console.log("Resue: Rendering slots");
       const slotHolders = lastIteration[name].slots;
       for (let slotName in slotHolders) {
         const anchorNode = slotHolders[slotName];
@@ -2747,7 +2794,7 @@
           }
         }
       }
-      return;
+      return scope;
     }
     if (target && root) {
       if (!root.unpacked) {
@@ -2763,6 +2810,7 @@
         render(target, instance, rootChildren, scope, void 0, hydrate, insert);
       }
     }
+    return scope;
   }
 
   // viewi/core/render/renderApp.ts
@@ -2772,8 +2820,15 @@
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
     globalScope.located = {};
-    renderComponent(target ?? document, name, void 0, {}, hydrate, false);
+    const lastScope = globalScope.rootScope;
+    globalScope.rootScope = renderComponent(target ?? document, name, void 0, {}, hydrate, false);
     globalScope.hydrate = false;
+    for (let name2 in globalScope.lastIteration) {
+      if (!(name2 in globalScope.iteration)) {
+        globalScope.lastIteration[name2].scope.keep = false;
+      }
+    }
+    lastScope && dispose(lastScope);
     if (hydrate) {
       for (let a in anchors) {
         const anchor = anchors[a];
