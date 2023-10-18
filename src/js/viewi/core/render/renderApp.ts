@@ -1,19 +1,38 @@
 import { anchors } from "../anchor/anchors";
+import { componentsMeta } from "../component/componentsMeta";
 import { globalScope } from "../di/globalScope";
 import { dispose } from "../lifecycle/dispose";
 import { renderComponent } from "./renderComponent";
 
-export function renderApp(name: string, params: { [key: string]: any }, target?: Node) {
+export function renderApp(
+    name: string,
+    params: { [key: string]: any },
+    target?: Node,
+    onAccept?: { func: (href: string, forward: boolean) => void, href: string, forward: boolean }
+) {
     console.time('renderApp');
+    if (!(name in componentsMeta.list)) {
+        throw new Error(`Component ${name} not found.`);
+    }
+    const info = componentsMeta.list[name];
     const hydrate = globalScope.hydrate;
+    const lastScope = globalScope.rootScope;
+    if (onAccept) {
+        if (lastScope && info.parent !== globalScope.layout) {
+            // new html root, can't render, request from server
+            location.href = onAccept.href;
+            return;
+        }
+        onAccept.func(onAccept.href, onAccept.forward);
+    }
+    globalScope.layout = info.parent!;
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
     globalScope.located = {};
-    const lastScope = globalScope.rootScope;
     globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false);
     globalScope.hydrate = false; // TODO: scope managment function
-    for(let name in globalScope.lastIteration) {
-        if(!(name in globalScope.iteration)) {
+    for (let name in globalScope.lastIteration) {
+        if (!(name in globalScope.iteration)) {
             globalScope.lastIteration[name].scope.keep = false;
         }
     }

@@ -7,15 +7,17 @@ const getPathName = function (href: string) {
     return locationScope.link.pathname;
 };
 
+const updateHistory = function (href: string, forward: boolean = true) {
+    if (forward) {
+        window.history.pushState({ href: href }, '', href);
+    }
+}
+
 export function handleUrl(href: string, forward: boolean = true) {
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {
         throw 'Can\'t resolve route for uri: ' + urlPath;
     }
-    renderApp(routeItem.item.action, routeItem.params);
-    // TODO: push state only if app does not redirect or opens location itself
-    if (forward) {
-        window.history.pushState({ href: href }, '', href);
-    }
+    renderApp(routeItem.item.action, routeItem.params, undefined, { func: updateHistory, href, forward });
 }
