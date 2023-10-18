@@ -5,10 +5,12 @@ import { DemoContainer } from "./DemoContainer";
 import { MenuBar } from "./MenuBar";
 import { Counter, Counter_x } from "./Counter";
 import { HomePage, HomePage_x } from "./HomePage";
+import { AreaLayout, AreaLayout_x } from "./AreaLayout";
 import { Layout, Layout_x } from "./Layout";
 import { PanelLayout, PanelLayout_x } from "./PanelLayout";
 import { NotFoundPage } from "./NotFoundPage";
 import { CounterPage } from "./CounterPage";
+import { TestLayoutPage } from "./TestLayoutPage";
 import { TestPage } from "./TestPage";
 import { TodoAppPage } from "./TodoAppPage";
 import { StatefulCounter, StatefulCounter_x } from "./StatefulCounter";
@@ -31,12 +33,15 @@ export const components = {
     Counter,
     HomePage_x,
     HomePage,
+    AreaLayout_x,
+    AreaLayout,
     Layout_x,
     Layout,
     PanelLayout_x,
     PanelLayout,
     NotFoundPage,
     CounterPage,
+    TestLayoutPage,
     TestPage,
     TodoAppPage,
     StatefulCounter_x,

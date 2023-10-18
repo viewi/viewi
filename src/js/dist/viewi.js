@@ -147,7 +147,8 @@
     rootScope: false,
     located: {},
     iteration: {},
-    lastIteration: {}
+    lastIteration: {},
+    layout: ""
   };
 
   // viewi/core/lifecycle/dispose.ts
@@ -331,6 +332,17 @@
     }
   ];
 
+  // app/components/AreaLayout.js
+  var AreaLayout = class extends BaseComponent {
+    _name = "AreaLayout";
+    title = "Area Layout";
+  };
+  var AreaLayout_x = [
+    function(_component) {
+      return "\n        " + (_component.title ?? "") + " | Area\n    ";
+    }
+  ];
+
   // app/components/Layout.js
   var Layout = class extends BaseComponent {
     _name = "Layout";
@@ -383,6 +395,11 @@
   // app/components/CounterPage.js
   var CounterPage = class extends BaseComponent {
     _name = "CounterPage";
+  };
+
+  // app/components/TestLayoutPage.js
+  var TestLayoutPage = class extends BaseComponent {
+    _name = "TestLayoutPage";
   };
 
   // app/components/TestPage.js
@@ -1334,12 +1351,15 @@
     Counter,
     HomePage_x,
     HomePage,
+    AreaLayout_x,
+    AreaLayout,
     Layout_x,
     Layout,
     PanelLayout_x,
     PanelLayout,
     NotFoundPage,
     CounterPage,
+    TestLayoutPage,
     TestPage,
     TodoAppPage,
     StatefulCounter_x,
@@ -1620,7 +1640,6 @@
         why: "forItem",
         instance,
         arguments: [...scope.arguments],
-        components: [],
         map: { ...scope.map },
         track: [],
         parent: scope,
@@ -1709,7 +1728,6 @@
           why: index === 0 ? "if" : directive.children ? "elseif" : "else",
           instance,
           arguments: [...scope.arguments],
-          components: [],
           map: { ...scope.map },
           track: [],
           parent: scope,
@@ -1729,7 +1747,6 @@
           why: "if",
           instance,
           arguments: [],
-          components: [],
           map: {},
           track: [],
           parent: scope,
@@ -1857,7 +1874,6 @@
       id: scopeId,
       why: "dynamic",
       arguments: [...scope.arguments],
-      components: [],
       map: { ...scope.map },
       track: [],
       instance,
@@ -1878,7 +1894,6 @@
           id: scopeId2,
           why: "slot",
           arguments: [...scope.arguments],
-          components: [],
           map: { ...scope.map },
           track: [],
           instance,
@@ -2083,7 +2098,6 @@
                     id: scopeId,
                     why: "if",
                     arguments: scope.arguments,
-                    components: [],
                     map: scope.map,
                     instance,
                     track: [],
@@ -2127,7 +2141,6 @@
                       why: "elseif",
                       instance,
                       arguments: scope.arguments,
-                      components: [],
                       map: scope.map,
                       track: [],
                       parent: scope,
@@ -2172,7 +2185,6 @@
                       why: "else",
                       instance,
                       arguments: scope.arguments,
-                      components: [],
                       map: scope.map,
                       track: [],
                       parent: scope,
@@ -2213,7 +2225,6 @@
                       why: "foreach",
                       instance,
                       arguments: [...scope.arguments],
-                      components: [],
                       map: { ...scope.map },
                       track: [],
                       parent: scope,
@@ -2284,7 +2295,6 @@
               id: scopeId,
               why: "dynamic",
               arguments: [...scope.arguments],
-              components: [],
               map: { ...scope.map },
               track: [],
               instance,
@@ -2306,7 +2316,6 @@
                 id: scopeId,
                 why: "slot",
                 arguments: [...scope.arguments],
-                components: [],
                 map: { ...scope.map },
                 track: [],
                 parent: nextScope,
@@ -2814,13 +2823,25 @@
   }
 
   // viewi/core/render/renderApp.ts
-  function renderApp(name, params, target) {
+  function renderApp(name, params, target, onAccept) {
     console.time("renderApp");
+    if (!(name in componentsMeta.list)) {
+      throw new Error(`Component ${name} not found.`);
+    }
+    const info = componentsMeta.list[name];
     const hydrate = globalScope.hydrate;
+    const lastScope = globalScope.rootScope;
+    if (onAccept) {
+      if (lastScope && info.parent !== globalScope.layout) {
+        location.href = onAccept.href;
+        return;
+      }
+      onAccept.func(onAccept.href, onAccept.forward);
+    }
+    globalScope.layout = info.parent;
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
     globalScope.located = {};
-    const lastScope = globalScope.rootScope;
     globalScope.rootScope = renderComponent(target ?? document, name, void 0, {}, hydrate, false);
     globalScope.hydrate = false;
     for (let name2 in globalScope.lastIteration) {
@@ -2853,16 +2874,18 @@
     locationScope.link.href = href;
     return locationScope.link.pathname;
   };
+  var updateHistory = function(href, forward = true) {
+    if (forward) {
+      window.history.pushState({ href }, "", href);
+    }
+  };
   function handleUrl(href, forward = true) {
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {
       throw "Can't resolve route for uri: " + urlPath;
     }
-    renderApp(routeItem.item.action, routeItem.params);
-    if (forward) {
-      window.history.pushState({ href }, "", href);
-    }
+    renderApp(routeItem.item.action, routeItem.params, void 0, { func: updateHistory, href, forward });
   }
 
   // viewi/core/router/watchLinks.ts
