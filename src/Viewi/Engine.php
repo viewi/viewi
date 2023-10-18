@@ -49,6 +49,9 @@ class Engine
         $componentMeta = $this->meta['components'][$component];
         // Helpers::debug([$componentMeta]);
         $classInstance = $this->resolve($componentMeta);
+        if (isset($componentMeta['hooks']['init'])) {
+            $classInstance->init();
+        }
         include_once $this->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
