@@ -40,7 +40,6 @@ export function renderForeach(
             why: 'forItem',
             instance: instance,
             arguments: [...scope.arguments],
-            components: [],
             map: { ...scope.map },
             track: [],
             parent: scope,
