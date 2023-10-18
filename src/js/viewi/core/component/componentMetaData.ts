@@ -5,7 +5,14 @@ export type ComponentMetaData = {
     dependencies?: any[],
     di?: 'Singleton' | 'Scoped' | 'Transient',
     base?: boolean,
-    refs?: { [key: string]: boolean }
+    refs?: { [key: string]: boolean },
+    hooks?: {
+        init?: boolean,
+        mount?: boolean,
+        mounted?: boolean,
+        rendered?: boolean,
+        destroy?: boolean
+    }
 }
 
 export type ComponentMetaDataList = {

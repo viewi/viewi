@@ -1,5 +1,6 @@
 import { anchors } from "../anchor/anchors";
 import { globalScope } from "../di/globalScope";
+import { dispose } from "../lifecycle/dispose";
 import { renderComponent } from "./renderComponent";
 
 export function renderApp(name: string, params: { [key: string]: any }, target?: Node) {
@@ -8,8 +9,15 @@ export function renderApp(name: string, params: { [key: string]: any }, target?:
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
     globalScope.located = {};
-    renderComponent(target ?? document, name, undefined, {}, hydrate, false);
+    const lastScope = globalScope.rootScope;
+    globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false);
     globalScope.hydrate = false; // TODO: scope managment function
+    for(let name in globalScope.lastIteration) {
+        if(!(name in globalScope.iteration)) {
+            globalScope.lastIteration[name].scope.keep = false;
+        }
+    }
+    lastScope && dispose(lastScope);
     // console.log(anchors);
     // return;
 

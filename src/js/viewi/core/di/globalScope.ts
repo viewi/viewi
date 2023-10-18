@@ -10,6 +10,7 @@ type RenderIteration = {
 
 type GlobalScope = {
     hydrate: boolean,
+    rootScope: ContextScope | false,
     located: { [key: string]: boolean },
     iteration: { [key: string]: RenderIteration },
     lastIteration: { [key: string]: RenderIteration }
@@ -17,6 +18,7 @@ type GlobalScope = {
 
 export const globalScope: GlobalScope = {
     hydrate: true, // first time hydrate, TODO: configurable, MFE won't need hydration
+    rootScope: false,
     located: {},
     iteration: {},
     lastIteration: {}

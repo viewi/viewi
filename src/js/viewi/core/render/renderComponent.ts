@@ -14,7 +14,7 @@ import { updateProp } from "../reactivity/handlers/updateProp";
 import { ContextScope } from "../lifecycle/contextScope";
 import { globalScope } from "../di/globalScope";
 
-export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false) {
+export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false): ContextScope {
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
     }
@@ -37,8 +37,14 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                 anchorNode.previousSibling!.remove();
             }
         }
+        lastIteration[name].scope.keep = true;
     }
     const instance: BaseComponent<any> = reuse ? lastIteration[name].instance : makeProxy(resolve(name));
+    if (!reuse) {
+        if (info.hooks && info.hooks.init) {
+            (instance as any).init();
+        }
+    }
     const inlineExpressions = name + '_x';
     if (!reuse && inlineExpressions in components) {
         instance.$$t = components[inlineExpressions];
@@ -49,7 +55,6 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
         id: scopeId,
         why: name,
         arguments: props ? [...props.scope.arguments] : [],
-        components: [],
         instance: instance,
         main: true,
         map: props ? { ...props.scope.map } : {},
@@ -140,12 +145,12 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
             }
         }
     }
-    reuse && console.log(`Reusing component: ${name}`);
+    // reuse && console.log(`Reusing component: ${name}`);
     if (name in globalScope.located) {
         globalScope.iteration[name] = { instance, scope, slots: {} };
     }
     if (reuse) {
-        console.log('Resue: Rendering slots');
+        // console.log('Resue: Rendering slots');
         const slotHolders = lastIteration[name].slots;
         for (let slotName in slotHolders) {
             const anchorNode = slotHolders[slotName];
@@ -178,7 +183,7 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
                 }
             }
         }
-        return;
+        return scope;
     }
     // render
     if (
@@ -201,4 +206,5 @@ export function renderComponent(target: Node, name: string, props?: PropsContext
             // console.log(name, instance);
         }
     }
+    return scope;
 }
