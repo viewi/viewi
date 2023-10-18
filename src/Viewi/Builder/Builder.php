@@ -120,7 +120,8 @@ class Builder
         // 6. return metadata
         // Helpers::debug(array_flip(array_keys($this->components)));
         // Helpers::debug($this->avaliableComponents);
-        // Helpers::debug($this->usedFunctions);
+        // Helpers::debug($this->usedFunctions);        
+        $this->collectHtmlRootComponentName();
         // create files
         $this->makeFiles();
         // Helpers::debug($this->meta);
@@ -284,11 +285,41 @@ class Builder
                 }
                 $buildItem->RenderFunction = $template;
                 $buildItem->RootTag = $rootTag;
+                // Helpers::debug([$buildItem->ComponentName, $template->usedComponents, $template->hasHtmlTag]);
             }
 
             if ($buildItem->Include) {
                 $this->collectIncludes($buildItem);
             }
+        }
+    }
+
+    private function getHtmlRootComponent(BuildItem $buildItem): ?string
+    {
+        if (!$buildItem->HtmlRootComponentCalculated) {
+            $buildItem->HtmlRootComponentCalculated = true;
+            if ($buildItem->RenderFunction->hasHtmlTag) {
+                $buildItem->HtmlRootComponent = $buildItem->ComponentName;
+                return $buildItem->ComponentName;
+            }
+            foreach ($buildItem->RenderFunction->usedComponents as $name => $_) {
+                $htmlComponent = $this->getHtmlRootComponent($this->components[$name]);
+                if ($htmlComponent !== null) {
+                    $buildItem->HtmlRootComponent = $htmlComponent;
+                    break;
+                }
+            }
+        }
+        return $buildItem->HtmlRootComponent;
+    }
+
+    private function collectHtmlRootComponentName()
+    {
+        foreach ($this->components as $buildItem) {
+            if ($buildItem->RenderFunction !== null) {
+                $this->getHtmlRootComponent($buildItem);
+            }
+            // Helpers::debug([$buildItem->ComponentName, $buildItem->HtmlRootComponent]);
         }
     }
 
@@ -367,6 +398,9 @@ class Builder
                 if ($buildItem->refs) {
                     $publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
                 }
+            }
+            if ($buildItem->HtmlRootComponent !== null) {
+                $publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
             }
             // template, render function
             $expressionsJs = '';

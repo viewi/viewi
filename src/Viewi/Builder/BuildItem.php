@@ -15,6 +15,8 @@ class BuildItem
     public bool $Skip = false;
     public ?string $Namespace = null;
     public ?string $TemplatePath = null;
+    public bool $HtmlRootComponentCalculated = false;
+    public ?string $HtmlRootComponent = null;
     /**
      * 
      * @var array<string, string> see ExportItem
