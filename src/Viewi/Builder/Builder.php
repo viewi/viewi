@@ -5,6 +5,7 @@ namespace Viewi\Builder;
 use Exception;
 use Reflection;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 use Viewi\Builder\Attributes\Skip;
@@ -63,6 +64,14 @@ class Builder
         Singleton::class => true,
         Scoped::class => true,
         Skip::class => true,
+    ];
+
+    private array $hookMethods = [
+        'init' => true,
+        'mount' => true,
+        'mounted' => true,
+        'rendered' => true,
+        'destroy' => true,
     ];
 
     public function __construct(private Router $router)
@@ -315,6 +324,17 @@ class Builder
             $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
             $rf = new ReflectionClass($class);
             $componentMeta['dependencies'] = $this->getDependencies($rf);
+            $lifecycleHooks = [];
+            $methods = $rf->getMethods(ReflectionMethod::IS_PUBLIC);
+            foreach ($methods as $method) {
+                if (isset($this->hookMethods[$method->name]) && !$method->isStatic() && !$method->isAbstract()) {
+                    $lifecycleHooks[$method->name] = 1;
+                }
+            }
+            if ($lifecycleHooks) {
+                $componentMeta['hooks'] = $lifecycleHooks;
+                $publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
+            }
             if (count($componentMeta['dependencies']) > 0) {
                 $publicJson[$buildItem->ComponentName]['dependencies'] = [];
                 foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
