@@ -13,6 +13,8 @@ class RenderItem
      * @param string $renderName 
      * @param array<array<string|TagItem|RenderItem>> $slots 
      * @param array<string, bool> $usedFunctions 
+     * @param bool $hasHtmlTag
+     * @param array<string, bool> $usedComponents 
      * @return void 
      */
     public function __construct(
@@ -21,7 +23,9 @@ class RenderItem
         public string $renderName,
         public array $slots,
         public array $usedFunctions,
-        public array $inlineExpressions
+        public array $inlineExpressions,
+        public bool $hasHtmlTag,
+        public array $usedComponents
     ) {
     }
 

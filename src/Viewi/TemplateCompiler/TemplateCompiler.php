@@ -48,6 +48,8 @@ class TemplateCompiler
     private array $localScopeArguments = [];
     private array $usedFunctions = [];
     private array $inlineExpressions = [];
+    private array $usedComponents = [];
+    private bool $hasHtmlTag = false;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -106,7 +108,9 @@ class TemplateCompiler
             $renderFunction,
             $this->slots,
             $this->usedFunctions,
-            $this->inlineExpressions
+            $this->inlineExpressions,
+            $this->hasHtmlTag,
+            $this->usedComponents
         );
     }
 
@@ -121,6 +125,8 @@ class TemplateCompiler
             $this->forIterationKey = 0;
             $this->usedFunctions = [];
             $this->inlineExpressions = [];
+            $this->hasHtmlTag = false;
+            $this->usedComponents = [];
         }
     }
 
@@ -328,12 +334,16 @@ class TemplateCompiler
             } elseif ($tagItem->Content === 'template') {
                 $templateTag = true;
                 $tag = false;
+            } elseif ($tagItem->Content === 'html') {
+                $this->hasHtmlTag = true;
             }
         }
         $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
         $nested = $root || $tag || $component || $slot || $slotContent || $templateTag;
-
+        if($component) {
+            $this->usedComponents[$tagItem->Content] = true;
+        }
         if ($nested) {
             $isVoid = $tag && isset($this->voidTags[$tagItem->Content]);
 
@@ -417,8 +427,8 @@ class TemplateCompiler
                             $attributeTagValue->Content = $combinedExpression;
                             $values = [$attributeTagValue];
                             $attributeItem->setChildren($values);
-                        }                        
-                        
+                        }
+
                         $concat = '';
                         $single = count($values) === 1;
                         foreach ($values as &$attributeValue) {
