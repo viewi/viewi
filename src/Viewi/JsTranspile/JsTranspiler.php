@@ -41,6 +41,8 @@ use PhpParser\Node\Stmt\Nop;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Switch_;
+use PhpParser\Node\Stmt\Throw_;
+use PhpParser\Node\Stmt\TryCatch;
 use PhpParser\Node\Stmt\Use_;
 use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
@@ -219,7 +221,9 @@ class JsTranspiler
                         "_name = '{$node->name}';";
                 }
                 // $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '$ = makeProxy(this);' . PHP_EOL;
-
+                if (isset($exportItem->Attributes['attrs']['Skip']) || isset($exportItem->Attributes['attrs']['CustomJs'])) {
+                    return;
+                }
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -312,7 +316,7 @@ class JsTranspiler
                                 $promotedParams[$paramName] =
                                     [
                                         $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
-                                            'this.' . $paramName . " = $argumentName === undefined ? ",
+                                            '$this.' . $paramName . " = $argumentName === undefined ? ",
                                         $param->default,
                                         " : $argumentName;" . PHP_EOL
                                     ];
@@ -320,7 +324,7 @@ class JsTranspiler
                                 $promotedParams[$paramName] =
                                     [
                                         $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
-                                            'this.' . $paramName . " = $argumentName;" . PHP_EOL
+                                            '$this.' . $paramName . " = $argumentName;" . PHP_EOL
                                     ];
                             }
                         }
@@ -361,6 +365,7 @@ class JsTranspiler
                 if ($itsConstructor && $this->currentExtend !== null) {
                     $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
                 }
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'var $this = this;' . PHP_EOL; // TODO: inject only if used
                 if ($itsConstructor) {
                     foreach ($promotedParams as $paramStmts) {
                         $this->processStmts($paramStmts);
@@ -503,11 +508,11 @@ class JsTranspiler
             } else if ($node instanceof PropertyFetch) {
                 $isThis = $node->var instanceof Variable && $node->var->name === 'this';
                 if ($isThis && isset($this->privateProperties[$node->name->name])) {
-                    $this->jsCode .= $node->name->name;
+                    $this->jsCode .= '$this.$' . $node->name->name;
                 } else {
                     $this->propertyFetchQueue[] = $node->name->name;
                     // if ($isThis) {
-                    //     $this->propertyFetchQueue[] = 'this';
+                    //     $this->propertyFetchQueue[] = '$this';
                     // }
                     $prevPath = $this->currentPath;
                     $this->processStmts([$node->var]);
@@ -608,7 +613,7 @@ class JsTranspiler
                 }
                 $this->jsCode .= ')';
             } else if ($node instanceof Closure) {
-                $this->jsCode .= "function(";
+                $this->jsCode .= "function (";
                 $comma = '';
                 $allscopes = $this->localVariables;
                 foreach ($node->params as $param) {
@@ -625,7 +630,7 @@ class JsTranspiler
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
             } else if ($node instanceof ArrowFunction) {
-                $this->jsCode .= "function(";
+                $this->jsCode .= "function (";
                 $comma = '';
                 foreach ($node->params as $param) {
                     $this->jsCode .= $comma . $param->var->name;
@@ -640,7 +645,7 @@ class JsTranspiler
                     $this->jsCode .= $this->objectRefName . '.';
                     $this->transforms['$' . $node->name] = $this->objectRefName . '->' . $node->name;
                 }
-                $this->jsCode .= $isThis ? ($this->currentConstructor ? 'this' : 'this') : $node->name;
+                $this->jsCode .= $isThis ? ($this->currentConstructor ? '$this' : '$this') : $node->name;
                 if ($this->inlineExpression) {
                     $this->variablePaths[$node->name] = true;
                     $this->currentPath[] = $node->name;
@@ -713,6 +718,26 @@ class JsTranspiler
                 if (!$this->inlineExpression || $this->level > 0) {
                     $this->jsCode .= ';' . PHP_EOL;
                 }
+            } else if ($node instanceof TryCatch) {
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'try {' . PHP_EOL;
+                $this->level++;
+                $this->processStmts($node->stmts);
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+                foreach ($node->catches as $catchStmt) {
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'catch';
+                    if ($catchStmt->var !== null) {
+                        $this->jsCode .= " ({$catchStmt->var->name})";
+                    }
+                    $this->jsCode .= ' {' . PHP_EOL;
+                    $this->level++;
+                    $this->processStmts($catchStmt->stmts);
+                    $this->level--;
+                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+                }
+            } elseif ($node instanceof Throw_) {
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'throw ';
+                $this->processStmts([$node->expr, ';' . PHP_EOL]);
             } else if ($node instanceof Concat) {
                 $this->processStmts([$node->var, ' += ', $node->expr]);
             } else if ($node instanceof If_) {
