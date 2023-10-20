@@ -5,6 +5,7 @@ export type ComponentMetaData = {
     dependencies?: any[],
     di?: 'Singleton' | 'Scoped' | 'Transient',
     base?: boolean,
+    custom?: boolean,
     refs?: { [key: string]: boolean },
     parent?: string,
     hooks?: {
