@@ -6,15 +6,16 @@ class TestInput extends BaseComponent {
     model = null;
 
     onInput(event) {
-        this.emitEvent("model", event.target.value);
+        var $this = this;
+        $this.emitEvent("model", event.target.value);
     }
 }
 
 export const TestInput_x = [
     function (_component) { return function (event) { _component.onInput(event); }; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.model;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.model = value;
 }]; }
 ];

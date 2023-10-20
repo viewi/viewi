@@ -137,6 +137,86 @@
     router: new Router()
   };
 
+  // viewi/core/http/httpClient.ts
+  var Resolver = class {
+    onSuccess;
+    onError = null;
+    onAlways = null;
+    result = null;
+    lastError = null;
+    action;
+    constructor(action) {
+      var $this = this;
+      $this.action = action;
+    }
+    error(onError) {
+      var $this = this;
+      $this.onError = onError;
+    }
+    success(onSuccess) {
+      var $this = this;
+      $this.onSuccess = onSuccess;
+    }
+    always(always) {
+      var $this = this;
+      $this.onAlways = always;
+    }
+    then(onSuccess, onError, always) {
+      var $this = this;
+      if (onError) {
+        $this.onError = onError;
+      }
+      if (always) {
+        $this.onAlways = always;
+      }
+      var throwError = false;
+      try {
+        $this.result = $this.action();
+        onSuccess($this.result);
+      } catch (ex) {
+        $this.lastError = ex;
+        if ($this.onError !== null) {
+          $this.onError(ex);
+        } else {
+          throwError = true;
+        }
+      }
+      if ($this.onAlways != null) {
+        $this.onAlways();
+      }
+      if (throwError) {
+        throw $this.lastError;
+      }
+    }
+  };
+  var HttpClient = class {
+    request(method, url, body, headers) {
+      var resolver = new Resolver(function() {
+        return null;
+      });
+      return resolver;
+    }
+    get(url, headers) {
+      var $this = this;
+      return $this.request("get", url, null, headers);
+    }
+  };
+
+  // viewi/core/di/register.ts
+  var register = {};
+
+  // viewi/core/di/factory.ts
+  var factoryContainer = {};
+  function factory(name, implementation, factory2) {
+    register[name] = implementation;
+    factoryContainer[name] = factory2;
+  }
+
+  // viewi/core/di/setUp.ts
+  function setUp() {
+    factory("HttpClient", HttpClient, () => new HttpClient());
+  }
+
   // viewi/core/anchor/anchors.ts
   var anchors = {};
 
@@ -182,6 +262,12 @@
     }
   }
 
+  // app/components/PostModel.js
+  var PostModel = class {
+    id = null;
+    name = null;
+  };
+
   // app/components/UserModel.js
   var UserModel = class {
     id = null;
@@ -192,10 +278,12 @@
   var CounterReducer = class {
     count = 0;
     increment() {
-      this.count++;
+      var $this = this;
+      $this.count++;
     }
     decrement() {
-      this.count--;
+      var $this = this;
+      $this.count--;
     }
   };
 
@@ -203,7 +291,8 @@
   var TodoReducer = class {
     items = [];
     addNewItem(text) {
-      this.items = [...this.items, text];
+      var $this = this;
+      $this.items = [...$this.items, text];
     }
   };
 
@@ -252,11 +341,13 @@
     count = 0;
     message = "My message";
     increment() {
-      this.count++;
-      this.message += "!";
+      var $this = this;
+      $this.count++;
+      $this.message += "!";
     }
     decrement() {
-      this.count--;
+      var $this = this;
+      $this.count--;
     }
   };
   var Counter_x = [
@@ -306,17 +397,20 @@
     timerId = 0;
     seconds = 0;
     init() {
-      this.seconds = 100;
-      this.timerId = setInterval(() => this.tick(), 1e3);
+      var $this = this;
+      $this.seconds = 100;
+      this.timerId = setInterval(() => $this.tick(), 1e3);
       ;
     }
     destroy() {
+      var $this = this;
       clearInterval(this.timerId);
       ;
     }
     tick() {
-      this.seconds++;
-      console.log("HomePage time " + this.seconds);
+      var $this = this;
+      $this.seconds++;
+      console.log("HomePage time " + $this.seconds);
       ;
     }
   };
@@ -361,17 +455,20 @@
     timerId = 0;
     seconds = 0;
     init() {
-      this.seconds = 500;
-      this.timerId = setInterval(() => this.tick(), 1e3);
+      var $this = this;
+      $this.seconds = 500;
+      this.timerId = setInterval(() => $this.tick(), 1e3);
       ;
     }
     destroy() {
+      var $this = this;
       clearInterval(this.timerId);
       ;
     }
     tick() {
-      this.seconds++;
-      console.log("PanelLayout time " + this.seconds);
+      var $this = this;
+      $this.seconds++;
+      console.log("PanelLayout time " + $this.seconds);
       ;
     }
   };
@@ -397,6 +494,38 @@
     _name = "CounterPage";
   };
 
+  // app/components/PostPage.js
+  var HttpClient2 = register.HttpClient;
+  var PostPage = class extends BaseComponent {
+    _name = "PostPage";
+    post = null;
+    error = "";
+    message = "";
+    $http = null;
+    constructor(http) {
+      super();
+      var $this = this;
+      $this.$http = http;
+    }
+    init() {
+      var $this = this;
+      $this.$http.get("/api/post").then(function(post) {
+        $this.post = post;
+        $this.message = "Post has been read successfully";
+      }, function() {
+        $this.error = "Server error";
+      });
+    }
+  };
+  var PostPage_x = [
+    function(_component) {
+      return "Message: " + (_component.message ?? "");
+    },
+    function(_component) {
+      return "Error: " + (_component.error ?? "");
+    }
+  ];
+
   // app/components/TestLayoutPage.js
   var TestLayoutPage = class extends BaseComponent {
     _name = "TestLayoutPage";
@@ -419,8 +548,9 @@
     count = null;
     constructor(counter, count2) {
       super();
-      this.counter = counter;
-      this.count = count2 === void 0 ? 0 : count2;
+      var $this = this;
+      $this.counter = counter;
+      $this.count = count2 === void 0 ? 0 : count2;
     }
   };
   var StatefulCounter_x = [
@@ -475,15 +605,17 @@
     todo = null;
     constructor(todo) {
       super();
-      this.todo = todo;
+      var $this = this;
+      $this.todo = todo;
     }
     handleSubmit(event) {
+      var $this = this;
       event.preventDefault();
-      if (strlen(this.text) == 0) {
+      if (strlen($this.text) == 0) {
         return;
       }
-      this.todo.addNewItem(this.text);
-      this.text = "";
+      $this.todo.addNewItem($this.text);
+      $this.text = "";
     }
   };
   var StatefulTodoApp_x = [
@@ -526,7 +658,8 @@
     disabled = false;
     loading = false;
     onClick(event) {
-      this.emitEvent("click", event);
+      var $this = this;
+      $this.emitEvent("click", event);
     }
   };
   var TestButton_x = [
@@ -699,31 +832,38 @@
     counterReducer = null;
     constructor(counterReducer) {
       super();
-      this.counterReducer = counterReducer;
-      this.user = new UserModel();
-      this.user.id = 1;
-      this.user.name = "Miki the cat";
-      this.counterReducer.increment();
+      var $this = this;
+      $this.counterReducer = counterReducer;
+      $this.user = new UserModel();
+      $this.user.id = 1;
+      $this.user.name = "Miki the cat";
+      $this.counterReducer.increment();
     }
     getNames() {
-      return json_encode(this.checkedNames);
+      var $this = this;
+      return json_encode($this.checkedNames);
     }
     getName(name) {
+      var $this = this;
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
     }
     addTodo() {
-      this.arrNested = { "a": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "d": { "R": "Rat", "T": "Dog", "G": "Cat" }, "b": { "a": "Apple", "b": "Orange", "c": "Lemon" } };
+      var $this = this;
+      $this.arrNested = { "a": { "a": "Apple", "b": "Orange", "c": "Lemon" }, "d": { "R": "Rat", "T": "Dog", "G": "Cat" }, "b": { "a": "Apple", "b": "Orange", "c": "Lemon" } };
     }
     onEvent(event) {
+      var $this = this;
       event.preventDefault();
     }
     toggleIf() {
-      this.ifValue = !this.ifValue;
-      this.arr = this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
+      var $this = this;
+      $this.ifValue = !$this.ifValue;
+      $this.arr = $this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
     }
     toggleElseIf() {
-      this.ifElseValue = !this.ifElseValue;
+      var $this = this;
+      $this.ifElseValue = !$this.ifElseValue;
     }
   };
   var TestComponent_x = [
@@ -1273,7 +1413,8 @@
     id = null;
     model = null;
     onInput(event) {
-      this.emitEvent("model", event.target.value);
+      var $this = this;
+      $this.emitEvent("model", event.target.value);
     }
   };
   var TestInput_x = [
@@ -1297,12 +1438,13 @@
     text = "";
     items = [];
     handleSubmit(event) {
+      var $this = this;
       event.preventDefault();
-      if (strlen(this.text) == 0) {
+      if (strlen($this.text) == 0) {
         return;
       }
-      this.items = [...this.items, this.text];
-      this.text = "";
+      $this.items = [...$this.items, $this.text];
+      $this.text = "";
     }
   };
   var TodoApp_x = [
@@ -1340,8 +1482,62 @@
     }
   ];
 
+  // app/components/Resolver.js
+  var Resolver2 = class {
+    onSuccess = null;
+    onError = null;
+    onAlways = null;
+    result = null;
+    lastError = null;
+    action = null;
+    constructor(action) {
+      var $this = this;
+      $this.action = action;
+    }
+    error(onError) {
+      var $this = this;
+      $this.onError = onError;
+    }
+    success(onSuccess) {
+      var $this = this;
+      $this.onSuccess = onSuccess;
+    }
+    always(always) {
+      var $this = this;
+      $this.onAlways = always;
+    }
+    then(onSuccess, onError, always) {
+      var $this = this;
+      if (onError !== null) {
+        $this.onError = onError;
+      }
+      if (always !== null) {
+        $this.onAlways = always;
+      }
+      var throwError = false;
+      try {
+        $this.result = $this.action();
+        onSuccess($this.result);
+      } catch (ex) {
+        $this.lastError = ex;
+        if ($this.onError !== null) {
+          $this.onError(ex);
+        } else {
+          throwError = true;
+        }
+      }
+      if ($this.onAlways != null) {
+        $this.onAlways();
+      }
+      if (throwError) {
+        throw $this.lastError;
+      }
+    }
+  };
+
   // app/components/index.js
   var components = {
+    PostModel,
     UserModel,
     CounterReducer,
     TodoReducer,
@@ -1359,6 +1555,8 @@
     PanelLayout,
     NotFoundPage,
     CounterPage,
+    PostPage_x,
+    PostPage,
     TestLayoutPage,
     TestPage,
     TodoAppPage,
@@ -1377,7 +1575,8 @@
     TodoApp_x,
     TodoApp,
     TodoList_x,
-    TodoList
+    TodoList,
+    Resolver: Resolver2
   };
 
   // viewi/core/reactivity/handlers/getComponentModelHandler.ts
@@ -2584,7 +2783,9 @@
     if (container && name in container) {
       return container[name];
     }
-    if (!info.dependencies) {
+    if (info.custom) {
+      instance = factoryContainer[name]();
+    } else if (!info.dependencies) {
       instance = new components[name]();
     } else {
       const constructArguments = [];
@@ -2935,6 +3136,7 @@
     for (let i = 0; i < booleanArray.length; i++) {
       componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
+    setUp();
     watchLinks();
     handleUrl(location.href);
   })();

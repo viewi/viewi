@@ -1,3 +1,4 @@
+import { PostModel } from "./PostModel";
 import { UserModel } from "./UserModel";
 import { CounterReducer } from "./CounterReducer";
 import { TodoReducer } from "./TodoReducer";
@@ -10,6 +11,7 @@ import { Layout, Layout_x } from "./Layout";
 import { PanelLayout, PanelLayout_x } from "./PanelLayout";
 import { NotFoundPage } from "./NotFoundPage";
 import { CounterPage } from "./CounterPage";
+import { PostPage, PostPage_x } from "./PostPage";
 import { TestLayoutPage } from "./TestLayoutPage";
 import { TestPage } from "./TestPage";
 import { TodoAppPage } from "./TodoAppPage";
@@ -22,8 +24,10 @@ import { TestComponent, TestComponent_x } from "./TestComponent";
 import { TestInput, TestInput_x } from "./TestInput";
 import { TodoApp, TodoApp_x } from "./TodoApp";
 import { TodoList, TodoList_x } from "./TodoList";
+import { Resolver } from "./Resolver";
 
 export const components = {
+    PostModel,
     UserModel,
     CounterReducer,
     TodoReducer,
@@ -41,6 +45,8 @@ export const components = {
     PanelLayout,
     NotFoundPage,
     CounterPage,
+    PostPage_x,
+    PostPage,
     TestLayoutPage,
     TestPage,
     TodoAppPage,
@@ -60,4 +66,5 @@ export const components = {
     TodoApp,
     TodoList_x,
     TodoList,
+    Resolver,
 };

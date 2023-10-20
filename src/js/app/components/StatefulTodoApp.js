@@ -10,24 +10,26 @@ class StatefulTodoApp extends BaseComponent {
 
     constructor(todo) {
         super();
-        this.todo = todo;
+        var $this = this;
+        $this.todo = todo;
     }
 
     handleSubmit(event) {
+        var $this = this;
         event.preventDefault();
-        if (strlen(this.text) == 0) {
+        if (strlen($this.text) == 0) {
             return;
         }
-        this.todo.addNewItem(this.text);
-        this.text = "";
+        $this.todo.addNewItem($this.text);
+        $this.text = "";
     }
 }
 
 export const StatefulTodoApp_x = [
     function (_component) { return function (event) { _component.handleSubmit(event); }; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.text;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.text = value;
 }]; },
     function (_component) { return "\n        Add #" + (count(_component.todo.items) + 1 ?? "") + "\n    "; },

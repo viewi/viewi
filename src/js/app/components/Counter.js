@@ -7,12 +7,14 @@ class Counter extends BaseComponent {
     message = "My message";
 
     increment() {
-        this.count++;
-        this.message += "!";
+        var $this = this;
+        $this.count++;
+        $this.message += "!";
     }
 
     decrement() {
-        this.count--;
+        var $this = this;
+        $this.count--;
     }
 }
 

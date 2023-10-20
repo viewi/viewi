@@ -7,22 +7,25 @@ class HomePage extends BaseComponent {
     seconds = 0;
 
     init() {
-        this.seconds = 100;
+        var $this = this;
+        $this.seconds = 100;
         /** JS injection **/
-        this.timerId = setInterval(() => this.tick(), 1000);
+        this.timerId = setInterval(() => $this.tick(), 1000);
         /** END injection **/;
     }
 
     destroy() {
+        var $this = this;
         /** JS injection **/
         clearInterval(this.timerId);
         /** END injection **/;
     }
 
     tick() {
-        this.seconds++;
+        var $this = this;
+        $this.seconds++;
         /** JS injection **/
-        console.log('HomePage time ' + this.seconds);
+        console.log('HomePage time ' + $this.seconds);
         /** END injection **/;
     }
 }

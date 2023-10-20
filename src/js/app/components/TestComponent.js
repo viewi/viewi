@@ -37,24 +37,28 @@ class TestComponent extends BaseComponent {
 
     constructor(counterReducer) {
         super();
-        this.counterReducer = counterReducer;
-        this.user = new UserModel();
-        this.user.id = 1;
-        this.user.name = "Miki the cat";
-        this.counterReducer.increment();
+        var $this = this;
+        $this.counterReducer = counterReducer;
+        $this.user = new UserModel();
+        $this.user.id = 1;
+        $this.user.name = "Miki the cat";
+        $this.counterReducer.increment();
     }
 
     getNames() {
-        return json_encode(this.checkedNames);
+        var $this = this;
+        return json_encode($this.checkedNames);
     }
 
     getName(name) {
+        var $this = this;
         var sum = (1 + 5) * 10;
         return name ?? "DefaultName";
     }
 
     addTodo() {
-        this.arrNested = {"a": {"a": "Apple", "b": "Orange", "c": "Lemon"}, "d": {"R": "Rat", "T": "Dog", "G": "Cat"}, "b": {"a": "Apple", "b": "Orange", "c": "Lemon"}};
+        var $this = this;
+        $this.arrNested = {"a": {"a": "Apple", "b": "Orange", "c": "Lemon"}, "d": {"R": "Rat", "T": "Dog", "G": "Cat"}, "b": {"a": "Apple", "b": "Orange", "c": "Lemon"}};
         // Test cases
         // $this->arr = ['E', 'a'];
         // $this->arr = ['c', 'b', 'a'];
@@ -64,16 +68,19 @@ class TestComponent extends BaseComponent {
     }
 
     onEvent(event) {
+        var $this = this;
         event.preventDefault();
     }
 
     toggleIf() {
-        this.ifValue = !this.ifValue;
-        this.arr = this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
+        var $this = this;
+        $this.ifValue = !$this.ifValue;
+        $this.arr = $this.ifValue ? ["a", "b", "c"] : ["x", "b", "r"];
     }
 
     toggleElseIf() {
-        this.ifElseValue = !this.ifElseValue;
+        var $this = this;
+        $this.ifElseValue = !$this.ifElseValue;
     }
 }
 
@@ -87,15 +94,15 @@ export const TestComponent_x = [
     function (_component) { return function (event) { expression(event); }; },
     function (_component) { return _component.event; },
     function (_component) { return function (event) { _component.onEvent(event); }; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.testModel;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.testModel = value;
 }]; },
     function (_component) { return _component.testModel; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.testModel;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.testModel = value;
 }]; },
     function (_component) { return function () { _component.counterReducer.increment(); }; },
@@ -111,90 +118,90 @@ export const TestComponent_x = [
     function (_component) { return "Clicked " + (_component.counterReducer.count ?? ""); },
     function (_component) { return function (event) { _component.nestedIf = !_component.nestedIf; }; },
     function (_component) { return _component.nestedIf; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.user.name;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.user.name = value;
 }]; },
     function (_component) { return _component.user.name; },
     function (_component) { return _component.name; },
     function (_component) { return "Custom " + (_component.name ?? ""); },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.name;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.name = value;
 }]; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.name;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.name = value;
 }]; },
     function (_component) { return "\n    " + (_component.name ?? "") + "\n"; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.name2;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.name2 = value;
 }]; },
     function (_component) { return "\n    " + (_component.name2 ?? "") + "\n"; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.message;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.message = value;
 }]; },
     function (_component) { return _component.message; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.checked;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.checked = value;
 }]; },
     function (_component) { return _component.checked; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.checked2;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.checked2 = value;
 }]; },
     function (_component) { return _component.checked2; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.checkedNames;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.checkedNames = value;
 }]; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.checkedNames;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.checkedNames = value;
 }]; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.checkedNames;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.checkedNames = value;
 }]; },
     function (_component) { return "Checked names: " + (_component.getNames() ?? ""); },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.picked;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.picked = value;
 }]; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.picked;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.picked = value;
 }]; },
     function (_component) { return "Picked: " + (_component.picked ?? ""); },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.selected;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.selected = value;
 }]; },
     function (_component) { return "Selected: " + (_component.selected ?? ""); },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.selectedList;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.selectedList = value;
 }]; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.selectedList;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.selectedList = value;
 }]; },
     function (_component) { return "Selected: " + (json_encode(_component.selectedList) ?? ""); },

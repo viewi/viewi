@@ -9,7 +9,8 @@ class TestButton extends BaseComponent {
     loading = false;
 
     onClick(event) {
-        this.emitEvent("click", event);
+        var $this = this;
+        $this.emitEvent("click", event);
     }
 }
 

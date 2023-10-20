@@ -2,7 +2,8 @@ class TodoReducer {
     items = [];
 
     addNewItem(text) {
-        this.items = [...this.items, text];
+        var $this = this;
+        $this.items = [...$this.items, text];
     }
 }
 

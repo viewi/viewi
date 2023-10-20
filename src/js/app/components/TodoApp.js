@@ -8,20 +8,21 @@ class TodoApp extends BaseComponent {
     items = [];
 
     handleSubmit(event) {
+        var $this = this;
         event.preventDefault();
-        if (strlen(this.text) == 0) {
+        if (strlen($this.text) == 0) {
             return;
         }
-        this.items = [...this.items, this.text];
-        this.text = "";
+        $this.items = [...$this.items, $this.text];
+        $this.text = "";
     }
 }
 
 export const TodoApp_x = [
     function (_component) { return function (event) { _component.handleSubmit(event); }; },
-    function (_component) { return [function(_component) {
+    function (_component) { return [function (_component) {
     return _component.text;
-}, function(_component, value) {
+}, function (_component, value) {
     _component.text = value;
 }]; },
     function (_component) { return "\n        Add #" + (count(_component.items) + 1 ?? "") + "\n    "; },

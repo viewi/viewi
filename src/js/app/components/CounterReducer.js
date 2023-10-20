@@ -2,11 +2,13 @@ class CounterReducer {
     count = 0;
 
     increment() {
-        this.count++;
+        var $this = this;
+        $this.count++;
     }
 
     decrement() {
-        this.count--;
+        var $this = this;
+        $this.count--;
     }
 }
 
