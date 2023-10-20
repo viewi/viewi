@@ -49,7 +49,7 @@ class App
         } elseif (is_array($action)) {
             throw new Exception("Not implemented");
         } elseif (is_callable($action)) {
-            throw new Exception("Not implemented");
+            return $action(...array_values($match['params']));
         } else {
             $instance = new $action();
             if (!is_callable($instance)) {
