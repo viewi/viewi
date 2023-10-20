@@ -2,6 +2,7 @@
 
 namespace Viewi\Builder;
 
+use ReflectionClass;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\UseItem;
 use Viewi\TemplateCompiler\RenderItem;
@@ -13,10 +14,14 @@ class BuildItem
     public ?array $Extends = null;
     public ?array $Attributes = null;
     public bool $Skip = false;
+    public bool $CustomJs = false;
     public ?string $Namespace = null;
     public ?string $TemplatePath = null;
     public bool $HtmlRootComponentCalculated = false;
     public ?string $HtmlRootComponent = null;
+    public ReflectionClass $ReflectionClass;
+    public array $Props;
+    public array $Methods;
     /**
      * 
      * @var array<string, string> see ExportItem
