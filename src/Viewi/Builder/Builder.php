@@ -8,6 +8,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\DOM\HtmlNode;
@@ -61,9 +62,11 @@ class Builder
     private array $meta = [];
     private array $systemClasses = [
         Attribute::class => true,
+        Exception::class => true,
         Singleton::class => true,
         Scoped::class => true,
         Skip::class => true,
+        CustomJs::class => true
     ];
 
     private array $hookMethods = [
@@ -114,6 +117,10 @@ class Builder
         //      collect reactivity deps
         $this->templateParser->setAvaliableComponents(array_flip(array_keys($this->components)));
         foreach ($this->components as $buildItem) {
+            $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
+            $buildItem->ReflectionClass = new ReflectionClass($class);
+            $buildItem->Props = $this->getProps($buildItem->ReflectionClass);
+            $buildItem->Methods = $this->getMethods($buildItem->ReflectionClass);
             $this->validateAndParseTemplate($buildItem);
         }
         // 5. cache metadata on each step if enabled
@@ -163,8 +170,13 @@ class Builder
                     }
                     if (isset($exportItem->Attributes['attrs'])) {
                         $this->components[$exportItem->Name]->Attributes = $exportItem->Attributes['attrs'];
-                        if ($this->components[$exportItem->Name]->Attributes && isset($this->components[$exportItem->Name]->Attributes['Skip'])) {
-                            $this->components[$exportItem->Name]->Skip = true;
+                        if ($this->components[$exportItem->Name]->Attributes) {
+                            if (isset($this->components[$exportItem->Name]->Attributes['Skip'])) {
+                                $this->components[$exportItem->Name]->Skip = true;
+                            }
+                            if (isset($this->components[$exportItem->Name]->Attributes['CustomJs'])) {
+                                $this->components[$exportItem->Name]->CustomJs = true;
+                            }
                         }
                     }
                 }
@@ -216,6 +228,7 @@ class Builder
                 if (!isset($this->components[$baseName])) {
                     $className = implode('\\', $useItem->Parts);
                     if (!isset($this->systemClasses[$className])) {
+                        // Helpers::debug([$this->systemClasses]);
                         throw new Exception("Class '$className' can not be found.");
                     }
                     $useItem->Skip = true;
@@ -268,6 +281,12 @@ class Builder
                         throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                     }
                 }
+            }
+            foreach ($buildItem->Props as $prop => $_) {
+                $buildItem->publicNodes[$prop] = ExportItem::Property;
+            }
+            foreach ($buildItem->Methods as $method => $_) {
+                $buildItem->publicNodes[$method] = ExportItem::Method;
             }
             $this->collectExtends($buildItem, $buildItem);
             // 3. parse and compile template if exists
@@ -335,9 +354,11 @@ class Builder
         if (!file_exists($jsPath)) {
             mkdir($jsPath, 0777, true);
         }
+        Helpers::removeDirectory($jsPath);
         if (!file_exists($jsFunctionsPath)) {
             mkdir($jsFunctionsPath, 0777, true);
         }
+        Helpers::removeDirectory($jsFunctionsPath);
         $componentsIndexJs = '';
         $componentsExportList = '';
         $publicJson = [];
@@ -352,14 +373,12 @@ class Builder
             ];
             $publicJson[$buildItem->ComponentName] = [];
             // dependencies, props
-            $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
-            $rf = new ReflectionClass($class);
-            $componentMeta['dependencies'] = $this->getDependencies($rf);
+
+            $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
             $lifecycleHooks = [];
-            $methods = $rf->getMethods(ReflectionMethod::IS_PUBLIC);
-            foreach ($methods as $method) {
-                if (isset($this->hookMethods[$method->name]) && !$method->isStatic() && !$method->isAbstract()) {
-                    $lifecycleHooks[$method->name] = 1;
+            foreach ($buildItem->Methods as $method => $_) {
+                if (isset($this->hookMethods[$method])) {
+                    $lifecycleHooks[$method] = 1;
                 }
             }
             if ($lifecycleHooks) {
@@ -372,7 +391,7 @@ class Builder
                     $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
                 }
             }
-            $attributes = $rf->getAttributes();
+            $attributes = $buildItem->ReflectionClass->getAttributes();
             foreach ($attributes as $attribute) {
                 $attributeClass = $attribute->getName();
                 switch ($attributeClass) {
@@ -391,8 +410,8 @@ class Builder
                 }
                 // Helpers::debug($attributeClass);
             }
-            $componentMeta['inputs'] = $this->getProps($rf);
-            if ($rf->isSubclassOf(BaseComponent::class)) {
+            $componentMeta['inputs'] = $buildItem->Props;
+            if ($buildItem->ReflectionClass->isSubclassOf(BaseComponent::class)) {
                 $componentMeta['base'] = 1;
                 $publicJson[$buildItem->ComponentName]['base'] = 1;
                 if ($buildItem->refs) {
@@ -432,15 +451,23 @@ class Builder
             }
             $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
             // javascript
-            if ($buildItem->ComponentName !== 'BaseComponent') {
+            if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
                 $jsComponentPath = $jsPath . $d . $buildItem->ComponentName . '.js';
                 $jsComponentCode = '';
                 $comma = '';
+                $registerIncluded = false;
+                $additionalCode = "";
                 foreach ($buildItem->Uses as $importName => $useItem) {
                     if (!$useItem->Skip) {
                         if ($useItem->Type === UseItem::Class_) {
                             if ($importName === 'BaseComponent') {
                                 $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/component/baseComponent";' . PHP_EOL;
+                            } elseif (isset($this->components[$importName]) && $this->components[$importName]->CustomJs) {
+                                if (!$registerIncluded) {
+                                    $jsComponentCode .= 'import { register } from "../../viewi/core/di/register"' . PHP_EOL;
+                                    $registerIncluded = true;
+                                }
+                                $additionalCode = "var $importName = register.$importName;" . PHP_EOL;
                             } elseif (!isset($this->components[$importName]) || !$this->components[$importName]->Skip) {
                                 $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
                             }
@@ -454,6 +481,9 @@ class Builder
                 //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
                 //     $comma = PHP_EOL;
                 // }
+                if ($additionalCode) {
+                    $jsComponentCode .= $comma . $additionalCode;
+                }
                 $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
                 $expressionsImport = '';
                 if ($expressionsJs !== '') {
@@ -468,6 +498,8 @@ class Builder
                 file_put_contents($jsComponentPath, $jsComponentCode);
                 $componentsIndexJs .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
                 $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
+            } else {
+                $publicJson[$buildItem->ComponentName]['custom'] = 1;
             }
         }
         // export const components = {
@@ -564,6 +596,23 @@ class Builder
     }
 
     /**
+     * 
+     * @param ReflectionClass $reflectionClass 
+     * @return array 
+     */
+    private function getMethods(ReflectionClass $reflectionClass): array
+    {
+        $list = [];
+        $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
+        foreach ($methods as $method) {
+            if (!$method->isStatic() && !$method->isAbstract()) {
+                $list[$method->name] = 1;
+            }
+        }
+        return $list;
+    }
+
+    /**
      *
      * @param ReflectionClass $reflectionClass
      * @return array
@@ -605,8 +654,12 @@ class Builder
                             }
                         }
                     } else {
-                        throw new Exception("Argument '$argumentName' in class" .
-                            "{$reflectionClass->name}' can`t be resolved without a type in {$reflectionClass->getFileName()}.");
+                        $dependencies[$argumentName] =
+                            [
+                                'mixed' => 1
+                            ];
+                        // throw new Exception("Argument '$argumentName' in class" .
+                        //     "{$reflectionClass->name}' can`t be resolved without a type in {$reflectionClass->getFileName()}.");
                     }
                 }
             }
