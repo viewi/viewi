@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use Viewi\Components\BaseComponent;
+use Viewi\Container\Factory;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 
@@ -14,7 +15,7 @@ class Engine
     private array $DIContainer = [];
     private int $instanceIdCounter = 0;
 
-    public function __construct(private string $buildPath)
+    public function __construct(private string $buildPath, private Factory $factory)
     {
     }
 
@@ -43,12 +44,12 @@ class Engine
         ) {
             throw new Exception("Component '$component' not found.");
         }
+        // Helpers::debug([$componentMeta]);
+        $classInstance = $this->resolve($component);
         /**
          * @var array{inputs: array, components: array}
          */
         $componentMeta = $this->meta['components'][$component];
-        // Helpers::debug([$componentMeta]);
-        $classInstance = $this->resolve($componentMeta);
         if (isset($componentMeta['hooks']['init'])) {
             $classInstance->init();
         }
@@ -91,8 +92,17 @@ class Engine
      * @param array{inputs: array, components: array} $componentMeta 
      * @return mixed 
      */
-    private function resolve(array $componentMeta, array $params = [])
+    public function resolve(string $name, array $params = [])
     {
+        if ($this->factory->has($name)) {
+            $constructor = $this->factory->get($name);
+            return $constructor($this);
+        }
+
+        if (!isset($this->meta['components'][$name])) {
+            throw new Exception("Can not resolve instance for type '$name'");
+        }
+        $componentMeta = $this->meta['components'][$name];
         $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
         $instance = false;
         $storeInContainer = false;
@@ -140,7 +150,7 @@ class Engine
                             }
                     }
                 } else {
-                    $arguments[] = $this->resolve($this->meta['components'][$type['name']]);
+                    $arguments[] = $this->resolve($type['name']);
                 }
             }
             $instance = new $fullClassName(...$arguments);
