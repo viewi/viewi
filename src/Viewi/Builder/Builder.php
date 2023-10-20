@@ -239,7 +239,9 @@ class Builder
                 }
                 if (!$this->components[$baseName]->Include) {
                     $this->components[$baseName]->Include = true;
-                    $this->collectIncludes($this->components[$baseName]);
+                    if (!($this->components[$baseName]->CustomJs || $this->components[$baseName]->Skip)) {
+                        $this->collectIncludes($this->components[$baseName]);
+                    }
                 }
             } elseif ($useItem->Type === UseItem::Function) {
                 $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
@@ -264,51 +266,54 @@ class Builder
     {
         if (!$buildItem->Ready) {
             $buildItem->Ready = true;
-            // 1. validate uses
-            // 2. validate core functions
-            foreach ($buildItem->Uses as $baseName => $useItem) {
-                if ($useItem->Type === UseItem::Class_) {
-                    if (!isset($this->components[$baseName])) {
-                        $fullName = implode('\\', $useItem->Parts);
-                        if (!isset($this->systemClasses[$fullName])) {
-                            throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+            if (!($buildItem->CustomJs || $buildItem->Skip)) {
+                // 1. validate uses
+                // 2. validate core functions
+                foreach ($buildItem->Uses as $baseName => $useItem) {
+                    if ($useItem->Type === UseItem::Class_) {
+                        if (!isset($this->components[$baseName])) {
+                            $fullName = implode('\\', $useItem->Parts);
+                            if (!isset($this->systemClasses[$fullName])) {
+                                throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                            }
+                            $useItem->Skip = true;
                         }
-                        $useItem->Skip = true;
-                    }
-                } elseif ($useItem->Type === UseItem::Function) {
-                    if (!isset($this->avaliableFunctions[$baseName])) {
-                        $fullName = implode('\\', $useItem->Parts);
-                        throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
-                    }
-                }
-            }
-            foreach ($buildItem->Props as $prop => $_) {
-                $buildItem->publicNodes[$prop] = ExportItem::Property;
-            }
-            foreach ($buildItem->Methods as $method => $_) {
-                $buildItem->publicNodes[$method] = ExportItem::Method;
-            }
-            $this->collectExtends($buildItem, $buildItem);
-            // 3. parse and compile template if exists
-            // 4. transpile and validate expressions
-            if ($buildItem->TemplatePath !== null) {
-                $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
-                $template = $this->templateCompiler->compile($rootTag, $buildItem);
-                foreach ($template->usedFunctions as $funcName => $_) {
-                    if (!isset($this->avaliableFunctions[$funcName])) {
-                        throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
-                    }
-                    if (!isset($buildItem->Uses[$funcName])) {
-                        $buildItem->Uses[$funcName] = new UseItem([$funcName], UseItem::Function);
+                    } elseif ($useItem->Type === UseItem::Function) {
+                        if (!isset($this->avaliableFunctions[$baseName])) {
+                            $fullName = implode('\\', $useItem->Parts);
+                            throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                        }
                     }
                 }
-                $buildItem->RenderFunction = $template;
-                $buildItem->RootTag = $rootTag;
-                // Helpers::debug([$buildItem->ComponentName, $template->usedComponents, $template->hasHtmlTag]);
-            }
+                foreach ($buildItem->Props as $prop => $_) {
+                    $buildItem->publicNodes[$prop] = ExportItem::Property;
+                }
+                foreach ($buildItem->Methods as $method => $_) {
+                    $buildItem->publicNodes[$method] = ExportItem::Method;
+                }
+                $this->collectExtends($buildItem, $buildItem);
+                // 3. parse and compile template if exists
+                // 4. transpile and validate expressions
+                if ($buildItem->TemplatePath !== null) {
+                    $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
+                    $template = $this->templateCompiler->compile($rootTag, $buildItem);
+                    foreach ($template->usedFunctions as $funcName => $_) {
+                        if (!isset($this->avaliableFunctions[$funcName])) {
+                            throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                        }
+                        if (!isset($buildItem->Uses[$funcName])) {
+                            $buildItem->Uses[$funcName] = new UseItem([$funcName], UseItem::Function);
+                        }
+                    }
+                    $buildItem->RenderFunction = $template;
+                    $buildItem->RootTag = $rootTag;
+                    // Helpers::debug([$buildItem->ComponentName, $template->usedComponents, $template->hasHtmlTag]);
+                }
 
-            if ($buildItem->Include) {
-                $this->collectIncludes($buildItem);
+                if ($buildItem->Include) {
+                    // Helpers::debug([$buildItem->ComponentName, $buildItem->CustomJs, $buildItem->Skip]);
+                    $this->collectIncludes($buildItem);
+                }
             }
         }
     }
@@ -385,7 +390,7 @@ class Builder
                 $componentMeta['hooks'] = $lifecycleHooks;
                 $publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
             }
-            if (count($componentMeta['dependencies']) > 0) {
+            if (!$buildItem->CustomJs && count($componentMeta['dependencies']) > 0) {
                 $publicJson[$buildItem->ComponentName]['dependencies'] = [];
                 foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
                     $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
