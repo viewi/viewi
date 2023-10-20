@@ -347,6 +347,7 @@ class JsTranspiler
                 $this->variablePaths[$this->currentClass][$this->currentMethod] = [];
                 $allscopes = $this->localVariables;
                 $comma = '';
+                $stmtsParams = [];
                 foreach ($node->params as $param) {
                     $this->jsCode .= $comma . $param->var->name;
                     $comma = ', ';
@@ -359,6 +360,12 @@ class JsTranspiler
                             $this->privateProperties[$param->var->name] = true;
                         }
                     }
+                    if ($param->default !== null && !isset($promotedParams[$param->var->name])) {
+                        $stmtsParams[] = str_repeat($this->indentationPattern, $this->level + 1) .
+                            "{$param->var->name} = typeof {$param->var->name} !== 'undefined' ? {$param->var->name} : ";
+                        $stmtsParams[] = $param->default;
+                        $stmtsParams[] = ';' . PHP_EOL;
+                    }
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
@@ -370,6 +377,9 @@ class JsTranspiler
                     foreach ($promotedParams as $paramStmts) {
                         $this->processStmts($paramStmts);
                     }
+                }
+                if ($stmtsParams) {
+                    $this->processStmts($stmtsParams);
                 }
                 if ($node->stmts !== null) {
                     $this->currentPath[] = "$name()";
