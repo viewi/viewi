@@ -28,6 +28,8 @@ class Resolver {
 
     then(onSuccess, onError, always) {
         var $this = this;
+        onError = typeof onError !== 'undefined' ? onError : null;
+        always = typeof always !== 'undefined' ? always : null;
         if (onError !== null) {
             $this.onError = onError;
         }

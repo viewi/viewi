@@ -30,7 +30,9 @@ class PostPage extends BaseComponent {
 
 export const PostPage_x = [
     function (_component) { return "Message: " + (_component.message ?? ""); },
-    function (_component) { return "Error: " + (_component.error ?? ""); }
+    function (_component) { return "Error: " + (_component.error ?? ""); },
+    function (_component) { return _component.post; },
+    function (_component) { return "\n            " + (_component.post.id ?? "") + " " + (_component.post.name ?? "") + "\n        "; }
 ];
 
 export { PostPage }

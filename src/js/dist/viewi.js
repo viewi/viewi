@@ -523,6 +523,12 @@
     },
     function(_component) {
       return "Error: " + (_component.error ?? "");
+    },
+    function(_component) {
+      return _component.post;
+    },
+    function(_component) {
+      return "\n            " + (_component.post.id ?? "") + " " + (_component.post.name ?? "") + "\n        ";
     }
   ];
 
@@ -845,6 +851,7 @@
     }
     getName(name) {
       var $this = this;
+      name = typeof name !== "undefined" ? name : null;
       var sum = (1 + 5) * 10;
       return name ?? "DefaultName";
     }
@@ -1508,6 +1515,8 @@
     }
     then(onSuccess, onError, always) {
       var $this = this;
+      onError = typeof onError !== "undefined" ? onError : null;
+      always = typeof always !== "undefined" ? always : null;
       if (onError !== null) {
         $this.onError = onError;
       }

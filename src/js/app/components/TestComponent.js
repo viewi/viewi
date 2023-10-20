@@ -52,6 +52,7 @@ class TestComponent extends BaseComponent {
 
     getName(name) {
         var $this = this;
+        name = typeof name !== 'undefined' ? name : null;
         var sum = (1 + 5) * 10;
         return name ?? "DefaultName";
     }
