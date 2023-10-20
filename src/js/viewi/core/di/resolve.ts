@@ -1,6 +1,7 @@
 import { components } from "../../../app/components";
 import { BaseComponent } from "../component/baseComponent";
 import { componentsMeta } from "../component/componentsMeta";
+import { factoryContainer } from "./factory";
 
 type DIContainer = { [key: string]: any };
 
@@ -21,7 +22,9 @@ export function resolve(name: string, params: any[] = []) {
         // console.log('Returning from cache', name, container[name]);
         return container[name];
     }
-    if (!info.dependencies) {
+    if (info.custom) {
+        instance = factoryContainer[name]();
+    } else if (!info.dependencies) {
         instance = new components[name]();
     } else {
         const constructArguments: any[] = [];
