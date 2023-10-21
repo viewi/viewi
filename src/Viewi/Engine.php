@@ -87,6 +87,19 @@ class Engine
         return isset($this->meta['components'][$name]);
     }
 
+    public function getAssets()
+    {
+        return $this->meta['assets'];
+    }
+
+    public function getIfExists(string $name)
+    {
+        if (isset($this->DIContainer[$name])) {
+            return $this->DIContainer[$name];
+        }
+        return null;
+    }
+
     /**
      * 
      * @param array{inputs: array, components: array} $componentMeta 
@@ -94,13 +107,13 @@ class Engine
      */
     public function resolve(string $name, array $params = [])
     {
-        if ($this->factory->has($name)) {
-            $constructor = $this->factory->get($name);
-            return $constructor($this);
-        }
-
         if (!isset($this->meta['components'][$name])) {
-            throw new Exception("Can not resolve instance for type '$name'");
+            if ($this->factory->has($name)) {
+                $constructor = $this->factory->get($name);
+                return $constructor($this);
+            } else {
+                throw new Exception("Can not resolve instance for type '$name'");
+            }
         }
         $componentMeta = $this->meta['components'][$name];
         $fullClassName = $componentMeta['Namespace'] . '\\' . $componentMeta['Name'];
@@ -120,7 +133,10 @@ class Engine
                     break;
             }
         }
-        if (empty($componentMeta['dependencies'])) {
+        if ($this->factory->has($name)) {
+            $constructor = $this->factory->get($name);
+            $instance = $constructor($this);
+        } elseif (empty($componentMeta['dependencies'])) {
             $instance = new $fullClassName();
         } else {
             $arguments = [];
