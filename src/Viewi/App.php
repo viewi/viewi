@@ -5,6 +5,8 @@ namespace Viewi;
 use Exception;
 use RuntimeException;
 use Viewi\Builder\Builder;
+use Viewi\Components\Assets\ViewiAssets;
+use Viewi\Components\Http\HttpClient;
 use Viewi\Container\Factory;
 use Viewi\Exceptions\RouteNotFoundException;
 use Viewi\Router\ComponentRoute;
@@ -31,6 +33,19 @@ class App
             $this->factory = new Factory();
             $this->factory->add(App::class, function (Engine $_) {
                 return $this;
+            });
+            $this->factory->add(ViewiAssets::class, function (Engine $engine) {
+                $assets = new ViewiAssets();
+                $assets->appPath = $engine->getAssets()['app'];
+                $responses = 'null';
+                /** @var HttpClient */
+                $httpClient = $engine->getIfExists(HttpClient::class);
+                if ($httpClient !== null) {
+                    $responses = json_encode($httpClient->getScopeResponses());                    
+                    // Helpers::debug($assets);
+                } 
+                $assets->data = "<script>window.viewiScopeData = {$responses};</script>";
+                return $assets;
             });
         }
         return $this->factory;
@@ -73,9 +88,9 @@ class App
         }
     }
 
-    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath)
+    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath, string $assetsPath)
     {
         $builder = new Builder($this->router());
-        $builder->build($entryPath, $includes, $buildPath, $jsPath, $publicPath);
+        $builder->build($entryPath, $includes, $buildPath, $jsPath, $publicPath, $assetsPath);
     }
 }
