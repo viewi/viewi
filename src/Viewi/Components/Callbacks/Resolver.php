@@ -47,25 +47,28 @@ class Resolver
         $this->onAlways = $always;
     }
 
-    public function run() {
-        $throwError = false;
-        try {
-            $this->result = ($this->action)();
-            ($this->onSuccess)($this->result);
-        } catch (Exception $ex) {
-            $this->lastError = $ex;
-            if ($this->onError !== null) {
-                ($this->onError)($ex);
+    public function run()
+    {
+        ($this->action)(function ($result, $error = null) {
+            $throwError = false;
+            $this->result = $result;
+            if ($error) {
+                $this->lastError = $error;
+                if ($this->onError !== null) {
+                    ($this->onError)($error);
+                } else {
+                    $throwError = true;
+                }
             } else {
-                $throwError = true;
+                ($this->onSuccess)($this->result);
             }
-        }
-        if ($this->onAlways != null) {
-            ($this->onAlways)();
-        }
-        if ($throwError) {
-            throw $this->lastError;
-        }
+            if ($this->onAlways != null) {
+                ($this->onAlways)();
+            }
+            if ($throwError) {
+                throw $this->lastError;
+            }
+        });
     }
 
     public function then(callable $onSuccess, callable $onError = null, callable $always = null)
