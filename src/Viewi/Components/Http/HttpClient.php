@@ -2,9 +2,9 @@
 
 namespace Viewi\Components\Http;
 
+use Exception;
 use Viewi\App;
 use Viewi\Builder\Attributes\CustomJs;
-use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\Callbacks\Resolver;
 use Viewi\DI\Singleton;
 
@@ -18,8 +18,12 @@ class HttpClient
 
     public function request(string $method, string $url, $body = null, ?array $headers = null): Resolver
     {
-        $resolver = new Resolver(function () use ($url, $method) {
-            return $this->app->run($url, $method);
+        $resolver = new Resolver(function (callable $callback) use ($url, $method) {
+            try {
+                $callback($this->app->run($url, $method));
+            } catch (Exception $ex) {
+                $callback(null, $ex);
+            }
         });
         return $resolver;
     }
