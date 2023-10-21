@@ -137,7 +137,7 @@
     router: new Router()
   };
 
-  // viewi/core/http/httpClient.ts
+  // viewi/core/events/resolver.ts
   var Resolver = class {
     onSuccess;
     onError = null;
@@ -146,59 +146,136 @@
     lastError = null;
     action;
     constructor(action) {
-      var $this = this;
-      $this.action = action;
+      this.action = action;
     }
     error(onError) {
-      var $this = this;
-      $this.onError = onError;
+      this.onError = onError;
     }
     success(onSuccess) {
-      var $this = this;
-      $this.onSuccess = onSuccess;
+      this.onSuccess = onSuccess;
     }
     always(always) {
-      var $this = this;
-      $this.onAlways = always;
+      this.onAlways = always;
+    }
+    run() {
+      const $this = this;
+      this.action(function(result, error) {
+        $this.result = result;
+        let throwError = false;
+        if (error) {
+          $this.lastError = error;
+          if ($this.onError !== null) {
+            $this.onError(error);
+          } else {
+            throwError = true;
+          }
+        } else {
+          $this.onSuccess($this.result);
+        }
+        if ($this.onAlways != null) {
+          $this.onAlways();
+        }
+        if (throwError) {
+          throw $this.lastError;
+        }
+      });
     }
     then(onSuccess, onError, always) {
-      var $this = this;
+      this.onSuccess = onSuccess;
       if (onError) {
-        $this.onError = onError;
+        this.onError = onError;
       }
       if (always) {
-        $this.onAlways = always;
+        this.onAlways = always;
       }
-      var throwError = false;
-      try {
-        $this.result = $this.action();
-        onSuccess($this.result);
-      } catch (ex) {
-        $this.lastError = ex;
-        if ($this.onError !== null) {
-          $this.onError(ex);
-        } else {
-          throwError = true;
-        }
-      }
-      if ($this.onAlways != null) {
-        $this.onAlways();
-      }
-      if (throwError) {
-        throw $this.lastError;
-      }
+      this.run();
     }
   };
+
+  // viewi/core/helpers/isBlob.ts
+  function isBlob(data) {
+    if ("Blob" in window && data instanceof Blob) {
+      return true;
+    }
+    return false;
+  }
+
+  // viewi/core/http/request.ts
+  function request(callback, type, url, data, headers) {
+    const request2 = new XMLHttpRequest();
+    request2.onreadystatechange = function() {
+      if (request2.readyState === 4) {
+        const status = request2.status;
+        const contentType = request2.getResponseHeader("Content-Type");
+        const itsJson = contentType && contentType.indexOf("application/json") === 0;
+        const raw = request2.responseText;
+        let content = raw;
+        if (itsJson) {
+          content = JSON.parse(request2.responseText);
+        }
+        const headers2 = {};
+        const headersString = request2.getAllResponseHeaders();
+        if (headersString) {
+          const headersArray = headersString.trim().split(/[\r\n]+/);
+          for (let i = 0; i < headersArray.length; i++) {
+            const line = headersArray[i];
+            const parts = line.split(": ");
+            const header = parts.shift();
+            if (header) {
+              const value = parts.join(": ");
+              headers2[header] = value;
+            }
+          }
+          ;
+        }
+        const response = {
+          status,
+          headers: headers2,
+          raw,
+          data: content
+        };
+        callback(response);
+      }
+    };
+    const isJson = data !== null && typeof data === "object" && !isBlob(data);
+    request2.open(type.toUpperCase(), url, true);
+    if (isJson) {
+      request2.setRequestHeader("Content-Type", "application/json");
+    }
+    if (headers) {
+      for (const h in headers) {
+        if (Array.isArray(headers[h])) {
+          for (let i = 0; i < headers[h].length; i++) {
+            request2.setRequestHeader(h, headers[h][i]);
+          }
+        } else {
+          request2.setRequestHeader(h, headers[h]);
+        }
+      }
+    }
+    data !== null ? request2.send(isJson ? JSON.stringify(data) : data) : request2.send();
+  }
+
+  // viewi/core/http/httpClient.ts
   var HttpClient = class {
     request(method, url, body, headers) {
-      var resolver = new Resolver(function() {
-        return null;
+      const resolver = new Resolver(function(callback) {
+        try {
+          request(function(response) {
+            if (response.status === 0 || response.status >= 200 && response.status < 400) {
+              callback(response.data);
+            } else {
+              callback(void 0, response.data);
+            }
+          }, method, url, body, headers);
+        } catch (ex) {
+          callback(void 0, ex);
+        }
       });
       return resolver;
     }
     get(url, headers) {
-      var $this = this;
-      return $this.request("get", url, null, headers);
+      return this.request("get", url, null, headers);
     }
   };
 
@@ -1489,61 +1566,6 @@
     }
   ];
 
-  // app/components/Resolver.js
-  var Resolver2 = class {
-    onSuccess = null;
-    onError = null;
-    onAlways = null;
-    result = null;
-    lastError = null;
-    action = null;
-    constructor(action) {
-      var $this = this;
-      $this.action = action;
-    }
-    error(onError) {
-      var $this = this;
-      $this.onError = onError;
-    }
-    success(onSuccess) {
-      var $this = this;
-      $this.onSuccess = onSuccess;
-    }
-    always(always) {
-      var $this = this;
-      $this.onAlways = always;
-    }
-    then(onSuccess, onError, always) {
-      var $this = this;
-      onError = typeof onError !== "undefined" ? onError : null;
-      always = typeof always !== "undefined" ? always : null;
-      if (onError !== null) {
-        $this.onError = onError;
-      }
-      if (always !== null) {
-        $this.onAlways = always;
-      }
-      var throwError = false;
-      try {
-        $this.result = $this.action();
-        onSuccess($this.result);
-      } catch (ex) {
-        $this.lastError = ex;
-        if ($this.onError !== null) {
-          $this.onError(ex);
-        } else {
-          throwError = true;
-        }
-      }
-      if ($this.onAlways != null) {
-        $this.onAlways();
-      }
-      if (throwError) {
-        throw $this.lastError;
-      }
-    }
-  };
-
   // app/components/index.js
   var components = {
     PostModel,
@@ -1584,8 +1606,7 @@
     TodoApp_x,
     TodoApp,
     TodoList_x,
-    TodoList,
-    Resolver: Resolver2
+    TodoList
   };
 
   // viewi/core/reactivity/handlers/getComponentModelHandler.ts
