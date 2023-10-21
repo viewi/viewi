@@ -180,7 +180,9 @@ class Builder
                         }
                     }
                 }
-                $this->collectPublicNodes($this->components[$exportItem->Name], $exportItem->Children);
+                if (!$this->components[$exportItem->Name]->CustomJs && !$this->components[$exportItem->Name]->Skip) {
+                    $this->collectPublicNodes($this->components[$exportItem->Name], $exportItem->Children);
+                }
             }
         }
     }
@@ -239,6 +241,7 @@ class Builder
                 }
                 if (!$this->components[$baseName]->Include) {
                     $this->components[$baseName]->Include = true;
+                    // Helpers::debug([$baseName]);
                     if (!($this->components[$baseName]->CustomJs || $this->components[$baseName]->Skip)) {
                         $this->collectIncludes($this->components[$baseName]);
                     }
@@ -369,7 +372,7 @@ class Builder
         $publicJson = [];
         // $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
-            if ($buildItem->Skip) {
+            if ($buildItem->Skip || !$buildItem->Include) {
                 continue;
             }
             $componentMeta = [
