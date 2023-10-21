@@ -54,6 +54,7 @@ class Builder
     private string $buildPath = '';
     private string $jsPath = '';
     private string $publicPath = '';
+    private string $assetsPath = '';
     // Keep it as associative array
     /**
      * 
@@ -91,12 +92,13 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath)
+    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath, string $assetsPath)
     {
         $this->reset();
         $this->buildPath = $buildPath;
         $this->jsPath = $jsPath;
         $this->publicPath = $publicPath;
+        $this->assetsPath = $assetsPath;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -310,6 +312,9 @@ class Builder
                     }
                     $buildItem->RenderFunction = $template;
                     $buildItem->RootTag = $rootTag;
+                    foreach ($template->usedComponents as $component => $_) {
+                        $buildItem->Uses[$component] = new UseItem([$component], UseItem::Class_);
+                    }
                     // Helpers::debug([$buildItem->ComponentName, $template->usedComponents, $template->hasHtmlTag]);
                 }
 
@@ -515,7 +520,11 @@ class Builder
         //     CounterReducer,
         //     TodoReducer
         // };
-
+        $this->meta['assets'] = [
+            'app' => $this->assetsPath . '/app.js',
+            'app-min' => $this->assetsPath . '/app.min.js',
+            'components' => $this->assetsPath . '/components.json',
+        ];
         $componentsIndexJs .= PHP_EOL . "export const components = {{$componentsExportList}";
         $componentsIndexJs .= $componentsExportList ? PHP_EOL . '};' : '};';
 
