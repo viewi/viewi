@@ -24,6 +24,7 @@ import { TestComponent, TestComponent_x } from "./TestComponent";
 import { TestInput, TestInput_x } from "./TestInput";
 import { TodoApp, TodoApp_x } from "./TodoApp";
 import { TodoList, TodoList_x } from "./TodoList";
+import { ViewiAssets, ViewiAssets_x } from "./ViewiAssets";
 
 export const components = {
     PostModel,
@@ -65,4 +66,6 @@ export const components = {
     TodoApp,
     TodoList_x,
     TodoList,
+    ViewiAssets_x,
+    ViewiAssets,
 };

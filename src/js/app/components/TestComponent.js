@@ -2,6 +2,12 @@ import { UserModel } from "./UserModel";
 import { CounterReducer } from "./CounterReducer";
 import { BaseComponent } from "../../viewi/core/component/baseComponent";
 import { json_encode } from "../functions/json_encode";
+import { TodoApp } from "./TodoApp";
+import { TestInput } from "./TestInput";
+import { TestButton } from "./TestButton";
+import { StatefulCounter } from "./StatefulCounter";
+import { SomeComponent } from "./SomeComponent";
+import { Counter } from "./Counter";
 
 class TestComponent extends BaseComponent {
     _name = 'TestComponent';

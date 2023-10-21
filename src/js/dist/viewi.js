@@ -261,6 +261,14 @@
     request(method, url, body, headers) {
       const resolver = new Resolver(function(callback) {
         try {
+          const scopedResponseData = window.viewiScopeData;
+          if (typeof scopedResponseData !== "undefined") {
+            const requestKey = method.toLowerCase() + "_" + url + "_" + JSON.stringify(body);
+            if (requestKey in scopedResponseData) {
+              callback(scopedResponseData[requestKey]);
+              return;
+            }
+          }
           request(function(response) {
             if (response.status === 0 || response.status >= 200 && response.status < 400) {
               callback(response.data);
@@ -467,50 +475,18 @@
     }
   ];
 
-  // app/components/HomePage.js
-  var HomePage = class extends BaseComponent {
-    _name = "HomePage";
-    title = "Viewi v2 - Build reactive front-end with PHP";
-    timerId = 0;
-    seconds = 0;
-    init() {
-      var $this = this;
-      $this.seconds = 100;
-      this.timerId = setInterval(() => $this.tick(), 1e3);
-      ;
-    }
-    destroy() {
-      var $this = this;
-      clearInterval(this.timerId);
-      ;
-    }
-    tick() {
-      var $this = this;
-      $this.seconds++;
-      console.log("HomePage time " + $this.seconds);
-      ;
-    }
+  // app/components/ViewiAssets.js
+  var ViewiAssets = class extends BaseComponent {
+    _name = "ViewiAssets";
+    appPath = "";
+    data = '<script>console.log("ViewiAssets");<\/script>';
   };
-  var HomePage_x = [
+  var ViewiAssets_x = [
     function(_component) {
-      return _component.title;
+      return _component.data;
     },
     function(_component) {
-      return _component.title;
-    },
-    function(_component) {
-      return "Seconds: " + (_component.seconds ?? "");
-    }
-  ];
-
-  // app/components/AreaLayout.js
-  var AreaLayout = class extends BaseComponent {
-    _name = "AreaLayout";
-    title = "Area Layout";
-  };
-  var AreaLayout_x = [
-    function(_component) {
-      return "\n        " + (_component.title ?? "") + " | Area\n    ";
+      return _component.appPath;
     }
   ];
 
@@ -561,67 +537,56 @@
     }
   ];
 
-  // app/components/NotFoundPage.js
-  var NotFoundPage = class extends BaseComponent {
-    _name = "NotFoundPage";
-  };
-
-  // app/components/CounterPage.js
-  var CounterPage = class extends BaseComponent {
-    _name = "CounterPage";
-  };
-
-  // app/components/PostPage.js
-  var HttpClient2 = register.HttpClient;
-  var PostPage = class extends BaseComponent {
-    _name = "PostPage";
-    post = null;
-    error = "";
-    message = "";
-    $http = null;
-    constructor(http) {
-      super();
-      var $this = this;
-      $this.$http = http;
-    }
+  // app/components/HomePage.js
+  var HomePage = class extends BaseComponent {
+    _name = "HomePage";
+    title = "Viewi v2 - Build reactive front-end with PHP";
+    timerId = 0;
+    seconds = 0;
     init() {
       var $this = this;
-      $this.$http.get("/api/post").then(function(post) {
-        $this.post = post;
-        $this.message = "Post has been read successfully";
-      }, function() {
-        $this.error = "Server error";
-      });
+      $this.seconds = 100;
+      this.timerId = setInterval(() => $this.tick(), 1e3);
+      ;
+    }
+    destroy() {
+      var $this = this;
+      clearInterval(this.timerId);
+      ;
+    }
+    tick() {
+      var $this = this;
+      $this.seconds++;
+      console.log("HomePage time " + $this.seconds);
+      ;
     }
   };
-  var PostPage_x = [
+  var HomePage_x = [
     function(_component) {
-      return "Message: " + (_component.message ?? "");
+      return _component.title;
     },
     function(_component) {
-      return "Error: " + (_component.error ?? "");
+      return _component.title;
     },
     function(_component) {
-      return _component.post;
-    },
-    function(_component) {
-      return "\n            " + (_component.post.id ?? "") + " " + (_component.post.name ?? "") + "\n        ";
+      return "Seconds: " + (_component.seconds ?? "");
     }
   ];
 
-  // app/components/TestLayoutPage.js
-  var TestLayoutPage = class extends BaseComponent {
-    _name = "TestLayoutPage";
+  // app/components/AreaLayout.js
+  var AreaLayout = class extends BaseComponent {
+    _name = "AreaLayout";
+    title = "Area Layout";
   };
+  var AreaLayout_x = [
+    function(_component) {
+      return "\n        " + (_component.title ?? "") + " | Area\n    ";
+    }
+  ];
 
-  // app/components/TestPage.js
-  var TestPage = class extends BaseComponent {
-    _name = "TestPage";
-  };
-
-  // app/components/TodoAppPage.js
-  var TodoAppPage = class extends BaseComponent {
-    _name = "TodoAppPage";
+  // app/components/NotFoundPage.js
+  var NotFoundPage = class extends BaseComponent {
+    _name = "NotFoundPage";
   };
 
   // app/components/StatefulCounter.js
@@ -655,121 +620,56 @@
     }
   ];
 
-  // app/functions/count.js
-  function count(mixedVar, mode) {
-    let key;
-    let cnt = 0;
-    if (mixedVar === null || typeof mixedVar === "undefined") {
-      return 0;
-    } else if (mixedVar.constructor !== Array && mixedVar.constructor !== Object) {
-      return 1;
-    }
-    if (mode === "COUNT_RECURSIVE") {
-      mode = 1;
-    }
-    if (mode !== 1) {
-      mode = 0;
-    }
-    for (key in mixedVar) {
-      if (mixedVar.hasOwnProperty(key)) {
-        cnt++;
-        if (mode === 1 && mixedVar[key] && (mixedVar[key].constructor === Array || mixedVar[key].constructor === Object)) {
-          cnt += count(mixedVar[key], 1);
-        }
-      }
-    }
-    return cnt;
-  }
+  // app/components/CounterPage.js
+  var CounterPage = class extends BaseComponent {
+    _name = "CounterPage";
+  };
 
-  // app/components/StatefulTodoApp.js
-  var StatefulTodoApp = class extends BaseComponent {
-    _name = "StatefulTodoApp";
-    text = "";
-    todo = null;
-    constructor(todo) {
+  // app/components/PostPage.js
+  var HttpClient2 = register.HttpClient;
+  var PostPage = class extends BaseComponent {
+    _name = "PostPage";
+    post = null;
+    error = "";
+    message = "";
+    $http = null;
+    constructor(http) {
       super();
       var $this = this;
-      $this.todo = todo;
+      $this.$http = http;
     }
-    handleSubmit(event) {
+    init() {
       var $this = this;
-      event.preventDefault();
-      if (strlen($this.text) == 0) {
-        return;
-      }
-      $this.todo.addNewItem($this.text);
-      $this.text = "";
+      $this.$http.get("/api/post").then(function(post) {
+        $this.post = post;
+        $this.message = "Post has been read successfully";
+      }, function() {
+        $this.error = "Server error";
+      });
     }
   };
-  var StatefulTodoApp_x = [
+  var PostPage_x = [
     function(_component) {
-      return function(event) {
-        _component.handleSubmit(event);
-      };
+      return _component.post ? _component.post.name : "";
     },
     function(_component) {
-      return [function(_component2) {
-        return _component2.text;
-      }, function(_component2, value) {
-        _component2.text = value;
-      }];
+      return "Message: " + (_component.message ?? "");
     },
     function(_component) {
-      return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    ";
+      return "Error: " + (_component.error ?? "");
     },
     function(_component) {
-      return _component.todo.items;
+      return _component.post;
+    },
+    function(_component) {
+      return "\n            " + (_component.post.id ?? "") + " " + (_component.post.name ?? "") + "\n        ";
     }
   ];
 
-  // app/components/ItemComponent.js
-  var ItemComponent = class extends BaseComponent {
-    _name = "ItemComponent";
+  // app/components/TestLayoutPage.js
+  var TestLayoutPage = class extends BaseComponent {
+    _name = "TestLayoutPage";
   };
-
-  // app/components/SomeComponent.js
-  var SomeComponent = class extends BaseComponent {
-    _name = "SomeComponent";
-  };
-
-  // app/components/TestButton.js
-  var TestButton = class extends BaseComponent {
-    _name = "TestButton";
-    id = null;
-    title = null;
-    class = null;
-    disabled = false;
-    loading = false;
-    onClick(event) {
-      var $this = this;
-      $this.emitEvent("click", event);
-    }
-  };
-  var TestButton_x = [
-    function(_component) {
-      return _component.id;
-    },
-    function(_component) {
-      return _component.disabled;
-    },
-    function(_component) {
-      return _component.title;
-    },
-    function(_component) {
-      return _component.class;
-    },
-    function(_component) {
-      return function(event) {
-        _component.onClick(event);
-      };
-    },
-    function(_component) {
-      return " " + (_component.title ?? "") + "\n    ";
-    },
-    function(_component) {
-      return _component.loading;
-    }
-  ];
 
   // app/functions/json_encode.js
   function json_encode(mixedVal) {
@@ -880,6 +780,156 @@
       return null;
     }
   }
+
+  // app/functions/count.js
+  function count(mixedVar, mode) {
+    let key;
+    let cnt = 0;
+    if (mixedVar === null || typeof mixedVar === "undefined") {
+      return 0;
+    } else if (mixedVar.constructor !== Array && mixedVar.constructor !== Object) {
+      return 1;
+    }
+    if (mode === "COUNT_RECURSIVE") {
+      mode = 1;
+    }
+    if (mode !== 1) {
+      mode = 0;
+    }
+    for (key in mixedVar) {
+      if (mixedVar.hasOwnProperty(key)) {
+        cnt++;
+        if (mode === 1 && mixedVar[key] && (mixedVar[key].constructor === Array || mixedVar[key].constructor === Object)) {
+          cnt += count(mixedVar[key], 1);
+        }
+      }
+    }
+    return cnt;
+  }
+
+  // app/components/TodoList.js
+  var TodoList = class extends BaseComponent {
+    _name = "TodoList";
+    items = null;
+  };
+  var TodoList_x = [
+    function(_component) {
+      return _component.items;
+    },
+    function(_component, _key1, item) {
+      return item;
+    }
+  ];
+
+  // app/components/TodoApp.js
+  var TodoApp = class extends BaseComponent {
+    _name = "TodoApp";
+    text = "";
+    items = [];
+    handleSubmit(event) {
+      var $this = this;
+      event.preventDefault();
+      if (strlen($this.text) == 0) {
+        return;
+      }
+      $this.items = [...$this.items, $this.text];
+      $this.text = "";
+    }
+  };
+  var TodoApp_x = [
+    function(_component) {
+      return function(event) {
+        _component.handleSubmit(event);
+      };
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.text;
+      }, function(_component2, value) {
+        _component2.text = value;
+      }];
+    },
+    function(_component) {
+      return "\n        Add #" + (count(_component.items) + 1) + "\n    ";
+    },
+    function(_component) {
+      return _component.items;
+    }
+  ];
+
+  // app/components/TestInput.js
+  var TestInput = class extends BaseComponent {
+    _name = "TestInput";
+    id = null;
+    model = null;
+    onInput(event) {
+      var $this = this;
+      $this.emitEvent("model", event.target.value);
+    }
+  };
+  var TestInput_x = [
+    function(_component) {
+      return function(event) {
+        _component.onInput(event);
+      };
+    },
+    function(_component) {
+      return [function(_component2) {
+        return _component2.model;
+      }, function(_component2, value) {
+        _component2.model = value;
+      }];
+    }
+  ];
+
+  // app/components/TestButton.js
+  var TestButton = class extends BaseComponent {
+    _name = "TestButton";
+    id = null;
+    title = null;
+    class = null;
+    disabled = false;
+    loading = false;
+    onClick(event) {
+      var $this = this;
+      $this.emitEvent("click", event);
+    }
+  };
+  var TestButton_x = [
+    function(_component) {
+      return _component.id;
+    },
+    function(_component) {
+      return _component.disabled;
+    },
+    function(_component) {
+      return _component.title;
+    },
+    function(_component) {
+      return _component.class;
+    },
+    function(_component) {
+      return function(event) {
+        _component.onClick(event);
+      };
+    },
+    function(_component) {
+      return " " + (_component.title ?? "") + "\n    ";
+    },
+    function(_component) {
+      return _component.loading;
+    }
+  ];
+
+  // app/components/ItemComponent.js
+  var ItemComponent = class extends BaseComponent {
+    _name = "ItemComponent";
+  };
+
+  // app/components/SomeComponent.js
+  var SomeComponent = class extends BaseComponent {
+    _name = "SomeComponent";
+  };
 
   // app/components/TestComponent.js
   var TestComponent = class extends BaseComponent {
@@ -1491,47 +1541,32 @@
     }
   ];
 
-  // app/components/TestInput.js
-  var TestInput = class extends BaseComponent {
-    _name = "TestInput";
-    id = null;
-    model = null;
-    onInput(event) {
-      var $this = this;
-      $this.emitEvent("model", event.target.value);
-    }
+  // app/components/TestPage.js
+  var TestPage = class extends BaseComponent {
+    _name = "TestPage";
   };
-  var TestInput_x = [
-    function(_component) {
-      return function(event) {
-        _component.onInput(event);
-      };
-    },
-    function(_component) {
-      return [function(_component2) {
-        return _component2.model;
-      }, function(_component2, value) {
-        _component2.model = value;
-      }];
-    }
-  ];
 
-  // app/components/TodoApp.js
-  var TodoApp = class extends BaseComponent {
-    _name = "TodoApp";
+  // app/components/StatefulTodoApp.js
+  var StatefulTodoApp = class extends BaseComponent {
+    _name = "StatefulTodoApp";
     text = "";
-    items = [];
+    todo = null;
+    constructor(todo) {
+      super();
+      var $this = this;
+      $this.todo = todo;
+    }
     handleSubmit(event) {
       var $this = this;
       event.preventDefault();
       if (strlen($this.text) == 0) {
         return;
       }
-      $this.items = [...$this.items, $this.text];
+      $this.todo.addNewItem($this.text);
       $this.text = "";
     }
   };
-  var TodoApp_x = [
+  var StatefulTodoApp_x = [
     function(_component) {
       return function(event) {
         _component.handleSubmit(event);
@@ -1545,26 +1580,17 @@
       }];
     },
     function(_component) {
-      return "\n        Add #" + (count(_component.items) + 1) + "\n    ";
+      return "\n        Add #" + (count(_component.todo.items) + 1) + "\n    ";
     },
     function(_component) {
-      return _component.items;
+      return _component.todo.items;
     }
   ];
 
-  // app/components/TodoList.js
-  var TodoList = class extends BaseComponent {
-    _name = "TodoList";
-    items = null;
+  // app/components/TodoAppPage.js
+  var TodoAppPage = class extends BaseComponent {
+    _name = "TodoAppPage";
   };
-  var TodoList_x = [
-    function(_component) {
-      return _component.items;
-    },
-    function(_component, _key1, item) {
-      return item;
-    }
-  ];
 
   // app/components/index.js
   var components = {
@@ -1606,7 +1632,9 @@
     TodoApp_x,
     TodoApp,
     TodoList_x,
-    TodoList
+    TodoList,
+    ViewiAssets_x,
+    ViewiAssets
   };
 
   // viewi/core/reactivity/handlers/getComponentModelHandler.ts

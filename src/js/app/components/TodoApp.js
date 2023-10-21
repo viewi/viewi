@@ -1,6 +1,7 @@
 import { BaseComponent } from "../../viewi/core/component/baseComponent";
 import { strlen } from "../functions/strlen";
 import { count } from "../functions/count";
+import { TodoList } from "./TodoList";
 
 class TodoApp extends BaseComponent {
     _name = 'TodoApp';

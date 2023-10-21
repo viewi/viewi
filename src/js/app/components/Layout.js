@@ -1,4 +1,7 @@
 import { BaseComponent } from "../../viewi/core/component/baseComponent";
+import { MenuBar } from "./MenuBar";
+import { DemoContainer } from "./DemoContainer";
+import { ViewiAssets } from "./ViewiAssets";
 
 class Layout extends BaseComponent {
     _name = 'Layout';

@@ -1,4 +1,5 @@
 import { BaseComponent } from "../../viewi/core/component/baseComponent";
+import { PanelLayout } from "./PanelLayout";
 
 class HomePage extends BaseComponent {
     _name = 'HomePage';

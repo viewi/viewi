@@ -1,4 +1,6 @@
 import { BaseComponent } from "../../viewi/core/component/baseComponent";
+import { MenuBar } from "./MenuBar";
+import { DemoContainer } from "./DemoContainer";
 
 class AreaLayout extends BaseComponent {
     _name = 'AreaLayout';
