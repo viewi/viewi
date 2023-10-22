@@ -1,0 +1,21 @@
+<?php
+
+namespace Viewi\PhpJsFunctions\Group;
+
+use Viewi\JsTranspile\BaseFunction;
+
+class ClassName extends BaseFunction
+{
+    public static string $name = 'FuncName';
+
+    public static function getUses(): array
+    {
+        return [/** DEPS */];
+    }
+
+    public static function getJs(): string
+    {
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'FileName';
+        return file_get_contents($jsToInclude);
+    }
+}
