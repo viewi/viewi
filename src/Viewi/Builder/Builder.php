@@ -10,6 +10,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
+use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\DOM\HtmlNode;
 use Viewi\DI\Scoped;
@@ -423,7 +424,17 @@ class Builder
                 }
                 // Helpers::debug($attributeClass);
             }
-            $componentMeta['inputs'] = $buildItem->Props;
+            $componentMeta['inputs'] = [];
+            $preservedProps = [];
+            foreach ($buildItem->Props as $prop => $propMetadata) {
+                $componentMeta['inputs'][$prop] = 1;
+                if (isset($propMetadata[Preserve::class])) {
+                    $preservedProps[$prop] = 1;
+                }
+            }
+            if ($preservedProps) {
+                $componentMeta['preserve'] = $preservedProps;
+            }
             if ($buildItem->ReflectionClass->isSubclassOf(BaseComponent::class)) {
                 $componentMeta['base'] = 1;
                 $publicJson[$buildItem->ComponentName]['base'] = 1;
@@ -606,7 +617,15 @@ class Builder
                 // if ($type !== null && $type->getName() === HtmlNode::class) {
 
                 // }
-                $inputs[$propertyInfo->getName()] = 1;
+                $attributeMetadata = [];
+                $attributes = $propertyInfo->getAttributes();
+                if ($attributes) {
+                    foreach ($attributes as $attribute) {
+                        $attributeClass = $attribute->getName();
+                        $attributeMetadata[$attributeClass] = $attribute;
+                    }
+                }
+                $inputs[$propertyInfo->getName()] = $attributeMetadata;
             }
         }
         return $inputs;

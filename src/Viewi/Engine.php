@@ -92,6 +92,22 @@ class Engine
         return $this->meta['assets'];
     }
 
+    public function getState(): array
+    {
+        return $this->DIContainer['state'] ?? [];
+    }
+
+    public function getMetadata(string $name)
+    {
+        $name = strpos($name, '\\') !== false ?
+            substr(strrchr($name, "\\"), 1)
+            : $name;
+        if (!isset($this->meta['components'][$name])) {
+            throw new Exception("Metadata for type '$name' does not exist.");
+        }
+        return $this->meta['components'][$name];
+    }
+
     public function getIfExists(string $name)
     {
         if (isset($this->DIContainer[$name])) {
@@ -112,7 +128,7 @@ class Engine
                 $constructor = $this->factory->get($name);
                 return $constructor($this);
             } else {
-                throw new Exception("Can not resolve instance for type '$name'");
+                throw new Exception("Can not resolve instance for type '$name'.");
             }
         }
         $componentMeta = $this->meta['components'][$name];
@@ -179,6 +195,15 @@ class Engine
              * @var BaseComponent $instance
              */
             $instance->__id = ++$this->instanceIdCounter;
+        }
+        // Preserve
+        if (isset($componentMeta['preserve'])) {
+            foreach ($componentMeta['preserve'] as $prop => $_) {
+                if (!isset($this->DIContainer['state'])) {
+                    $this->DIContainer['state'] = [];
+                }
+                $this->DIContainer['state'][$name][$prop] = $instance->{$prop};
+            }
         }
         return $instance;
     }
