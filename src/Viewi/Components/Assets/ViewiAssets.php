@@ -2,12 +2,16 @@
 
 namespace Viewi\Components\Assets;
 
+use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\DI\Singleton;
 
 #[Singleton]
 class ViewiAssets extends BaseComponent
 {
+    #[Preserve]
     public string $appPath = '';
-    public string $data = '<script>console.log("ViewiAssets");</script>';
+
+    #[Preserve]
+    public string $data = '<script data-keep="ViewiAssets">"ViewiAssets";</script>';
 }

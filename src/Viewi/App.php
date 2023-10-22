@@ -37,14 +37,19 @@ class App
             $this->factory->add(ViewiAssets::class, function (Engine $engine) {
                 $assets = new ViewiAssets();
                 $assets->appPath = $engine->getAssets()['app'];
-                $responses = 'null';
+                $state = [];
+                $responses = null;
                 /** @var HttpClient */
                 $httpClient = $engine->getIfExists(HttpClient::class);
                 if ($httpClient !== null) {
-                    $responses = json_encode($httpClient->getScopeResponses());                    
-                    // Helpers::debug($assets);
-                } 
-                $assets->data = "<script>window.viewiScopeData = {$responses};</script>";
+                    $responses = $httpClient->getScopeResponses();
+                }
+                $state['http'] = $responses;
+                $state['state'] = $engine->getState();
+                $state['state']['ViewiAssets']['appPath'] = $assets->appPath;
+                $stateJson = json_encode($state);
+                $rawScript = "<script data-keep=\"ViewiAssets\">window.viewiScopeState = {$stateJson};</script>";
+                $assets->data = $rawScript;
                 return $assets;
             });
         }
