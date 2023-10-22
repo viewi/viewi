@@ -423,7 +423,7 @@ export function render(
                         const anchorBegin = createAnchorNode(target, insert, anchor); // begin raw
                         if (hydrate) {
                             if (vdom.childNodes.length > 0) {
-                                const rawNodes = Array.prototype.slice.call(vdom.childNodes);
+                                const rawNodes: HTMLElement[] = Array.prototype.slice.call(vdom.childNodes);
                                 for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
                                     const rawNode = rawNodes[rawNodeI];
                                     const rawNodeType = rawNode.nodeType;
@@ -437,9 +437,16 @@ export function render(
                                             currentTargetNode.nodeType !== rawNodeType
                                             || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
                                         ) {
-                                            // mismatch
+                                            // mismatch by type
                                             console.log('Missmatch');
                                             // TODO: handle mismatch
+                                        } else if (rawNodeType === 1) {
+                                            if (currentTargetNode.nodeName !== rawNode.nodeName || (<HTMLElement>currentTargetNode).outerHTML !== rawNode.outerHTML) {
+                                                const keepKey = (<HTMLElement>currentTargetNode).getAttribute('data-keep');
+                                                if (!keepKey || keepKey !== rawNode.getAttribute('data-keep')) { // keep server-side version
+                                                    (<HTMLElement>currentTargetNode).outerHTML = rawNode.outerHTML;
+                                                }
+                                            }
                                         }
                                         // matched, continue
                                     }

@@ -1,6 +1,7 @@
 import { components } from "../../../app/components";
 import { BaseComponent } from "../component/baseComponent";
 import { componentsMeta } from "../component/componentsMeta";
+import { getScopeState } from "../lifecycle/scopeState";
 import { factoryContainer } from "./factory";
 
 type DIContainer = { [key: string]: any };
@@ -49,6 +50,12 @@ export function resolve(name: string, params: any[] = []) {
     }
     if (info.base) {
         (<BaseComponent<any>>instance).__id = ++nextInstanceId + '';
+    }
+    const scopeState = getScopeState();
+    if (scopeState.state[name]) {
+        for (let prop in scopeState.state[name]) {
+            instance[prop] = scopeState.state[name][prop];
+        }
     }
     if (container) {
         container[name] = instance;

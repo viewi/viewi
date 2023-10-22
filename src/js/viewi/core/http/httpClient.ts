@@ -1,4 +1,5 @@
 import { Resolver } from "../events/resolver";
+import { getScopeState } from "../lifecycle/scopeState";
 import { MethodType } from "./methodType";
 import { request } from "./request";
 import { Response } from "./response";
@@ -7,13 +8,11 @@ class HttpClient {
     request(method: MethodType, url: string, body?: any, headers?: { [name: string]: string | string[] }) {
         const resolver = new Resolver(function (callback) {
             try {
-                const scopedResponseData: undefined | { [key: string]: any } = (<any>window).viewiScopeData;
-                if (typeof scopedResponseData !== 'undefined') {
-                    const requestKey = method.toLowerCase() + '_' + url + '_' + JSON.stringify(body);
-                    if (requestKey in scopedResponseData) {
-                        callback(scopedResponseData[requestKey]);
-                        return;
-                    }
+                const state = getScopeState();
+                const requestKey = method.toLowerCase() + '_' + url + '_' + JSON.stringify(body);
+                if (requestKey in state.http) {
+                    callback(state.http[requestKey]);
+                    return;
                 }
                 request(function (response: Response) {
                     if (response.status === 0 || (response.status >= 200 && response.status < 400)) {
@@ -28,7 +27,6 @@ class HttpClient {
         });
 
         return resolver;
-        // .then(onSuccess, onError);
     }
 
     get(url: string, headers?: { [name: string]: string | string[] }) {
