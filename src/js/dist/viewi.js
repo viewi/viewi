@@ -677,12 +677,12 @@
 
   // app/functions/json_encode.js
   function json_encode(mixedVal) {
-    var $global = typeof window !== "undefined" ? window : global;
+    const $global = typeof window !== "undefined" ? window : global;
     $global.$locutus = $global.$locutus || {};
-    var $locutus = $global.$locutus;
+    const $locutus = $global.$locutus;
     $locutus.php = $locutus.php || {};
-    var json = $global.JSON;
-    var retVal;
+    const json = $global.JSON;
+    let retVal;
     try {
       if (typeof json === "object" && typeof json.stringify === "function") {
         retVal = json.stringify(mixedVal);
@@ -691,9 +691,9 @@
         }
         return retVal;
       }
-      var value = mixedVal;
-      var quote = function(string) {
-        var escapeChars = [
+      const value = mixedVal;
+      const quote = function(string) {
+        const escapeChars = [
           "\0-",
           "\x7F-\x9F",
           "\xAD",
@@ -707,8 +707,9 @@
           "\uFEFF",
           "\uFFF0-\uFFFF"
         ].join("");
-        var escapable = new RegExp('[\\"' + escapeChars + "]", "g");
-        var meta = {
+        const escapable = new RegExp('[\\"' + escapeChars + "]", "g");
+        const meta = {
+          // table of character substitutions
           "\b": "\\b",
           "	": "\\t",
           "\n": "\\n",
@@ -719,20 +720,20 @@
         };
         escapable.lastIndex = 0;
         return escapable.test(string) ? '"' + string.replace(escapable, function(a) {
-          var c = meta[a];
+          const c = meta[a];
           return typeof c === "string" ? c : "\\u" + ("0000" + a.charCodeAt(0).toString(16)).slice(-4);
         }) + '"' : '"' + string + '"';
       };
       var _str = function(key, holder) {
-        var gap = "";
-        var indent = "    ";
-        var i = 0;
-        var k = "";
-        var v = "";
-        var length = 0;
-        var mind = gap;
-        var partial = [];
-        var value2 = holder[key];
+        let gap = "";
+        const indent = "    ";
+        let i = 0;
+        let k = "";
+        let v = "";
+        let length = 0;
+        const mind = gap;
+        let partial = [];
+        let value2 = holder[key];
         if (value2 && typeof value2 === "object" && typeof value2.toJSON === "function") {
           value2 = value2.toJSON(key);
         }
