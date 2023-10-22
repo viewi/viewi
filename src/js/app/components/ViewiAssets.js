@@ -3,7 +3,7 @@ import { BaseComponent } from "../../viewi/core/component/baseComponent";
 class ViewiAssets extends BaseComponent {
     _name = 'ViewiAssets';
     appPath = "";
-    data = "<script>console.log(\"ViewiAssets\");<\/script>";
+    data = "<script data-keep=\"ViewiAssets\">\"ViewiAssets\";<\/script>";
 }
 
 export const ViewiAssets_x = [

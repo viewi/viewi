@@ -192,6 +192,12 @@
     }
   };
 
+  // viewi/core/lifecycle/scopeState.ts
+  function getScopeState() {
+    const scopedResponseData = window.viewiScopeState;
+    return scopedResponseData ?? { http: {}, state: {} };
+  }
+
   // viewi/core/helpers/isBlob.ts
   function isBlob(data) {
     if ("Blob" in window && data instanceof Blob) {
@@ -261,13 +267,11 @@
     request(method, url, body, headers) {
       const resolver = new Resolver(function(callback) {
         try {
-          const scopedResponseData = window.viewiScopeData;
-          if (typeof scopedResponseData !== "undefined") {
-            const requestKey = method.toLowerCase() + "_" + url + "_" + JSON.stringify(body);
-            if (requestKey in scopedResponseData) {
-              callback(scopedResponseData[requestKey]);
-              return;
-            }
+          const state = getScopeState();
+          const requestKey = method.toLowerCase() + "_" + url + "_" + JSON.stringify(body);
+          if (requestKey in state.http) {
+            callback(state.http[requestKey]);
+            return;
           }
           request(function(response) {
             if (response.status === 0 || response.status >= 200 && response.status < 400) {
@@ -479,7 +483,7 @@
   var ViewiAssets = class extends BaseComponent {
     _name = "ViewiAssets";
     appPath = "";
-    data = '<script>console.log("ViewiAssets");<\/script>';
+    data = '<script data-keep="ViewiAssets">"ViewiAssets";<\/script>';
   };
   var ViewiAssets_x = [
     function(_component) {
@@ -2674,6 +2678,13 @@
                     const currentTargetNode = target.childNodes[anchor.current];
                     if (currentTargetNode.nodeType !== rawNodeType || rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName) {
                       console.log("Missmatch");
+                    } else if (rawNodeType === 1) {
+                      if (currentTargetNode.nodeName !== rawNode.nodeName || currentTargetNode.outerHTML !== rawNode.outerHTML) {
+                        const keepKey = currentTargetNode.getAttribute("data-keep");
+                        if (!keepKey || keepKey !== rawNode.getAttribute("data-keep")) {
+                          currentTargetNode.outerHTML = rawNode.outerHTML;
+                        }
+                      }
                     }
                   }
                 }
@@ -2867,6 +2878,12 @@
     }
     if (info.base) {
       instance.__id = ++nextInstanceId + "";
+    }
+    const scopeState = getScopeState();
+    if (scopeState.state[name]) {
+      for (let prop in scopeState.state[name]) {
+        instance[prop] = scopeState.state[name][prop];
+      }
     }
     if (container) {
       container[name] = instance;
