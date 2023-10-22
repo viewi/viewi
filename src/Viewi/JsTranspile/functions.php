@@ -1,10 +1,10 @@
 <?php
 
-use Viewi\JsTranspile\Functions\JsCount;
-use Viewi\JsTranspile\Functions\Json\JsonEncode;
-use Viewi\JsTranspile\Functions\Strings\Explode;
-use Viewi\JsTranspile\Functions\Strings\Implode;
-use Viewi\JsTranspile\Functions\Strings\Strlen;
+use Viewi\PhpJsFunctions\JsCount;
+use Viewi\PhpJsFunctions\Json\JsonEncode;
+use Viewi\PhpJsFunctions\Strings\Explode;
+use Viewi\PhpJsFunctions\Strings\Implode;
+use Viewi\PhpJsFunctions\Strings\Strlen;
 
 return [
     'implode' => Implode::class,
