@@ -315,6 +315,7 @@
     hydrate: true,
     // first time hydrate, TODO: configurable, MFE won't need hydration
     rootScope: false,
+    scopedContainer: {},
     located: {},
     iteration: {},
     lastIteration: {},
@@ -2839,7 +2840,6 @@
   }
 
   // viewi/core/di/resolve.ts
-  var scopedContainer = {};
   var singletonContainer = {};
   var nextInstanceId = 0;
   function resolve(name, params = []) {
@@ -2849,7 +2849,7 @@
     if (info.di === "Singleton") {
       container = singletonContainer;
     } else if (info.di === "Scoped") {
-      container = scopedContainer;
+      container = globalScope.scopedContainer;
     }
     if (container && name in container) {
       return container[name];
@@ -3119,6 +3119,7 @@
     globalScope.layout = info.parent;
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
+    globalScope.scopedContainer = {};
     globalScope.located = {};
     globalScope.rootScope = renderComponent(target ?? document, name, void 0, {}, hydrate, false);
     globalScope.hydrate = false;
