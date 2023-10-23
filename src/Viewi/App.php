@@ -38,7 +38,7 @@ class App
                 $assets = new ViewiAssets();
                 $assets->appPath = $engine->getAssets()['app'];
                 $state = [];
-                $responses = null;
+                $responses = [];
                 /** @var HttpClient */
                 $httpClient = $engine->getIfExists(HttpClient::class);
                 if ($httpClient !== null) {
