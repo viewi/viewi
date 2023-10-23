@@ -271,6 +271,7 @@
           const requestKey = method.toLowerCase() + "_" + url + "_" + JSON.stringify(body);
           if (requestKey in state.http) {
             callback(state.http[requestKey]);
+            delete state.http[requestKey];
             return;
           }
           request(function(response) {
