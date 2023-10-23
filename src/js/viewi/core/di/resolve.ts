@@ -2,11 +2,10 @@ import { components } from "../../../app/components";
 import { BaseComponent } from "../component/baseComponent";
 import { componentsMeta } from "../component/componentsMeta";
 import { getScopeState } from "../lifecycle/scopeState";
+import { DIContainer } from "./diContainer";
 import { factoryContainer } from "./factory";
+import { globalScope } from "./globalScope";
 
-type DIContainer = { [key: string]: any };
-
-const scopedContainer: DIContainer = {}; // TODO: dispose on route change, TODO: expose dispose to public use
 const singletonContainer: DIContainer = {};
 let nextInstanceId = 0;
 
@@ -17,7 +16,7 @@ export function resolve(name: string, params: any[] = []) {
     if (info.di === "Singleton") {
         container = singletonContainer;
     } else if (info.di === "Scoped") {
-        container = scopedContainer;
+        container = globalScope.scopedContainer;
     }
     if (container && (name in container)) {
         // console.log('Returning from cache', name, container[name]);

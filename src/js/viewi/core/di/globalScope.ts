@@ -1,6 +1,7 @@
 import { TextAnchor } from "../anchor/textAnchor"
 import { BaseComponent } from "../component/baseComponent"
 import { ContextScope } from "../lifecycle/contextScope"
+import { DIContainer } from "./diContainer"
 
 type RenderIteration = {
     instance: BaseComponent<any>,
@@ -11,6 +12,7 @@ type RenderIteration = {
 type GlobalScope = {
     hydrate: boolean,
     rootScope: ContextScope | false,
+    scopedContainer: DIContainer,
     located: { [key: string]: boolean },
     iteration: { [key: string]: RenderIteration },
     lastIteration: { [key: string]: RenderIteration },
@@ -20,6 +22,7 @@ type GlobalScope = {
 export const globalScope: GlobalScope = {
     hydrate: true, // first time hydrate, TODO: configurable, MFE won't need hydration
     rootScope: false,
+    scopedContainer: {},
     located: {},
     iteration: {},
     lastIteration: {},

@@ -28,6 +28,7 @@ export function renderApp(
     globalScope.layout = info.parent!;
     globalScope.lastIteration = globalScope.iteration;
     globalScope.iteration = {};
+    globalScope.scopedContainer = {};
     globalScope.located = {};
     globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false);
     globalScope.hydrate = false; // TODO: scope managment function
