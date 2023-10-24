@@ -8,7 +8,9 @@ use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\AssignOp;
 use PhpParser\Node\Expr\AssignOp\Concat;
+use PhpParser\Node\Expr\AssignOp\Plus;
 use PhpParser\Node\Expr\BinaryOp;
 use PhpParser\Node\Expr\BooleanNot;
 use PhpParser\Node\Expr\Closure;
@@ -812,6 +814,32 @@ class JsTranspiler
             } else if ($node instanceof PostDec) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '--';
+            } else if ($node instanceof AssignOp\Plus) {
+                $this->processStmts([$node->var, '+=', $node->expr]);
+            } else if ($node instanceof AssignOp\Minus) {
+                $this->processStmts([$node->var, '-=', $node->expr]);
+            } else if ($node instanceof AssignOp\Mul) {
+                $this->processStmts([$node->var, '*=', $node->expr]);
+            } else if ($node instanceof AssignOp\Div) {
+                $this->processStmts([$node->var, '/=', $node->expr]);
+            } else if ($node instanceof AssignOp\Concat) {
+                $this->processStmts([$node->var, '+=', $node->expr]);
+            } else if ($node instanceof AssignOp\Mod) {
+                $this->processStmts([$node->var, '%=', $node->expr]);
+            } else if ($node instanceof AssignOp\BitwiseAnd) {
+                $this->processStmts([$node->var, '&=', $node->expr]);
+            } else if ($node instanceof AssignOp\BitwiseOr) {
+                $this->processStmts([$node->var, '|=', $node->expr]);
+            } else if ($node instanceof AssignOp\BitwiseXor) {
+                $this->processStmts([$node->var, '^=', $node->expr]);
+            } else if ($node instanceof AssignOp\ShiftLeft) {
+                $this->processStmts([$node->var, '<<=', $node->expr]);
+            } else if ($node instanceof AssignOp\ShiftRight) {
+                $this->processStmts([$node->var, '>>=', $node->expr]);
+            } else if ($node instanceof AssignOp\Pow) {
+                throw new RuntimeException("Node type '{$node->getType()}' is not implemented");
+            } else if ($node instanceof AssignOp\Coalesce) {
+                $this->processStmts([$node->var, '??=', $node->expr]);
             } else if ($node instanceof BooleanNot) {
                 $this->jsCode .= '!';
                 $this->processStmts([$node->expr]);
