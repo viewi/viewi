@@ -10,21 +10,15 @@ use Viewi\DI\Singleton;
 
 class Engine
 {
-    private bool $ready = false;
-    private array $meta = [];
     private array $DIContainer = [];
     private int $instanceIdCounter = 0;
 
-    public function __construct(private string $buildPath, private Factory $factory)
+    public function __construct(private array $meta, private Factory $factory)
     {
     }
 
     public function render(string $component, array $params = [])
     {
-        if (!$this->ready) {
-            $this->meta = require $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
-            $this->ready = true;
-        }
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
@@ -53,7 +47,7 @@ class Engine
         if (isset($componentMeta['hooks']['init'])) {
             $classInstance->init();
         }
-        include_once $this->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
+        include_once $this->meta['buildPath'] . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
         foreach ($props as $key => $inputValue) {
