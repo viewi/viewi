@@ -10,6 +10,7 @@ class StatefulCounter extends BaseComponent {
         var $this = this;
         $this.counter = counter;
         $this.count = count === undefined ? 0 : count;
+        $this.counter.count+=100;
     }
 }
 

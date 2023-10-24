@@ -605,6 +605,7 @@
       var $this = this;
       $this.counter = counter;
       $this.count = count2 === void 0 ? 0 : count2;
+      $this.counter.count += 100;
     }
   };
   var StatefulCounter_x = [
