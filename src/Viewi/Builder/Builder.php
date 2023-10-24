@@ -376,7 +376,7 @@ class Builder
         $componentsIndexJs = '';
         $componentsExportList = '';
         $publicJson = [];
-        // $this->meta['buildPath'] = $this->buildPath;
+        $this->meta['buildPath'] = $this->buildPath;
         foreach ($this->components as $buildItem) {
             if ($buildItem->Skip || !$buildItem->Include) {
                 continue;
