@@ -15,8 +15,9 @@ use Viewi\Router\Router;
 class App
 {
     private Router $router;
-    private Engine $engine;
     private Factory $factory;
+    private bool $ready = false;
+    private array $meta;
 
     public function __construct(private string $buildPath)
     {
@@ -58,7 +59,12 @@ class App
 
     public function engine(): Engine
     {
-        return $this->engine ?? ($this->engine = new Engine($this->buildPath, $this->factory()));
+        if (!$this->ready) {
+            $this->meta = require_once $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+            $this->ready = true;
+            $this->factory();
+        }
+        return new Engine($this->meta, $this->factory);
     }
 
     // TODO: adapter, PSR request/response, framework handler
