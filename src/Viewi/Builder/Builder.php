@@ -3,16 +3,15 @@
 namespace Viewi\Builder;
 
 use Exception;
-use Reflection;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Viewi\AppConfig;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
-use Viewi\Components\DOM\HtmlNode;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
@@ -93,13 +92,13 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath, string $assetsPath)
+    public function build(AppConfig $config)
     {
         $this->reset();
-        $this->buildPath = $buildPath;
-        $this->jsPath = $jsPath;
-        $this->publicPath = $publicPath;
-        $this->assetsPath = $assetsPath;
+        $this->buildPath = $config->buildPath;
+        $this->jsPath = $config->jsPath;
+        $this->publicPath = $config->publicPath;
+        $this->assetsPath = $config->publicUrl;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -107,8 +106,8 @@ class Builder
         $this->avaliableComponents = [];
         $this->usedFunctions = [];
         $this->avaliableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
-        $this->collectComponents($entryPath, true);
-        foreach ([...$includes, $this->getCoreComponentsPath()] as $path) {
+        $this->collectComponents($config->sourcePath, true);
+        foreach ([...$config->includes, $this->getCoreComponentsPath()] as $path) {
             $this->collectComponents($path, !$this->shakeTree);
         }
         // Helpers::debug($this->components);
@@ -363,8 +362,9 @@ class Builder
             mkdir($this->buildPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
-        $jsPath = $this->jsPath . $d . 'app' . $d . 'components'; // TODO: clean up before
-        $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . 'functions'; // TODO: clean up before
+        $jsPath = $this->jsPath . $d . 'app' . $d . 'components';
+        $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . 'functions';
+        $viewiCorePath = $this->jsPath . $d . 'viewi';
         if (!file_exists($jsPath)) {
             mkdir($jsPath, 0777, true);
         }
@@ -373,6 +373,10 @@ class Builder
             mkdir($jsFunctionsPath, 0777, true);
         }
         Helpers::removeDirectory($jsFunctionsPath);
+        if (!file_exists($viewiCorePath)) {
+            mkdir($viewiCorePath, 0777, true);
+        }
+        Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         $componentsIndexJs = '';
         $componentsExportList = '';
         $publicJson = [];
