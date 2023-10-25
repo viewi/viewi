@@ -19,7 +19,7 @@ class App
     private bool $ready = false;
     private array $meta;
 
-    public function __construct(private string $buildPath)
+    public function __construct(private AppConfig $config)
     {
     }
 
@@ -60,7 +60,10 @@ class App
     public function engine(): Engine
     {
         if (!$this->ready) {
-            $this->meta = require_once $this->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+            if ($this->config->devMode) {
+                $this->build();
+            }
+            $this->meta = require_once $this->config->buildPath . DIRECTORY_SEPARATOR . 'components.php';
             $this->ready = true;
             $this->factory();
         }
@@ -99,9 +102,9 @@ class App
         }
     }
 
-    public function build(string $entryPath, array $includes, string $buildPath, string $jsPath, string $publicPath, string $assetsPath)
+    public function build()
     {
         $builder = new Builder($this->router());
-        $builder->build($entryPath, $includes, $buildPath, $jsPath, $publicPath, $assetsPath);
+        $builder->build($this->config);
     }
 }
