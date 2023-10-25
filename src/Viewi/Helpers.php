@@ -56,4 +56,29 @@ class Helpers
         echo htmlentities(print_r($any, true));
         echo '</pre>';
     }
+
+    public static function copyAll(string $fromPath, string $toPath): void
+    {
+        $resources = [];
+        $fromPath = realpath($fromPath);
+        self::collectFiles($fromPath, $resources, true);
+        foreach ($resources as $path => $type) {
+            $basePath = str_replace($fromPath, '', $path);
+            $destinationPath = $toPath . $basePath;
+            // $this->debug([$type, $fromPath, $path, $basePath, $toPath, $destinationPath]);
+            switch ($type) {
+                case 'folder': {
+                        if (!file_exists($destinationPath)) {
+                            mkdir($destinationPath, 0777, true);
+                        }
+                        break;
+                    }
+                case 'file':
+                default: {
+                        // file
+                        file_put_contents($destinationPath, file_get_contents($path));
+                    }
+            }
+        }
+    }
 }
