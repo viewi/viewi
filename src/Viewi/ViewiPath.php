@@ -8,4 +8,9 @@ class ViewiPath
     {
         return __DIR__;
     }
+
+    public static function viewiJsDir(): string
+    {
+        return __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'js';
+    }
 }
