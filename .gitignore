@@ -4,6 +4,5 @@ composer.lock
 **/build/**/*
 !**/build/.gitkeep
 **/vendor/**
-/server/**
 src/v1/**
 /.idea
