@@ -1,0 +1,1 @@
+export type HtmlNodeType = Node & { isSvg?: boolean }

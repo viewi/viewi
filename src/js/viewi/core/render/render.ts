@@ -32,9 +32,12 @@ import { ContextScope } from "../lifecycle/contextScope";
 import { NodeType } from "../node/nodeType";
 import { ArrayScope } from "../lifecycle/arrayScope";
 import { globalScope } from "../di/globalScope";
+import { isSvg } from "../helpers/isSvg";
+import { svgNameSpace } from "../helpers/svgNameSpace";
+import { HtmlNodeType } from "../node/htmlNodeType";
 
 export function render(
-    target: Node,
+    target: HtmlNodeType,
     instance: BaseComponent<any>,
     nodes: TemplateNode[],
     scope: ContextScope,
@@ -46,7 +49,7 @@ export function render(
     let nextInsert = false;
     for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
-        let element: Node = target;
+        let element: HtmlNodeType = target;
         // let hydrate = true;
         let breakAndContinue = false;
         let withAttributes = false;
@@ -382,14 +385,17 @@ export function render(
                         continue;
                     }
                     withAttributes = true;
-
+                    const isSvgNode = isSvg(content) || target.isSvg;
                     element = hydrate
                         ? hydrateTag(target, content)
                         : (insert
-                            ? target.parentElement!.insertBefore(document.createElement(content), target)
-                            : target.appendChild(document.createElement(content)));
+                            ? target.parentElement!.insertBefore(isSvgNode ? document.createElementNS(svgNameSpace, content) : document.createElement(content), target)
+                            : target.appendChild(isSvgNode ? document.createElementNS(svgNameSpace, content) : document.createElement(content)));
                     if (node.first) {
                         instance._element = element;
+                    }
+                    if (isSvgNode) {
+                        element.isSvg = true;
                     }
                 }
                 if (isDynamic) {

@@ -13,8 +13,9 @@ import { updateComponentModel } from "../reactivity/handlers/updateComponentMode
 import { updateProp } from "../reactivity/handlers/updateProp";
 import { ContextScope } from "../lifecycle/contextScope";
 import { globalScope } from "../di/globalScope";
+import { HtmlNodeType } from "../node/htmlNodeType";
 
-export function renderComponent(target: Node, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false): ContextScope {
+export function renderComponent(target: HtmlNodeType, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false): ContextScope {
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
     }

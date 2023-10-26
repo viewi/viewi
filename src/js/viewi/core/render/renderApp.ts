@@ -2,15 +2,16 @@ import { anchors } from "../anchor/anchors";
 import { componentsMeta } from "../component/componentsMeta";
 import { globalScope } from "../di/globalScope";
 import { dispose } from "../lifecycle/dispose";
+import { HtmlNodeType } from "../node/htmlNodeType";
 import { renderComponent } from "./renderComponent";
 
 export function renderApp(
     name: string,
     params: { [key: string]: any },
-    target?: Node,
+    target?: HtmlNodeType,
     onAccept?: { func: (href: string, forward: boolean) => void, href: string, forward: boolean }
 ) {
-    console.time('renderApp');
+    // console.time('renderApp');
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
     }
@@ -57,6 +58,6 @@ export function renderApp(
     }
     // console.timeEnd('renderApp');
     // console.timeLog('renderApp');
-    console.timeEnd('renderApp');
-    console.log(globalScope);
+    // console.timeEnd('renderApp');
+    // console.log(globalScope);
 }

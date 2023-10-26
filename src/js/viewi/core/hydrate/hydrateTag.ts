@@ -1,8 +1,9 @@
 import { getAnchor } from "../anchor/getAnchor";
+import { HtmlNodeType } from "../node/htmlNodeType";
 
 const specialTags = { body: true, head: true, html: true };
 
-export function hydrateTag(target: Node, tag: string): Node {
+export function hydrateTag(target: HtmlNodeType, tag: string): HtmlNodeType {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;
@@ -12,7 +13,7 @@ export function hydrateTag(target: Node, tag: string): Node {
         const potentialNode = target.childNodes[i];
         if (
             potentialNode.nodeType === 1
-            && potentialNode.nodeName.toLowerCase() === tag
+            && potentialNode.nodeName.toLowerCase() === tag.toLowerCase()
         ) {
             anchor.current = i;
             anchor.invalid = anchor.invalid.concat(invalid);

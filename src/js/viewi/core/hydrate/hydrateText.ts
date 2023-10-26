@@ -3,8 +3,9 @@ import { TemplateNode } from "../node/templateNode";
 import { getAnchor } from "../anchor/getAnchor";
 import { renderText } from "../render/renderText";
 import { ContextScope } from "../lifecycle/contextScope";
+import { HtmlNodeType } from "../node/htmlNodeType";
 
-export function hydrateText(target: Node, instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope): Text {
+export function hydrateText(target: HtmlNodeType, instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope): Text {
     const anchor = getAnchor(target);
     const max = target.childNodes.length;
     let end = anchor.current + 3;
