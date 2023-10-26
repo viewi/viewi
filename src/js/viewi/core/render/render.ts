@@ -434,7 +434,8 @@ export function render(
                                         anchor!.current++;
                                         const currentTargetNode = target.childNodes[anchor!.current];
                                         if (
-                                            currentTargetNode.nodeType !== rawNodeType
+                                            !currentTargetNode
+                                            || currentTargetNode.nodeType !== rawNodeType
                                             || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
                                         ) {
                                             // mismatch by type
