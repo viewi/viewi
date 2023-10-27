@@ -3,5 +3,6 @@ import { ComponentMetaDataList } from "./componentMetaData"
 
 export type ComponentsJson = {
     _meta: { boolean: string },
-    _routes: RouteItem[]
+    _routes: RouteItem[],
+    _config: { [key: string]: any }
 } & ComponentMetaDataList;

@@ -17,6 +17,7 @@ console.log('Viewi entry');
     const data = await (await fetch('/assets/components.json')).json() as ComponentsJson;
     componentsMeta.list = data;
     componentsMeta.router.setRoutes(data._routes);
+    componentsMeta.config = data._config;
     const booleanArray = data._meta['boolean'].split(',');
     for (let i = 0; i < booleanArray.length; i++) {
         componentsMeta.booleanAttributes[booleanArray[i]] = true;
