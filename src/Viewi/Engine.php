@@ -22,7 +22,7 @@ class Engine
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
-        return $this->renderComponent($component, $params, [], []);
+        return $this->renderComponent($component, [], [], [], $params);
     }
 
     public function renderSlot($component, $scope, $slotFunc, $parentSlots)
@@ -30,7 +30,7 @@ class Engine
         return $slotFunc($this, $component, $parentSlots, $scope);
     }
 
-    public function renderComponent(string $component, $props, $slots, $scope)
+    public function renderComponent(string $component, array $props, array $slots, array $scope, array $params = [])
     {
         if (
             !isset($this->meta['components'][$component])
@@ -39,7 +39,7 @@ class Engine
             throw new Exception("Component '$component' not found.");
         }
         // Helpers::debug([$componentMeta]);
-        $classInstance = $this->resolve($component);
+        $classInstance = $this->resolve($component, $params);
         /**
          * @var array{inputs: array, components: array}
          */
