@@ -3,9 +3,9 @@
 namespace Viewi\Components\Http;
 
 use Exception;
-use Viewi\App;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Components\Callbacks\Resolver;
+use Viewi\Components\Environment\Process;
 use Viewi\DI\Singleton;
 
 #[Singleton]
@@ -14,7 +14,7 @@ class HttpClient
 {
     private array $scopeResponses = [];
 
-    public function __construct(private App $app)
+    public function __construct(private Process $process)
     {
     }
 
@@ -29,7 +29,7 @@ class HttpClient
         $requestKey = "{$method}_{$url}_$dataKey";
         $resolver = new Resolver(function (callable $callback) use ($url, $method, $requestKey) {
             try {
-                $response = $this->app->run($url, $method);
+                $response = $this->process->app()->run($url, $method);
                 $this->scopeResponses[$requestKey] = $response;
                 $callback($response);
             } catch (Exception $ex) {
