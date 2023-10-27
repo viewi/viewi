@@ -6,6 +6,7 @@ use Exception;
 use RuntimeException;
 use Viewi\Builder\Builder;
 use Viewi\Components\Assets\ViewiAssets;
+use Viewi\Components\Environment\Process;
 use Viewi\Components\Http\HttpClient;
 use Viewi\Container\Factory;
 use Viewi\Exceptions\RouteNotFoundException;
@@ -19,8 +20,13 @@ class App
     private bool $ready = false;
     private array $meta;
 
-    public function __construct(private AppConfig $config)
+    public function __construct(private AppConfig $config, private array $publicConfig = [])
     {
+    }
+
+    public function getPublicConfig(): array
+    {
+        return $this->publicConfig;
     }
 
     public function router(): Router
@@ -32,8 +38,8 @@ class App
     {
         if (!isset($this->factory)) {
             $this->factory = new Factory();
-            $this->factory->add(App::class, function (Engine $_) {
-                return $this;
+            $this->factory->add(Process::class, function (Engine $_) {
+                return new Process($this);
             });
             $this->factory->add(ViewiAssets::class, function (Engine $engine) {
                 $assets = new ViewiAssets();
@@ -105,6 +111,6 @@ class App
     public function build()
     {
         $builder = new Builder($this->router());
-        $builder->build($this->config);
+        $builder->build($this->config, $this->publicConfig);
     }
 }
