@@ -55,6 +55,7 @@ class Builder
     private string $jsPath = '';
     private string $publicPath = '';
     private string $assetsPath = '';
+    private array $publicConfig;
     // Keep it as associative array
     /**
      * 
@@ -92,13 +93,14 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
-    public function build(AppConfig $config)
+    public function build(AppConfig $config, array $publicConfig)
     {
         $this->reset();
         $this->buildPath = $config->buildPath;
         $this->jsPath = $config->jsPath;
         $this->publicPath = $config->publicPath;
         $this->assetsPath = $config->publicUrl;
+        $this->publicConfig = $publicConfig;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -575,6 +577,7 @@ class Builder
                 $publicJson['_routes'][] = $item;
             }
         }
+        $publicJson['_config'] = $this->publicConfig;
         $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
         // Run NPM command
