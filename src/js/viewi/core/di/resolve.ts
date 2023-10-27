@@ -9,7 +9,7 @@ import { globalScope } from "./globalScope";
 const singletonContainer: DIContainer = {};
 let nextInstanceId = 0;
 
-export function resolve(name: string, params: any[] = []) {
+export function resolve(name: string, params: { [key: string]: any } = {}) {
     const info = componentsMeta.list[name];
     let instance: any = null;
     let container: boolean | DIContainer = false;

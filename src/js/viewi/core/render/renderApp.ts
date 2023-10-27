@@ -31,7 +31,7 @@ export function renderApp(
     globalScope.iteration = {};
     globalScope.scopedContainer = {};
     globalScope.located = {};
-    globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false);
+    globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false, params);
     globalScope.hydrate = false; // TODO: scope managment function
     for (let name in globalScope.lastIteration) {
         if (!(name in globalScope.iteration)) {
