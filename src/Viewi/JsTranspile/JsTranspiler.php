@@ -38,6 +38,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\If_;
+use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Nop;
 use PhpParser\Node\Stmt\Property;
@@ -185,7 +186,7 @@ class JsTranspiler
                     $this->currentNamespace = null;
                     array_pop($this->currentPath);
                 }
-            } else if ($node instanceof Use_) {
+            } elseif ($node instanceof Use_) {
                 foreach ($node->uses as $use) {
                     $parts = $use->name->getParts();
                     $last = $use->name->getLast();
@@ -193,7 +194,9 @@ class JsTranspiler
                 }
                 // Helpers::debug($node);
                 // TODO: validation
-            } else if ($node instanceof Class_) {
+            } elseif ($node instanceof Interface_) {
+                // ignore, javascript does not support interfaces
+            } elseif ($node instanceof Class_) {
                 $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
                 $extendsCode = '';
                 $itsBase = false;
@@ -239,7 +242,7 @@ class JsTranspiler
                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "}" . PHP_EOL;
                 $this->currentClass = null;
                 $this->currentExtend = null;
-            } else if ($node instanceof Property) {
+            } elseif ($node instanceof Property) {
                 $name = $node->props[0]->name->name;
                 $isStatic = $node->isStatic();
                 if ($isStatic) {
@@ -284,7 +287,7 @@ class JsTranspiler
                     $this->membersCount++;
                 }
                 // TODO: track public/priv:protected
-            } else if ($node instanceof ClassMethod) {
+            } elseif ($node instanceof ClassMethod) {
                 $name = $node->name->name;
                 $itsConstructor = false;
                 if ($name === '__construct') {
@@ -399,7 +402,7 @@ class JsTranspiler
                 } else {
                     $this->membersCount++;
                 }
-            } else if ($node instanceof String_) {
+            } elseif ($node instanceof String_) {
                 $docLabel = $node->getAttribute('docLabel');
                 if (in_array($docLabel, ['javascript', "'javascript'"])) {
                     // inject javascript;
@@ -414,7 +417,7 @@ class JsTranspiler
                     $this->jsCode .= json_encode($node->value);
                 }
                 // TODO: multiline string <<<pre
-            } else if ($node instanceof Encapsed) {
+            } elseif ($node instanceof Encapsed) {
                 $parts = [];
                 $insert = false;
                 foreach ($node->parts as $part) {
@@ -425,11 +428,11 @@ class JsTranspiler
                     $insert = true;
                 }
                 $this->processStmts($parts);
-            } else if ($node instanceof EncapsedStringPart) {
+            } elseif ($node instanceof EncapsedStringPart) {
                 $this->jsCode .= json_encode($node->value);
-            } else if ($node instanceof LNumber) {
+            } elseif ($node instanceof LNumber) {
                 $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
-            } else if ($node instanceof Foreach_) {
+            } elseif ($node instanceof Foreach_) {
                 $key = $node->keyVar ?? ('_i' . ($this->foreachKeyIndex++));
                 $name = null;
                 if ($node->valueVar instanceof Variable) {
@@ -460,7 +463,7 @@ class JsTranspiler
                 $this->level--;
                 $this->localVariables = $allScopes;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
-            } else if ($node instanceof Array_) {
+            } elseif ($node instanceof Array_) {
                 // TODO: auto new line
                 $arrayType = 0; // 0 [], 1 {}
                 $at = strlen($this->jsCode) - 1;
@@ -514,10 +517,10 @@ class JsTranspiler
                 } else {
                     $this->jsCode .= '[]';
                 }
-            } else if ($node instanceof ConstFetch) {
+            } elseif ($node instanceof ConstFetch) {
                 // TODO: validate parts
                 $this->jsCode .= implode(',', $node->name->getParts());
-            } else if ($node instanceof PropertyFetch) {
+            } elseif ($node instanceof PropertyFetch) {
                 $isThis = $node->var instanceof Variable && $node->var->name === 'this';
                 if ($isThis && isset($this->privateProperties[$node->name->name])) {
                     $this->jsCode .= '$this.$' . $node->name->name;
@@ -557,7 +560,7 @@ class JsTranspiler
                 //     Helpers::debug([$node, $this->variablePaths, $this->propertyFetchQueue]);
                 // }
                 // $this->debug($node);
-            } else if ($node instanceof MethodCall) {
+            } elseif ($node instanceof MethodCall) {
                 if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
                     $this->jsCode .= $node->name->name . '(';
                 } else {
@@ -573,7 +576,7 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
-            } else if ($node instanceof StaticCall) {
+            } elseif ($node instanceof StaticCall) {
                 // TODO: validate parts
                 $class = $node->class->getParts()[0];
                 $this->jsCode .= $class === 'self' ? $this->currentClass : $class;
@@ -587,7 +590,7 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
-            } else if ($node instanceof FuncCall) {
+            } elseif ($node instanceof FuncCall) {
                 if ($node->name instanceof Name) {
                     // TODO: validate parts
                     $parts = $node->name->getParts();
@@ -611,7 +614,7 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
-            } else if ($node instanceof New_) {
+            } elseif ($node instanceof New_) {
                 // TODO: validate parts
                 $this->jsCode .= 'new ';
                 $this->jsCode .= $node->class->getParts()[0] . '(';
@@ -624,7 +627,7 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
-            } else if ($node instanceof Closure) {
+            } elseif ($node instanceof Closure) {
                 $this->jsCode .= "function (";
                 $comma = '';
                 $allscopes = $this->localVariables;
@@ -641,7 +644,7 @@ class JsTranspiler
                 $this->localVariables = $allscopes;
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
-            } else if ($node instanceof ArrowFunction) {
+            } elseif ($node instanceof ArrowFunction) {
                 $this->jsCode .= "function (";
                 $comma = '';
                 foreach ($node->params as $param) {
@@ -651,7 +654,7 @@ class JsTranspiler
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->processStmts([str_repeat($this->indentationPattern, $this->level + 1) . 'return ', $node->expr, ';' . PHP_EOL]);
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "}";
-            } else if ($node instanceof Variable) {
+            } elseif ($node instanceof Variable) {
                 $isThis = $node->name === 'this';
                 if ($this->objectRefName !== null && $node->name !== $this->objectRefName && !isset($this->localVariables[$node->name])) {
                     $this->jsCode .= $this->objectRefName . '.';
@@ -663,7 +666,7 @@ class JsTranspiler
                     $this->currentPath[] = $node->name;
                 }
                 // TODO: variable declaration
-            } else if ($node instanceof Isset_) {
+            } elseif ($node instanceof Isset_) {
                 $comma = '';
                 foreach ($node->vars as $var) {
                     $this->jsCode .= $comma;
@@ -678,7 +681,7 @@ class JsTranspiler
                     }
                     $comma = ' && ';
                 }
-            } else if ($node instanceof ArrayDimFetch) {
+            } elseif ($node instanceof ArrayDimFetch) {
                 if ($node->dim === null) {
                     throw new RuntimeException("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
                 } else {
@@ -690,18 +693,18 @@ class JsTranspiler
                     $this->processStmts([$node->dim, ']']);
                     $this->propertyFetchQueue = $queue;
                 }
-            } else if ($node instanceof Return_) {
+            } elseif ($node instanceof Return_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';
                 if ($node->expr != null) {
                     $this->jsCode .= ' ';
                     $this->processStmts([$node->expr]);
                 }
                 $this->jsCode .= ';' . PHP_EOL;
-            } else if ($node instanceof Break_) {
+            } elseif ($node instanceof Break_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'break;' . PHP_EOL;
-            } else if ($node instanceof Ternary) {
+            } elseif ($node instanceof Ternary) {
                 $this->processStmts([$node->cond, ' ? ', $node->if ?? $node->cond, ' : ', $node->else]);
-            } else if ($node instanceof Expression) {
+            } elseif ($node instanceof Expression) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '';
                 if ($node->expr instanceof Assign) {
                     if ($node->expr->var instanceof ArrayDimFetch && $node->expr->var->dim === null) {
@@ -730,7 +733,7 @@ class JsTranspiler
                 if (!$this->inlineExpression || $this->level > 0) {
                     $this->jsCode .= ';' . PHP_EOL;
                 }
-            } else if ($node instanceof TryCatch) {
+            } elseif ($node instanceof TryCatch) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'try {' . PHP_EOL;
                 $this->level++;
                 $this->processStmts($node->stmts);
@@ -750,9 +753,9 @@ class JsTranspiler
             } elseif ($node instanceof Throw_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'throw ';
                 $this->processStmts([$node->expr, ';' . PHP_EOL]);
-            } else if ($node instanceof Concat) {
+            } elseif ($node instanceof Concat) {
                 $this->processStmts([$node->var, ' += ', $node->expr]);
-            } else if ($node instanceof If_) {
+            } elseif ($node instanceof If_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'if (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
@@ -776,7 +779,7 @@ class JsTranspiler
                     $this->level--;
                     $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
                 }
-            } else if ($node instanceof While_) {
+            } elseif ($node instanceof While_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'while (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
@@ -784,7 +787,7 @@ class JsTranspiler
                 $this->processStmts($node->stmts);
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
-            } else if ($node instanceof Switch_) {
+            } elseif ($node instanceof Switch_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'switch (';
                 $this->processStmts([$node->cond]);
                 $this->jsCode .= ') {' . PHP_EOL;
@@ -797,7 +800,7 @@ class JsTranspiler
                 }
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
-            } else if ($node instanceof BinaryOp) {
+            } elseif ($node instanceof BinaryOp) {
                 $className = get_class($node);
                 list($precedence, $associativity) = $this->precedenceMap[$className];
                 $leftParentheses = $this->pPrec($node->left, $precedence, $associativity, -1);
@@ -808,47 +811,47 @@ class JsTranspiler
                 $rightParentheses = $this->pPrec($node->right, $precedence, $associativity, 1);
                 $this->processStmts($rightParentheses ? ['(', $node->right, ')'] : [$node->right]);
                 // Helpers::debug([$op, $leftParentheses, $rightParentheses, $node]);
-            } else if ($node instanceof PostInc) {
+            } elseif ($node instanceof PostInc) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '++';
-            } else if ($node instanceof PostDec) {
+            } elseif ($node instanceof PostDec) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '--';
-            } else if ($node instanceof AssignOp\Plus) {
+            } elseif ($node instanceof AssignOp\Plus) {
                 $this->processStmts([$node->var, '+=', $node->expr]);
-            } else if ($node instanceof AssignOp\Minus) {
+            } elseif ($node instanceof AssignOp\Minus) {
                 $this->processStmts([$node->var, '-=', $node->expr]);
-            } else if ($node instanceof AssignOp\Mul) {
+            } elseif ($node instanceof AssignOp\Mul) {
                 $this->processStmts([$node->var, '*=', $node->expr]);
-            } else if ($node instanceof AssignOp\Div) {
+            } elseif ($node instanceof AssignOp\Div) {
                 $this->processStmts([$node->var, '/=', $node->expr]);
-            } else if ($node instanceof AssignOp\Concat) {
+            } elseif ($node instanceof AssignOp\Concat) {
                 $this->processStmts([$node->var, '+=', $node->expr]);
-            } else if ($node instanceof AssignOp\Mod) {
+            } elseif ($node instanceof AssignOp\Mod) {
                 $this->processStmts([$node->var, '%=', $node->expr]);
-            } else if ($node instanceof AssignOp\BitwiseAnd) {
+            } elseif ($node instanceof AssignOp\BitwiseAnd) {
                 $this->processStmts([$node->var, '&=', $node->expr]);
-            } else if ($node instanceof AssignOp\BitwiseOr) {
+            } elseif ($node instanceof AssignOp\BitwiseOr) {
                 $this->processStmts([$node->var, '|=', $node->expr]);
-            } else if ($node instanceof AssignOp\BitwiseXor) {
+            } elseif ($node instanceof AssignOp\BitwiseXor) {
                 $this->processStmts([$node->var, '^=', $node->expr]);
-            } else if ($node instanceof AssignOp\ShiftLeft) {
+            } elseif ($node instanceof AssignOp\ShiftLeft) {
                 $this->processStmts([$node->var, '<<=', $node->expr]);
-            } else if ($node instanceof AssignOp\ShiftRight) {
+            } elseif ($node instanceof AssignOp\ShiftRight) {
                 $this->processStmts([$node->var, '>>=', $node->expr]);
-            } else if ($node instanceof AssignOp\Pow) {
+            } elseif ($node instanceof AssignOp\Pow) {
                 throw new RuntimeException("Node type '{$node->getType()}' is not implemented");
-            } else if ($node instanceof AssignOp\Coalesce) {
+            } elseif ($node instanceof AssignOp\Coalesce) {
                 $this->processStmts([$node->var, '??=', $node->expr]);
-            } else if ($node instanceof BooleanNot) {
+            } elseif ($node instanceof BooleanNot) {
                 $this->jsCode .= '!';
                 $this->processStmts([$node->expr]);
-            } else if ($node instanceof Nop) {
+            } elseif ($node instanceof Nop) {
                 $ident = str_repeat($this->indentationPattern, $this->level);
                 foreach ($node->getComments() as $comment) {
                     $this->jsCode .=  $ident . $comment . PHP_EOL;
                 }
-            } else if (is_string($node)) {
+            } elseif (is_string($node)) {
                 $this->jsCode .= $node;
             } else {
                 Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
