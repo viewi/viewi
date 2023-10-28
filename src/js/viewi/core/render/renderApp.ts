@@ -1,7 +1,9 @@
 import { anchors } from "../anchor/anchors";
 import { componentsMeta } from "../component/componentsMeta";
 import { globalScope } from "../di/globalScope";
+import { resolve } from "../di/resolve";
 import { dispose } from "../lifecycle/dispose";
+import { IMiddleware } from "../lifecycle/imiddleware";
 import { HtmlNodeType } from "../node/htmlNodeType";
 import { renderComponent } from "./renderComponent";
 
@@ -9,7 +11,8 @@ export function renderApp(
     name: string,
     params: { [key: string]: any },
     target?: HtmlNodeType,
-    onAccept?: { func: (href: string, forward: boolean) => void, href: string, forward: boolean }
+    onAccept?: { func: (href: string, forward: boolean) => void, href: string, forward: boolean },
+    skipMiddleware?: boolean
 ) {
     // console.time('renderApp');
     if (!(name in componentsMeta.list)) {
@@ -24,6 +27,34 @@ export function renderApp(
             location.href = onAccept.href;
             return;
         }
+    }
+
+    if (info.middleware && !skipMiddleware) {
+        const total = info.middleware.length;
+        let globalAllow = true;
+        let current = -1;
+        const next = function (allow: boolean = true) {
+            globalAllow = allow;
+            current++;
+            if (globalAllow && current < total) {
+                // run next middleware
+                const middleware: IMiddleware = resolve(info.middleware![current]);
+                console.log('Running middleware', middleware);
+                middleware.run(next);
+            } else {
+                // render app
+                if (globalAllow) {
+                    console.log('Ready to render', globalAllow);
+                    renderApp(name, params, target, onAccept, true);
+                } else {
+                    console.log('Access denied', globalAllow);
+                }
+            }
+        };
+        next(true);
+        return;
+    }
+    if (onAccept) {
         onAccept.func(onAccept.href, onAccept.forward);
     }
     globalScope.layout = info.parent!;

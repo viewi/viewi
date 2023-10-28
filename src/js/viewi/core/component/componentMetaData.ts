@@ -8,6 +8,7 @@ export type ComponentMetaData = {
     custom?: boolean,
     refs?: { [key: string]: boolean },
     parent?: string,
+    middleware?: string[],
     hooks?: {
         init?: boolean,
         mount?: boolean,
