@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\Middleware\IMIddleware;
 use Viewi\Container\Factory;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
@@ -12,6 +13,7 @@ class Engine
 {
     private array $DIContainer = [];
     private int $instanceIdCounter = 0;
+    private bool $allow = true;
 
     public function __construct(private array $meta, private Factory $factory)
     {
@@ -22,7 +24,28 @@ class Engine
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
-        return $this->renderComponent($component, [], [], [], $params);
+        if (isset($this->meta['components'][$component]['middleware'])) {
+            $this->guard($this->meta['components'][$component]['middleware']);
+        }
+        if ($this->allow) {
+            return $this->renderComponent($component, [], [], [], $params);
+        }
+    }
+
+    public function guard(array $middlewareList): void
+    {
+        $next = function (bool $allow = true) {
+            $this->allow = $allow;
+        };
+        foreach ($middlewareList as $middlewareName) {
+            if ($this->allow) {
+                /**
+                 * @var IMIddleware $middleware
+                 */
+                $middleware = $this->resolve($middlewareName);
+                $middleware->run($next);
+            }
+        }
     }
 
     public function renderSlot($component, $scope, $slotFunc, $parentSlots)
