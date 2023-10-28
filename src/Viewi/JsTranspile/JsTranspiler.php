@@ -320,21 +320,11 @@ class JsTranspiler
                                 $promoted = true;
                             }
                             if ($promoted) {
-                                // if ($param->default !== null) {
-                                //     $promotedParams[$paramName] =
-                                //         [
-                                //             $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
-                                //                 '$this.' . $paramName . " = $argumentName === undefined ? ",
-                                //             $param->default,
-                                //             " : $argumentName;" . PHP_EOL
-                                //         ];
-                                // } else {
                                 $promotedParams[$paramName] =
                                     [
                                         $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
                                             '$this.' . $paramName . " = $argumentName;" . PHP_EOL
                                     ];
-                                //}
                             }
                         }
                     }
