@@ -303,31 +303,38 @@ class JsTranspiler
                         foreach ($node->params as $param) {
                             $paramName = $param->var->name;
                             $argumentName = $param->var->name;
+                            $promoted = false;
                             if (
                                 ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC)
                                 || ($param->flags & Node\Stmt\Class_::MODIFIER_PROTECTED)
                             ) {
+                                $promoted = true;
                                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                                     "$paramName = null;";
                             } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                                $promoted = true;
                                 $paramName = '$' . $param->var->name;
                                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                                     "$paramName = null;";
+                            } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+                                $promoted = true;
                             }
-                            if ($param->default !== null) {
-                                $promotedParams[$paramName] =
-                                    [
-                                        $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
-                                            '$this.' . $paramName . " = $argumentName === undefined ? ",
-                                        $param->default,
-                                        " : $argumentName;" . PHP_EOL
-                                    ];
-                            } else {
+                            if ($promoted) {
+                                // if ($param->default !== null) {
+                                //     $promotedParams[$paramName] =
+                                //         [
+                                //             $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
+                                //                 '$this.' . $paramName . " = $argumentName === undefined ? ",
+                                //             $param->default,
+                                //             " : $argumentName;" . PHP_EOL
+                                //         ];
+                                // } else {
                                 $promotedParams[$paramName] =
                                     [
                                         $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
                                             '$this.' . $paramName . " = $argumentName;" . PHP_EOL
                                     ];
+                                //}
                             }
                         }
                     }
@@ -362,7 +369,10 @@ class JsTranspiler
                             $this->privateProperties[$param->var->name] = true;
                         }
                     }
-                    if ($param->default !== null && !isset($promotedParams[$param->var->name])) {
+                    if (
+                        $param->default !== null
+                        // && !isset($promotedParams[$param->var->name]) && !isset($promotedParams['$' . $param->var->name])
+                    ) {
                         $stmtsParams[] = str_repeat($this->indentationPattern, $this->level + 1) .
                             "{$param->var->name} = typeof {$param->var->name} !== 'undefined' ? {$param->var->name} : ";
                         $stmtsParams[] = $param->default;
@@ -375,13 +385,13 @@ class JsTranspiler
                     $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
                 }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'var $this = this;' . PHP_EOL; // TODO: inject only if used
+                if ($stmtsParams) {
+                    $this->processStmts($stmtsParams);
+                }
                 if ($itsConstructor) {
                     foreach ($promotedParams as $paramStmts) {
                         $this->processStmts($paramStmts);
                     }
-                }
-                if ($stmtsParams) {
-                    $this->processStmts($stmtsParams);
                 }
                 if ($node->stmts !== null) {
                     $this->currentPath[] = "$name()";
