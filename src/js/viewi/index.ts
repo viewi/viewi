@@ -1,3 +1,4 @@
+import { resources } from "../app/resources";
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { setUp } from "./core/di/setUp";
@@ -14,7 +15,7 @@ console.log('Viewi entry');
 
 // testing Counter
 (async () => {
-    const data = await (await fetch('/assets/components.json')).json() as ComponentsJson;
+    const data = await (await fetch(resources.componentsPath)).json() as ComponentsJson;
     componentsMeta.list = data;
     componentsMeta.router.setRoutes(data._routes);
     componentsMeta.config = data._config;
