@@ -10,8 +10,10 @@ use ReflectionProperty;
 use Viewi\AppConfig;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
+use Viewi\Components\Attributes\Middleware;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\Middleware\IMIddleware;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
@@ -233,9 +235,11 @@ class Builder
             if ($useItem->Type === UseItem::Class_) {
                 if (!isset($this->components[$baseName])) {
                     $className = implode('\\', $useItem->Parts);
-                    if (!isset($this->systemClasses[$className])) {
-                        // Helpers::debug([$this->systemClasses]);
-                        throw new Exception("Class '$className' can not be found.");
+                    if (class_exists($className)) {
+                        if (!isset($this->systemClasses[$className])) {
+                            // Helpers::debug([$this->systemClasses]);
+                            throw new Exception("Class '$className' can not be found.");
+                        }
                     }
                     $useItem->Skip = true;
                     continue;
@@ -280,8 +284,10 @@ class Builder
                     if ($useItem->Type === UseItem::Class_) {
                         if (!isset($this->components[$baseName])) {
                             $fullName = implode('\\', $useItem->Parts);
-                            if (!isset($this->systemClasses[$fullName])) {
-                                throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                            if (class_exists($fullName)) {
+                                if (!isset($this->systemClasses[$fullName])) {
+                                    throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                                }
                             }
                             $useItem->Skip = true;
                         }
@@ -430,6 +436,17 @@ class Builder
                             $componentMeta['di'] = Scoped::NAME;
                             $publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
                             break;
+                        }
+                    case Middleware::class: {
+                            /**
+                             * @var Middleware $middlewareAttribute
+                             */
+                            $middlewareAttribute = $attribute->newInstance();
+                            $shortNames = array_map(function (string $className) {
+                                return array_pop(explode('\\', $className));
+                            }, $middlewareAttribute->middlewareList);
+                            $componentMeta['middleware'] = $shortNames;
+                            $publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
                         }
                     default: // none 
                         break;
