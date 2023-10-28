@@ -366,6 +366,7 @@ class Builder
         Helpers::removeDirectory($this->buildPath);
         $jsPath = $this->jsPath . $d . 'app' . $d . 'components';
         $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . 'functions';
+        $jsResourcesPath = $this->jsPath . $d . 'app' . $d . 'resources';
         $viewiCorePath = $this->jsPath . $d . 'viewi';
         if (!file_exists($jsPath)) {
             mkdir($jsPath, 0777, true);
@@ -378,7 +379,12 @@ class Builder
         if (!file_exists($viewiCorePath)) {
             mkdir($viewiCorePath, 0777, true);
         }
-        Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
+        Helpers::removeDirectory($jsResourcesPath);
+        if (!file_exists($jsResourcesPath)) {
+            mkdir($jsResourcesPath, 0777, true);
+        }
+        // Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
+        Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
         $componentsIndexJs = '';
         $componentsExportList = '';
         $publicJson = [];
@@ -537,10 +543,11 @@ class Builder
         //     CounterReducer,
         //     TodoReducer
         // };
+        $conponentsJsonPublicPath = $this->assetsPath . '/components.json';
         $this->meta['assets'] = [
             'app' => $this->assetsPath . '/app.js',
             'app-min' => $this->assetsPath . '/app.min.js',
-            'components' => $this->assetsPath . '/components.json',
+            'components' => $conponentsJsonPublicPath,
         ];
         $componentsIndexJs .= PHP_EOL . "export const components = {{$componentsExportList}";
         $componentsIndexJs .= $componentsExportList ? PHP_EOL . '};' : '};';
@@ -560,10 +567,14 @@ class Builder
         }
         $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
         $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
+        $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
+        $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'" . PHP_EOL;
+        $resourcesIndexJs .= '};';
         // components/index.js
         // functions/index.js
         file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
         file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+        file_put_contents($jsResourcesPath . $d . 'index.js', $resourcesIndexJs);
         $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
         $publicJson['_routes'] = [];
         $routes = $this->router->getRoutes();
