@@ -1,3 +1,3 @@
 export type IMiddleware = {
-    run(next: (allow: boolean) => void): void;
+    run(context: { next: (allow: boolean) => void }): void;
 };

@@ -33,25 +33,27 @@ export function renderApp(
         const total = info.middleware.length;
         let globalAllow = true;
         let current = -1;
-        const next = function (allow: boolean = true) {
-            globalAllow = allow;
-            current++;
-            if (globalAllow && current < total) {
-                // run next middleware
-                const middleware: IMiddleware = resolve(info.middleware![current]);
-                console.log('Running middleware', middleware);
-                middleware.run(next);
-            } else {
-                // render app
-                if (globalAllow) {
-                    console.log('Ready to render', globalAllow);
-                    renderApp(name, params, target, onAccept, true);
+        const context = {
+            next: function (allow: boolean = true) {
+                globalAllow = allow;
+                current++;
+                if (globalAllow && current < total) {
+                    // run next middleware
+                    const middleware: IMiddleware = resolve(info.middleware![current]);
+                    console.log('Running middleware', middleware);
+                    middleware.run(context);
                 } else {
-                    console.log('Access denied', globalAllow);
+                    // render app
+                    if (globalAllow) {
+                        console.log('Ready to render', globalAllow);
+                        renderApp(name, params, target, onAccept, true);
+                    } else {
+                        console.log('Access denied', globalAllow);
+                    }
                 }
             }
         };
-        next(true);
+        context.next(true);
         return;
     }
     if (onAccept) {
