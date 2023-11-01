@@ -4,5 +4,5 @@ namespace Viewi\Components\Middleware;
 
 interface IMIddleware
 {
-    function run(callable $next);
+    function run(IMIddlewareContext $c);
 }

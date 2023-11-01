@@ -5,6 +5,7 @@ namespace Viewi;
 use Exception;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\Middleware\IMIddleware;
+use Viewi\Components\Middleware\MIddlewareContext;
 use Viewi\Container\Factory;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
@@ -34,9 +35,9 @@ class Engine
 
     public function guard(array $middlewareList): void
     {
-        $next = function (bool $allow = true) {
+        $next = new MIddlewareContext(function (bool $allow = true) {
             $this->allow = $allow;
-        };
+        });
         foreach ($middlewareList as $middlewareName) {
             if ($this->allow) {
                 /**
