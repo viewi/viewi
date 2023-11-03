@@ -13,6 +13,7 @@ use PhpParser\Node\Expr\AssignOp\Concat;
 use PhpParser\Node\Expr\AssignOp\Plus;
 use PhpParser\Node\Expr\BinaryOp;
 use PhpParser\Node\Expr\BooleanNot;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
@@ -251,11 +252,9 @@ class JsTranspiler
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . $this->currentClass . ".$name = ";
                 } else {
                     $publicOrProtected = !$node->isPrivate();
-                    if ($publicOrProtected) {
-                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name = ";
-                    } else {
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name = ";
+                    if (!$publicOrProtected) {
                         $this->privateProperties[$name] = true;
-                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "\$$name = ";
                     }
                     if ($node->isPublic()) {
                         // Helpers::debug([$name, $node->type]);
@@ -316,7 +315,7 @@ class JsTranspiler
                                     "$paramName = null;";
                             } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
                                 $promoted = true;
-                                $paramName = '$' . $param->var->name;
+                                $paramName = $param->var->name;
                                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                                     "$paramName = null;";
                             } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
@@ -335,10 +334,8 @@ class JsTranspiler
                         $this->jsCode .= PHP_EOL;
                     }
                     $publicOrProtected = !$node->isPrivate();
-                    if ($publicOrProtected) {
-                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name(";
-                    } else {
-                        $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "\$$name(";
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name(";
+                    if (!$publicOrProtected) {
                         $this->privateProperties[$name] = true;
                     }
                     if ($node->isPublic()) {
@@ -523,7 +520,7 @@ class JsTranspiler
             } elseif ($node instanceof PropertyFetch) {
                 $isThis = $node->var instanceof Variable && $node->var->name === 'this';
                 if ($isThis && isset($this->privateProperties[$node->name->name])) {
-                    $this->jsCode .= '$this.$' . $node->name->name;
+                    $this->jsCode .= '$this.' . $node->name->name;
                 } else {
                     $this->propertyFetchQueue[] = $node->name->name;
                     // if ($isThis) {
@@ -693,6 +690,8 @@ class JsTranspiler
                     $this->processStmts([$node->dim, ']']);
                     $this->propertyFetchQueue = $queue;
                 }
+            } elseif ($node instanceof ClassConstFetch) {
+                $this->jsCode .= '"' . array_pop($node->class->getParts()) . '"';
             } elseif ($node instanceof Return_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';
                 if ($node->expr != null) {
