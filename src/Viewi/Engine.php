@@ -126,6 +126,13 @@ class Engine
         return $this->meta['components'][$name];
     }
 
+    public function shortName(string $name): string
+    {
+        return strpos($name, '\\') !== false ?
+            substr(strrchr($name, "\\"), 1)
+            : $name;
+    }
+
     public function getIfExists(string $name)
     {
         if (isset($this->DIContainer[$name])) {
