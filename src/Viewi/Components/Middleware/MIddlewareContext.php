@@ -2,6 +2,9 @@
 
 namespace Viewi\Components\Middleware;
 
+use Viewi\Builder\Attributes\Skip;
+
+#[Skip]
 class MIddlewareContext implements IMIddlewareContext
 {
     /**
