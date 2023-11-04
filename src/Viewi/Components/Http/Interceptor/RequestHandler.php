@@ -5,6 +5,7 @@ namespace Viewi\Components\Http\Interceptor;
 use Viewi\App;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\Http\Message\Request;
+use Viewi\Engine;
 use Viewi\Helpers;
 
 #[Skip]
@@ -14,7 +15,7 @@ class RequestHandler implements IRequestHandler
     private int $interceptorsCount;
     private array $interceptorInstance = [];
 
-    public function __construct(private $onHandle, private App $appInstance, private array $interceptors)
+    public function __construct(private $onHandle, private Engine $engine, private array $interceptors)
     {
         $this->interceptorsCount = count($this->interceptors);
     }
@@ -35,11 +36,10 @@ class RequestHandler implements IRequestHandler
     {
         if ($this->current < $this->interceptorsCount) {
             $interceptorName = $this->interceptors[$this->current];
-            $engine = $this->appInstance->engine();
             /**
              * @var IHttpInterceptor $interceptor
              */
-            $interceptor = $engine->resolve($engine->shortName($interceptorName));
+            $interceptor = $this->engine->resolve($this->engine->shortName($interceptorName));
             $this->interceptorInstance[] = $interceptor;
             $interceptor->request($request, $this);
         } else {
