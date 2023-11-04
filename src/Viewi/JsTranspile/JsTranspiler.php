@@ -25,6 +25,8 @@ use PhpParser\Node\Expr\PostInc;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Ternary;
+use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\Node\Expr\UnaryPlus;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
@@ -816,6 +818,10 @@ class JsTranspiler
             } elseif ($node instanceof PostDec) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '--';
+            } elseif ($node instanceof UnaryMinus) {
+                $this->processStmts(['-', $node->expr]);
+            } elseif ($node instanceof UnaryPlus) {
+                $this->processStmts(['+', $node->expr]);
             } elseif ($node instanceof AssignOp\Plus) {
                 $this->processStmts([$node->var, '+=', $node->expr]);
             } elseif ($node instanceof AssignOp\Minus) {
