@@ -39,15 +39,22 @@ class HttpClient
         $request = new Request($url, $method, $headers ?? [], $body);
         $resolver = new Resolver(function (callable $callback) use ($request) {
             try {
-                $onHandle = function (Request $request, array $interceptorInstances) use ($callback) {
-                    $dataKey = json_encode($request->body);
-                    $requestKey = "{$request->method}_{$request->url}_$dataKey";
-                    // Helpers::debug(['calling', $request]);
-                    $data = $this->process->app()->run($request->url, $request->method);
-                    $this->process->httpState[$requestKey] = json_encode($data);
-                    // continue to response handler
-                    $this->interceptResponse($data, $callback, $interceptorInstances);
+                $onHandle = function (Request $request, array $interceptorInstances, bool $continue) use ($callback) {
+                    if ($continue) {
+                        $dataKey = json_encode($request->body);
+                        $requestKey = "{$request->method}_{$request->url}_$dataKey";
+                        // Helpers::debug(['calling', $request]);
+                        $data = $this->process->app()->run($request->url, $request->method);
+                        $this->process->httpState[$requestKey] = json_encode($data);
+                        // continue to response handler
+                        $response = new Response('/', 200, 'OK', [], $data);
+                        $this->interceptResponse($response, $callback, $interceptorInstances);
+                    } else {
+                        $response = new Response('/', 0, 'Rejected', [], null);
+                        $this->interceptResponse($response, $callback, $interceptorInstances);
+                    }
                 };
+
                 $requestHandler = new RequestHandler($onHandle, $this->process->engine(), $this->interceptors, $request);
                 $requestHandler->next($request);
             } catch (Exception $ex) {
@@ -57,12 +64,15 @@ class HttpClient
         return $resolver;
     }
 
-    private function interceptResponse($responseData, $callback, array $interceptorInstances)
+    private function interceptResponse(Response $response, $callback, array $interceptorInstances)
     {
-        $onHandle = function (Response $response) use ($callback) {
-            $callback($response->body);
+        $onHandle = function (Response $response, bool $continue) use ($callback) {
+            if ($continue && $response->status >= 200 && $response->status < 300) {
+                $callback($response->body);
+            } else {
+                $callback(null, $response->body ?? 'Failed');
+            }
         };
-        $response = new Response('/', 200, 'OK', [], $responseData);
         $responseHandler = new ResponseHandler($onHandle, $interceptorInstances);
         $responseHandler->next($response);
     }
