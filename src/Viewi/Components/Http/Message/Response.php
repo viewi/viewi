@@ -15,17 +15,13 @@ class Response
         return $clone;
     }
 
-    public function withStatus(int $status): self
+    public function withStatus(int $status, ?string $statusText = null): self
     {
         $clone = $this->clone($this);
         $clone->status = $status;
-        return $clone;
-    }
-
-    public function withStatusText(string $statusText): self
-    {
-        $clone = $this->clone($this);
-        $clone->statusText = $statusText;
+        if ($statusText !== null) {
+            $clone->statusText = $statusText;
+        }
         return $clone;
     }
 
