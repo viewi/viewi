@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\Http\Message\Response;
 use Viewi\Components\Middleware\IMIddleware;
 use Viewi\Components\Middleware\MIddlewareContext;
 use Viewi\Container\Factory;
@@ -20,7 +21,7 @@ class Engine
     {
     }
 
-    public function render(string $component, array $params = [])
+    public function render(string $component, array $params = []): Response
     {
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
@@ -29,7 +30,10 @@ class Engine
             $this->guard($this->meta['components'][$component]['middleware']);
         }
         if ($this->allow) {
-            return $this->renderComponent($component, [], [], [], $params);
+            $content = $this->renderComponent($component, [], [], [], $params);
+            return new Response('/', 200, 'OK', ['Content-type' => 'text/html; charset=utf-8'], $content);
+        } else {
+            return new Response('/', 403, 'Forbidden', ['Content-type' => 'text/html; charset=utf-8'], 'Forbidden');
         }
     }
 
