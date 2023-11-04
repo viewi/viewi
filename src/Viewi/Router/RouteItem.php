@@ -13,6 +13,11 @@ class RouteItem
     public $action;
     public ?array $defaults = null;
     public array $wheres;
+    /**
+     * 
+     * @var callable
+     */
+    public $transformCallback = null;
 
     function __construct(string $method, string $url, $action, ?array $defaults = null, array $wheres = [])
     {
@@ -31,5 +36,10 @@ class RouteItem
             $this->wheres[$wheresOrName] = $expr;
         }
         return $this;
+    }
+
+    public function transform($transform)
+    {
+        $this->transformCallback = $transform;
     }
 }
