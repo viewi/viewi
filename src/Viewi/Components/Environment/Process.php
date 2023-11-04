@@ -5,6 +5,7 @@ namespace Viewi\Components\Environment;
 use Viewi\App;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\DI\Singleton;
+use Viewi\Engine;
 
 // src\js\viewi\core\environment\process.ts
 
@@ -14,8 +15,9 @@ class Process
 {
     public bool $browser = false;
     public bool $server = true;
+    public array $httpState = [];
 
-    public function __construct(private App $appInstance)
+    public function __construct(private App $appInstance, private Engine $engine)
     {
     }
 
@@ -28,5 +30,11 @@ class Process
     public function app()
     {
         return $this->appInstance;
+    }
+
+    // server-side only
+    public function engine()
+    {
+        return $this->engine;
     }
 }
