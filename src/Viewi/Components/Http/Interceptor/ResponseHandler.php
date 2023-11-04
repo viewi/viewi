@@ -32,6 +32,10 @@ class ResponseHandler implements IResponseHandler
 
     private function run(Response $response, bool $continue)
     {
+        if (!$continue) {
+            ($this->onHandle)($response, $continue);
+            return;
+        }
         if ($this->current > -1) {
             /**
              * @var IHttpInterceptor $interceptor
@@ -40,7 +44,7 @@ class ResponseHandler implements IResponseHandler
             $interceptor->response($response, $this);
         } else {
             // Helpers::debug(['calling onHandle', $response]);
-            ($this->onHandle)($response);
+            ($this->onHandle)($response, $continue);
         }
     }
 }
