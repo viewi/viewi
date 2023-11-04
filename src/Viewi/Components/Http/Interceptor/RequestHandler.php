@@ -34,6 +34,10 @@ class RequestHandler implements IRequestHandler
 
     private function run(Request $request, bool $continue)
     {
+        if (!$continue) {
+            ($this->onHandle)($request, $this->interceptorInstance, $continue);
+            return;
+        }
         if ($this->current < $this->interceptorsCount) {
             $interceptorName = $this->interceptors[$this->current];
             /**
@@ -44,7 +48,7 @@ class RequestHandler implements IRequestHandler
             $interceptor->request($request, $this);
         } else {
             // Helpers::debug(['calling onHandle', $request]);
-            ($this->onHandle)($request, $this->interceptorInstance);
+            ($this->onHandle)($request, $this->interceptorInstance, $continue);
         }
     }
 }
