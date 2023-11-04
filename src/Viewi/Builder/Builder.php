@@ -602,6 +602,7 @@ class Builder
                 $item['action'] = strpos($component, '\\') !== false ?
                     substr(strrchr($component, "\\"), 1)
                     : $component;
+                unset($item['transformCallback']);
                 $publicJson['_routes'][] = $item;
             }
         }
