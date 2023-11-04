@@ -8,9 +8,11 @@ use Viewi\Builder\Builder;
 use Viewi\Components\Assets\ViewiAssets;
 use Viewi\Components\Environment\Process;
 use Viewi\Components\Http\HttpClient;
+use Viewi\Components\Http\Message\Response;
 use Viewi\Container\Factory;
 use Viewi\Exceptions\RouteNotFoundException;
 use Viewi\Router\ComponentRoute;
+use Viewi\Router\RouteItem;
 use Viewi\Router\Router;
 
 class App
@@ -38,18 +40,18 @@ class App
     {
         if (!isset($this->factory)) {
             $this->factory = new Factory();
-            $this->factory->add(Process::class, function (Engine $_) {
-                return new Process($this);
+            $this->factory->add(Process::class, function (Engine $engine) {
+                return new Process($this, $engine);
             });
             $this->factory->add(ViewiAssets::class, function (Engine $engine) {
                 $assets = new ViewiAssets();
                 $assets->appPath = $engine->getAssets()['app'];
                 $state = [];
                 $responses = [];
-                /** @var HttpClient */
-                $httpClient = $engine->getIfExists(HttpClient::class);
-                if ($httpClient !== null) {
-                    $responses = $httpClient->getScopeResponses();
+                /** @var Process */
+                $process = $engine->getIfExists(Process::class);
+                if ($process !== null) {
+                    $responses = $process->httpState;
                 }
                 $state['http'] = $responses;
                 $state['state'] = $engine->getState();
@@ -91,21 +93,28 @@ class App
             throw new RouteNotFoundException("Route \"$url\" not found", 0, null, $routeData);
         }
 
-        $action = $match['item']->action;
+        /** @var RouteItem */
+        $routeItem =  $match['item'];
+        $action = $routeItem->action;
+        $response = null;
         if ($action instanceof ComponentRoute) {
-            return $this->engine()->render($action->component, $match['params']);
+            $response = $this->engine()->render($action->component, $match['params']);
         } elseif (is_array($action)) {
             throw new Exception("Not implemented");
         } elseif (is_callable($action)) {
-            return $action(...array_values($match['params']));
+            $response = $action(...array_values($match['params']));
         } else {
             $instance = new $action();
             if (!is_callable($instance)) {
                 $classNS = get_class($instance);
                 throw new RuntimeException("Component '$classNS' must be callable");
             }
-            return $instance($match['params']);
+            $response = $instance($match['params']);
         }
+        if ($routeItem->transformCallback !== null && $response instanceof Response) {
+            $response = ($routeItem->transformCallback)($response);
+        }
+        return $response;
     }
 
     public function build()
