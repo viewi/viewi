@@ -19,7 +19,6 @@ use Viewi\Helpers;
 #[CustomJs]
 class HttpClient
 {
-    private static array $scopeResponses = [];
     /**
      * 
      * @var array
@@ -32,7 +31,7 @@ class HttpClient
 
     public function getScopeResponses()
     {
-        return self::$scopeResponses;
+        return $this->process->httpState;
     }
 
     public function request(string $method, string $url, $body = null, ?array $headers = null): Resolver
@@ -45,11 +44,11 @@ class HttpClient
                     $requestKey = "{$request->method}_{$request->url}_$dataKey";
                     // Helpers::debug(['calling', $request]);
                     $data = $this->process->app()->run($request->url, $request->method);
-                    self::$scopeResponses[$requestKey] = json_encode($data);
+                    $this->process->httpState[$requestKey] = json_encode($data);
                     // continue to response handler
                     $this->interceptResponse($data, $callback, $interceptorInstances);
                 };
-                $requestHandler = new RequestHandler($onHandle, $this->process->app(), $this->interceptors, $request);
+                $requestHandler = new RequestHandler($onHandle, $this->process->engine(), $this->interceptors, $request);
                 $requestHandler->next($request);
             } catch (Exception $ex) {
                 $callback(null, $ex);
