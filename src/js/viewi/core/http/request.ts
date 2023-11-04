@@ -1,65 +1,50 @@
-import { isBlob } from "../helpers/isBlob";
 import { MethodType } from "./methodType";
-import { Response } from "./response";
 
-export function request(
-    callback: (response: Response) => void,
-    type: MethodType,
-    url: string,
-    data?: any,
-    headers?: { [name: string]: string | string[] }
-) {
-    const request = new XMLHttpRequest();
-    request.onreadystatechange = function () {
-        if (request.readyState === 4) {
-            const status = request.status;
-            const contentType = request.getResponseHeader("Content-Type");
-            const itsJson = contentType && contentType.indexOf('application/json') === 0;
-            const raw = request.responseText;
-            let content = raw;
-            if (itsJson) {
-                content = JSON.parse(request.responseText);
-            }
-            const headers = {};
-            const headersString = request.getAllResponseHeaders();
-            if (headersString) {
-                const headersArray = headersString.trim().split(/[\r\n]+/);
-                for (let i = 0; i < headersArray.length; i++) {
-                    const line = headersArray[i];
-                    const parts = line.split(": ");
-                    const header = parts.shift();
-                    if (header) {
-                        const value = parts.join(": ");
-                        headers[header] = value;
-                    }
-                };
-            }
-            const response: Response = {
-                status: status,
-                headers: headers,
-                raw: raw,
-                data: content,
-            };
-            callback(response);
-        }
+export class Request {
+    url: string;
+    method: MethodType;
+    headers: { [name: string]: string } = {};
+    body: any = null;
+
+    constructor(url: string, method: MethodType, headers: { [name: string]: string; } = {}, body: any = null) {
+        this.url = url;
+        this.method = method;
+        this.headers = headers;
+        this.body = body;
     }
-    const isJson = data !== null && typeof data === 'object' && !isBlob(data);
-    request.open(type.toUpperCase(), url, true);
-    if (isJson) {
-        request.setRequestHeader('Content-Type', 'application/json');
+
+    withMethod(method: MethodType) {
+        var clone = this.clone();
+        clone.method = method;
+        return clone;
     }
-    if (headers) {
-        for (const h in headers) {
-            if (Array.isArray(headers[h])) {
-                for (let i = 0; i < headers[h].length; i++) {
-                    request.setRequestHeader(h, headers[h][i]);
-                }
-            } else {
-                request.setRequestHeader(h, <string>headers[h]);
-            }
-        }
+
+    withUrl(url: string) {
+        var clone = this.clone();
+        clone.url = url;
+        return clone;
     }
-    data !== null ?
-        request.send(isJson ? JSON.stringify(data) : data)
-        : request.send();
-}
+
+    withHeaders(headers: { [name: string]: string; }) {
+        var clone = this.clone();
+        clone.headers = { ...clone.headers, ...headers };
+        return clone;
+    }
+
+    withHeader(name: string, value: any) {
+        var clone = this.clone();
+        clone.headers[name] = value;
+        return clone;
+    }
+
+    withBody(body: any = null) {
+        var clone = this.clone();
+        clone.body = body;
+        return clone;
+    }
+
+    clone() {
+        var clone = new Request(this.url, this.method, this.headers, this.body);
+        return clone;
+    }
+};
