@@ -255,7 +255,32 @@ class Builder
                     }
                 }
             } elseif ($useItem->Type === UseItem::Function) {
-                $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
+                if (!isset($this->usedFunctions[$baseName])) {
+                    if (!isset($this->avaliableFunctions[$baseName])) {
+                        throw new Exception("Function '$baseName' can not be found.");
+                    }
+                    $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
+                    $this->collectFunctionDependencies($this->usedFunctions[$baseName]);
+                }
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param BaseFunction|string $functionMeta 
+     * @return void 
+     * @throws Exception 
+     */
+    private function collectFunctionDependencies($functionMeta)
+    {
+        foreach ($functionMeta::getUses() as $functionName) {
+            if (!isset($this->usedFunctions[$functionName])) {
+                if (!isset($this->avaliableFunctions[$functionName])) {
+                    throw new Exception("Function '$functionName' can not be found.");
+                }
+                $this->usedFunctions[$functionName] = $this->avaliableFunctions[$functionName];
+                $this->collectFunctionDependencies($this->usedFunctions[$functionName]);
             }
         }
     }
@@ -576,7 +601,14 @@ class Builder
         $functionsIndexJs = '';
         foreach ($this->usedFunctions as $functionName => $baseFunction) {
             $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
-            $functionContent = $baseFunction::getJs();
+            $importDepsJs = '';
+            foreach ($baseFunction::getUses() as $requiredFunction) {
+                $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
+            }
+            if ($importDepsJs) {
+                $importDepsJs .= PHP_EOL;
+            }
+            $functionContent = $importDepsJs . $baseFunction::getJs();
             $functionContent .= PHP_EOL . "export { $functionName }";
             file_put_contents($functionPath, $functionContent);
             $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
