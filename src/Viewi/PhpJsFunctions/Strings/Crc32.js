@@ -1,4 +1,4 @@
-function crc32 (str) {
+function crc32(str) {
   //  discuss at: https://locutus.io/php/crc32/
   // original by: Webtoolkit.info (https://www.webtoolkit.info/)
   // improved by: T0bsn
@@ -6,7 +6,7 @@ function crc32 (str) {
   //   returns 1: 1249991249
 
 
-  str = utf8Encode(str)
+  str = utf8_encode(str)
   const table = [
     '00000000',
     '77073096',
@@ -275,7 +275,7 @@ function crc32 (str) {
   crc = crc ^ (-1)
   for (let i = 0, iTop = str.length; i < iTop; i++) {
     y = (crc ^ str.charCodeAt(i)) & 0xFF
-    x = '0x' + table.substr(y * 9, 8)
+    x = '0x' + table.substring(y * 9, y * 9 + 8)
     crc = (crc >>> 8) ^ x
   }
 
