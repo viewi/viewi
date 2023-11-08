@@ -19,6 +19,10 @@ export function renderApp(
         throw new Error(`Component ${name} not found.`);
     }
     const info = componentsMeta.list[name];
+    if (info.lazy) {
+        console.warn('Lazy loading not implemented', info);
+        return;
+    }
     const hydrate = globalScope.hydrate;
     const lastScope = globalScope.rootScope;
     if (onAccept) {

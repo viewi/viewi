@@ -8,6 +8,7 @@ export type ComponentMetaData = {
     custom?: boolean,
     refs?: { [key: string]: boolean },
     parent?: string,
+    lazy?: string,
     middleware?: string[],
     hooks?: {
         init?: boolean,

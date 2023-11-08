@@ -1,4 +1,4 @@
-import { components } from "../../../app/components";
+import { components } from "../../../app/main/components";
 import { BaseComponent } from "../component/baseComponent";
 import { componentsMeta } from "../component/componentsMeta";
 import { getComponentModelHandler } from "../reactivity/handlers/getComponentModelHandler";

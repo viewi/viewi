@@ -1,4 +1,4 @@
-import { resources } from "../app/resources";
+import { resources } from "../app/main/resources";
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { setUp } from "./core/di/setUp";
