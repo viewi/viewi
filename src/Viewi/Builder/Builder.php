@@ -10,6 +10,7 @@ use ReflectionProperty;
 use Viewi\AppConfig;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
+use Viewi\Components\Attributes\LazyLoad;
 use Viewi\Components\Attributes\Middleware;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
@@ -182,6 +183,9 @@ class Builder
                             }
                             if (isset($this->components[$exportItem->Name]->Attributes['CustomJs'])) {
                                 $this->components[$exportItem->Name]->CustomJs = true;
+                            }
+                            if (isset($this->components[$exportItem->Name]->Attributes['LazyLoad'])) {
+                                $this->components[$exportItem->Name]->LazyLoad = true;
                             }
                         }
                     }
@@ -388,6 +392,33 @@ class Builder
         }
     }
 
+    private function makeAppFolders(string $subFolder = 'main'): array
+    {
+        $d = DIRECTORY_SEPARATOR;
+        if ($subFolder) { // TODO: validate folder name
+            $subFolder .= $d;
+        }
+        $jsComponentsPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'components';
+        $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'functions';
+        $jsResourcesPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'resources';
+
+        if (!file_exists($jsComponentsPath)) {
+            mkdir($jsComponentsPath, 0777, true);
+        }
+        Helpers::removeDirectory($jsComponentsPath);
+
+        if (!file_exists($jsFunctionsPath)) {
+            mkdir($jsFunctionsPath, 0777, true);
+        }
+        Helpers::removeDirectory($jsFunctionsPath);
+
+        if (!file_exists($jsResourcesPath)) {
+            mkdir($jsResourcesPath, 0777, true);
+        }
+        Helpers::removeDirectory($jsResourcesPath);
+        return [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath];
+    }
+
     private function makeFiles()
     {
         $d = DIRECTORY_SEPARATOR;
@@ -395,196 +426,266 @@ class Builder
             mkdir($this->buildPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
-        $jsPath = $this->jsPath . $d . 'app' . $d . 'components';
-        $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . 'functions';
-        $jsResourcesPath = $this->jsPath . $d . 'app' . $d . 'resources';
+        [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath] = $this->makeAppFolders();
         $viewiCorePath = $this->jsPath . $d . 'viewi';
-        if (!file_exists($jsPath)) {
-            mkdir($jsPath, 0777, true);
-        }
-        Helpers::removeDirectory($jsPath);
-        if (!file_exists($jsFunctionsPath)) {
-            mkdir($jsFunctionsPath, 0777, true);
-        }
-        Helpers::removeDirectory($jsFunctionsPath);
+        $viewiLazyLoadGroupsModuleFile = $this->jsPath . $d . 'app' . $d . 'lazyGroups.mjs';
+        $viewiLazyLoadGroupsModuleContent = '';
         if (!file_exists($viewiCorePath)) {
             mkdir($viewiCorePath, 0777, true);
         }
-        Helpers::removeDirectory($jsResourcesPath);
-        if (!file_exists($jsResourcesPath)) {
-            mkdir($jsResourcesPath, 0777, true);
+        $coreDevMode = true; // TODO: config for internal core development
+        if ($coreDevMode) {
+            Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         }
-        // Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
         $componentsIndexJs = '';
         $componentsExportList = '';
         $publicJson = [];
         $this->meta['buildPath'] = $this->buildPath;
-        foreach ($this->components as $buildItem) {
-            if ($buildItem->Skip || !$buildItem->Include) {
-                continue;
-            }
-            $componentMeta = [
-                'Namespace' => $buildItem->Namespace,
-                'Name' => $buildItem->ComponentName
-            ];
-            $publicJson[$buildItem->ComponentName] = [];
-            // dependencies, props
+        /**
+         * @var array
+         */
+        $lazyLoadGroups = [];
 
-            $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
-            $lifecycleHooks = [];
-            foreach ($buildItem->Methods as $method => $_) {
-                if (isset($this->hookMethods[$method])) {
-                    $lifecycleHooks[$method] = 1;
+        $componentFilter = 0; // 0 - main, 1 - lazy load
+        $includedInMain = [];
+        $includedInGroups = [];
+        /** COMPONENTS FOREACH **/
+        while ($componentFilter < 2) {
+            $componentFilter++;
+            foreach ($this->components as $buildItem) {
+                if ($buildItem->Skip || !$buildItem->Include) {
+                    continue;
                 }
-            }
-            if ($lifecycleHooks) {
-                $componentMeta['hooks'] = $lifecycleHooks;
-                $publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
-            }
-            if (!$buildItem->CustomJs && count($componentMeta['dependencies']) > 0) {
-                $publicJson[$buildItem->ComponentName]['dependencies'] = [];
-                foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
-                    $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
+                if (
+                    ($componentFilter === 1 && $buildItem->LazyLoad)
+                    ||
+                    ($componentFilter === 2 && !$buildItem->LazyLoad)
+                ) {
+                    continue;
                 }
-            }
-            $attributes = $buildItem->ReflectionClass->getAttributes();
-            foreach ($attributes as $attribute) {
-                $attributeClass = $attribute->getName();
-                switch ($attributeClass) {
-                    case Singleton::class: {
-                            $componentMeta['di'] = Singleton::NAME;
-                            $publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
-                            break;
-                        }
-                    case Scoped::class: {
-                            $componentMeta['di'] = Scoped::NAME;
-                            $publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
-                            break;
-                        }
-                    case Middleware::class: {
-                            /**
-                             * @var Middleware $middlewareAttribute
-                             */
-                            $middlewareAttribute = $attribute->newInstance();
-                            $shortNames = array_map(function (string $className) {
-                                return array_pop(explode('\\', $className));
-                            }, $middlewareAttribute->middlewareList);
-                            $componentMeta['middleware'] = $shortNames;
-                            $publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
-                        }
-                    default: // none 
-                        break;
-                }
-                // Helpers::debug($attributeClass);
-            }
-            $componentMeta['inputs'] = [];
-            $preservedProps = [];
-            foreach ($buildItem->Props as $prop => $propMetadata) {
-                $componentMeta['inputs'][$prop] = 1;
-                if (isset($propMetadata[Preserve::class])) {
-                    $preservedProps[$prop] = 1;
-                }
-            }
-            if ($preservedProps) {
-                $componentMeta['preserve'] = $preservedProps;
-            }
-            if ($buildItem->ReflectionClass->isSubclassOf(BaseComponent::class)) {
-                $componentMeta['base'] = 1;
-                $publicJson[$buildItem->ComponentName]['base'] = 1;
-                if ($buildItem->refs) {
-                    $publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
-                }
-            }
-            if ($buildItem->HtmlRootComponent !== null) {
-                $publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
-            }
-            // template, render function
-            $expressionsJs = '';
-            if ($buildItem->RenderFunction !== null) {
-                $renderRelativePath = $d .
-                    str_replace(array('/', '\\'), $d, ($buildItem->Namespace ?? ''));
-                $renderFunctionDir = $this->buildPath . $renderRelativePath;
-                $renderFunctionPath = $renderRelativePath . $d .
-                    $buildItem->ComponentName . '.php';
-                $componentMeta['Path'] = $renderFunctionPath;
-                $componentMeta['Function'] = $buildItem->RenderFunction->renderName;
-                if (!file_exists($renderFunctionDir)) {
-                    mkdir($renderFunctionDir, 0777, true);
-                }
-                $content = $buildItem->RenderFunction->generatePhpContent();
-                file_put_contents($this->buildPath . $renderFunctionPath, $content);
-                $this->meta['map'][$buildItem->RenderFunction->renderName] = $buildItem->ComponentName;
-                foreach ($buildItem->RenderFunction->slots as $slotTuple) {
-                    $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
-                }
-                $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
-                // inline expressions
-                $exprComma = '';
-                foreach ($buildItem->RenderFunction->inlineExpressions as $code => [$expression, $arguments]) {
-                    $funcArguments = implode(', ', ['_component', ...$arguments]);
-                    $expressionsJs .= $exprComma . "    function ($funcArguments) { return $expression; }";
-                    $exprComma = ',' . PHP_EOL;
-                }
-            }
-            $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
-            // javascript
-            if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
-                $jsComponentPath = $jsPath . $d . $buildItem->ComponentName . '.js';
-                $jsComponentCode = '';
-                $comma = '';
-                $registerIncluded = false;
-                $additionalCode = "";
-                foreach ($buildItem->Uses as $importName => $useItem) {
-                    if (!$useItem->Skip) {
-                        if ($useItem->Type === UseItem::Class_) {
-                            if ($importName === 'BaseComponent') {
-                                $jsComponentCode .= 'import { BaseComponent } from "../../viewi/core/component/baseComponent";' . PHP_EOL;
-                            } elseif (isset($this->components[$importName]) && $this->components[$importName]->CustomJs) {
-                                if (!$registerIncluded) {
-                                    $jsComponentCode .= 'import { register } from "../../viewi/core/di/register"' . PHP_EOL;
-                                    $registerIncluded = true;
-                                }
-                                $additionalCode = "var $importName = register.$importName;" . PHP_EOL;
-                            } elseif (!isset($this->components[$importName]) || !$this->components[$importName]->Skip) {
-                                $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
-                            }
-                        } elseif ($useItem->Type === UseItem::Function) {
-                            $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
-                        }
-                        $comma = PHP_EOL;
+                /**
+                 * @var string|false
+                 */
+                $lazyLoadGroup = false;
+                $componentMeta = [
+                    'Namespace' => $buildItem->Namespace,
+                    'Name' => $buildItem->ComponentName
+                ];
+                $publicJson[$buildItem->ComponentName] = [];
+                // dependencies, props
+
+                $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
+                $lifecycleHooks = [];
+                foreach ($buildItem->Methods as $method => $_) {
+                    if (isset($this->hookMethods[$method])) {
+                        $lifecycleHooks[$method] = 1;
                     }
                 }
-                // if ($buildItem->RenderFunction !== null) {
-                //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
-                //     $comma = PHP_EOL;
-                // }
-                if ($additionalCode) {
-                    $jsComponentCode .= $comma . $additionalCode;
+                if ($lifecycleHooks) {
+                    $componentMeta['hooks'] = $lifecycleHooks;
+                    $publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
                 }
-                $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
-                $expressionsImport = '';
-                if ($expressionsJs !== '') {
-                    $expressionName = $buildItem->ComponentName . '_x';
-                    $expressionsJs = PHP_EOL . $expressionsJs . PHP_EOL;
-                    $jsComponentCode .= $comma .
-                        "export const $expressionName = [$expressionsJs];" . PHP_EOL;
-                    $componentsExportList .= PHP_EOL . "    $expressionName,";
-                    $expressionsImport = ", $expressionName";
+                if (!$buildItem->CustomJs && count($componentMeta['dependencies']) > 0) {
+                    $publicJson[$buildItem->ComponentName]['dependencies'] = [];
+                    foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
+                        $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
+                    }
                 }
-                $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
-                file_put_contents($jsComponentPath, $jsComponentCode);
-                $componentsIndexJs .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
-                $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
-            } else {
-                $publicJson[$buildItem->ComponentName]['custom'] = 1;
+                $attributes = $buildItem->ReflectionClass->getAttributes();
+                foreach ($attributes as $attribute) {
+                    $attributeClass = $attribute->getName();
+                    switch ($attributeClass) {
+                        case Singleton::class: {
+                                $componentMeta['di'] = Singleton::NAME;
+                                $publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
+                                break;
+                            }
+                        case Scoped::class: {
+                                $componentMeta['di'] = Scoped::NAME;
+                                $publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
+                                break;
+                            }
+                        case Middleware::class: {
+                                /**
+                                 * @var Middleware $middlewareAttribute
+                                 */
+                                $middlewareAttribute = $attribute->newInstance();
+                                $shortNames = array_map(function (string $className) {
+                                    return array_pop(explode('\\', $className));
+                                }, $middlewareAttribute->middlewareList);
+                                $componentMeta['middleware'] = $shortNames;
+                                $publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
+                                break;
+                            }
+                        case LazyLoad::class: {
+                                /**
+                                 * @var LazyLoad $lazyAttribute
+                                 */
+                                $lazyAttribute = $attribute->newInstance();
+                                $lazyGoup = !$lazyAttribute->groupName ? $buildItem->ComponentName : $lazyAttribute->groupName;
+                                $componentMeta['lazy'] = $lazyGoup;
+                                $publicJson[$buildItem->ComponentName]['lazy'] = $lazyGoup;
+                                $lazyLoadGroup = $lazyGoup;
+                                $lazyLoadGroups[$lazyLoadGroup] = ['public' => [], 'componentsIndex' => '', 'componentsExport' => '', 'functions' => []];
+                                $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = [];
+                                [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
+                                $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
+                                // Helpers::debug([$lazyLoadGroups, $lazyLoadGroup]);
+                                break;
+                            }
+                        default: // none 
+                            break;
+                    }
+                    // Helpers::debug($attributeClass);
+                }
+                $componentMeta['inputs'] = [];
+                $preservedProps = [];
+                foreach ($buildItem->Props as $prop => $propMetadata) {
+                    $componentMeta['inputs'][$prop] = 1;
+                    if (isset($propMetadata[Preserve::class])) {
+                        $preservedProps[$prop] = 1;
+                    }
+                }
+                if ($preservedProps) {
+                    $componentMeta['preserve'] = $preservedProps;
+                }
+                if ($buildItem->ReflectionClass->isSubclassOf(BaseComponent::class)) {
+                    $componentMeta['base'] = 1;
+                    $publicJson[$buildItem->ComponentName]['base'] = 1;
+                    if ($buildItem->refs) {
+                        $publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
+                    }
+                }
+                if ($buildItem->HtmlRootComponent !== null) {
+                    $publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
+                }
+                // template, render function
+                $expressionsJs = '';
+                if ($buildItem->RenderFunction !== null) {
+                    $renderRelativePath = $d .
+                        str_replace(array('/', '\\'), $d, ($buildItem->Namespace ?? ''));
+                    $renderFunctionDir = $this->buildPath . $renderRelativePath;
+                    $renderFunctionPath = $renderRelativePath . $d .
+                        $buildItem->ComponentName . '.php';
+                    $componentMeta['Path'] = $renderFunctionPath;
+                    $componentMeta['Function'] = $buildItem->RenderFunction->renderName;
+                    if (!file_exists($renderFunctionDir)) {
+                        mkdir($renderFunctionDir, 0777, true);
+                    }
+                    $content = $buildItem->RenderFunction->generatePhpContent();
+                    file_put_contents($this->buildPath . $renderFunctionPath, $content);
+                    $this->meta['map'][$buildItem->RenderFunction->renderName] = $buildItem->ComponentName;
+                    foreach ($buildItem->RenderFunction->slots as $slotTuple) {
+                        $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
+                    }
+                    $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
+                    // inline expressions
+                    $exprComma = '';
+                    foreach ($buildItem->RenderFunction->inlineExpressions as $code => [$expression, $arguments]) {
+                        $funcArguments = implode(', ', ['_component', ...$arguments]);
+                        $expressionsJs .= $exprComma . "    function ($funcArguments) { return $expression; }";
+                        $exprComma = ',' . PHP_EOL;
+                    }
+                }
+                $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
+                // javascript
+                if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
+                    // $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
+                    $jsComponentPath = ($lazyLoadGroup ? $lazyLoadGroups[$lazyLoadGroup]['path']['components'] : $jsComponentsPath) . $d . $buildItem->ComponentName . '.js';
+                    $jsComponentCode = '';
+                    $comma = '';
+                    $registerIncluded = false;
+                    $additionalCode = "";
+                    if ($lazyLoadGroup) {
+                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register"' . PHP_EOL;
+                        $registerIncluded = true;
+                    }
+
+                    foreach ($buildItem->Uses as $importName => $useItem) {
+                        if (!$useItem->Skip) {
+                            if ($useItem->Type === UseItem::Class_) {
+                                if ($importName === 'BaseComponent') {
+                                    if ($lazyLoadGroup && isset($includedInMain[$importName])) {
+                                        $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
+                                    } else {
+                                        $jsComponentCode .= 'import { BaseComponent } from "../../../viewi/core/component/baseComponent";' . PHP_EOL;
+                                    }
+                                } elseif (isset($this->components[$importName]) && $this->components[$importName]->CustomJs) {
+                                    if (!$registerIncluded) {
+                                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register"' . PHP_EOL;
+                                        $registerIncluded = true;
+                                    }
+                                    $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
+                                } elseif (!isset($this->components[$importName]) || !$this->components[$importName]->Skip) {
+                                    if ($lazyLoadGroup && isset($includedInMain[$importName])) {
+                                        $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
+                                    } else {
+                                        $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                                    }
+                                }
+                            } elseif ($useItem->Type === UseItem::Function) {
+                                if ($lazyLoadGroup && isset($includedInMain[$importName])) {
+                                    $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
+                                } else {
+                                    $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+                                    if ($lazyLoadGroup) {
+                                        $lazyLoadGroups[$lazyLoadGroup]['functions'][$importName] = true;
+                                    }
+                                }
+                            }
+                            $comma = PHP_EOL;
+                            if (!$lazyLoadGroup) {
+                                $includedInMain[$importName] = true;
+                            }
+                            $$importGouprName = $lazyLoadGroup ? $lazyLoadGroup : 'main';
+                            if (!isset($includedInGroups[$importName])) {
+                                $includedInGroups[$importName] = [];
+                            }
+                            $includedInGroups[$importName][] = $$importGouprName;
+                        }
+                    }
+                    // if ($buildItem->RenderFunction !== null) {
+                    //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
+                    //     $comma = PHP_EOL;
+                    // }
+                    if ($additionalCode) {
+                        $jsComponentCode .= $comma . $additionalCode;
+                    }
+                    $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
+                    $expressionsImport = '';
+                    if ($expressionsJs !== '') {
+                        $expressionName = $buildItem->ComponentName . '_x';
+                        $expressionsJs = PHP_EOL . $expressionsJs . PHP_EOL;
+                        $jsComponentCode .= $comma .
+                            "export const $expressionName = [$expressionsJs];" . PHP_EOL;
+                        if ($lazyLoadGroup) {
+                            $lazyLoadGroups[$lazyLoadGroup]['componentsExport'] .= PHP_EOL . "    $expressionName,";
+                        } else {
+                            $componentsExportList .= PHP_EOL . "    $expressionName,";
+                        }
+                        $expressionsImport = ", $expressionName";
+                    }
+                    $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
+                    file_put_contents($jsComponentPath, $jsComponentCode);
+                    if ($lazyLoadGroup) {
+                        $lazyLoadGroups[$lazyLoadGroup]['componentsIndex'] .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+                        $lazyLoadGroups[$lazyLoadGroup]['componentsExport'] .= PHP_EOL . "    {$buildItem->ComponentName},";
+                    } else {
+                        $componentsIndexJs .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+                        $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
+                    }
+                } else {
+                    $publicJson[$buildItem->ComponentName]['custom'] = 1;
+                }
+                if ($lazyLoadGroup) {
+                    $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = $publicJson[$buildItem->ComponentName];
+                    $publicJson[$buildItem->ComponentName] = ['lazy' => $lazyLoadGroup];
+                }
             }
         }
-        // export const components = {
-        //     Counter,
-        //     CounterReducer,
-        //     TodoReducer
-        // };
+        /** END COMPONENTS FOREACH **/
+
         $conponentsJsonPublicPath = $this->assetsPath . '/components.json';
         $this->meta['assets'] = [
             'app' => $this->assetsPath . '/app.js',
@@ -594,25 +695,42 @@ class Builder
         $componentsIndexJs .= PHP_EOL . "export const components = {{$componentsExportList}";
         $componentsIndexJs .= $componentsExportList ? PHP_EOL . '};' : '};';
 
+        if (count($lazyLoadGroups) > 0) {
+            // Helpers::debug($lazyLoadGroups);
+            foreach ($lazyLoadGroups as $group => $groupMeta) {
+                $componentsGroupExportList = $groupMeta['componentsExport'];
+                $componentsGroupIndexJs = $groupMeta['componentsIndex'] . PHP_EOL . "export const components = {{$componentsGroupExportList}";
+                $componentsGroupIndexJs .= $componentsGroupExportList ? PHP_EOL . '};' : '};';
+                $lazyGroupEntry = "./app/$group/components/index.js";
+                file_put_contents($groupMeta['path']['components'] . $d . 'index.js', $componentsGroupIndexJs);
+                $viewiLazyLoadGroupsModuleContent .= "    $group: '$lazyGroupEntry'" . PHP_EOL;
+            }
+        }
+        $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
+        file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
+
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
         // core PHP functions in JS
         $functionsExportList = '';
         $functionsIndexJs = '';
         foreach ($this->usedFunctions as $functionName => $baseFunction) {
-            $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
-            $importDepsJs = '';
-            foreach ($baseFunction::getUses() as $requiredFunction) {
-                $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
+            // foreach $includedInGroups 
+            if (isset($includedInMain[$functionName])) {
+                $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
+                $importDepsJs = '';
+                foreach ($baseFunction::getUses() as $requiredFunction) {
+                    $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
+                }
+                if ($importDepsJs) {
+                    $importDepsJs .= PHP_EOL;
+                }
+                $functionContent = $importDepsJs . $baseFunction::getJs();
+                $functionContent .= PHP_EOL . "export { $functionName }";
+                file_put_contents($functionPath, $functionContent);
+                $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
+                $functionsExportList .= PHP_EOL . "    {$functionName},";
             }
-            if ($importDepsJs) {
-                $importDepsJs .= PHP_EOL;
-            }
-            $functionContent = $importDepsJs . $baseFunction::getJs();
-            $functionContent .= PHP_EOL . "export { $functionName }";
-            file_put_contents($functionPath, $functionContent);
-            $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
-            $functionsExportList .= PHP_EOL . "    {$functionName},";
         }
         $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
         $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
@@ -621,7 +739,7 @@ class Builder
         $resourcesIndexJs .= '};';
         // components/index.js
         // functions/index.js
-        file_put_contents($jsPath . $d . 'index.js', $componentsIndexJs);
+        file_put_contents($jsComponentsPath . $d . 'index.js', $componentsIndexJs);
         file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
         file_put_contents($jsResourcesPath . $d . 'index.js', $resourcesIndexJs);
         $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
