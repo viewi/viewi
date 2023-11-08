@@ -15,6 +15,7 @@ class BuildItem
     public ?array $Attributes = null;
     public bool $Skip = false;
     public bool $CustomJs = false;
+    public bool $LazyLoad = false;
     public ?string $Namespace = null;
     public ?string $TemplatePath = null;
     public bool $HtmlRootComponentCalculated = false;
