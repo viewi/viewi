@@ -264,7 +264,7 @@ class Builder
                         throw new Exception("Function '$baseName' can not be found.");
                     }
                     $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
-                    $this->collectFunctionDependencies($this->usedFunctions[$baseName]);
+                    $this->collectFunctionDependencies($this->usedFunctions[$baseName]);                    
                 }
             }
         }
@@ -427,6 +427,9 @@ class Builder
         }
         Helpers::removeDirectory($this->buildPath);
         [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath] = $this->makeAppFolders();
+        $chunks = new Chunks();
+        $mainChunk = $chunks->create(Chunk::MAIN, $jsComponentsPath, $jsFunctionsPath, $jsResourcesPath);
+
         $viewiCorePath = $this->jsPath . $d . 'viewi';
         $viewiLazyLoadGroupsModuleFile = $this->jsPath . $d . 'app' . $d . 'lazyGroups.mjs';
         $viewiLazyLoadGroupsModuleContent = '';
@@ -438,14 +441,8 @@ class Builder
             Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         }
         Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
-        $componentsIndexJs = '';
-        $componentsExportList = '';
         $publicJson = [];
         $this->meta['buildPath'] = $this->buildPath;
-        /**
-         * @var array
-         */
-        $lazyLoadGroups = [];
 
         $componentFilter = 0; // 0 - main, 1 - lazy load
         $includedInMain = [];
@@ -464,6 +461,7 @@ class Builder
                 ) {
                     continue;
                 }
+                $currentChunk = $mainChunk;
                 /**
                  * @var string|false
                  */
@@ -527,11 +525,13 @@ class Builder
                                 $componentMeta['lazy'] = $lazyGoup;
                                 $publicJson[$buildItem->ComponentName]['lazy'] = $lazyGoup;
                                 $lazyLoadGroup = $lazyGoup;
-                                $lazyLoadGroups[$lazyLoadGroup] = ['public' => [], 'componentsIndex' => '', 'componentsExport' => '', 'functions' => []];
-                                $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = [];
-                                [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
-                                $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
-                                // Helpers::debug([$lazyLoadGroups, $lazyLoadGroup]);
+                                if (isset($chunks->chunks[$lazyLoadGroup])) {
+                                    $currentChunk = $chunks->chunks[$lazyLoadGroup];
+                                } else {
+                                    [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
+                                    $currentChunk = $chunks->create($lazyLoadGroup, $jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath);
+                                    $currentChunk->addComponent($buildItem->ComponentName);
+                                }
                                 break;
                             }
                         default: // none 
@@ -592,13 +592,13 @@ class Builder
                 // javascript
                 if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
                     // $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
-                    $jsComponentPath = ($lazyLoadGroup ? $lazyLoadGroups[$lazyLoadGroup]['path']['components'] : $jsComponentsPath) . $d . $buildItem->ComponentName . '.js';
+                    $jsComponentPath = $currentChunk->jsComponentsPath . $d . $buildItem->ComponentName . '.js';
                     $jsComponentCode = '';
                     $comma = '';
                     $registerIncluded = false;
                     $additionalCode = "";
                     if ($lazyLoadGroup) {
-                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register"' . PHP_EOL;
+                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
                         $registerIncluded = true;
                     }
 
@@ -613,7 +613,7 @@ class Builder
                                     }
                                 } elseif (isset($this->components[$importName]) && $this->components[$importName]->CustomJs) {
                                     if (!$registerIncluded) {
-                                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register"' . PHP_EOL;
+                                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
                                         $registerIncluded = true;
                                     }
                                     $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
@@ -625,24 +625,22 @@ class Builder
                                     }
                                 }
                             } elseif ($useItem->Type === UseItem::Function) {
+                                $currentChunk->functions[$importName] = true;
+                                // TODO: collect function dependencies!!!
                                 if ($lazyLoadGroup && isset($includedInMain[$importName])) {
                                     $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                 } else {
                                     $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
-                                    if ($lazyLoadGroup) {
-                                        $lazyLoadGroups[$lazyLoadGroup]['functions'][$importName] = true;
-                                    }
                                 }
                             }
                             $comma = PHP_EOL;
                             if (!$lazyLoadGroup) {
                                 $includedInMain[$importName] = true;
                             }
-                            $$importGouprName = $lazyLoadGroup ? $lazyLoadGroup : 'main';
                             if (!isset($includedInGroups[$importName])) {
                                 $includedInGroups[$importName] = [];
                             }
-                            $includedInGroups[$importName][] = $$importGouprName;
+                            $includedInGroups[$importName][] = $currentChunk->name;
                         }
                     }
                     // if ($buildItem->RenderFunction !== null) {
@@ -659,22 +657,13 @@ class Builder
                         $expressionsJs = PHP_EOL . $expressionsJs . PHP_EOL;
                         $jsComponentCode .= $comma .
                             "export const $expressionName = [$expressionsJs];" . PHP_EOL;
-                        if ($lazyLoadGroup) {
-                            $lazyLoadGroups[$lazyLoadGroup]['componentsExport'] .= PHP_EOL . "    $expressionName,";
-                        } else {
-                            $componentsExportList .= PHP_EOL . "    $expressionName,";
-                        }
+                        $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
                         $expressionsImport = ", $expressionName";
                     }
                     $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
                     file_put_contents($jsComponentPath, $jsComponentCode);
-                    if ($lazyLoadGroup) {
-                        $lazyLoadGroups[$lazyLoadGroup]['componentsIndex'] .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
-                        $lazyLoadGroups[$lazyLoadGroup]['componentsExport'] .= PHP_EOL . "    {$buildItem->ComponentName},";
-                    } else {
-                        $componentsIndexJs .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
-                        $componentsExportList .= PHP_EOL . "    {$buildItem->ComponentName},";
-                    }
+                    $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+                    $currentChunk->componentsExport .= PHP_EOL . "    {$buildItem->ComponentName},";
                 } else {
                     $publicJson[$buildItem->ComponentName]['custom'] = 1;
                 }
@@ -692,56 +681,76 @@ class Builder
             'app-min' => $this->assetsPath . '/app.min.js',
             'components' => $conponentsJsonPublicPath,
         ];
-        $componentsIndexJs .= PHP_EOL . "export const components = {{$componentsExportList}";
-        $componentsIndexJs .= $componentsExportList ? PHP_EOL . '};' : '};';
-
-        if (count($lazyLoadGroups) > 0) {
-            // Helpers::debug($lazyLoadGroups);
-            foreach ($lazyLoadGroups as $group => $groupMeta) {
-                $componentsGroupExportList = $groupMeta['componentsExport'];
-                $componentsGroupIndexJs = $groupMeta['componentsIndex'] . PHP_EOL . "export const components = {{$componentsGroupExportList}";
-                $componentsGroupIndexJs .= $componentsGroupExportList ? PHP_EOL . '};' : '};';
-                $lazyGroupEntry = "./app/$group/components/index.js";
-                file_put_contents($groupMeta['path']['components'] . $d . 'index.js', $componentsGroupIndexJs);
-                $viewiLazyLoadGroupsModuleContent .= "    $group: '$lazyGroupEntry'" . PHP_EOL;
-            }
-        }
-        $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
-        file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
 
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
         // core PHP functions in JS
-        $functionsExportList = '';
-        $functionsIndexJs = '';
         foreach ($this->usedFunctions as $functionName => $baseFunction) {
-            // foreach $includedInGroups 
-            if (isset($includedInMain[$functionName])) {
-                $functionPath = $jsFunctionsPath . $d . $functionName . '.js';
-                $importDepsJs = '';
-                foreach ($baseFunction::getUses() as $requiredFunction) {
-                    $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
-                }
-                if ($importDepsJs) {
-                    $importDepsJs .= PHP_EOL;
-                }
-                $functionContent = $importDepsJs . $baseFunction::getJs();
-                $functionContent .= PHP_EOL . "export { $functionName }";
-                file_put_contents($functionPath, $functionContent);
-                $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
-                $functionsExportList .= PHP_EOL . "    {$functionName},";
+            if (!isset($includedInGroups[$functionName])) {
+                $mainChunk->functions[$functionName] = true;
             }
         }
-        $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
-        $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
+
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
         $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'" . PHP_EOL;
         $resourcesIndexJs .= '};';
+
         // components/index.js
         // functions/index.js
-        file_put_contents($jsComponentsPath . $d . 'index.js', $componentsIndexJs);
-        file_put_contents($jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+        foreach ($chunks->chunks as $chunkName => $chunk) {
+            $isMain = $chunk->name === Chunk::MAIN;
+            // components
+
+            $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
+            $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
+            file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
+            if (!$isMain) {
+                $lazyGroupEntry = "./app/$chunkName/components/index.js";
+                $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'" . PHP_EOL;
+            }
+            // functions
+            $functionsIndexJs = '';
+            $functionsExportList = '';
+            foreach ($chunk->functions as $functionName => $_) {
+                if ($isMain || !isset($mainChunk->functions[$functionName])) {
+                    $baseFunction = $this->usedFunctions[$functionName];
+                    $functionPath = $chunk->jsFunctionsPath . $d . $functionName . '.js';
+                    $importDepsJs = '';
+                    $registerDepsJs = '';
+                    foreach ($baseFunction::getUses() as $requiredFunction) {
+                        if ($isMain || !isset($mainChunk->functions[$requiredFunction])) {
+                            $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
+                        } else {
+                            $registerDepsJs .= "var $requiredFunction = register.$requiredFunction;" . PHP_EOL;
+                        }
+                    }
+
+                    if ($registerDepsJs) {
+                        $importDepsJs .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
+                        $registerDepsJs .= PHP_EOL;
+                    }
+
+                    if ($importDepsJs) {
+                        $importDepsJs .= PHP_EOL;
+                    }
+
+                    $functionContent = $importDepsJs . $registerDepsJs . $baseFunction::getJs();
+                    $functionContent .= PHP_EOL . "export { $functionName }";
+                    file_put_contents($functionPath, $functionContent);
+                    $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
+                    $functionsExportList .= PHP_EOL . "    {$functionName},";
+                }
+            }
+            $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
+            $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
+            file_put_contents($chunk->jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+        }
+
         file_put_contents($jsResourcesPath . $d . 'index.js', $resourcesIndexJs);
+
+        $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
+        file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
+
         $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
         $publicJson['_routes'] = [];
         $routes = $this->router->getRoutes();
