@@ -686,9 +686,10 @@ class Builder
         /** END COMPONENTS FOREACH **/
 
         $conponentsJsonPublicPath = $this->assetsPath . '/components.json';
+        $publicPath = $this->assetsPath . '/';
         $this->meta['assets'] = [
-            'app' => $this->assetsPath . '/app.js',
-            'app-min' => $this->assetsPath . '/app.min.js',
+            'app' => $this->assetsPath . '/viewi.js',
+            'app-min' => $this->assetsPath . '/viewi.min.js',
             'components' => $conponentsJsonPublicPath,
         ];
 
@@ -702,7 +703,8 @@ class Builder
         // }
 
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
-        $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'" . PHP_EOL;
+        $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'," . PHP_EOL;
+        $resourcesIndexJs .= "    publicPath: '$publicPath'" . PHP_EOL;
         $resourcesIndexJs .= '};';
 
         // components/index.js
@@ -714,7 +716,13 @@ class Builder
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
             file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
-            if (!$isMain) {
+            if ($isMain) {
+                $chunk->distFileName = "viewi.js";
+                $chunk->distFileMinName = "viewi.min.js";
+                $chunk->distFileJsonName = "components.json";
+            } else {
+                $chunk->distFileName = "viewi.$chunkName.js";
+                $chunk->distFileMinName = "viewi.$chunkName.min.js";
                 $lazyGroupEntry = "./app/$chunkName/components/index.js";
                 $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'" . PHP_EOL;
             }
@@ -798,18 +806,28 @@ class Builder
             $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
             throw new Exception("NPM build failed: code $result_code $text");
         }
-        $distJsFile = $this->jsPath . $d . 'dist' . $d . 'viewi.js';
         copy($this->jsPath . $d . 'components.json', $this->jsPath . $d . 'dist' . $d . 'components.json');
         $distJsMinFile = $this->jsPath . $d . 'dist' . $d . 'viewi.min.js';
         file_put_contents("$distJsMinFile.gz", gzencode(file_get_contents($distJsMinFile), 5));
         // TODO: configurable paths
         // TODO: configurable minify
-        if (!file_exists($distJsFile)) {
-            throw new Exception("Could not find Viewi build file at $distJsFile.");
-        }
         chdir($currentDir);
-        copy($distJsFile, $this->publicPath . $d . 'app.js');
-        copy($this->jsPath . $d . 'components.json', $this->publicPath . $d . 'components.json');
+        foreach ($chunks->chunks as $chunk) {
+            $distJsFile = $this->jsPath . $d . 'dist' . $d . $chunk->distFileName;
+            if (!file_exists($distJsFile)) {
+                throw new Exception("Could not find Viewi build file at $distJsFile.");
+            }
+            copy($distJsFile, $this->publicPath . $d . $chunk->distFileName);
+
+            $distJsFileMin = $this->jsPath . $d . 'dist' . $d . $chunk->distFileMinName;
+            if (!file_exists($distJsFileMin)) {
+                throw new Exception("Could not find Viewi build file at $distJsFileMin.");
+            }
+            copy($distJsFileMin, $this->publicPath . $d . $chunk->distFileMinName);
+            if ($chunk->distFileJsonName) {
+                copy($this->jsPath . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->distFileJsonName);
+            }
+        }
     }
 
     private function collectChunkFunctions(Chunk $chunk, string $functionName)
@@ -823,42 +841,6 @@ class Builder
         }
     }
 
-    // private function makeFunction(string $functionName, Chunk $chunk, Chunk $mainChunk, string &$functionsIndexJs, string &$functionsExportList)
-    // {
-    //     $d = DIRECTORY_SEPARATOR;
-    //     $isMain = $chunk === $mainChunk;
-    //     $baseFunction = $this->usedFunctions[$functionName];
-    //     $functionPath = $chunk->jsFunctionsPath . $d . $functionName . '.js';
-    //     $importDepsJs = '';
-    //     $registerDepsJs = '';
-    //     foreach ($baseFunction::getUses() as $requiredFunction) {
-    //         if ($isMain || !isset($mainChunk->functions[$requiredFunction])) {
-    //             $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
-    //             if (!$chunk->functions[$requiredFunction]) {
-    //                 $chunk->functions[$requiredFunction] = true;
-    //                 $this->makeFunction($requiredFunction, $chunk, $mainChunk, $functionsIndexJs, $functionsExportList);
-    //             }
-    //         } else {
-    //             $registerDepsJs .= "var $requiredFunction = register.$requiredFunction;" . PHP_EOL;
-    //         }
-    //     }
-
-    //     if ($registerDepsJs) {
-    //         $importDepsJs .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
-    //         $registerDepsJs .= PHP_EOL;
-    //     }
-
-    //     if ($importDepsJs) {
-    //         $importDepsJs .= PHP_EOL;
-    //     }
-
-    //     $functionContent = $importDepsJs . $registerDepsJs . $baseFunction::getJs();
-    //     $functionContent .= PHP_EOL . "export { $functionName }";
-    //     file_put_contents($functionPath, $functionContent);
-    //     $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
-    //     $functionsExportList .= PHP_EOL . "    {$functionName},";
-    // }
-
     /**
      * 
      * @param ReflectionClass $reflectionClass 
@@ -870,10 +852,6 @@ class Builder
         $props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
         if (count($props) > 0) {
             foreach ($props as $propertyInfo) {
-                // $type = $propertyInfo->getType();
-                // if ($type !== null && $type->getName() === HtmlNode::class) {
-
-                // }
                 $attributeMetadata = [];
                 $attributes = $propertyInfo->getAttributes();
                 if ($attributes) {
