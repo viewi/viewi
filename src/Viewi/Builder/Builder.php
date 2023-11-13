@@ -264,7 +264,7 @@ class Builder
                         throw new Exception("Function '$baseName' can not be found.");
                     }
                     $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
-                    $this->collectFunctionDependencies($this->usedFunctions[$baseName]);                    
+                    $this->collectFunctionDependencies($this->usedFunctions[$baseName]);
                 }
             }
         }
@@ -658,8 +658,18 @@ class Builder
                         $jsComponentCode .= $comma .
                             "export const $expressionName = [$expressionsJs];" . PHP_EOL;
                         $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
-                        $expressionsImport = ", $expressionName";
+                        $expressionsImport .= ", $expressionName";
                     }
+
+                    if ($lazyLoadGroup && isset($publicJson[$buildItem->ComponentName])) {
+                        $expressionName = $buildItem->ComponentName . '_t';
+                        $jsComponentCode .= $comma .
+                            "export const $expressionName = " .
+                            json_encode(json_encode($publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ';' . PHP_EOL;
+                        $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
+                        $expressionsImport .= ", $expressionName";
+                    }
+
                     $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
                     file_put_contents($jsComponentPath, $jsComponentCode);
                     $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
@@ -685,11 +695,11 @@ class Builder
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
         // core PHP functions in JS
-        foreach ($this->usedFunctions as $functionName => $baseFunction) {
-            if (!isset($includedInGroups[$functionName])) {
-                $mainChunk->functions[$functionName] = true;
-            }
-        }
+        // foreach ($this->usedFunctions as $functionName => $baseFunction) {
+        //     if (!isset($includedInGroups[$functionName])) {
+        //         $mainChunk->functions[$functionName] = true;
+        //     }
+        // }
 
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
         $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'" . PHP_EOL;
@@ -699,8 +709,8 @@ class Builder
         // functions/index.js
         foreach ($chunks->chunks as $chunkName => $chunk) {
             $isMain = $chunk->name === Chunk::MAIN;
-            // components
 
+            // components
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
             file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
@@ -708,7 +718,13 @@ class Builder
                 $lazyGroupEntry = "./app/$chunkName/components/index.js";
                 $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'" . PHP_EOL;
             }
+
             // functions
+            $functionsList = $chunk->functions; // need immutable since chunk will get changed
+            foreach ($functionsList as $functionName => $_) {
+                $this->collectChunkFunctions($chunk, $functionName);
+            }
+
             $functionsIndexJs = '';
             $functionsExportList = '';
             foreach ($chunk->functions as $functionName => $_) {
@@ -796,6 +812,52 @@ class Builder
         copy($this->jsPath . $d . 'components.json', $this->publicPath . $d . 'components.json');
     }
 
+    private function collectChunkFunctions(Chunk $chunk, string $functionName)
+    {
+        $baseFunction = $this->usedFunctions[$functionName];
+        foreach ($baseFunction::getUses() as $requiredFunction) {
+            if (!isset($chunk->functions[$requiredFunction])) {
+                $chunk->functions[$requiredFunction] = true;
+                $this->collectChunkFunctions($chunk, $requiredFunction);
+            }
+        }
+    }
+
+    // private function makeFunction(string $functionName, Chunk $chunk, Chunk $mainChunk, string &$functionsIndexJs, string &$functionsExportList)
+    // {
+    //     $d = DIRECTORY_SEPARATOR;
+    //     $isMain = $chunk === $mainChunk;
+    //     $baseFunction = $this->usedFunctions[$functionName];
+    //     $functionPath = $chunk->jsFunctionsPath . $d . $functionName . '.js';
+    //     $importDepsJs = '';
+    //     $registerDepsJs = '';
+    //     foreach ($baseFunction::getUses() as $requiredFunction) {
+    //         if ($isMain || !isset($mainChunk->functions[$requiredFunction])) {
+    //             $importDepsJs .= "import { $requiredFunction } from \"./$requiredFunction\";" . PHP_EOL;
+    //             if (!$chunk->functions[$requiredFunction]) {
+    //                 $chunk->functions[$requiredFunction] = true;
+    //                 $this->makeFunction($requiredFunction, $chunk, $mainChunk, $functionsIndexJs, $functionsExportList);
+    //             }
+    //         } else {
+    //             $registerDepsJs .= "var $requiredFunction = register.$requiredFunction;" . PHP_EOL;
+    //         }
+    //     }
+
+    //     if ($registerDepsJs) {
+    //         $importDepsJs .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
+    //         $registerDepsJs .= PHP_EOL;
+    //     }
+
+    //     if ($importDepsJs) {
+    //         $importDepsJs .= PHP_EOL;
+    //     }
+
+    //     $functionContent = $importDepsJs . $registerDepsJs . $baseFunction::getJs();
+    //     $functionContent .= PHP_EOL . "export { $functionName }";
+    //     file_put_contents($functionPath, $functionContent);
+    //     $functionsIndexJs .= "import { $functionName } from \"./{$functionName}\";" . PHP_EOL;
+    //     $functionsExportList .= PHP_EOL . "    {$functionName},";
+    // }
 
     /**
      * 
