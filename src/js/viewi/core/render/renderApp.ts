@@ -1,7 +1,9 @@
+import { resources } from "../../../app/main/resources";
 import { anchors } from "../anchor/anchors";
 import { componentsMeta } from "../component/componentsMeta";
 import { globalScope } from "../di/globalScope";
 import { resolve } from "../di/resolve";
+import { injectScript } from "../http/injectScript";
 import { dispose } from "../lifecycle/dispose";
 import { IMiddleware } from "../lifecycle/imiddleware";
 import { HtmlNodeType } from "../node/htmlNodeType";
@@ -21,6 +23,8 @@ export function renderApp(
     const info = componentsMeta.list[name];
     if (info.lazy) {
         console.warn('Lazy loading not implemented', info);
+        const scriptUrl = resources.publicPath + 'viewi.' + info.lazy + '.js';
+        injectScript(scriptUrl);
         return;
     }
     const hydrate = globalScope.hydrate;

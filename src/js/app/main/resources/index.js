@@ -1,4 +1,5 @@
 export const resources = {
     // placeholder
-    componentsPath: '/components.json'
+    componentsPath: '/components.json',    
+    publicPath: '/'
 };
