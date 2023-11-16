@@ -14,7 +14,6 @@ const interceptResponses = function (response: Response, callback, interceptorIn
     let current = total;
 
     const lastCall = function (response: Response, keepGoing: boolean) {
-        console.log(response, keepGoing);
         if (keepGoing && response.status >= 200 && response.status < 300) {
             callback(response.body);
         } else {
