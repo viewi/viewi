@@ -1,1 +1,1 @@
-export const register: { [name: string]: any } = {};
+export const register: { [name: string]: any } = window.ViewiApp ? window.ViewiApp.Viewi.register : {};
