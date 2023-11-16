@@ -1,6 +1,7 @@
 import { resources } from "../../../app/main/resources";
 import { anchors } from "../anchor/anchors";
 import { componentsMeta } from "../component/componentsMeta";
+import { delay } from "../di/delay";
 import { globalScope } from "../di/globalScope";
 import { resolve } from "../di/resolve";
 import { injectScript } from "../http/injectScript";
@@ -8,6 +9,8 @@ import { dispose } from "../lifecycle/dispose";
 import { IMiddleware } from "../lifecycle/imiddleware";
 import { HtmlNodeType } from "../node/htmlNodeType";
 import { renderComponent } from "./renderComponent";
+
+const lazyRecords = {};
 
 export function renderApp(
     name: string,
@@ -21,10 +24,13 @@ export function renderApp(
         throw new Error(`Component ${name} not found.`);
     }
     const info = componentsMeta.list[name];
-    if (info.lazy) {
-        console.warn('Lazy loading not implemented', info);
+    if (info.lazy && !(info.lazy in lazyRecords)) {
         const scriptUrl = resources.publicPath + 'viewi.' + info.lazy + '.js';
         injectScript(scriptUrl);
+        delay.postpone(info.lazy, function () {
+            lazyRecords[info.lazy!] = true;
+            renderApp(name, params, target, onAccept, skipMiddleware);
+        });
         return;
     }
     const hydrate = globalScope.hydrate;
@@ -48,15 +54,13 @@ export function renderApp(
                 if (globalAllow && current < total) {
                     // run next middleware
                     const middleware: IMiddleware = resolve(info.middleware![current]);
-                    console.log('Running middleware', middleware);
                     middleware.run(context);
                 } else {
                     // render app
                     if (globalAllow) {
-                        console.log('Ready to render', globalAllow);
                         renderApp(name, params, target, onAccept, true);
                     } else {
-                        console.log('Access denied', globalAllow);
+                        // keep!
                     }
                 }
             }
