@@ -664,8 +664,8 @@ class Builder
                     if ($lazyLoadGroup && isset($publicJson[$buildItem->ComponentName])) {
                         $expressionName = $buildItem->ComponentName . '_t';
                         $jsComponentCode .= $comma .
-                            "export const $expressionName = " .
-                            json_encode(json_encode($publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ';' . PHP_EOL;
+                            "export const $expressionName = { _t: 'template', name: '{$buildItem->ComponentName}', data: " .
+                            json_encode(json_encode($publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ' };' . PHP_EOL;
                         $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
                         $expressionsImport .= ", $expressionName";
                     }
@@ -715,6 +715,9 @@ class Builder
             // components
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
+            if (!$isMain) {
+                $chunk->componentsIndex .= PHP_EOL . "window.ViewiApp.Viewi.publish(\"$chunkName\", components);" . PHP_EOL;
+            }
             file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
             if ($isMain) {
                 $chunk->distFileName = "viewi.js";
