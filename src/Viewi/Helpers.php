@@ -81,4 +81,23 @@ class Helpers
             }
         }
     }
+
+    public static function randomHex(int $length = 8)
+    {
+        $data = random_bytes($length);
+        return bin2hex($data);
+    }
+
+    public static function randomInt(int $length = 8)
+    {
+        $data = random_int(10 ** ($length - 1), (10 ** $length) - 1);
+        return $data;
+    }
+
+    public static function randomString(int $length = 8)
+    {
+        $bytes = random_bytes($length);
+        $randomString = substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $length);
+        return $randomString;
+    }
 }
