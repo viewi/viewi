@@ -8,11 +8,13 @@ import { register } from "./core/di/register";
 import { setUp } from "./core/di/setUp";
 import { handleUrl } from "./core/router/handleUrl";
 import { watchLinks } from "./core/router/watchLinks";
-import { Viewi } from "./core/viewi";
+import { Viewi as ViewiApp } from "./core/viewi";
 
-const Viewi: Viewi = {
+const ViewiApp: ViewiApp = {
     register: {},
-    version: '2.0.0',
+    version: resources.version,
+    build: resources.build,
+    name: resources.name,
     publish(group: string, importComponents: { [name: string]: any }) {
         for (let name in importComponents) {
             if (!(name in components)) {
@@ -28,7 +30,8 @@ const Viewi: Viewi = {
     },
 };
 
-window.ViewiApp = { Viewi };
+window.ViewiApp = window.ViewiApp || {};
+window.ViewiApp[resources.name] = ViewiApp;
 
 (async () => {
     const data = await (await fetch(resources.componentsPath)).json() as ComponentsJson;
@@ -40,7 +43,7 @@ window.ViewiApp = { Viewi };
         componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
     setUp();
-    Viewi.register = { ...components, ...register, ...functions };
+    ViewiApp.register = { ...components, ...register, ...functions };
     watchLinks();
     handleUrl(location.href);
     //setTimeout(() => renderApp('TestComponent'), 500);
