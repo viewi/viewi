@@ -45,7 +45,13 @@ class App
             });
             $this->factory->add(ViewiAssets::class, function (Engine $engine) {
                 $assets = new ViewiAssets();
-                $assets->appPath = $engine->getAssets()['app'];
+                $assetsMeta = $engine->getAssets();
+                $appendVersion = $assetsMeta['append-version'];
+                $appPath = $assetsMeta['minify'] ? $assetsMeta['app-min'] : $assetsMeta['app'];
+                if ($appendVersion) {
+                    $appPath .= '?' . $assetsMeta['build-id'];
+                }
+                $assets->appPath = $appPath;
                 $state = [];
                 $responses = [];
                 /** @var Process */
