@@ -5,23 +5,30 @@ namespace Viewi;
 class AppConfig
 {
     /**
-     * 
+     * @param string Unique name
      * @param null|string $buildPath Destination folder for Viewi's build files
      * @param bool $devMode Development mode - each new request will trigger build process
      * @param null|string $sourcePath Path to your Viewi project
      * @param null|string $jsPath Path to the JavaScript project
      * @param null|string $publicPath Destination path for public assets
      * @param null|string $publicUrl Relative URL path for public assets
+     * @param bool $minifyJs Enables minification for javascript build files
+     * @param bool $appendVersionPath Appends version/build id to every assets http request to avoid caching in the browser
+     * @param bool $prod Enables production mode - no build process for each request
      * @param string[] $includes Additional components and packages
      * @return void 
      */
     public function __construct(
+        public string $name = 'default',
         public ?string $buildPath = null,
         public bool $devMode = false,
         public ?string $sourcePath = null,
         public ?string $jsPath = null,
         public ?string $publicPath = null,
         public ?string $publicUrl = null,
+        public bool $minifyJs = false,
+        public bool $appendVersionPath = false,
+        public bool $prod = false,
         public array $includes = []
     ) {
     }
@@ -33,6 +40,46 @@ class AppConfig
     public function developmentMode(?bool $mode = null): self
     {
         $this->devMode = $mode ?? true;
+        return $this;
+    }
+
+    /**
+     * Enables production mode - no build process for each request. 
+     * Enables minification 
+     * and appends version/build id to every asset's path.
+     * @return AppConfig 
+     */
+    public function production(?bool $mode = null): self
+    {
+        $this->prod = $mode ?? true;
+        if ($this->prod) {
+            $this->devMode = false;
+            $this->minifyJs = true;
+            $this->appendVersionPath = true;
+        }
+        return $this;
+    }
+
+    /**
+     * Enables minification for javascript build files
+     * @param null|bool $minify 
+     * @return AppConfig 
+     */
+    public function minfy(?bool $minify = null): self
+    {
+        $this->minifyJs = $minify ?? true;
+        return $this;
+    }
+
+    /**
+     * Appends version/build id to every assets http request to avoid caching in the browser.
+     * Disable it for debuging javascript in the browser with disabled cache in dev tools.
+     * @param null|bool $append 
+     * @return AppConfig 
+     */
+    public function appendVersionToPath(?bool $append = null): self
+    {
+        $this->appendVersionPath = $append ?? true;
         return $this;
     }
 
