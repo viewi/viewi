@@ -59,6 +59,9 @@ class Builder
     private string $publicPath = '';
     private string $assetsPath = '';
     private array $publicConfig;
+    private string $appName;
+    private bool $minifyJs;
+    private bool $appendVersion;
     // Keep it as associative array
     /**
      * 
@@ -99,10 +102,13 @@ class Builder
     public function build(AppConfig $config, array $publicConfig)
     {
         $this->reset();
+        $this->appName = $config->name;
         $this->buildPath = $config->buildPath;
         $this->jsPath = $config->jsPath;
         $this->publicPath = $config->publicPath;
         $this->assetsPath = $config->publicUrl;
+        $this->minifyJs = $config->minifyJs;
+        $this->appendVersion = $config->appendVersionPath;
         $this->publicConfig = $publicConfig;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
@@ -687,9 +693,13 @@ class Builder
 
         $conponentsJsonPublicPath = $this->assetsPath . '/components.json';
         $publicPath = $this->assetsPath . '/';
+        $buildId = Helpers::randomString();
         $this->meta['assets'] = [
             'app' => $this->assetsPath . '/viewi.js',
             'app-min' => $this->assetsPath . '/viewi.min.js',
+            'build-id' => $buildId,
+            'minify' => $this->minifyJs,
+            'append-version' => $this->appendVersion,
             'components' => $conponentsJsonPublicPath,
         ];
 
@@ -701,10 +711,17 @@ class Builder
         //         $mainChunk->functions[$functionName] = true;
         //     }
         // }
-
+        $viewiVersion = '2.0.0';
+        $minifyStr = var_export($this->minifyJs, true);
+        $appendVersionStr = var_export($this->appendVersion, true);
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
         $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'," . PHP_EOL;
-        $resourcesIndexJs .= "    publicPath: '$publicPath'" . PHP_EOL;
+        $resourcesIndexJs .= "    publicPath: '$publicPath'," . PHP_EOL;
+        $resourcesIndexJs .= "    name: '{$this->appName}'," . PHP_EOL;
+        $resourcesIndexJs .= "    minify: {$minifyStr}," . PHP_EOL;
+        $resourcesIndexJs .= "    appendVersion: {$appendVersionStr}," . PHP_EOL;
+        $resourcesIndexJs .= "    build: '$buildId'," . PHP_EOL;
+        $resourcesIndexJs .= "    version: '$viewiVersion'," . PHP_EOL;
         $resourcesIndexJs .= '};';
 
         // components/index.js
@@ -716,7 +733,7 @@ class Builder
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
             if (!$isMain) {
-                $chunk->componentsIndex .= PHP_EOL . "window.ViewiApp.Viewi.publish(\"$chunkName\", components);" . PHP_EOL;
+                $chunk->componentsIndex .= PHP_EOL . "window.ViewiApp.{$this->appName}.publish(\"$chunkName\", components);" . PHP_EOL;
             }
             file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
             if ($isMain) {
@@ -810,8 +827,6 @@ class Builder
             throw new Exception("NPM build failed: code $result_code $text");
         }
         copy($this->jsPath . $d . 'components.json', $this->jsPath . $d . 'dist' . $d . 'components.json');
-        $distJsMinFile = $this->jsPath . $d . 'dist' . $d . 'viewi.min.js';
-        file_put_contents("$distJsMinFile.gz", gzencode(file_get_contents($distJsMinFile), 5));
         // TODO: configurable paths
         // TODO: configurable minify
         chdir($currentDir);
@@ -827,6 +842,7 @@ class Builder
                 throw new Exception("Could not find Viewi build file at $distJsFileMin.");
             }
             copy($distJsFileMin, $this->publicPath . $d . $chunk->distFileMinName);
+            file_put_contents("$distJsFileMin.gz", gzencode(file_get_contents($distJsFileMin), 5));
             if ($chunk->distFileJsonName) {
                 copy($this->jsPath . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->distFileJsonName);
             }
