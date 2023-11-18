@@ -25,7 +25,8 @@ export function renderApp(
     }
     const info = componentsMeta.list[name];
     if (info.lazy && !(info.lazy in lazyRecords)) {
-        const scriptUrl = resources.publicPath + 'viewi.' + info.lazy + (resources.minify ? '.min' : '') + '.js'
+        const baseName = 'viewi' + (resources.name === 'default' ? '' : '.' + resources.name);
+        const scriptUrl = resources.publicPath + baseName + '.' + info.lazy + (resources.minify ? '.min' : '') + '.js'
             + (resources.appendVersion ? '?' + resources.build : '');
         injectScript(scriptUrl);
         delay.postpone(info.lazy, function () {
