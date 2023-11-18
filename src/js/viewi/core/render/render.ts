@@ -434,7 +434,16 @@ export function render(
                                     const rawNode = rawNodes[rawNodeI];
                                     const rawNodeType = rawNode.nodeType;
                                     if (rawNodeType === 3) {
+                                        anchor!.current++;
                                         // text
+                                        const currentTargetNode = target.childNodes[anchor!.current];
+                                        if (currentTargetNode && currentTargetNode.nodeType === rawNodeType) {
+                                            currentTargetNode.nodeValue = rawNode.nodeValue;
+                                        } else {
+                                            insert
+                                                ? target.parentElement!.insertBefore(rawNode, target)
+                                                : target.appendChild(rawNode);
+                                        }
                                     } else {
                                         // other
                                         anchor!.current++;
@@ -445,8 +454,9 @@ export function render(
                                             || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
                                         ) {
                                             // mismatch by type
-                                            console.log('Missmatch');
-                                            // TODO: handle mismatch
+                                            insert
+                                                ? target.parentElement!.insertBefore(rawNode, target)
+                                                : target.appendChild(rawNode);
                                         } else if (rawNodeType === 1) {
                                             if (currentTargetNode.nodeName !== rawNode.nodeName || (<HTMLElement>currentTargetNode).outerHTML !== rawNode.outerHTML) {
                                                 const keepKey = (<HTMLElement>currentTargetNode).getAttribute('data-keep');
