@@ -1,4 +1,4 @@
-import { components } from "../app/main/components";
+import { components, templates } from "../app/main/components";
 import { functions } from "../app/main/functions";
 import { resources } from "../app/main/resources";
 import { ComponentsJson } from "./core/component/componentsJson";
@@ -34,7 +34,10 @@ window.ViewiApp = window.ViewiApp || {};
 window.ViewiApp[resources.name] = ViewiApp;
 
 (async () => {
-    const data = await (await fetch(resources.componentsPath)).json() as ComponentsJson;
+    let data: ComponentsJson = JSON.parse(templates);
+    if (!resources.combine) {
+        data = await (await fetch(resources.componentsPath)).json() as ComponentsJson;
+    }
     componentsMeta.list = data;
     componentsMeta.router.setRoutes(data._routes);
     componentsMeta.config = data._config;
