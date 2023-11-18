@@ -16,6 +16,7 @@ class AppConfig
      * @param bool $combineJsJson Combines javascript bundle with JSON templates
      * @param bool $appendVersionPath Appends version/build id to every assets http request to avoid caching in the browser
      * @param bool $prod Enables production mode - no build process for each request
+     * @param bool $internalDevMode Enables internal development mode, overrides all files every time.
      * @param string[] $includes Additional components and packages
      * @return void 
      */
@@ -31,6 +32,7 @@ class AppConfig
         public bool $combineJsJson = false,
         public bool $appendVersionPath = false,
         public bool $prod = false,
+        public bool $internalDevMode = false,
         public array $includes = []
     ) {
     }
