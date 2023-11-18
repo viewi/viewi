@@ -62,6 +62,7 @@ class Builder
     private string $appName;
     private bool $minifyJs;
     private bool $appendVersion;
+    private bool $combineJsJson;
     // Keep it as associative array
     /**
      * 
@@ -108,6 +109,7 @@ class Builder
         $this->publicPath = $config->publicPath;
         $this->assetsPath = $config->publicUrl;
         $this->minifyJs = $config->minifyJs;
+        $this->combineJsJson = $config->combineJsJson;
         $this->appendVersion = $config->appendVersionPath;
         $this->publicConfig = $publicConfig;
         $d = DIRECTORY_SEPARATOR;
@@ -691,12 +693,13 @@ class Builder
         }
         /** END COMPONENTS FOREACH **/
 
-        $conponentsJsonPublicPath = $this->assetsPath . '/components.json';
+        $chunckBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
+        $conponentsJsonPublicPath = $this->assetsPath . "/$chunckBaseName.json";
         $publicPath = $this->assetsPath . '/';
         $buildId = Helpers::randomString();
         $this->meta['assets'] = [
-            'app' => $this->assetsPath . '/viewi.js',
-            'app-min' => $this->assetsPath . '/viewi.min.js',
+            'app' => $this->assetsPath . "/$chunckBaseName.js",
+            'app-min' => $this->assetsPath . "/$chunckBaseName.min.js",
             'build-id' => $buildId,
             'minify' => $this->minifyJs,
             'append-version' => $this->appendVersion,
@@ -714,16 +717,34 @@ class Builder
         $viewiVersion = '2.0.0';
         $minifyStr = var_export($this->minifyJs, true);
         $appendVersionStr = var_export($this->appendVersion, true);
+        $combineStr = var_export($this->combineJsJson, true);
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
         $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'," . PHP_EOL;
         $resourcesIndexJs .= "    publicPath: '$publicPath'," . PHP_EOL;
         $resourcesIndexJs .= "    name: '{$this->appName}'," . PHP_EOL;
         $resourcesIndexJs .= "    minify: {$minifyStr}," . PHP_EOL;
+        $resourcesIndexJs .= "    combine: {$combineStr}," . PHP_EOL;
         $resourcesIndexJs .= "    appendVersion: {$appendVersionStr}," . PHP_EOL;
         $resourcesIndexJs .= "    build: '$buildId'," . PHP_EOL;
         $resourcesIndexJs .= "    version: '$viewiVersion'," . PHP_EOL;
         $resourcesIndexJs .= '};';
 
+        $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
+        $publicJson['_routes'] = [];
+        $routes = $this->router->getRoutes();
+        foreach ($routes as $route) {
+            if ($route->action instanceof ComponentRoute) {
+                $item = (array)$route;
+                $component = $route->action->component;
+                $item['action'] = strpos($component, '\\') !== false ?
+                    substr(strrchr($component, "\\"), 1)
+                    : $component;
+                unset($item['transformCallback']);
+                $publicJson['_routes'][] = $item;
+            }
+        }
+        $publicJson['_config'] = $this->publicConfig;
+        $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         // components/index.js
         // functions/index.js
         foreach ($chunks->chunks as $chunkName => $chunk) {
@@ -731,18 +752,26 @@ class Builder
 
             // components
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
-            $chunk->componentsIndex .= $chunk->componentsExport ? PHP_EOL . '};' : '};';
-            if (!$isMain) {
+            $chunk->componentsIndex .= ($chunk->componentsExport ? PHP_EOL . '};' : '};') . PHP_EOL;
+            if ($isMain) {
+                $templatesJSON = $this->combineJsJson ? json_encode($publicJsonContent) : '"{}"';
+                $chunk->componentsIndex .= PHP_EOL . "export const templates = $templatesJSON;" . PHP_EOL;
+            } else {
                 $chunk->componentsIndex .= PHP_EOL . "window.ViewiApp.{$this->appName}.publish(\"$chunkName\", components);" . PHP_EOL;
             }
             file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
             if ($isMain) {
                 $chunk->distFileName = "viewi.js";
                 $chunk->distFileMinName = "viewi.min.js";
+                $chunk->publicFileName = "$chunckBaseName.js";
+                $chunk->publicFileMinName = "$chunckBaseName.min.js";
                 $chunk->distFileJsonName = "components.json";
+                $chunk->ppublicFileJsonName = "$chunckBaseName.json";
             } else {
                 $chunk->distFileName = "viewi.$chunkName.js";
                 $chunk->distFileMinName = "viewi.$chunkName.min.js";
+                $chunk->publicFileName = "$chunckBaseName.$chunkName.js";
+                $chunk->publicFileMinName = "$chunckBaseName.$chunkName.min.js";
                 $lazyGroupEntry = "./app/$chunkName/components/index.js";
                 $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'" . PHP_EOL;
             }
@@ -795,22 +824,6 @@ class Builder
         $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
         file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
 
-        $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
-        $publicJson['_routes'] = [];
-        $routes = $this->router->getRoutes();
-        foreach ($routes as $route) {
-            if ($route->action instanceof ComponentRoute) {
-                $item = (array)$route;
-                $component = $route->action->component;
-                $item['action'] = strpos($component, '\\') !== false ?
-                    substr(strrchr($component, "\\"), 1)
-                    : $component;
-                unset($item['transformCallback']);
-                $publicJson['_routes'][] = $item;
-            }
-        }
-        $publicJson['_config'] = $this->publicConfig;
-        $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
         // Run NPM command
         // TODO: watch mode
@@ -835,16 +848,16 @@ class Builder
             if (!file_exists($distJsFile)) {
                 throw new Exception("Could not find Viewi build file at $distJsFile.");
             }
-            copy($distJsFile, $this->publicPath . $d . $chunk->distFileName);
+            copy($distJsFile, $this->publicPath . $d . $chunk->publicFileName);
 
             $distJsFileMin = $this->jsPath . $d . 'dist' . $d . $chunk->distFileMinName;
             if (!file_exists($distJsFileMin)) {
                 throw new Exception("Could not find Viewi build file at $distJsFileMin.");
             }
-            copy($distJsFileMin, $this->publicPath . $d . $chunk->distFileMinName);
+            copy($distJsFileMin, $this->publicPath . $d . $chunk->publicFileMinName);
             file_put_contents("$distJsFileMin.gz", gzencode(file_get_contents($distJsFileMin), 5));
             if ($chunk->distFileJsonName) {
-                copy($this->jsPath . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->distFileJsonName);
+                copy($this->jsPath . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->ppublicFileJsonName);
             }
         }
     }
