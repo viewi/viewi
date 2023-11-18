@@ -61,6 +61,7 @@ class Builder
     private array $publicConfig;
     private string $appName;
     private bool $minifyJs;
+    private bool $internalDevMode;
     private bool $appendVersion;
     private bool $combineJsJson;
     // Keep it as associative array
@@ -109,6 +110,7 @@ class Builder
         $this->publicPath = $config->publicPath;
         $this->assetsPath = $config->publicUrl;
         $this->minifyJs = $config->minifyJs;
+        $this->internalDevMode = $config->internalDevMode;
         $this->combineJsJson = $config->combineJsJson;
         $this->appendVersion = $config->appendVersionPath;
         $this->publicConfig = $publicConfig;
@@ -444,8 +446,7 @@ class Builder
         if (!file_exists($viewiCorePath)) {
             mkdir($viewiCorePath, 0777, true);
         }
-        $coreDevMode = true; // TODO: config for internal core development
-        if ($coreDevMode) {
+        if ($this->internalDevMode) {
             Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         }
         Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
