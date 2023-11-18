@@ -13,6 +13,7 @@ class AppConfig
      * @param null|string $publicPath Destination path for public assets
      * @param null|string $publicUrl Relative URL path for public assets
      * @param bool $minifyJs Enables minification for javascript build files
+     * @param bool $combineJsJson Combines javascript bundle with JSON templates
      * @param bool $appendVersionPath Appends version/build id to every assets http request to avoid caching in the browser
      * @param bool $prod Enables production mode - no build process for each request
      * @param string[] $includes Additional components and packages
@@ -27,6 +28,7 @@ class AppConfig
         public ?string $publicPath = null,
         public ?string $publicUrl = null,
         public bool $minifyJs = false,
+        public bool $combineJsJson = false,
         public bool $appendVersionPath = false,
         public bool $prod = false,
         public array $includes = []
@@ -68,6 +70,17 @@ class AppConfig
     public function minfy(?bool $minify = null): self
     {
         $this->minifyJs = $minify ?? true;
+        return $this;
+    }
+
+    /**
+     * Combines javascript bundle with JSON templates. No separate http call for templates.
+     * @param null|bool $combine 
+     * @return AppConfig 
+     */
+    public function combine(?bool $combine = null): self
+    {
+        $this->combineJsJson = $combine ?? true;
         return $this;
     }
 
