@@ -1,7 +1,7 @@
 import { components, templates } from "../app/main/components";
 import { functions } from "../app/main/functions";
 import { resources } from "../app/main/resources";
-import "../modules";
+import "../modules/main";
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { delay } from "./core/di/delay";
