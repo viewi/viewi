@@ -752,6 +752,18 @@ class Builder
             $isMain = $chunk->name === Chunk::MAIN;
 
             // components
+            if (!$isMain) {
+                $chunk->componentsIndex .= "import \"../../../modules/{$chunk->name}\";" . PHP_EOL;
+                // server\viewi-app\js\modules\CustomJsPage\index.ts
+                $modulesFolder = $this->jsPath . $d . 'modules' . $d . $chunk->name;
+                $modulesFile = $modulesFolder . $d . 'index.ts';
+                if (!file_exists($modulesFolder)) {
+                    mkdir($modulesFolder, 0777, true);
+                }
+                if (!file_exists($modulesFile)) {
+                    file_put_contents($modulesFile, "export const modules = {};");
+                }
+            }
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= ($chunk->componentsExport ? PHP_EOL . '};' : '};') . PHP_EOL;
             if ($isMain) {
@@ -774,7 +786,7 @@ class Builder
                 $chunk->publicFileName = "$chunckBaseName.$chunkName.js";
                 $chunk->publicFileMinName = "$chunckBaseName.$chunkName.min.js";
                 $lazyGroupEntry = "./app/$chunkName/components/index.js";
-                $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'" . PHP_EOL;
+                $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'," . PHP_EOL;
             }
 
             // functions
