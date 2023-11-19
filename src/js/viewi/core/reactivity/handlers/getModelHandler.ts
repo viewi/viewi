@@ -31,7 +31,7 @@ export function getModelHandler(
         } else if (options.inputType === "radio") {
             const inputValue = event.target.value;
             options.setter(instance, inputValue);
-        } else if (options.isMultiple) {
+        } else if (options.isMultiple || event.target.multiple) {
             const inputOptions = event.target.options;
             const newValue: string[] = [];
             for (let i = 0; i < inputOptions.length; i++) {

@@ -39,7 +39,7 @@ export function updateModelValue(
             target.removeAttribute('checked');
             target.checked = false;
         }
-    } else if (options.isMultiple) {
+    } else if (options.isMultiple || target.multiple) {
         const inputOptions = target.options;
         const currentValue = options.getter(instance);
         for (let i = 0; i < inputOptions.length; i++) {
