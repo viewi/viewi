@@ -20,6 +20,14 @@ class Platform {
     getCurrentUrl(): string {
         return location.pathname + location.search;
     }
+
+    getCurrentUrlPath(): string {
+        return location.pathname;
+    }
+
+    getQueryParams() {
+        return Object.fromEntries(new URLSearchParams(location.search));
+    }
 }
 
 export { Platform }

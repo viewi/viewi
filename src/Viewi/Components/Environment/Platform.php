@@ -42,6 +42,16 @@ class Platform
         return $this->engine->getRequest()?->url;
     }
 
+    public function getCurrentUrlPath(): ?string
+    {
+        return explode('?', $this->engine->getRequest()?->url)[0];
+    }
+
+    public function getQueryParams()
+    {
+        return $this->engine->getRequest()?->getQueryParams();
+    }
+
     // server-side only
     public function app()
     {
