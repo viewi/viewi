@@ -41,5 +41,6 @@ class RouteItem
     public function transform($transform)
     {
         $this->transformCallback = $transform;
+        return $this;
     }
 }
