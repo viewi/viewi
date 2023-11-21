@@ -28,4 +28,14 @@ class ClientRoute
     {
         return $this->platform->getCurrentUrl();
     }
+
+    public function getUrlPath(): ?string
+    {
+        return $this->platform->getCurrentUrlPath();
+    }
+
+    public function getQueryParams()
+    {
+        return $this->platform->getQueryParams();
+    }
 }
