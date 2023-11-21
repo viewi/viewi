@@ -6,8 +6,8 @@ use Exception;
 use RuntimeException;
 use Viewi\Builder\Builder;
 use Viewi\Components\Assets\ViewiAssets;
-use Viewi\Components\Environment\Process;
-use Viewi\Components\Http\HttpClient;
+use Viewi\Components\Environment\Platform;
+use Viewi\Components\Http\Message\Request;
 use Viewi\Components\Http\Message\Response;
 use Viewi\Container\Factory;
 use Viewi\Exceptions\RouteNotFoundException;
@@ -40,8 +40,8 @@ class App
     {
         if (!isset($this->factory)) {
             $this->factory = new Factory();
-            $this->factory->add(Process::class, function (Engine $engine) {
-                return new Process($this, $engine);
+            $this->factory->add(Platform::class, function (Engine $engine) {
+                return new Platform($this, $engine);
             });
             $this->factory->add(ViewiAssets::class, function (Engine $engine) {
                 $assets = new ViewiAssets();
@@ -54,10 +54,10 @@ class App
                 $assets->appPath = $appPath;
                 $state = [];
                 $responses = [];
-                /** @var Process */
-                $process = $engine->getIfExists(Process::class);
-                if ($process !== null) {
-                    $responses = $process->httpState;
+                /** @var Platform */
+                $platform = $engine->getIfExists(Platform::class);
+                if ($platform !== null) {
+                    $responses = $platform->httpState;
                 }
                 $state['http'] = $responses;
                 $state['state'] = $engine->getState();
@@ -85,18 +85,18 @@ class App
     }
 
     // TODO: adapter, PSR request/response, framework handler
-    public function run(?string $url = null, string $method = null)
+    public function run(?string $uri = null, string $method = null)
     {
-        $url ??= $_SERVER['REDIRECT_URL'] ?? preg_replace('/\?.*/', '', $_SERVER['REQUEST_URI']);
+        $uri ??= $_SERVER['REQUEST_URI'];
         $method ??= $_SERVER['REQUEST_METHOD'];
-        $match = $this->router->resolve(explode('?', $url)[0], $method);
+        $match = $this->router->resolve(explode('?', $uri)[0], $method);
         // Helpers::debug([$match, $this->router]);
         if ($match === null) {
             $routeData = [
-                'path' => $url,
+                'path' => $uri,
                 'method' => $method
             ];
-            throw new RouteNotFoundException("Route \"$url\" not found", 0, null, $routeData);
+            throw new RouteNotFoundException("Route \"$uri\" not found", 0, null, $routeData);
         }
 
         /** @var RouteItem */
@@ -104,7 +104,8 @@ class App
         $action = $routeItem->action;
         $response = null;
         if ($action instanceof ComponentRoute) {
-            $response = $this->engine()->render($action->component, $match['params']);
+            $request = new Request($uri, $method);
+            $response = $this->engine()->render($action->component, $match['params'], $request);
         } elseif (is_array($action)) {
             throw new Exception("Not implemented");
         } elseif (is_callable($action)) {
