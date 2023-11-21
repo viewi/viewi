@@ -46,6 +46,14 @@ class Request
         return $clone;
     }
 
+    public function getQueryParams()
+    {
+        $parts = parse_url($this->url);
+        $query = [];
+        parse_str($parts['query'] ?? '', $query);
+        return $query;
+    }
+
     // PHP clone is not supported in JS, use custom clone implementation
     public function clone(): self
     {
