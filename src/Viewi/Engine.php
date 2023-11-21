@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\Http\Message\Request;
 use Viewi\Components\Http\Message\Response;
 use Viewi\Components\Middleware\IMIddleware;
 use Viewi\Components\Middleware\MIddlewareContext;
@@ -16,25 +17,43 @@ class Engine
     private array $DIContainer = [];
     private int $instanceIdCounter = 0;
     private bool $allow = true;
+    private Response $response;
+    private ?Request $request;
 
     public function __construct(private array $meta, private Factory $factory)
     {
     }
 
-    public function render(string $component, array $params = []): Response
+    public function render(string $component, array $params = [], ?Request $request = null): Response
     {
         $component = strpos($component, '\\') !== false ?
             substr(strrchr($component, "\\"), 1)
             : $component;
+        $this->request = $request;
         if (isset($this->meta['components'][$component]['middleware'])) {
             $this->guard($this->meta['components'][$component]['middleware']);
         }
+        $response = $this->getResponse();
         if ($this->allow) {
             $content = $this->renderComponent($component, [], [], [], $params);
-            return new Response('/', 200, 'OK', ['Content-type' => 'text/html; charset=utf-8'], $content);
+            $response->headers['Content-type'] = 'text/html; charset=utf-8';
+            $response->body = $content;
         } else {
-            return new Response('/', 403, 'Forbidden', ['Content-type' => 'text/html; charset=utf-8'], 'Forbidden');
+            $response->status = 403;
+            $response->statusText = 'Forbidden';
+            $response->body = 'Forbidden';
         }
+        return $response;
+    }
+
+    public function getResponse(): Response
+    {
+        return $this->response ?? ($this->response = new Response('/', 200, 'OK'));
+    }
+
+    public function getRequest(): ?Request
+    {
+        return $this->request;
     }
 
     public function guard(array $middlewareList): void
