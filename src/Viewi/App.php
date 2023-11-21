@@ -105,6 +105,7 @@ class App
         $response = null;
         if ($action instanceof ComponentRoute) {
             $request = new Request($uri, $method);
+            // Helpers::debug([$request, $request->getQueryParams()]);
             $response = $this->engine()->render($action->component, $match['params'], $request);
         } elseif (is_array($action)) {
             throw new Exception("Not implemented");
