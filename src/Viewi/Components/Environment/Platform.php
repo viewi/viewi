@@ -11,7 +11,7 @@ use Viewi\Engine;
 
 #[Singleton]
 #[CustomJs]
-class Process
+class Platform
 {
     public bool $browser = false;
     public bool $server = true;
@@ -24,6 +24,22 @@ class Process
     public function getConfig()
     {
         return $this->appInstance->getPublicConfig();
+    }
+
+    public function redirect(string $url)
+    {
+        $response = $this->engine->getResponse();
+        $response->headers['Location'] = $url;
+    }
+
+    public function navigateBack()
+    {
+        // only client-side
+    }
+
+    public function getCurrentUrl(): ?string
+    {
+        return $this->engine->getRequest()?->url;
     }
 
     // server-side only
