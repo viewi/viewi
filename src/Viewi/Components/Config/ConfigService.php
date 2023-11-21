@@ -2,16 +2,16 @@
 
 namespace Viewi\Components\Config;
 
-use Viewi\Components\Environment\Process;
+use Viewi\Components\Environment\Platform;
 use Viewi\DI\Singleton;
 
 #[Singleton]
 class ConfigService
 {
     private array $config;
-    public function __construct(private Process $process)
+    public function __construct(private Platform $platform)
     {
-        $this->config = $process->getConfig();
+        $this->config = $platform->getConfig();
     }
 
     public function getAll(): array
