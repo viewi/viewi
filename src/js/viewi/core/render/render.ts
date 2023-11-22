@@ -35,6 +35,7 @@ import { globalScope } from "../di/globalScope";
 import { isSvg } from "../helpers/isSvg";
 import { svgNameSpace } from "../helpers/svgNameSpace";
 import { HtmlNodeType } from "../node/htmlNodeType";
+import { hydrateRaw } from "../hydrate/hydrateRaw";
 
 export function render(
     target: HtmlNodeType,
@@ -428,47 +429,8 @@ export function render(
                         const anchor: Anchor | undefined = hydrate ? getAnchor(target) : undefined;
                         const anchorBegin = createAnchorNode(target, insert, anchor); // begin raw
                         if (hydrate) {
-                            if (vdom.childNodes.length > 0) {
-                                const rawNodes: HTMLElement[] = Array.prototype.slice.call(vdom.childNodes);
-                                for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
-                                    const rawNode = rawNodes[rawNodeI];
-                                    const rawNodeType = rawNode.nodeType;
-                                    if (rawNodeType === 3) {
-                                        anchor!.current++;
-                                        // text
-                                        const currentTargetNode = target.childNodes[anchor!.current];
-                                        if (currentTargetNode && currentTargetNode.nodeType === rawNodeType) {
-                                            currentTargetNode.nodeValue = rawNode.nodeValue;
-                                        } else {
-                                            insert
-                                                ? target.parentElement!.insertBefore(rawNode, target)
-                                                : target.appendChild(rawNode);
-                                        }
-                                    } else {
-                                        // other
-                                        anchor!.current++;
-                                        const currentTargetNode = target.childNodes[anchor!.current];
-                                        if (
-                                            !currentTargetNode
-                                            || currentTargetNode.nodeType !== rawNodeType
-                                            || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
-                                        ) {
-                                            // mismatch by type
-                                            insert
-                                                ? target.parentElement!.insertBefore(rawNode, target)
-                                                : target.appendChild(rawNode);
-                                        } else if (rawNodeType === 1) {
-                                            if (currentTargetNode.nodeName !== rawNode.nodeName || (<HTMLElement>currentTargetNode).outerHTML !== rawNode.outerHTML) {
-                                                const keepKey = (<HTMLElement>currentTargetNode).getAttribute('data-keep');
-                                                if (!keepKey || keepKey !== rawNode.getAttribute('data-keep')) { // keep server-side version
-                                                    (<HTMLElement>currentTargetNode).outerHTML = rawNode.outerHTML;
-                                                }
-                                            }
-                                        }
-                                        // matched, continue
-                                    }
-                                }
-                            }
+                            anchor!.current++;
+                            hydrateRaw(vdom, anchor!, target);
                         } else {
                             if (vdom.childNodes.length > 0) {
                                 const rawNodes = Array.prototype.slice.call(vdom.childNodes);
