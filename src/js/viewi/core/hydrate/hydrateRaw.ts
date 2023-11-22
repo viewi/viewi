@@ -4,7 +4,6 @@ import { HtmlNodeType } from "../node/htmlNodeType";
 export function hydrateRaw(vdom: HTMLElement, anchor: Anchor, target: HtmlNodeType) {
     if (vdom.childNodes.length > 0) {
         const invalid: number[] = [];
-        const max = target.childNodes.length;
         const rawNodes: HTMLElement[] = Array.prototype.slice.call(vdom.childNodes);
         for (let rawNodeI = 0; rawNodeI < rawNodes.length; rawNodeI++) {
             const rawNode = rawNodes[rawNodeI];
@@ -16,10 +15,11 @@ export function hydrateRaw(vdom: HTMLElement, anchor: Anchor, target: HtmlNodeTy
                     currentTargetNode.nodeValue = rawNode.nodeValue;
                 } else {
                     anchor.added++;
-                    max > anchor.current && invalid.push(anchor.current + 1);
-                    max > anchor.current
-                        ? target.insertBefore(rawNode, target.childNodes[anchor.current])
+                    target.childNodes.length > anchor.current && invalid.push(anchor.current);
+                    target.childNodes.length > anchor.current + 1
+                        ? target.insertBefore(rawNode, target.childNodes[anchor.current + 1])
                         : target.appendChild(rawNode);
+                    anchor.current++;
                     // insert
                     //     ? target.parentElement!.insertBefore(rawNode, target)
                     //     : target.appendChild(rawNode);
@@ -33,10 +33,11 @@ export function hydrateRaw(vdom: HTMLElement, anchor: Anchor, target: HtmlNodeTy
                     || (rawNodeType === 1 && currentTargetNode.nodeName !== rawNode.nodeName)
                 ) {
                     anchor.added++;
-                    max > anchor.current && invalid.push(anchor.current + 1);
-                    max > anchor.current
-                        ? target.insertBefore(rawNode, target.childNodes[anchor.current])
+                    target.childNodes.length > anchor.current && invalid.push(anchor.current);
+                    target.childNodes.length > anchor.current + 1
+                        ? target.insertBefore(rawNode, target.childNodes[anchor.current + 1])
                         : target.appendChild(rawNode);
+                    anchor.current++;
                     // mismatch by type
                     // insert
                     //     ? target.parentElement!.insertBefore(rawNode, target)
