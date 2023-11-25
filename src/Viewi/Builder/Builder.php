@@ -15,6 +15,7 @@ use Viewi\Components\Attributes\Middleware;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\Middleware\IMIddleware;
+use Viewi\Components\Render\IRenderable;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
@@ -483,6 +484,10 @@ class Builder
                 // dependencies, props
 
                 $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
+                if ($buildItem->ReflectionClass->implementsInterface(IRenderable::class)) {
+                    $componentMeta['renderer'] = true;
+                    $publicJson[$buildItem->ComponentName]['renderer'] = true;
+                }
                 $lifecycleHooks = [];
                 foreach ($buildItem->Methods as $method => $_) {
                     if (isset($this->hookMethods[$method])) {
