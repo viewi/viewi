@@ -8,6 +8,8 @@ use Viewi\Components\Http\Message\Request;
 use Viewi\Components\Http\Message\Response;
 use Viewi\Components\Middleware\IMIddleware;
 use Viewi\Components\Middleware\MIddlewareContext;
+use Viewi\Components\Render\IRenderable;
+use Viewi\Components\Render\RenderContext;
 use Viewi\Container\Factory;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
@@ -19,6 +21,12 @@ class Engine
     private bool $allow = true;
     private Response $response;
     private ?Request $request;
+    /**
+     * 
+     * @var callable[]
+     */
+    private array $postActions = [];
+    private int $postActionIdCounter = 0;
 
     public function __construct(private array $meta, private Factory $factory)
     {
@@ -43,12 +51,15 @@ class Engine
             $response->statusText = 'Forbidden';
             $response->body = 'Forbidden';
         }
+        foreach ($this->postActions as $postAction) {
+            $postAction($response);
+        }
         return $response;
     }
 
     public function getResponse(): Response
     {
-        return $this->response ?? ($this->response = new Response('/', 200, 'OK'));
+        return $this->response ?? ($this->response = new Response($this->request?->url ?? '/', 200, 'OK'));
     }
 
     public function getRequest(): ?Request
@@ -79,20 +90,30 @@ class Engine
 
     public function renderComponent(string $component, array $props, array $slots, array $scope, array $params = [])
     {
+        // if ($component === 'Portal') {
+        //     Helpers::debug([$component, 'props', $props, 'slots', $slots, 'scope', $scope, 'params', $params]);
+        // }
         if (
             !isset($this->meta['components'][$component])
-            || !isset($this->meta['components'][$component]['Function'])
         ) {
             throw new Exception("Component '$component' not found.");
         }
         // Helpers::debug([$componentMeta]);
         $classInstance = $this->resolve($component, $params);
+        if ($classInstance instanceof IRenderable) {
+            return $classInstance->render(new RenderContext($component, $props, $slots, $scope, $params));
+        }
         /**
          * @var array{inputs: array, components: array}
          */
         $componentMeta = $this->meta['components'][$component];
         if (isset($componentMeta['hooks']['init'])) {
             $classInstance->init();
+        }
+        if (
+            !isset($this->meta['components'][$component]['Function'])
+        ) {
+            throw new Exception("Component '$component' not found.");
         }
         include_once $this->meta['buildPath'] . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
@@ -254,5 +275,31 @@ class Engine
             }
         }
         return $instance;
+    }
+
+    /**
+     * 
+     * @param callable $action 
+     * @param null|string $id 
+     * @param bool $override 
+     * @return string 
+     * @throws Exception 
+     */
+    public function schedulePostAction($action, ?string $id = null, bool $override = false): string
+    {
+        if ($id === null) {
+            $id = 'postAction' . ($this->postActionIdCounter++);
+        }
+        if (!$override && $this->postActionExists($id)) {
+            throw new Exception("Post action with id '$id' exists already.");
+        }
+
+        $this->postActions[$id] = $action;
+        return $id;
+    }
+
+    public function postActionExists(string $id): bool
+    {
+        return isset($this->postActions[$id]);
     }
 }
