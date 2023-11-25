@@ -14,6 +14,7 @@ import { updateProp } from "../reactivity/handlers/updateProp";
 import { ContextScope } from "../lifecycle/contextScope";
 import { globalScope } from "../di/globalScope";
 import { HtmlNodeType } from "../node/htmlNodeType";
+import { IRenderable } from "./iRenderable";
 
 export function renderComponent(target: HtmlNodeType, name: string, props?: PropsContext, slots?: Slots, hydrate = false, insert = false, params: { [key: string]: any } = {}): ContextScope {
     if (!(name in componentsMeta.list)) {
@@ -40,7 +41,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         }
         lastIteration[name].scope.keep = true;
     }
-    const instance: BaseComponent<any> = reuse ? lastIteration[name].instance : makeProxy(resolve(name, params));
+    const instance: BaseComponent<any> & IRenderable = reuse ? lastIteration[name].instance : makeProxy(resolve(name, params));
     if (!reuse) {
         if (info.hooks && info.hooks.init) {
             (instance as any).init();
@@ -187,6 +188,10 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         return scope;
     }
     // render
+    if (info.renderer) {
+        instance.render(target, name, scope, props, hydrate, insert, params);
+    }
+
     if (
         target
         && root
