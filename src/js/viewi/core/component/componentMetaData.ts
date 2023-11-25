@@ -6,6 +6,7 @@ export type ComponentMetaData = {
     di?: 'Singleton' | 'Scoped' | 'Transient',
     base?: boolean,
     custom?: boolean,
+    renderer?: boolean,
     refs?: { [key: string]: boolean },
     parent?: string,
     lazy?: string,
