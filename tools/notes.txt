@@ -1,0 +1,184 @@
+Array
+(
+    [0] => Portal
+    [1] => props
+    [2] => Array
+        (
+            [name] => header
+        )
+
+    [3] => slots
+    [4] => Array
+        (
+        )
+
+    [5] => scope
+    [6] => Array
+        (
+        )
+
+    [7] => params
+    [8] => Array
+        (
+        )
+
+)
+Array
+(
+    [0] => Portal
+    [1] => props
+    [2] => Array
+        (
+            [to] => body
+        )
+
+---
+if (isset($_slots['map']['default'])) {
+        $_content .= 
+        $_engine->renderSlot(
+            $_slots['component'],
+             $_scope,
+              $_slots['map']['default'],
+               $_slots['parent']
+               );
+    }
+    
+function RenderPortalPage_Portal_default(
+    Viewi\Engine $_engine,
+    Components\Views\Portal\PortalPage $_component,
+    array $_slots,
+    array $_scope
+) {
+    $_content = '';
+    
+    $_content .= '
+        <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; background-color: #fdfdfd; border: 1px solid #ccc; padding: 20px;">
+            This should appear at the end of the body (portal with name "body").
+        </div>
+    ';
+    return $_content;
+}
+
+---
+    [3] => slots
+    [4] => Array
+        (
+            [component] => Components\Views\Portal\PortalPage Object
+                (
+                    [__id] => 1
+                    [_props] => Array
+                        (
+                        )
+
+                    [_element] => 
+                    [_refs] => Array
+                        (
+                        )
+
+                    [_slots] => Array
+                        (
+                        )
+
+                    [title] => Portal demo
+                )
+
+            [parent] => Array
+                (
+                )
+
+            [map] => Array
+                (
+                    [default] => RenderPortalPage_Portal_default
+                )
+
+        )
+
+    [5] => scope
+    [6] => Array
+        (
+        )
+
+    [7] => params
+    [8] => Array
+        (
+        )
+
+)
+Array
+(
+    [0] => Portal
+    [1] => props
+    [2] => Array
+        (
+            [to] => header
+        )
+
+    [3] => slots
+    [4] => Array
+        (
+            [component] => Components\Views\Portal\PortalPage Object
+                (
+                    [__id] => 1
+                    [_props] => Array
+                        (
+                        )
+
+                    [_element] => 
+                    [_refs] => Array
+                        (
+                        )
+
+                    [_slots] => Array
+                        (
+                        )
+
+                    [title] => Portal demo
+                )
+
+            [parent] => Array
+                (
+                )
+
+            [map] => Array
+                (
+                    [default] => RenderPortalPage_Portal_default1
+                )
+
+        )
+
+    [5] => scope
+    [6] => Array
+        (
+        )
+
+    [7] => params
+    [8] => Array
+        (
+        )
+
+)
+Array
+(
+    [0] => Portal
+    [1] => props
+    [2] => Array
+        (
+            [name] => body
+        )
+
+    [3] => slots
+    [4] => Array
+        (
+        )
+
+    [5] => scope
+    [6] => Array
+        (
+        )
+
+    [7] => params
+    [8] => Array
+        (
+        )
+
+)
