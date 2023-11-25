@@ -16,6 +16,7 @@ class Platform
     public bool $browser = false;
     public bool $server = true;
     public array $httpState = [];
+    public array $runtimeState = [];
 
     public function __construct(private App $appInstance, private Engine $engine)
     {
