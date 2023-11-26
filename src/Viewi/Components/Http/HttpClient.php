@@ -41,7 +41,17 @@ class HttpClient
                         $dataKey = json_encode($request->body);
                         $requestKey = "{$request->method}_{$request->url}_$dataKey";
                         // Helpers::debug(['calling', $request]);
-                        $data = $this->platform->app()->run($request->url, $request->method);
+                        $components = parse_url($request->url);
+                        $isExternal = !empty($components['host']);
+                        // TODO: conver response data from adapters (PSR ??)
+                        if ($isExternal) {
+                            $data = $this->externalRequest($request);
+                        } else {
+                            $data = $this->platform->app()->run($request->url, $request->method);
+                            if ($data instanceof Response) {
+                                $data = $data->body;
+                            }
+                        }
                         $this->platform->httpState[$requestKey] = json_encode($data);
                         // continue to response handler
                         $response = new Response('/', 200, 'OK', [], $data);
@@ -94,5 +104,24 @@ class HttpClient
         $newHttp = new HttpClient($this->platform);
         $newHttp->addInterceptor($interceptor);
         return $newHttp;
+    }
+
+    private function externalRequest(Request $request)
+    {
+        $curl = curl_init();
+        $params = array(
+            CURLOPT_URL => $request->url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => strtoupper($request->method),
+            CURLOPT_HTTPHEADER => $request->headers
+        );
+        if ($request->body != null) {
+            $params[CURLOPT_HTTPHEADER]['Content-Type'] = 'application/json';
+            $params[CURLOPT_POSTFIELDS] = json_encode($request->body);
+        }
+        curl_setopt_array($curl, $params);
+        $response = curl_exec($curl);
+        curl_close($curl);
+        return json_decode($response, true);
     }
 }
