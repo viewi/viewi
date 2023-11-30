@@ -74,7 +74,7 @@ class App
     public function engine(): Engine
     {
         if (!$this->ready) {
-            if ($this->config->devMode) {
+            if ($this->config->devMode && !$this->config->useNpmWatch) {
                 $this->build();
             }
             $this->meta = require_once $this->config->buildPath . DIRECTORY_SEPARATOR . 'components.php';
@@ -125,9 +125,15 @@ class App
         return $response;
     }
 
-    public function build()
+    public function getConfig(): AppConfig
+    {
+        return $this->config;
+    }
+
+    public function build(): string
     {
         $builder = new Builder($this->router());
         $builder->build($this->config, $this->publicConfig);
+        return $builder->getLogs();
     }
 }
