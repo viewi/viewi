@@ -7,9 +7,9 @@ $viewiAppPath = __DIR__ . $d;
 $componentsPath =  $viewiAppPath . 'Components';
 $buildPath = $viewiAppPath . 'build';
 $jsPath = $viewiAppPath . 'js';
-$assetsSourcePath = $viewiAppPath . '##public##';
-$publicPath = __DIR__ . $d . '..' . $d . '##public##';
-$assetsPublicUrl = '/assets';
+$assetsSourcePath = $viewiAppPath . 'assets';
+$publicPath = __DIR__ . '##public##';
+$assetsPublicUrl = '';
 
 return (new AppConfig())
     ->buildTo($buildPath)
