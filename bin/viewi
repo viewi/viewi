@@ -136,6 +136,11 @@ class ViewiCLITool
         } else {
             echo "Can't find path '$newAppStubsPath'\n";
         }
+
+        $viewiJsDirFullPath = "$viewiDirFullPath/js";
+        mkdir($viewiJsDirFullPath);
+        $viewiSourceJsPath = "$projectDir/vendor/viewi/viewi/src/js";
+        $this->recurse_copy($viewiSourceJsPath, $viewiJsDirFullPath);
         // set up config
         $configPath = "$projectDir/$viewiDir/config.php";
         echo "Updating config..\n";
@@ -184,12 +189,12 @@ class ViewiCLITool
             // __ROOT__ -> $rootPath
             // __VIEWI__ -> $rootPath . / . $viewiDir
             $content = str_replace('__ROOT__', $rootPath, $content);
-            $content = str_replace('__VIEWI__', $rootPath ? "$rootPath/$viewiDir" : $viewiDir, $content);
+            $content = str_replace('__VIEWI__', $rootPath ? "$rootPath/$viewiDir" : "/$viewiDir", $content);
             // update index.php
             $indexFilePath = "$projectDir/$indexPath";
             if (file_exists($indexFilePath)) {
                 $originalContent = file_get_contents($indexFilePath);
-                if (strpos($content, "$viewiDir/viewi.php") === false) {
+                if (strpos($originalContent, "$viewiDir/viewi.php") === false) {
                     $backupFile = $indexFilePath . 'backup.php';
                     file_put_contents($backupFile, $originalContent);
                     file_put_contents($indexFilePath, $content);
@@ -204,6 +209,11 @@ class ViewiCLITool
         echo "\n\n";
         // finish up
         echo "Now go to your viewi app js folder and run NPM install command.\n";
+        echo "cd $viewiDir/js\n";
+        echo "npm install\n";
+        echo "And then: php build.php.\n";
+        echo "cd $viewiDir/js\n";
+        echo "npm install\n";
         echo "All is set up. Enjoy!\n";
     }
 
