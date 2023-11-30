@@ -65,6 +65,8 @@ class Builder
     private bool $internalDevMode;
     private bool $appendVersion;
     private bool $combineJsJson;
+    private bool $buildJsSourceCode;
+    private string $logs;
     // Keep it as associative array
     /**
      * 
@@ -95,6 +97,11 @@ class Builder
         $this->templateCompiler = new TemplateCompiler($this->jsTranspiler);
     }
 
+    public function getLogs(): string
+    {
+        return $this->logs;
+    }
+
     // collect files,
     // parse template,
     // transpile to js,
@@ -114,6 +121,7 @@ class Builder
         $this->internalDevMode = $config->internalDevMode;
         $this->combineJsJson = $config->combineJsJson;
         $this->appendVersion = $config->appendVersionPath;
+        $this->buildJsSourceCode = $config->buildJSwithNode;
         $this->publicConfig = $publicConfig;
         $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
@@ -122,8 +130,10 @@ class Builder
         $this->avaliableComponents = [];
         $this->usedFunctions = [];
         $this->avaliableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
+        $this->logs .= "Collecting components from '{$config->sourcePath}'.." . PHP_EOL;
         $this->collectComponents($config->sourcePath, true);
         foreach ([...$config->includes, $this->getCoreComponentsPath()] as $path) {
+            $this->logs .= "Collecting components from '{$path}'.." . PHP_EOL;
             $this->collectComponents($path, !$this->shakeTree);
         }
         // Helpers::debug($this->components);
@@ -134,6 +144,7 @@ class Builder
         //      mark used components,
         //      collect reactivity deps
         $this->templateParser->setAvaliableComponents(array_flip(array_keys($this->components)));
+        $this->logs .= "Parsing templates and validating.." . PHP_EOL;
         foreach ($this->components as $buildItem) {
             $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
             $buildItem->ReflectionClass = new ReflectionClass($class);
@@ -145,9 +156,11 @@ class Builder
         // 6. return metadata
         // Helpers::debug(array_flip(array_keys($this->components)));
         // Helpers::debug($this->avaliableComponents);
-        // Helpers::debug($this->usedFunctions);        
+        // Helpers::debug($this->usedFunctions);
+        $this->logs .= "Collecting metadata.." . PHP_EOL;
         $this->collectHtmlRootComponentName();
         // create files
+        $this->logs .= "Building files.." . PHP_EOL;
         $this->makeFiles();
         // Helpers::debug($this->meta);
         // Helpers::debug($this->components);
@@ -155,6 +168,7 @@ class Builder
 
     private function reset()
     {
+        $this->logs = '';
         $this->components = [];
         $this->meta = ['components' => [], 'map' => [], 'buildPath' => ''];
     }
@@ -783,8 +797,9 @@ class Builder
                 $chunk->distFileMinName = "viewi.min.js";
                 $chunk->publicFileName = "$chunckBaseName.js";
                 $chunk->publicFileMinName = "$chunckBaseName.min.js";
-                $chunk->distFileJsonName = "components.json";
-                $chunk->ppublicFileJsonName = "$chunckBaseName.json";
+                $chunk->distFileJsonName = "$chunckBaseName.json";
+                $chunk->publicFileJsonName = "$chunckBaseName.json";
+                file_put_contents($this->jsPath . $d . 'dist' . $d . $chunk->distFileJsonName, $publicJsonContent);
             } else {
                 $chunk->distFileName = "viewi.$chunkName.js";
                 $chunk->distFileMinName = "viewi.$chunkName.min.js";
@@ -842,41 +857,47 @@ class Builder
         $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
         file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
 
-        file_put_contents($this->jsPath . $d . 'components.json', $publicJsonContent);
+        // file_put_contents($this->jsPath . $d . 'dist' . $d . 'components.json', $publicJsonContent);
         // Run NPM command
         // TODO: watch mode
         // TODO: no node mode (means no minfication and all the node features)
-        $npmFolder = $this->jsPath . $d;
-        $currentDir = getcwd();
-        chdir($npmFolder);
-        $command = "npm --prefix $npmFolder run build 2>&1";
-        // $command = "npm run build 2>&1"; // test error
-        $lastLine = exec($command, $output, $result_code);
-        if ($result_code !== 0) {
-            Helpers::debug([$output, $lastLine, $result_code]);
+        if ($this->buildJsSourceCode) {
+            $npmFolder = $this->jsPath . $d;
+            $currentDir = getcwd();
+            chdir($npmFolder);
+            $this->logs .= "Running NPM build command.." . PHP_EOL;
+            $command = "npm --prefix $npmFolder run build 2>&1";
+            // $command = "npm run build 2>&1"; // test error
+            $lastLine = exec($command, $output, $result_code);
             $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
-            throw new Exception("NPM build failed: code $result_code $text");
-        }
-        copy($this->jsPath . $d . 'components.json', $this->jsPath . $d . 'dist' . $d . 'components.json');
-        // TODO: configurable paths
-        // TODO: configurable minify
-        chdir($currentDir);
-        foreach ($chunks->chunks as $chunk) {
-            $distJsFile = $this->jsPath . $d . 'dist' . $d . $chunk->distFileName;
-            if (!file_exists($distJsFile)) {
-                throw new Exception("Could not find Viewi build file at $distJsFile.");
+            if ($result_code !== 0) {
+                // Helpers::debug([$output, $lastLine, $result_code]);
+                throw new Exception("NPM build failed: code $result_code $text");
             }
-            copy($distJsFile, $this->publicPath . $d . $chunk->publicFileName);
+            $this->logs .= "NPM output: " . PHP_EOL;
+            $this->logs .= $text . PHP_EOL;
+            // TODO: configurable paths
+            // TODO: configurable minify
+            chdir($currentDir);
+            $this->logs .= "Moving assets to public folder.." . PHP_EOL;
+            foreach ($chunks->chunks as $chunk) {
+                $distJsFile = $this->jsPath . $d . 'dist' . $d . $chunk->distFileName;
+                if (!file_exists($distJsFile)) {
+                    throw new Exception("Could not find Viewi build file at $distJsFile.");
+                }
+                copy($distJsFile, $this->publicPath . $d . $chunk->publicFileName);
 
-            $distJsFileMin = $this->jsPath . $d . 'dist' . $d . $chunk->distFileMinName;
-            if (!file_exists($distJsFileMin)) {
-                throw new Exception("Could not find Viewi build file at $distJsFileMin.");
+                $distJsFileMin = $this->jsPath . $d . 'dist' . $d . $chunk->distFileMinName;
+                if (!file_exists($distJsFileMin)) {
+                    throw new Exception("Could not find Viewi build file at $distJsFileMin.");
+                }
+                copy($distJsFileMin, $this->publicPath . $d . $chunk->publicFileMinName);
+                file_put_contents("$distJsFileMin.gz", gzencode(file_get_contents($distJsFileMin), 5));
+                if ($chunk->distFileJsonName) {
+                    copy($this->jsPath . $d . 'dist' . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->publicFileJsonName);
+                }
             }
-            copy($distJsFileMin, $this->publicPath . $d . $chunk->publicFileMinName);
-            file_put_contents("$distJsFileMin.gz", gzencode(file_get_contents($distJsFileMin), 5));
-            if ($chunk->distFileJsonName) {
-                copy($this->jsPath . $d . $chunk->distFileJsonName, $this->publicPath . $d . $chunk->ppublicFileJsonName);
-            }
+            $this->logs .= "Ready!" . PHP_EOL;
         }
     }
 
