@@ -8,10 +8,10 @@ require __DIR__ . '__ROOT__/vendor/autoload.php';
 /**
  * @var Viewi\App
  */
-$app = include __DIR__ . '/__VIEWI__/viewi.php';
+$app = include __DIR__ . '__VIEWI__/viewi.php';
 
 // Viewi components
-include __DIR__ . '/__VIEWI__/routes.php';
+include __DIR__ . '__VIEWI__/routes.php';
 
 $response = $app->run();
 
