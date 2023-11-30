@@ -10,6 +10,7 @@ class AppConfig
      * @param bool $devMode Development mode - each new request will trigger build process
      * @param null|string $sourcePath Path to your Viewi project
      * @param null|string $jsPath Path to the JavaScript project
+     * @param null|string $assetsPath Path to public assets
      * @param null|string $publicPath Destination path for public assets
      * @param null|string $publicUrl Relative URL path for public assets
      * @param bool $minifyJs Enables minification for javascript build files
@@ -28,6 +29,7 @@ class AppConfig
         public bool $devMode = false,
         public ?string $sourcePath = null,
         public ?string $jsPath = null,
+        public ?string $assetsPath = null,
         public ?string $publicPath = null,
         public ?string $publicUrl = null,
         public bool $minifyJs = false,
@@ -159,6 +161,17 @@ class AppConfig
 
     /**
      * 
+     * @param string|null $assetsPath Path to public assets
+     * @return AppConfig 
+     */
+    public function withAssets(?string $assetsPath): self
+    {
+        $this->assetsPath = $assetsPath;
+        return $this;
+    }
+
+    /**
+     * 
      * @param string $publicPath Destination path for public assets
      * @return AppConfig 
      */
@@ -173,9 +186,19 @@ class AppConfig
      * @param string $publicUrl Relative URL path for public assets
      * @return AppConfig 
      */
-    public function fetchAssetsFrom(string $publicUrl): self
+    public function assetsPublicUrl(string $publicUrl): self
     {
         $this->publicUrl = $publicUrl;
         return $this;
+    }
+
+    public function getSubFolderName(): string
+    {
+        return "viewi-{$this->name}";
+    }
+
+    public function getPublicPath(): string
+    {
+        return $this->publicUrl . '/' . $this->getSubFolderName();
     }
 }
