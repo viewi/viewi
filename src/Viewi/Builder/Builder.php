@@ -59,6 +59,7 @@ class Builder
     private string $jsPath = '';
     private string $publicPath = '';
     private string $assetsPath = '';
+    private ?string $assetsSourcePath = null;
     private array $publicConfig;
     private string $appName;
     private bool $minifyJs;
@@ -111,19 +112,21 @@ class Builder
 
     public function build(AppConfig $config, array $publicConfig)
     {
+        $d = DIRECTORY_SEPARATOR;
         $this->reset();
         $this->appName = $config->name;
         $this->buildPath = $config->buildPath;
         $this->jsPath = $config->jsPath;
-        $this->publicPath = $config->publicPath;
-        $this->assetsPath = $config->publicUrl;
+        $subFolderName = $config->getSubFolderName();
+        $this->publicPath = $config->publicPath . $d . $subFolderName;
+        $this->assetsPath = $config->publicUrl . "/$subFolderName";
+        $this->assetsSourcePath = $config->assetsPath;
         $this->minifyJs = $config->minifyJs;
         $this->internalDevMode = $config->internalDevMode;
         $this->combineJsJson = $config->combineJsJson;
         $this->appendVersion = $config->appendVersionPath;
         $this->buildJsSourceCode = $config->buildJSwithNode;
         $this->publicConfig = $publicConfig;
-        $d = DIRECTORY_SEPARATOR;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
         // 2. transpile to js and collect uses, props, methods and paths
@@ -449,6 +452,9 @@ class Builder
         $d = DIRECTORY_SEPARATOR;
         if (!file_exists($this->buildPath)) {
             mkdir($this->buildPath, 0777, true);
+        }
+        if (!file_exists($this->publicPath)) {
+            mkdir($this->publicPath, 0777, true);
         }
         Helpers::removeDirectory($this->buildPath);
         [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath] = $this->makeAppFolders();
@@ -856,7 +862,6 @@ class Builder
 
         $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
         file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
-
         // file_put_contents($this->jsPath . $d . 'dist' . $d . 'components.json', $publicJsonContent);
         // Run NPM command
         // TODO: watch mode
@@ -898,6 +903,9 @@ class Builder
                 }
             }
             $this->logs .= "Ready!" . PHP_EOL;
+        }
+        if (!empty($this->assetsSourcePath)) {
+            Helpers::copyAll($this->assetsSourcePath . $d, $this->publicPath . $d);
         }
     }
 
