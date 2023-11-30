@@ -4,7 +4,10 @@ import * as chokidar from 'chokidar';
 import anymatch from 'anymatch';
 import path from 'path';
 import { exec } from 'node:child_process';
+import { PurgeCSS } from 'purgecss';
+import { writeFile } from 'node:fs/promises';
 import { lazyGroups } from './app/lazyGroups.mjs';
+
 let watchMode = false;
 
 process.argv.forEach(function (val, index, array) {
@@ -34,6 +37,21 @@ const runBuild = async function () {
     await esbuild.build({ ...base, entryPoints: [entry], outfile: `./dist/viewi.${group}.js` });
     await esbuild.build({ ...base, entryPoints: [entry], minify: true, outfile: `./dist/viewi.${group}.min.js` });
   }
+
+  // remove unused css
+  let combinedCss = '';
+  const purgeCSSResult = await new PurgeCSS().purge({
+    content: ['./../**/*.js', './../**/*.php', './../**/*.html'],
+    css: ['./../**/*.css'],
+    skippedContentGlobs: ['**/node_modules/**', '**/build/**']
+  });
+  for (let i = 0; i < purgeCSSResult.length; i++) {
+    const purgedCSS = purgeCSSResult[i];
+    if (purgedCSS.file !== './../assets/combined.css') {
+      combinedCss += purgedCSS.css;
+    }
+  }
+  await writeFile('./../assets/combined.css', combinedCss);
 };
 
 const runServerBuild = function () {
@@ -66,7 +84,7 @@ const runBuildAll = async function () {
 let buildTimer = 0;
 
 const runWatch = async function () {
-  const ignored = ['**/build/**', '/js/dist/**', '/js/viewi/**', '**/node_modules/**', '**/app/**'];
+  const ignored = ['**/build/**', '/js/dist/**', '/js/viewi/**', '**/node_modules/**', '**/app/**', '**/combined.css'];
   // https://github.com/paulmillr/chokidar
   chokidar.watch(['.\\..\\']).on('all', (event, itemPath) => {
     const normalizedPath = path.normalize(itemPath).replace(/\\/g, '/').replace('..', '');

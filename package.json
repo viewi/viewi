@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "purgecss": "^5.0.0"
+  }
+}
