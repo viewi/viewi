@@ -15,7 +15,7 @@ class Chunk
     public string $publicFileName = '';
     public string $publicFileMinName = '';
     public string $distFileJsonName = '';
-    public string $ppublicFileJsonName = '';
+    public string $publicFileJsonName = '';
 
     public function __construct(public string $name, public string $jsComponentsPath, public string $jsFunctionsPath, public string $jsResourcesPath)
     {
