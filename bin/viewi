@@ -117,12 +117,12 @@ class ViewiCLITool
         if (file_exists("$projectDir/public/index.php")) {
             $rootPath .= "/..";
             $indexPath = 'public/index.php';
-            $publicPath = 'public/';
+            $publicPath = 'public';
         }
         if (file_exists("$projectDir/www/index.php")) {
             $rootPath .= "/..";
             $indexPath = 'www/index.php';
-            $publicPath = 'www/';
+            $publicPath = 'www';
         }
         // copy contents
         $newAppStubs =
