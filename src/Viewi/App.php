@@ -24,6 +24,7 @@ class App
 
     public function __construct(private AppConfig $config, private array $publicConfig = [])
     {
+        $this->publicConfig['assetsUrl'] = $this->config->getPublicPath();
     }
 
     public function getPublicConfig(): array
