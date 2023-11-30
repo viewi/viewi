@@ -17,6 +17,8 @@ class AppConfig
      * @param bool $appendVersionPath Appends version/build id to every assets http request to avoid caching in the browser
      * @param bool $prod Enables production mode - no build process for each request
      * @param bool $internalDevMode Enables internal development mode, overrides all files every time.
+     * @param bool $buildJSwithNode Runs npm build command for javascript source code
+     * @param bool $useNpmWatch Watch changes with Node js npm script and rebuild
      * @param string[] $includes Additional components and packages
      * @return void 
      */
@@ -33,6 +35,8 @@ class AppConfig
         public bool $appendVersionPath = false,
         public bool $prod = false,
         public bool $internalDevMode = false,
+        public bool $buildJSwithNode = false,
+        public bool $useNpmWatch = false,
         public array $includes = []
     ) {
     }
@@ -83,6 +87,28 @@ class AppConfig
     public function combine(?bool $combine = null): self
     {
         $this->combineJsJson = $combine ?? true;
+        return $this;
+    }
+
+    /**
+     * Runs npm build command for javascript source code.
+     * @param null|bool $buildJSwithNode 
+     * @return AppConfig 
+     */
+    public function buildJsSourceCode(?bool $buildJSwithNode = null): self
+    {
+        $this->buildJSwithNode = $buildJSwithNode ?? true;
+        return $this;
+    }
+
+    /**
+     * Watch changes with Node js npm script and rebuild.
+     * @param null|bool $useNpmWatch 
+     * @return AppConfig 
+     */
+    public function watchWithNPM(?bool $useNpmWatch = null): self
+    {
+        $this->useNpmWatch = $useNpmWatch ?? true;
         return $this;
     }
 
