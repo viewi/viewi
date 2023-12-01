@@ -2,6 +2,7 @@
 <?php
 
 // vendor/bin/viewi new
+// vendor/bin/viewi new -f src/ViewiApp
 // bin/viewi new
 
 $cliTool = new ViewiCLITool();
@@ -108,7 +109,7 @@ class ViewiCLITool
         }
         $adapterOnly = isset($inputsMap['-a']);
         echo "Creating directory '$viewiDir'..\n";
-        mkdir($viewiDirFullPath);
+        mkdir($viewiDirFullPath, 0777, true);
         $deepLevel = count(explode('/', $viewiDir)) - 1;
         $rootPath = ''; // str_repeat('/..', $deepLevel);
         $includePath = str_repeat('/..', $deepLevel + 1);
@@ -117,12 +118,12 @@ class ViewiCLITool
         if (file_exists("$projectDir/public/index.php")) {
             $rootPath .= "/..";
             $indexPath = 'public/index.php';
-            $publicPath = 'public';
+            $publicPath = 'public/';
         }
         if (file_exists("$projectDir/www/index.php")) {
             $rootPath .= "/..";
             $indexPath = 'www/index.php';
-            $publicPath = 'www';
+            $publicPath = 'www/';
         }
         // copy contents
         $newAppStubs =
@@ -139,6 +140,8 @@ class ViewiCLITool
 
         $viewiJsDirFullPath = "$viewiDirFullPath/js";
         mkdir($viewiJsDirFullPath);
+        $viewiJsDistDirFullPath = "$viewiDirFullPath/js/dist";
+        mkdir($viewiJsDistDirFullPath);
         $viewiSourceJsPath = "$projectDir/vendor/viewi/viewi/src/js";
         $this->recurse_copy($viewiSourceJsPath, $viewiJsDirFullPath);
         // set up config
@@ -151,6 +154,18 @@ class ViewiCLITool
         } else {
             echo "Can't find path '$configPath'\n";
         }
+
+        // set up build file
+        $buildPath = "$projectDir/$viewiDir/build.php";
+        echo "Updating build file..\n";
+        if (file_exists($buildPath)) {
+            $content = file_get_contents($buildPath);
+            $content = str_replace('__LEVEL__', $includePath, $content);
+            file_put_contents($buildPath, $content);
+        } else {
+            echo "Can't find path '$buildPath'\n";
+        }
+
         // update composer.json
         $composerFile = "$projectDir/composer.json";
         echo "Updating composer.json..\n";
@@ -206,15 +221,48 @@ class ViewiCLITool
                 echo "$indexFilePath has been created\n\n";
             }
         }
-        echo "\n\n";
-        // finish up
-        echo "Now go to your viewi app js folder and run NPM install command.\n";
-        echo "cd $viewiDir/js\n";
-        echo "npm install\n";
-        echo "And then: php build.php.\n";
-        echo "cd $viewiDir/js\n";
-        echo "npm install\n";
+        echo "\n";
+        echo "Executing NPM install command.\n";
+        $this->runNPMCommand('install', $viewiJsDirFullPath);
+        echo "Executing php build command.\n";
+        $this->runPHPCommand('build.php', $viewiDirFullPath);
+        // echo "Executing NPM build command.\n";
+        // $this->runNPMCommand('run build', $viewiJsDirFullPath);
         echo "All is set up. Enjoy!\n";
+    }
+
+    function runPHPCommand(string $phpCommand, string $directory)
+    {
+        $currentDir = getcwd();
+        chdir($directory);
+        $command = "php $phpCommand 2>&1";
+        echo "PHP command: $phpCommand" . PHP_EOL;
+        $lastLine = exec($command, $output, $result_code);
+        $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
+        if ($result_code !== 0) {
+            // Helpers::debug([$output, $lastLine, $result_code]);
+            throw new Exception("PHP command failed: code $result_code $text");
+        }
+        echo "PHP output: " . PHP_EOL;
+        echo $text . PHP_EOL;
+        chdir($currentDir);
+    }
+
+    function runNPMCommand(string $npmCommand, string $directory)
+    {
+        $currentDir = getcwd();
+        chdir($directory);
+        $command = "npm --prefix $directory $npmCommand 2>&1";
+        echo "NPM command: $command" . PHP_EOL;
+        $lastLine = exec($command, $output, $result_code);
+        $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
+        if ($result_code !== 0) {
+            // Helpers::debug([$output, $lastLine, $result_code]);
+            throw new Exception("NPM command failed: code $result_code $text");
+        }
+        echo "NPM output: " . PHP_EOL;
+        echo $text . PHP_EOL;
+        chdir($currentDir);
     }
 
     function recurse_copy($src, $dst)
