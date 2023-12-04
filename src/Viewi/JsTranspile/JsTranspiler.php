@@ -13,6 +13,8 @@ use PhpParser\Node\Expr\AssignOp\Concat;
 use PhpParser\Node\Expr\AssignOp\Plus;
 use PhpParser\Node\Expr\BinaryOp;
 use PhpParser\Node\Expr\BooleanNot;
+use PhpParser\Node\Expr\Cast;
+use PhpParser\Node\Expr\Cast\Int_;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
@@ -38,7 +40,10 @@ use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Continue_;
+use PhpParser\Node\Stmt\Echo_;
 use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\Stmt\For_;
 use PhpParser\Node\Stmt\Foreach_;
 use PhpParser\Node\Stmt\If_;
 use PhpParser\Node\Stmt\Interface_;
@@ -54,6 +59,7 @@ use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use RuntimeException;
+use Throwable;
 use Viewi\Helpers;
 
 class JsTranspiler
@@ -455,7 +461,9 @@ class JsTranspiler
                 ]);
                 $this->level++;
                 $allScopes = $this->localVariables;
-                $this->localVariables[$key] = true;
+                if (is_string($key)) {
+                    $this->localVariables[$key] = true;
+                }
                 if ($name !== null) {
                     $this->localVariables[$name] = true;
                 }
@@ -707,6 +715,25 @@ class JsTranspiler
                     $this->processStmts([$node->expr]);
                 }
                 $this->jsCode .= ';' . PHP_EOL;
+            } elseif ($node instanceof Continue_) {
+                if ($node->num !== null) {
+                    throw new RuntimeException("Node type 'Continue' with number loops to continue is not supported in javascript.");
+                }
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'continue;' . PHP_EOL;
+            } elseif ($node instanceof Cast) {
+                // skip
+            } elseif ($node instanceof Echo_) {
+                $forStmts = [str_repeat($this->indentationPattern, $this->level) . 'console.log('];
+                $comma = false;
+                foreach ($node->exprs as $expr) {
+                    if ($comma) {
+                        $forStmts[] = ', ';
+                    }
+                    $forStmts[] = $expr;
+                    $comma = true;
+                }
+                $forStmts[] = ');' . PHP_EOL;
+                $this->processStmts($forStmts);
             } elseif ($node instanceof Break_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'break;' . PHP_EOL;
             } elseif ($node instanceof Ternary) {
@@ -794,6 +821,23 @@ class JsTranspiler
                 $this->processStmts($node->stmts);
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+            } elseif ($node instanceof For_) {
+                $loopStmts = array_merge(
+                    [
+                        str_repeat($this->indentationPattern, $this->level) . 'for ('
+                    ],
+                    $node->init,
+                    ['; '],
+                    $node->cond,
+                    ['; '],
+                    $node->loop,
+                    [') {' . PHP_EOL]
+                );
+                $this->processStmts($loopStmts);
+                $this->level++;
+                $this->processStmts($node->stmts);
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } elseif ($node instanceof Switch_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'switch (';
                 $this->processStmts([$node->cond]);
@@ -824,6 +868,8 @@ class JsTranspiler
             } elseif ($node instanceof PostDec) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '--';
+            } elseif ($node instanceof Assign) {
+                $this->processStmts([$node->var, '=', $node->expr]);
             } elseif ($node instanceof UnaryMinus) {
                 $this->processStmts(['-', $node->expr]);
             } elseif ($node instanceof UnaryPlus) {
@@ -866,6 +912,7 @@ class JsTranspiler
                 $this->jsCode .= $node;
             } else {
                 // Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
+                // Helpers::debug($node);
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
