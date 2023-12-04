@@ -75,7 +75,7 @@ class AppConfig
      * @param null|bool $minify 
      * @return AppConfig 
      */
-    public function minfy(?bool $minify = null): self
+    public function minify(?bool $minify = null): self
     {
         $this->minifyJs = $minify ?? true;
         return $this;
