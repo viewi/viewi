@@ -60,7 +60,10 @@ class Helpers
     public static function copyAll(string $fromPath, string $toPath): void
     {
         $resources = [];
-        $fromPath = realpath($fromPath);
+        $relFromPath = realpath($fromPath);
+        if ($relFromPath) {
+            $fromPath = $relFromPath;
+        }
         self::collectFiles($fromPath, $resources, true);
         foreach ($resources as $path => $type) {
             $basePath = str_replace($fromPath, '', $path);
