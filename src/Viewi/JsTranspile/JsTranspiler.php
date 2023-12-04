@@ -154,9 +154,10 @@ class JsTranspiler
             $this->processStmts($this->stmts);
             // $this->debug([$this->phpCode,  $this->jsCode, $this->stmts]);
         } catch (Exception $exc) {
-            Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
-            echo 'Parse Error: ', $exc->getMessage();
-            Helpers::debug($this->phpCode);
+            // Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
+            echo 'Parse Error: ' . PHP_EOL, $exc->getMessage() . PHP_EOL;
+            // Helpers::debug($this->phpCode);
+
         }
         $this->jsCode .= $this->forks;
         // die();
@@ -693,7 +694,12 @@ class JsTranspiler
                     $this->propertyFetchQueue = $queue;
                 }
             } elseif ($node instanceof ClassConstFetch) {
-                $this->jsCode .= '"' . array_pop($node->class->getParts()) . '"';
+                if ($node->class instanceof Name) {
+                    $parts = $node->class->getParts();
+                    $this->jsCode .= '"' . array_pop($parts) . '"';
+                } else {
+                    $this->processStmts([$node->class]);
+                }
             } elseif ($node instanceof Return_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';
                 if ($node->expr != null) {
@@ -859,7 +865,7 @@ class JsTranspiler
             } elseif (is_string($node)) {
                 $this->jsCode .= $node;
             } else {
-                Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
+                // Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
                 throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
