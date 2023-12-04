@@ -50,6 +50,7 @@ class TemplateCompiler
     private array $inlineExpressions = [];
     private array $usedComponents = [];
     private bool $hasHtmlTag = false;
+    private $nullVar = null;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -341,7 +342,7 @@ class TemplateCompiler
         $component = $tagItem->Type->Name === TagItemType::Component;
         $expression = $tagItem->ItsExpression;
         $nested = $root || $tag || $component || $slot || $slotContent || $templateTag;
-        if($component) {
+        if ($component) {
             $this->usedComponents[$tagItem->Content] = true;
         }
         if ($nested) {
@@ -675,7 +676,7 @@ class TemplateCompiler
                 return $attribute;
             }
         }
-        return null;
+        return $this->nullVar;
     }
 
     /**
