@@ -12,9 +12,11 @@ use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Components\Attributes\LazyLoad;
 use Viewi\Components\Attributes\Middleware;
+use Viewi\Components\Attributes\PostBuildAction;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\Middleware\IMIddleware;
+use Viewi\Components\PostBuild\IPostBuildAction;
 use Viewi\Components\Render\IRenderable;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
@@ -90,6 +92,8 @@ class Builder
         'rendered' => true,
         'destroy' => true,
     ];
+
+    private array $renderInvocations = [];
 
     public function __construct(private Router $router)
     {
@@ -367,6 +371,7 @@ class Builder
                 if ($buildItem->TemplatePath !== null) {
                     $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
                     $template = $this->templateCompiler->compile($rootTag, $buildItem);
+                    $this->renderInvocations = array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvokations());
                     foreach ($template->usedFunctions as $funcName => $_) {
                         if (!isset($this->avaliableFunctions[$funcName])) {
                             throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
@@ -485,6 +490,11 @@ class Builder
         $componentFilter = 0; // 0 - main, 1 - lazy load
         $includedInMain = [];
         $includedInGroups = [];
+        /**
+         * @var IPostBuildAction[]
+         */
+        $postBuild = [];
+
         /** COMPONENTS FOREACH **/
         while ($componentFilter < 2) {
             $componentFilter++;
@@ -573,6 +583,18 @@ class Builder
                                     [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
                                     $currentChunk = $chunks->create($lazyLoadGroup, $jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath);
                                     $currentChunk->addComponent($buildItem->ComponentName);
+                                }
+                                break;
+                            }
+                        case PostBuildAction::class: {
+                                /**
+                                 * @var PostBuildAction $postBuildAttributeInstance
+                                 */
+                                $postBuildAttributeInstance = $attribute->newInstance();
+                                $actionClass = $postBuildAttributeInstance->className;
+                                $actionInstance = new $actionClass();
+                                if ($actionInstance instanceof IPostBuildAction) {
+                                    $postBuild[$buildItem->ComponentName] = $actionInstance;
                                 }
                                 break;
                             }
@@ -727,6 +749,14 @@ class Builder
         }
         /** END COMPONENTS FOREACH **/
 
+        foreach ($postBuild as $componentName => $buildAction) {
+            if (isset($this->renderInvocations[$componentName])) {
+                foreach ($this->renderInvocations[$componentName] as $staticProps) {
+                    $buildAction->build($this, $staticProps);
+                }
+            }
+        }
+
         $chunckBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
         $conponentsJsonPublicPath = $this->assetsPath . "/$chunckBaseName.json";
         $publicPath = $this->assetsPath . '/';
@@ -870,10 +900,14 @@ class Builder
 
         $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
         file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
+
+        // post build actions
+
+
         // file_put_contents($this->jsPath . $d . 'dist' . $d . 'components.json', $publicJsonContent);
         // Run NPM command
-        // TODO: watch mode
         // TODO: no node mode (means no minfication and all the node features)
+
         if ($this->buildJsSourceCode) {
             $npmFolder = $this->jsPath . $d;
             $currentDir = getcwd();
