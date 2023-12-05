@@ -467,6 +467,14 @@ class Builder
         if (!file_exists($viewiCorePath)) {
             mkdir($viewiCorePath, 0777, true);
         }
+        $viewiDistPath = $this->jsPath . $d . 'dist';
+        if (!file_exists($viewiDistPath)) {
+            mkdir($viewiDistPath, 0777, true);
+        }
+        $viewiDistAssetsPath = $viewiDistPath . $d . 'assets';
+        if (!file_exists($viewiDistAssetsPath)) {
+            mkdir($viewiDistAssetsPath, 0777, true);
+        }
         if ($this->internalDevMode) {
             Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         }
@@ -905,7 +913,7 @@ class Builder
             $this->logs .= "Ready!" . PHP_EOL;
         }
         if (!empty($this->assetsSourcePath)) {
-            Helpers::copyAll($this->assetsSourcePath . $d, $this->publicPath . $d);
+            Helpers::copyAll($viewiDistAssetsPath . $d, $this->publicPath . $d);
         }
     }
 
