@@ -3,6 +3,7 @@
 namespace Viewi\TemplateCompiler;
 
 use Exception;
+use Throwable;
 use Viewi\Builder\BuildItem;
 use Viewi\Helpers;
 use Viewi\JsTranspile\ExportItem;
@@ -14,6 +15,7 @@ use Viewi\TemplateParser\TagItemType;
 
 class TemplateCompiler
 {
+    const UndefinedValue = '___undefined___';
     private string $code;
     /**
      * 
@@ -51,6 +53,7 @@ class TemplateCompiler
     private array $usedComponents = [];
     private bool $hasHtmlTag = false;
     private $nullVar = null;
+    private array $renderedComponents = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -115,6 +118,11 @@ class TemplateCompiler
         );
     }
 
+    public function getRenderInvokations(): array
+    {
+        return $this->renderedComponents;
+    }
+
     private function reset(bool $all = true)
     {
         $this->code = '';
@@ -128,6 +136,7 @@ class TemplateCompiler
             $this->inlineExpressions = [];
             $this->hasHtmlTag = false;
             $this->usedComponents = [];
+            $this->renderedComponents = [];
         }
     }
 
@@ -398,6 +407,11 @@ class TemplateCompiler
             // == COMPONENT ==
             if ($component) {
                 $this->flushBuffer();
+                $renderedComponentName = !$tagItem->PhpExpression ? $tagItem->Content : null;
+                $renderedComponentProps = [];
+                if ($renderedComponentName && !isset($this->renderedComponents[$renderedComponentName])) {
+                    $this->renderedComponents[$renderedComponentName] = [];
+                }
                 $componentName = $tagItem->PhpExpression ?? var_export($tagItem->Content, true);
                 $rawComponentName = $tagItem->ItsExpression ? 'X' : $tagItem->Content;
                 // pass props
@@ -464,11 +478,27 @@ class TemplateCompiler
                             $combinedValue = "true";
                         }
                         $name = $attributeItem->PhpExpression ?? var_export($attributeItem->Content, true);
+                        if ($renderedComponentName && !$attributeItem->PhpExpression) {
+                            try {
+                                $parsedPropValue = self::UndefinedValue;
+                                $assignCode = "\$parsedPropValue = $combinedValue;";
+                                @eval($assignCode);
+                                if ($parsedPropValue !== self::UndefinedValue) {
+                                    $renderedComponentProps[$attributeItem->Content] = $parsedPropValue;
+                                }
+                            } catch (Throwable $_) {
+                                // silent
+                            }
+                        }
                         $inputArguments[] = "{$comma}$name => $combinedValue";
                         $comma = ',' . PHP_EOL . $this->i();
                     }
                     $this->level--;
                 }
+                if ($renderedComponentName) {
+                    $this->renderedComponents[$renderedComponentName][] = $renderedComponentProps;
+                }
+                // print_r([$renderedComponentName, $this->renderedComponents[$renderedComponentName]]);
                 // build slots
                 $lastState = $this->preserve();
                 $slotRoot = new TagItem();
