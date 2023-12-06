@@ -20,8 +20,8 @@ import { HTMLModelInputElement, updateModelValue } from "../reactivity/handlers/
 import { InputType } from "../node/inputType";
 import { ModelHandler } from "../reactivity/handlers/modelHandler";
 import { isComponent } from "../component/isComponent";
-import { DirectiveMap } from "../directive/DirectiveMap";
-import { DirectiveType } from "../directive/DirectiveType";
+import { DirectiveMap } from "../directive/directiveMap";
+import { DirectiveType } from "../directive/directiveType";
 import { ConditionalDirective } from "../directive/conditionalDirective";
 import { Anchor } from "../anchor/anchor";
 import { createAnchorNode, nextAnchorNodeId } from "../anchor/createAnchorNode";
