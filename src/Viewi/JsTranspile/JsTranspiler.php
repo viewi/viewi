@@ -679,9 +679,7 @@ class JsTranspiler
                 foreach ($node->vars as $var) {
                     $this->jsCode .= $comma;
                     if ($var instanceof ArrayDimFetch) {
-                        $this->processStmts([$var->dim]);
-                        $this->jsCode .= ' in ';
-                        $this->processStmts([$var->var]);
+                        $this->processStmts(['(', $var->dim, ' in ', $var->var, ')']);
                     } else {
                         $this->jsCode .= 'isset(';
                         $this->processStmts([$var]);
