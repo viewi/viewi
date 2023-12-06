@@ -79,6 +79,7 @@ class App
                 $this->build();
             }
             $this->meta = require_once $this->config->buildPath . DIRECTORY_SEPARATOR . 'components.php';
+            $this->publicConfig = $this->meta['publicConfig'];
             $this->ready = true;
             $this->factory();
         }
@@ -135,6 +136,10 @@ class App
     {
         $builder = new Builder($this->router());
         $builder->build($this->config, $this->publicConfig);
-        return $builder->getLogs();
+        $logs = $builder->getLogs();
+        if ($this->config->useNpmWatch) {
+            echo $logs;
+        }
+        return $logs;
     }
 }
