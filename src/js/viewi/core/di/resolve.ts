@@ -9,7 +9,13 @@ import { globalScope } from "./globalScope";
 const singletonContainer: DIContainer = {};
 let nextInstanceId = 0;
 
-export function resolve(name: string, params: { [key: string]: any } = {}) {
+export function resolve(name: string, params: { [key: string]: any } = {}, canBeNull: boolean = false) {
+    if (!(name in componentsMeta.list)) {
+        if (canBeNull) {
+            return null;
+        }
+        throw new Error("Can't resolve " + name);
+    }
     const info = componentsMeta.list[name];
     let instance: any = null;
     let container: boolean | DIContainer = false;
@@ -30,18 +36,17 @@ export function resolve(name: string, params: { [key: string]: any } = {}) {
         const constructArguments: any[] = [];
         for (let i in info.dependencies) {
             const dependency = info.dependencies[i];
+            const argCanBeNull = !!dependency.null;
             var argument: any = null; // d.null
             if (params && (dependency.argName in params)) {
                 argument = params[dependency.argName];
             }
             else if (dependency.default) {
                 argument = dependency.default; // TODO: copy object or array
-            } else if (dependency.null) {
-                argument = null;
             } else if (dependency.builtIn) {
                 argument = dependency.name === 'string' ? '' : 0;
             } else {
-                argument = resolve(dependency.name);
+                argument = resolve(dependency.name, {}, argCanBeNull);
             }
             constructArguments.push(argument);
         }
