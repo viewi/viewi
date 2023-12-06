@@ -190,13 +190,16 @@ class Engine
      * @param array{inputs: array, components: array} $componentMeta 
      * @return mixed 
      */
-    public function resolve(string $name, array $params = [])
+    public function resolve(string $name, array $params = [], bool $canBeNull = false)
     {
         if (!isset($this->meta['components'][$name])) {
             if ($this->factory->has($name)) {
                 $constructor = $this->factory->get($name);
                 return $constructor($this);
             } else {
+                if ($canBeNull) {
+                    return null;
+                }
                 throw new Exception("Can not resolve instance for type '$name'.");
             }
         }
@@ -227,15 +230,14 @@ class Engine
             $arguments = [];
             foreach ($componentMeta['dependencies'] as $argName => $type) {
                 // resolve router param
+                $canBeNull = isset($type['null']);
                 if (isset($params[$argName])) {
                     $arguments[] = in_array($type['name'], ['int', 'float'])
                         ? (float)$params[$argName]
                         : $params[$argName];
-                } else if (isset($type['default'])) {
+                } elseif (isset($type['default'])) {
                     $arguments[] = $type['default'];
-                } else if (isset($type['null'])) {
-                    $arguments[] = null;
-                } else if (isset($type['builtIn'])) {
+                } elseif (isset($type['builtIn'])) {
                     switch ($type['name']) { // TODO: more types
                         case 'string': {
                                 $arguments[] = '';
@@ -251,7 +253,7 @@ class Engine
                             }
                     }
                 } else {
-                    $arguments[] = $this->resolve($type['name']);
+                    $arguments[] = $this->resolve($type['name'], [], $canBeNull);
                 }
             }
             $instance = new $fullClassName(...$arguments);
