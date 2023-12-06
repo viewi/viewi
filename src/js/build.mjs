@@ -7,6 +7,7 @@ import { exec } from 'node:child_process';
 import { PurgeCSS } from 'purgecss';
 import { writeFile } from 'node:fs/promises';
 import { lazyGroups } from './app/lazyGroups.mjs';
+import { buildActions } from './app/buildActions.mjs';
 
 let watchMode = false;
 
@@ -38,20 +39,44 @@ const runBuild = async function () {
     await esbuild.build({ ...base, entryPoints: [entry], minify: true, outfile: `./dist/viewi.${group}.min.js` });
   }
 
-  // remove unused css
-  let combinedCss = '';
-  const purgeCSSResult = await new PurgeCSS().purge({
-    content: ['./../**/*.js', './../**/*.php', './../**/*.html'],
-    css: ['./../**/*.css'],
-    skippedContentGlobs: ['**/node_modules/**', '**/build/**']
-  });
-  for (let i = 0; i < purgeCSSResult.length; i++) {
-    const purgedCSS = purgeCSSResult[i];
-    if (purgedCSS.file !== './../assets/combined.css') {
-      combinedCss += purgedCSS.css;
+  // build actions
+  for (let i = 0; i < buildActions.items.length; i++) {
+    const buildItem = buildActions.items[i];
+    switch (buildItem.type) {
+      case 'css': {
+        let combinedCss = '';
+        const purgeCSSResult = await new PurgeCSS().purge({
+          content: ['./../**/*.js', './../**/*.php', './../**/*.html'],
+          css: buildItem.data.links.map(x => './../assets' + x),
+          skippedContentGlobs: ['**/node_modules/**', '**/build/**']
+        });
+        for (let i = 0; i < purgeCSSResult.length; i++) {
+          const purgedCSS = purgeCSSResult[i];
+          combinedCss += purgedCSS.css;
+        }
+        await esbuild.build({
+          stdin: {
+            contents: combinedCss,
+            // These are all optional:
+            resolveDir: './../assets',
+            loader: 'css'
+          },
+          // entryPoints: buildItem.data.links.map(x => './../assets' + x),
+          bundle: true,
+          // loader: { '.png': 'copy', '.jpg': 'copy' },
+          external: ['*.png', '*.jpg'],
+          minify: !!buildItem.data.minify,
+          // outdir: './dist/assets',
+          outfile: './dist/assets' + buildItem.data.output,
+        });
+        break;
+      }
+      default: {
+        console.warn(`Type action ${buildItem.type} is not implemented.`);
+        break
+      }
     }
   }
-  await writeFile('./../assets/combined.css', combinedCss);
 };
 
 const runServerBuild = function () {
