@@ -460,6 +460,7 @@ class Builder
         if (!file_exists($this->publicPath)) {
             mkdir($this->publicPath, 0777, true);
         }
+        Helpers::removeDirectory($this->publicPath);
         Helpers::removeDirectory($this->buildPath);
         [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath] = $this->makeAppFolders();
         $chunks = new Chunks();
