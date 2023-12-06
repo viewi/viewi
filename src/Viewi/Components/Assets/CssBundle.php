@@ -31,6 +31,13 @@ class CssBundle extends BaseComponent
             }
             $cssFile = $baseUrl . $cssBundleList[$version];
             return "<link rel=\"stylesheet\" href=\"{$cssFile}\">";
+        } else {
+            $cssHtml = '';
+            foreach ($this->links as $link) {
+                $cssFile = $baseUrl . $link;
+                $cssHtml .= "<link rel=\"stylesheet\" href=\"{$cssFile}\">";
+            }
+            return $cssHtml;
         }
     }
 
