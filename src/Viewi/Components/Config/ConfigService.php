@@ -23,4 +23,14 @@ class ConfigService
     {
         return $this->config[$name] ?? null;
     }
+
+    public function isServer(): bool
+    {
+        return $this->platform->server;
+    }
+
+    public function isBrowser(): bool
+    {
+        return $this->platform->browser;
+    }
 }
