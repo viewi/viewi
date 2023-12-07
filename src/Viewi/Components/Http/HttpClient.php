@@ -43,10 +43,30 @@ class HttpClient
                         // Helpers::debug(['calling', $request]);
                         $components = parse_url($request->url);
                         $isExternal = !empty($components['host']);
-                        // TODO: conver response data from adapters (PSR ??)
+                        // TODO: convert response data from adapters (PSR ??)
                         if ($isExternal) {
                             $data = $this->externalRequest($request);
                         } else {
+                            $currentEngine = $this->platform->engine();
+                            $assetsMeta = $currentEngine->getAssets();
+                            $publicLocation = $assetsMeta['publicRoot'];
+                            $requestedFile = $publicLocation .= $request->url;
+
+                            if (file_exists($requestedFile) && !is_dir($requestedFile)) {
+                                // file
+                                $data = file_get_contents($requestedFile);
+                                $this->platform->httpState[$requestKey] = json_encode('');
+                                $response = new Response('/', 200, 'OK', [], $data);
+                                $this->interceptResponse($response, $callback, $interceptorInstances);
+                                return;
+                            }
+
+                            $nextRequestUrl = $request->url;
+                            $currentRequestUrl = $currentEngine->getRequest()->url;
+                            if ($request->url === $currentRequestUrl) {
+                                // recursion, inf loop
+                                throw new Exception("Infinite loop detected by requesting URL: $nextRequestUrl");
+                            }
                             $data = $this->platform->app()->run($request->url, $request->method);
                             if ($data instanceof Response) {
                                 $data = $data->body;
