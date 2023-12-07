@@ -59,6 +59,7 @@ class Builder
     private string $buildPath = '';
     private string $jsPath = '';
     private string $publicPath = '';
+    private string $publicRootPath = '';
     private string $assetsPath = '';
     private ?string $assetsSourcePath = null;
     private array $publicConfig;
@@ -121,6 +122,7 @@ class Builder
         $this->buildPath = $config->buildPath;
         $this->jsPath = $config->jsPath;
         $subFolderName = $config->getSubFolderName();
+        $this->publicRootPath = $config->publicPath;
         $this->publicPath = $config->publicPath . $d . $subFolderName;
         $this->assetsPath = $config->publicUrl . "/$subFolderName";
         $this->assetsSourcePath = $config->assetsPath;
@@ -785,6 +787,8 @@ class Builder
             'minify' => $this->minifyJs,
             'append-version' => $this->appendVersion,
             'components' => $conponentsJsonPublicPath,
+            'publicRoot' => $this->publicRootPath,
+            'publicAppRoot' => $this->publicPath
         ];
         $this->meta['publicConfig'] = $this->publicConfig;
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
