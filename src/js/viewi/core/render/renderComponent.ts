@@ -150,6 +150,9 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             }
         }
     }
+    if (info.hooks && info.hooks.mounted) {
+        (instance as any).mounted();
+    }
     // reuse && console.log(`Reusing component: ${name}`);
     if (name in globalScope.located) {
         globalScope.iteration[name] = { instance, scope, slots: {} };
