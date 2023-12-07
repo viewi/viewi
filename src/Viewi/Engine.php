@@ -141,6 +141,9 @@ class Engine
                 }
             }
         }
+        if (isset($componentMeta['hooks']['mounted'])) {
+            $classInstance->mounted();
+        }
         return $renderFunc($this, $classInstance, $slots, $scope);
     }
 
