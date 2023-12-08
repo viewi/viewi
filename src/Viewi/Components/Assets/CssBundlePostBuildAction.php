@@ -24,7 +24,7 @@ class CssBundlePostBuildAction implements IPostBuildAction
             : $cssBundle->links[0];
         if ($cssBundle->minify || $cssBundle->purge) {
             $pathInfo = pathinfo($output, PATHINFO_ALL);
-            $dir = $pathInfo['dirname'];
+            $dir =  str_replace(DIRECTORY_SEPARATOR, "/", $pathInfo['dirname']); // Windows
             if (!str_ends_with($dir, '/')) {
                 $dir .= '/';
             }
