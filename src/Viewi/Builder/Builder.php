@@ -60,6 +60,7 @@ class Builder
     private string $jsPath = '';
     private string $publicPath = '';
     private string $publicRootPath = '';
+    private string $publicRootUrl = '';
     private string $assetsPath = '';
     private ?string $assetsSourcePath = null;
     private array $publicConfig;
@@ -123,7 +124,8 @@ class Builder
         $this->jsPath = $config->jsPath;
         $subFolderName = $config->getSubFolderName();
         $this->publicRootPath = $config->publicPath;
-        $this->publicPath = $config->publicPath . $d . $subFolderName;
+        $this->publicRootUrl = $config->publicUrl;
+        $this->publicPath = $config->publicPath . ($config->publicUrl ? $config->publicUrl : '') . $d . $subFolderName;
         $this->assetsPath = $config->publicUrl . "/$subFolderName";
         $this->assetsSourcePath = $config->assetsPath;
         $this->minifyJs = $config->minifyJs;
@@ -787,6 +789,7 @@ class Builder
             'minify' => $this->minifyJs,
             'append-version' => $this->appendVersion,
             'components' => $conponentsJsonPublicPath,
+            'publicRootUrl' => $this->publicRootUrl,
             'publicRoot' => $this->publicRootPath,
             'publicAppRoot' => $this->publicPath
         ];
