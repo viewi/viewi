@@ -1,0 +1,28 @@
+/**
+* Sidebar CSS
+*/
+
+#sidebar {
+    background-color: #E57373;
+    padding: 15px;
+}
+
+#content {
+    padding: 26px;
+}
+
+@media (min-width: 768px) {
+    #sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 180px;
+        height: 100%;
+        padding-top: 30px;
+    }
+
+    #content {
+        margin-left: 240px;
+        padding: 0 26px 0 0;
+    }
+}
