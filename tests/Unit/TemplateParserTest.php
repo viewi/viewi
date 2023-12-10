@@ -104,6 +104,83 @@ class TemplateParserTest extends \Codeception\Test\Unit
         );
     }
 
+    public function testComponent()
+    {
+        $this->parser->setAvaliableComponents(['MyComponent' => 1]);
+        $root = $this->parser->parse(
+            <<<'html'
+            <MyComponent id="my-id" />
+            html
+        );
+        $this->assertCount(1, $root->getChildren());
+        $component = $root->currentChild();
+        $this->assertTagItem(
+            $component,
+            TagItemType::Component,
+            'MyComponent',
+            1,
+            false,
+            [
+                [TagItemType::Attribute, 'id', 1, false, [[TagItemType::AttributeValue, 'my-id', 0, false]]]
+            ]
+        );
+    }
+
+    public function testComponentFail()
+    {
+        $this->expectExceptionMessage("Component `MyComponent` not found.");
+        $root = $this->parser->parse(
+            <<<'html'
+            <MyComponent id="my-id" />
+            html
+        );
+        $this->assertCount(1, $root->getChildren());
+        $component = $root->currentChild();
+        $this->assertTagItem(
+            $component,
+            TagItemType::Component,
+            'MyComponent',
+            1,
+            false,
+            [
+                [TagItemType::Attribute, 'id', 1, false, [[TagItemType::AttributeValue, 'my-id', 0, false]]]
+            ]
+        );
+    }
+
+    public function testVoid()
+    {
+        $root = $this->parser->parse(
+            <<<'html'
+            <area><base><br><col><embed><hr><img><input><link><meta><param><source><track><wbr>
+            html
+        );
+        $this->assertCount(14, $root->getChildren());
+        $this->assertTagItem(
+            $root,
+            TagItemType::Root,
+            null,
+            14,
+            false,
+            [
+                [TagItemType::Tag, 'area', 0, false],
+                [TagItemType::Tag, 'base', 0, false],
+                [TagItemType::Tag, 'br', 0, false],
+                [TagItemType::Tag, 'col', 0, false],
+                [TagItemType::Tag, 'embed', 0, false],
+                [TagItemType::Tag, 'hr', 0, false],
+                [TagItemType::Tag, 'img', 0, false],
+                [TagItemType::Tag, 'input', 0, false],
+                [TagItemType::Tag, 'link', 0, false],
+                [TagItemType::Tag, 'meta', 0, false],
+                [TagItemType::Tag, 'param', 0, false],
+                [TagItemType::Tag, 'source', 0, false],
+                [TagItemType::Tag, 'track', 0, false],
+                [TagItemType::Tag, 'wbr', 0, false],
+            ]
+        );
+    }
+
     protected function assertTagItem(TagItem $tagItem, string $type, $content = self::UNDEFINED, ?int $kidsCount = null, ?bool $itsExpression = null, ?array $childrenToTest = null)
     {
         $this->assertEquals($type, $tagItem->Type->Name);
