@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Reactive web application with Viewi",
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "node ./build.mjs",
     "watch": "node ./build.mjs --watch"
