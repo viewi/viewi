@@ -4,7 +4,7 @@
   "description": "Reactive web application with Viewi",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=12"
   },
   "scripts": {
     "build": "node ./build.mjs",
