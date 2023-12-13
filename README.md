@@ -31,6 +31,14 @@ The flow:
 
 More description is coming.
 
+
+## Documentation
+
+[https://github.com/viewi/docs](https://github.com/viewi/docs/blob/main/v2/index.md)
+
+[Discussions (Forum)](https://github.com/viewi/viewi/discussions)
+
+
 Testing
 --------
 
@@ -73,76 +81,3 @@ License
 Copyright (c) 2020-present Ivan Voitovych
 
 Please see [MIT](/LICENSE) for license text
-
-
-### Viewi v1:
-
-Short example:
---------
-`Counter.php`
-```php
-<?php
-
-namespace Application\Components\Views\Demo\SimpleComponent;
-
-use Viewi\BaseComponent;
-
-class Counter extends BaseComponent
-{
-    public int $count = 0;
-
-    public function increment()
-    {
-        $this->count++;
-    }
-}
-```
-`Counter.html` 
-```html
-<button (click)="increment()">Clicked $count times.</button>
-```
-`Use it as a tag`:
-```html
-<Counter />
-```
-[Live demo](https://viewi.net/)
-
-[UI Components](https://ui.viewi.net/)
-
-#### *Requirements: php ^7.4 || ^8.0*
-
-Get started
------------
-[Quick Start](https://viewi.net/docs)
-
-Features
-----------------
-- Server-side rendering (SSR)
-- Perfect page load score
-- Client-side rendering (CSR)
-- SEO friendly
-- No "HTML over the wire."
-- Reactive application
-- Easy to use
-- Simple templates syntax, a mix of HTML and PHP
-- Generates javascript code for you
-- Web, mobile, desktop applications support (planned)
-- Does not require Node js
-
-## How does it work?
-
-Under the hood, Viewi translates view components into javascript and uses it for a reactive front-end application.
-
-## Documentation
-
-[https://viewi.net/docs](https://viewi.net/docs)
-
-[Discussions (Forum)](https://github.com/viewi/viewi/discussions)
-
-[Frameworks Integration](https://viewi.net/docs/integrations)
-
-## Tests
-
-Got to `tests` folder
-
-Run `php test.php backend`
