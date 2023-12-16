@@ -114,6 +114,21 @@ class HttpClient
         return $this->request('post', $url, $body, $headers);
     }
 
+    public function put(string $url, $body = null, ?array $headers = null): Resolver
+    {
+        return $this->request('put', $url, $body, $headers);
+    }
+
+    public function delete(string $url, $body = null, ?array $headers = null): Resolver
+    {
+        return $this->request('delete', $url, $body, $headers);
+    }
+
+    public function patch(string $url, $body = null, ?array $headers = null): Resolver
+    {
+        return $this->request('post', $url, $body, $headers);
+    }
+
     public function addInterceptor(string $interceptor): void
     {
         $this->interceptors[] = $interceptor;
