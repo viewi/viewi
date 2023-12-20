@@ -7,13 +7,13 @@
 
 <h3 align="center"><a href="https://github.com/viewi/viewi/tree/v1">Click here for Viewi v1</a></h3>
 
-Full-stack UI framework for PHP with reactivity on front-end and efficient SSR.
+Full-stack UI framework for PHP with reactivity on the front end and efficient SSR.
 
-Viewi is not about avoiding javascript, it's about integration them both for mutual benefits.
+Viewi is not about avoiding javascript, it's about integrating them both for mutual benefits.
 
 Front-end framework designed for PHP.
 
-How? - by transpiling PHP/HTML code into javacript to fuel front-end.
+How? - by transpiring PHP/HTML code into javascript to fuel the front-end.
 
 Transpiling works with a limited subset of PHP (not everything can be converted into JavaScript), but even then, it is still more than enough for building advanced web applications. And if you need more custom JS - there is a way to inject it.
 
@@ -21,16 +21,13 @@ Viewi takes your PHP components and converts them into JavaScript.
 
 The flow:
 
-- User opens URL in the browser.
-- Viewi generates SEO friendly HTML page based on your components.
-- Browser receives HTML page with Viewi scripts included.
-- Viewi JS framework runs hydration process (creates events, makes page alive and reactive, like any other JS framework whould).
-- From now on user can interact with the page without requesting new contents from the server.
+- The user opens the URL in the browser.
+- Viewi generates SEO-friendly HTML pages based on your components.
+- The browser receives an HTML page with Viewi scripts included.
+- Viewi JS framework runs a hydration process (creates events, makes page alive and reactive, as any other JS framework would).
+- From now on users can interact with the page without requesting new content from the server.
 - When navigating by clicking on links Viewi JS will render the page without making a request to your server using front-end routing.
-- API data can be requested with built-in Http Client.
-
-More description is coming.
-
+- API data can be requested with a built-in HTTP Client.
 
 ## Documentation
 
