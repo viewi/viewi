@@ -255,6 +255,11 @@ class JsTranspiler
             } elseif ($node instanceof Property) {
                 $name = $node->props[0]->name->name;
                 $isStatic = $node->isStatic();
+                if ($node->type instanceof Name) {
+                    $nameIdParts = $node->type->getParts();
+                    $nameIdType = $nameIdParts[0];
+                    $this->usingList[$nameIdType] = new UseItem($nameIdParts, UseItem::Class_);
+                }
                 if ($isStatic) {
                     $this->fork();
                     $this->level--;
@@ -359,7 +364,6 @@ class JsTranspiler
                 foreach ($node->params as $param) {
                     $this->jsCode .= $comma . $param->var->name;
                     $comma = ', ';
-                    // TODO: declare js properties for promoted params
                     $this->localVariables[$param->var->name] = true;
                     if ($itsConstructor) {
                         if ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
@@ -376,6 +380,12 @@ class JsTranspiler
                             "{$param->var->name} = typeof {$param->var->name} !== 'undefined' ? {$param->var->name} : ";
                         $stmtsParams[] = $param->default;
                         $stmtsParams[] = ';' . PHP_EOL;
+                    }
+
+                    if ($param->type instanceof Name) {
+                        $nameIdParts = $param->type->getParts();
+                        $nameIdType = $nameIdParts[0];
+                        $this->usingList[$nameIdType] = new UseItem($nameIdParts, UseItem::Class_);
                     }
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
