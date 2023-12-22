@@ -712,6 +712,10 @@ class Builder
                             $includedInGroups[$importName][] = $currentChunk->name;
                         }
                     }
+
+                    if (!$lazyLoadGroup) {
+                        $includedInMain[$buildItem->ComponentName] = true;
+                    }
                     // if ($buildItem->RenderFunction !== null) {
                     //     $jsComponentCode .= 'import { makeProxy } from "../../viewi/core/makeProxy";' . PHP_EOL;
                     //     $comma = PHP_EOL;
