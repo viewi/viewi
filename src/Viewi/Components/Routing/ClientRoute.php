@@ -8,7 +8,6 @@ use Viewi\DI\Singleton;
 #[Singleton]
 class ClientRoute
 {
-    private array $config;
     public function __construct(private Platform $platform)
     {
         $this->config = $platform->getConfig();
