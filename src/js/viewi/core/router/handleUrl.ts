@@ -11,6 +11,7 @@ const updateHistory = function (href: string, forward: boolean = true) {
     if (forward) {
         window.history.pushState({ href: href }, '', href);
     }
+    window.scrollTo(0, 0);
 }
 
 export function handleUrl(href: string, forward: boolean = true) {
