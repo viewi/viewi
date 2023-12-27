@@ -638,7 +638,7 @@ class TemplateCompiler
                                 $textTagItem = &$textCollection[0];
                                 if ($textsCout > 1) {
                                     if (!$textTagItem->ItsExpression) {
-                                        $textTagItem->Content = var_export($textTagItem->Content, true);
+                                        $textTagItem->Content = var_export(html_entity_decode($textTagItem->Content, ENT_HTML5), true);
                                     }
                                     if ($textTagItem->ItsExpression) {
                                         $textTagItem->Content = '(' . $textTagItem->Content . ')';
@@ -650,7 +650,7 @@ class TemplateCompiler
                                         $textTagItem->Content .= ' . ' .
                                             ($neigbourText->ItsExpression
                                                 ? '((' . $neigbourText->Content . ') ?? \'\')'
-                                                : var_export($neigbourText->Content, true));
+                                                : var_export(html_entity_decode($neigbourText->Content, ENT_HTML5), true));
                                         $neigbourText->Skip = true;
                                     }
                                     $textTagItem->Content = '(' . $textTagItem->Content . ')';
