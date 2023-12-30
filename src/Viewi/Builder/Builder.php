@@ -939,6 +939,20 @@ class Builder
             $npmFolder = $this->jsPath . $d;
             $currentDir = getcwd();
             chdir($npmFolder);
+
+            if (!file_exists($npmFolder . 'node_modules')) {
+                $this->logs .= "Running NPM install command.." . PHP_EOL;
+                $command = "npm --prefix $npmFolder install 2>&1";
+                $lastLine = exec($command, $output, $result_code);
+                $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
+                if ($result_code !== 0) {
+                    // Helpers::debug([$output, $lastLine, $result_code]);
+                    throw new Exception("NPM build failed: code $result_code $text");
+                }
+                $this->logs .= "NPM output: " . PHP_EOL;
+                $this->logs .= $text . PHP_EOL;
+            }
+
             $this->logs .= "Running NPM build command.." . PHP_EOL;
             $command = "npm --prefix $npmFolder run build 2>&1";
             // $command = "npm run build 2>&1"; // test error
