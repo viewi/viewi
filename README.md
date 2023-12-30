@@ -1,7 +1,7 @@
 [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
 
 <p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
-<h1 align="center">Viewi V2 [WIP]</h1>
+<h1 align="center">Viewi V2</h1>
 <h2 align="center">A powerful tool for building full-stack and completely reactive web applications with PHP</h2>
 
 
