@@ -48,8 +48,7 @@ class HttpClient
                             $data = $this->externalRequest($request);
                         } else {
                             $currentEngine = $this->platform->engine();
-                            $assetsMeta = $currentEngine->getAssets();
-                            $publicLocation = $assetsMeta['publicRoot'];
+                            $publicLocation = $this->platform->app()->getConfig()->publicPath;
                             $requestedFile = $publicLocation .= $request->url;
 
                             if (file_exists($requestedFile) && !is_dir($requestedFile)) {

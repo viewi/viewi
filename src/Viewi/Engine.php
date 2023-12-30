@@ -28,7 +28,7 @@ class Engine
     private array $postActions = [];
     private int $postActionIdCounter = 0;
 
-    public function __construct(private array $meta, private Factory $factory)
+    public function __construct(private AppConfig $config, private array $meta, private Factory $factory)
     {
     }
 
@@ -115,7 +115,7 @@ class Engine
         ) {
             throw new Exception("Component '$component' not found.");
         }
-        include_once $this->meta['buildPath'] . DIRECTORY_SEPARATOR . $componentMeta['Path'];
+        include_once $this->config->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
         foreach ($props as $key => $inputValue) {

@@ -83,7 +83,7 @@ class App
             $this->ready = true;
             $this->factory();
         }
-        return new Engine($this->meta, $this->factory);
+        return new Engine($this->config, $this->meta, $this->factory);
     }
 
     // TODO: adapter, PSR request/response, framework handler
