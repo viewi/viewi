@@ -31,7 +31,7 @@ The flow:
 
 ## Documentation
 
-[https://github.com/viewi/docs](https://github.com/viewi/docs/blob/main/v2/index.md)
+[https://viewi.net/docs](https://viewi.net/docs/introduction)
 
 [Discussions (Forum)](https://github.com/viewi/viewi/discussions)
 
