@@ -10,7 +10,6 @@ class ClientRoute
 {
     public function __construct(private Platform $platform)
     {
-        $this->config = $platform->getConfig();
     }
 
     public function navigateBack()
