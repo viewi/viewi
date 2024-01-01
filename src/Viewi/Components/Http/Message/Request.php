@@ -7,6 +7,9 @@ use Viewi\Builder\Attributes\Skip;
 #[Skip]
 class Request
 {
+    // Server-side only
+    public bool $isExternal = false;
+
     public function __construct(public string $url, public string $method = 'get', public array $headers = [], public $body = null)
     {
     }
@@ -59,5 +62,11 @@ class Request
     {
         $clone = new Request($this->url, $this->method, $this->headers, $this->body);
         return $clone;
+    }
+
+    // Server-side only
+    public function markAsExternal(bool $external = true): self
+    {
+        return $this;
     }
 }

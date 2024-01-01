@@ -5,6 +5,7 @@ export class Request {
     method: MethodType;
     headers: { [name: string]: string } = {};
     body: any = null;
+    isExternal: boolean;
 
     constructor(url: string, method: MethodType, headers: { [name: string]: string; } = {}, body: any = null) {
         this.url = url;
@@ -46,5 +47,10 @@ export class Request {
     clone() {
         var clone = new Request(this.url, this.method, this.headers, this.body);
         return clone;
+    }
+
+    // server-side only, makes no difference on front end
+    markAsExternal() {
+        return this;
     }
 };
