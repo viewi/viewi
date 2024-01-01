@@ -16,7 +16,8 @@ type GlobalScope = {
     located: { [key: string]: boolean },
     iteration: { [key: string]: RenderIteration },
     lastIteration: { [key: string]: RenderIteration },
-    layout: string
+    layout: string,
+    cancel: boolean
 }
 
 export const globalScope: GlobalScope = {
@@ -26,5 +27,6 @@ export const globalScope: GlobalScope = {
     located: {},
     iteration: {},
     lastIteration: {},
-    layout: ''
+    layout: '',
+    cancel: false
 }
