@@ -70,6 +70,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     if (info.refs) {
         scope.refs = info.refs;
     }
+
     // set props
     if (props && props.attributes) {
         const parentInstance = props.scope.instance;
@@ -150,9 +151,10 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             }
         }
     }
-    if (info.hooks && info.hooks.mounted) {
+    if (!globalScope.cancel && info.hooks && info.hooks.mounted) {
         (instance as any).mounted();
     }
+
     // reuse && console.log(`Reusing component: ${name}`);
     if (name in globalScope.located) {
         globalScope.iteration[name] = { instance, scope, slots: {} };

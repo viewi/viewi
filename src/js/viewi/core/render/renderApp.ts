@@ -19,6 +19,7 @@ export function renderApp(
     onAccept?: { func: (href: string, forward: boolean) => void, href: string, forward: boolean },
     skipMiddleware?: boolean
 ) {
+    globalScope.cancel = false;
     // console.time('renderApp');
     if (!(name in componentsMeta.list)) {
         throw new Error(`Component ${name} not found.`);
