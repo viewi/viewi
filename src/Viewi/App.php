@@ -4,6 +4,8 @@ namespace Viewi;
 
 use Exception;
 use RuntimeException;
+use Viewi\Bridge\DefaultBridge;
+use Viewi\Bridge\IViewiBridge;
 use Viewi\Builder\Builder;
 use Viewi\Components\Assets\ViewiAssets;
 use Viewi\Components\Environment\Platform;
@@ -67,6 +69,9 @@ class App
                 $rawScript = "<script data-keep=\"ViewiAssets\">window.viewiScopeState = {$stateJson};</script>";
                 $assets->data = $rawScript;
                 return $assets;
+            });
+            $this->factory->add(IViewiBridge::class, function (Engine $engine) {
+                return new DefaultBridge($this);
             });
         }
         return $this->factory;
