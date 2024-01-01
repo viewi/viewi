@@ -47,7 +47,7 @@ class Engine
             $response->headers['Content-type'] = 'text/html; charset=utf-8';
             $response->body = $content;
         } else {
-            $response->status = 403;
+            $response->status = isset($response->headers['Location']) ? 302 : 403;
             $response->statusText = 'Forbidden';
             $response->body = 'Forbidden';
         }
