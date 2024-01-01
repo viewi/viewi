@@ -3,6 +3,7 @@
 namespace Viewi\Components\Http;
 
 use Exception;
+use Viewi\Bridge\IViewiBridge;
 use Viewi\Builder\Attributes\CustomJs;
 use Viewi\Components\Callbacks\Resolver;
 use Viewi\Components\Environment\Platform;
@@ -22,7 +23,7 @@ class HttpClient
      */
     private array $interceptors = [];
 
-    public function __construct(private Platform $platform)
+    public function __construct(private Platform $platform, private IViewiBridge $bridge)
     {
     }
 
@@ -38,22 +39,24 @@ class HttpClient
             try {
                 $onHandle = function (Request $request, array $interceptorInstances, bool $continue) use ($callback) {
                     if ($continue) {
+                        $data = null;
+                        $response = null;
                         $dataKey = json_encode($request->body);
                         $requestKey = "{$request->method}_{$request->url}_$dataKey";
                         // Helpers::debug(['calling', $request]);
                         $components = parse_url($request->url);
                         $isExternal = !empty($components['host']);
-                        // TODO: convert response data from adapters (PSR ??)
                         if ($isExternal) {
-                            $data = $this->externalRequest($request);
+                            $request->markAsExternal();
+                            $data = $this->bridge->request($request);
                         } else {
                             $currentEngine = $this->platform->engine();
                             $publicLocation = $this->platform->app()->getConfig()->publicPath;
                             $requestedFile = $publicLocation .= $request->url;
 
-                            if (file_exists($requestedFile) && !is_dir($requestedFile)) {
+                            if ($this->bridge->file_exists($requestedFile) && !$this->bridge->is_dir($requestedFile)) {
                                 // file
-                                $data = file_get_contents($requestedFile);
+                                $data = $this->bridge->file_get_contents($requestedFile);
                                 $this->platform->httpState[$requestKey] = json_encode('');
                                 $response = new Response('/', 200, 'OK', [], $data);
                                 $this->interceptResponse($response, $callback, $interceptorInstances);
@@ -66,14 +69,15 @@ class HttpClient
                                 // recursion, inf loop
                                 throw new Exception("Infinite loop detected by requesting URL: $nextRequestUrl");
                             }
-                            $data = $this->platform->app()->run($request->url, $request->method);
+                            $data = $this->bridge->request($request);
                             if ($data instanceof Response) {
+                                $response = $data;
                                 $data = $data->body;
                             }
                         }
                         $this->platform->httpState[$requestKey] = json_encode($data);
                         // continue to response handler
-                        $response = new Response('/', 200, 'OK', [], $data);
+                        $response = $response ?? new Response('/', 200, 'OK', [], $data);
                         $this->interceptResponse($response, $callback, $interceptorInstances);
                     } else {
                         $response = new Response('/', 0, 'Rejected', [], null);
@@ -133,29 +137,16 @@ class HttpClient
         $this->interceptors[] = $interceptor;
     }
 
-    public function withInterceptor(string $interceptor): self
+    public function setInterceptors(array $interceptors): void
     {
-        $newHttp = new HttpClient($this->platform);
-        $newHttp->addInterceptor($interceptor);
-        return $newHttp;
+        $this->interceptors = $interceptors;
     }
 
-    private function externalRequest(Request $request)
+    public function withInterceptor(string $interceptor): self
     {
-        $curl = curl_init();
-        $params = array(
-            CURLOPT_URL => $request->url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => strtoupper($request->method),
-            CURLOPT_HTTPHEADER => $request->headers
-        );
-        if ($request->body != null) {
-            $params[CURLOPT_HTTPHEADER]['Content-Type'] = 'application/json';
-            $params[CURLOPT_POSTFIELDS] = json_encode($request->body);
-        }
-        curl_setopt_array($curl, $params);
-        $response = curl_exec($curl);
-        curl_close($curl);
-        return json_decode($response, true);
+        $newHttp = new HttpClient($this->platform, $this->bridge);
+        $newHttp->setInterceptors($this->interceptors);
+        $newHttp->addInterceptor($interceptor);
+        return $newHttp;
     }
 }

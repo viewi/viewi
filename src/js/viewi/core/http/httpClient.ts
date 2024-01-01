@@ -17,7 +17,7 @@ const interceptResponses = function (response: Response, callback, interceptorIn
         if (keepGoing && response.status >= 200 && response.status < 300) {
             callback(response.body);
         } else {
-            callback(undefined, response.body ?? 'Failed');
+            callback(undefined, !!response.body ? response.body : 'Failed');
         }
     };
 
