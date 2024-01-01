@@ -1,4 +1,5 @@
 import { componentsMeta } from "../component/componentsMeta";
+import { globalScope } from "../di/globalScope";
 import { renderApp } from "../render/renderApp";
 import { locationScope } from "./locationScope";
 
@@ -15,10 +16,13 @@ const updateHistory = function (href: string, forward: boolean = true) {
 }
 
 export function handleUrl(href: string, forward: boolean = true) {
+    globalScope.cancel = true;
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {
         throw 'Can\'t resolve route for uri: ' + urlPath;
     }
-    renderApp(routeItem.item.action, routeItem.params, undefined, { func: updateHistory, href, forward });
+    setTimeout(function () {
+        renderApp(routeItem.item.action, routeItem.params, undefined, { func: updateHistory, href, forward });
+    }, 0);
 }
