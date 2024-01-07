@@ -252,7 +252,7 @@ class ViewiCLITool
     {
         $currentDir = getcwd();
         chdir($directory);
-        $command = "npm --prefix $directory $npmCommand 2>&1";
+        $command = "npm $npmCommand 2>&1";
         echo "NPM command: $command" . PHP_EOL;
         $lastLine = exec($command, $output, $result_code);
         $text = implode(PHP_EOL, $output ?? []) . PHP_EOL . $lastLine;
