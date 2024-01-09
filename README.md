@@ -2,12 +2,12 @@
 
 <p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
 <h1 align="center">Viewi V2</h1>
-<h2 align="center">A powerful tool for building full-stack and completely reactive web applications with PHP</h2>
+<h2 align="center">Unique and efficient front-end framework for PHP</h2>
 
 
 <h3 align="center"><a href="https://github.com/viewi/viewi/tree/v1">Click here for Viewi v1</a></h3>
 
-Full-stack UI framework for PHP with reactivity on the front end and efficient SSR.
+UI framework for PHP with reactivity on the front end and efficient SSR.
 
 Viewi is not about avoiding javascript, it's about integrating them both for mutual benefits.
 
