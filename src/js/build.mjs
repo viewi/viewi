@@ -133,7 +133,7 @@ const runWatch = async function () {
   chokidar.watch(['.\\..\\']).on('all', (event, itemPath) => {
     const normalizedPath = path.normalize(itemPath).replace(/\\/g, '/').replace('..', '');
     // https://www.npmjs.com/package/anymatch
-    if (!anymatch(ignored, normalizedPath)) {
+    if (!anymatch(ignored, normalizedPath, {dot: true})) {
       // console.log(event, normalizedPath);
       if (buildTimer) {
         clearTimeout(buildTimer);

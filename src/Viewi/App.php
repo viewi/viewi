@@ -142,9 +142,6 @@ class App
         $builder = new Builder($this->router());
         $builder->build($this->config, $this->publicConfig);
         $logs = $builder->getLogs();
-        if ($this->config->useNpmWatch) {
-            echo $logs;
-        }
         return $logs;
     }
 }
