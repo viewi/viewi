@@ -2,8 +2,10 @@
 
 namespace Viewi\Builder;
 
+use Attribute;
 use Exception;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
@@ -115,6 +117,10 @@ class Builder
     // cache metadata (optional)
     // return metadata
 
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public function build(AppConfig $config, array $publicConfig)
     {
         $d = DIRECTORY_SEPARATOR;
@@ -176,7 +182,7 @@ class Builder
         // Helpers::debug($this->components);
     }
 
-    private function reset()
+    private function reset(): void
     {
         $this->logs = '';
         $this->components = [];
@@ -195,7 +201,7 @@ class Builder
      * @param bool $include
      * @return void 
      */
-    private function collectExports(JsOutput $jsOutput, array $exports, bool $include = false)
+    private function collectExports(JsOutput $jsOutput, array $exports, bool $include = false): void
     {
         foreach ($exports as $exportItem) {
             if ($exportItem->Type === ExportItem::Namespace) {
@@ -238,7 +244,7 @@ class Builder
      * @param array<string, ExportItem> $exports 
      * @return void 
      */
-    private function collectPublicNodes(BuildItem $buildItem, array $exports)
+    private function collectPublicNodes(BuildItem $buildItem, array $exports): void
     {
         foreach ($exports as $exportItem) {
             if ($exportItem->Type === ExportItem::Property || $exportItem->Type === ExportItem::Method) {
@@ -250,7 +256,7 @@ class Builder
         }
     }
 
-    private function collectComponents(string $path, bool $include = false)
+    private function collectComponents(string $path, bool $include = false): void
     {
         $files = Helpers::collectFiles($path);
         foreach ($files as $filePath => $_) {
@@ -268,7 +274,12 @@ class Builder
         }
     }
 
-    private function collectIncludes(BuildItem $buildItem)
+    /**
+     * @param BuildItem $buildItem
+     * @return void
+     * @throws Exception
+     */
+    private function collectIncludes(BuildItem $buildItem): void
     {
         foreach ($buildItem->Uses as $baseName => $useItem) {
             if ($useItem->Type === UseItem::Class_) {
@@ -311,7 +322,7 @@ class Builder
      * @return void 
      * @throws Exception 
      */
-    private function collectFunctionDependencies($functionMeta)
+    private function collectFunctionDependencies($functionMeta): void
     {
         foreach ($functionMeta::getUses() as $functionName) {
             if (!isset($this->usedFunctions[$functionName])) {
@@ -324,7 +335,13 @@ class Builder
         }
     }
 
-    private function collectExtends(BuildItem $buildItem, BuildItem $extendBuildItem)
+    /**
+     * @param BuildItem $buildItem
+     * @param BuildItem $extendBuildItem
+     * @return void
+     * @throws Exception
+     */
+    private function collectExtends(BuildItem $buildItem, BuildItem $extendBuildItem): void
     {
         if ($extendBuildItem->Extends != null) {
             foreach ($extendBuildItem->Extends as $extendClass) {
@@ -337,7 +354,12 @@ class Builder
         }
     }
 
-    private function validateAndParseTemplate(BuildItem $buildItem)
+    /**
+     * @param BuildItem $buildItem
+     * @return void
+     * @throws Exception
+     */
+    private function validateAndParseTemplate(BuildItem $buildItem): void
     {
         if (!$buildItem->Ready) {
             $buildItem->Ready = true;
@@ -418,7 +440,7 @@ class Builder
         return $buildItem->HtmlRootComponent;
     }
 
-    private function collectHtmlRootComponentName()
+    private function collectHtmlRootComponentName(): void
     {
         foreach ($this->components as $buildItem) {
             if ($buildItem->RenderFunction !== null) {
@@ -455,7 +477,11 @@ class Builder
         return [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath];
     }
 
-    private function makeFiles()
+    /**
+     * @return void
+     * @throws ReflectionException
+     */
+    private function makeFiles(): void
     {
         $d = DIRECTORY_SEPARATOR;
         if (!file_exists($this->buildPath)) {
@@ -496,7 +522,7 @@ class Builder
         $includedInMain = [];
         $includedInGroups = [];
         /**
-         * @var IPostBuildAction[]
+         * @var IPostBuildAction[] $postBuild
          */
         $postBuild = [];
 
@@ -993,7 +1019,7 @@ class Builder
         }
     }
 
-    private function collectChunkFunctions(Chunk $chunk, string $functionName)
+    private function collectChunkFunctions(Chunk $chunk, string $functionName): void
     {
         $baseFunction = $this->usedFunctions[$functionName];
         foreach ($baseFunction::getUses() as $requiredFunction) {
