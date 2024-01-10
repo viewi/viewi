@@ -6,7 +6,7 @@ require __DIR__ . '__ROOT__/vendor/autoload.php';
 
 // Viewi application here
 /**
- * @var Viewi\App
+ * @var Viewi\App $app
  */
 $app = include __DIR__ . '__VIEWI__/viewi.php';
 
