@@ -5,11 +5,11 @@ namespace Viewi;
 class Helpers
 {
     /**
-     * 
-     * @param mixed $dir 
-     * @param array $results 
-     * @param bool $includeFolders 
-     * @return array<string, string> 
+     *
+     * @param mixed $dir
+     * @param array $results
+     * @param bool $includeFolders
+     * @return array<string, string>
      */
     public static function collectFiles(string $dir, &$results = array(), $includeFolders = false): array
     {
@@ -30,21 +30,23 @@ class Helpers
     }
 
     /**
-     * 
-     * @param mixed $path 
-     * @param bool $removeRoot 
-     * @return void 
+     *
+     * @param mixed $path
+     * @param bool $removeRoot
+     * @return void
      */
-    public static function removeDirectory($path, $removeRoot = false)
+    public static function removeDirectory(string $path, bool $removeRoot = false): void
     {
         $files = glob($path . '/*');
         foreach ($files as $file) {
-            is_dir($file) ? self::removeDirectory($file, true) : unlink($file);
+            if (file_exists($file)) {
+                is_dir($file) ? self::removeDirectory($file, true) : unlink($file);
+            }
         }
+
         if ($removeRoot) {
             rmdir($path);
         }
-        return;
     }
 
     public static function debug($any, bool $checkEmpty = false): void
@@ -70,17 +72,19 @@ class Helpers
             $destinationPath = $toPath . $basePath;
             // $this->debug([$type, $fromPath, $path, $basePath, $toPath, $destinationPath]);
             switch ($type) {
-                case 'folder': {
-                        if (!file_exists($destinationPath)) {
-                            mkdir($destinationPath, 0777, true);
-                        }
-                        break;
+                case 'folder':
+                {
+                    if (!file_exists($destinationPath)) {
+                        mkdir($destinationPath, 0777, true);
                     }
+                    break;
+                }
                 case 'file':
-                default: {
-                        // file
-                        file_put_contents($destinationPath, file_get_contents($path));
-                    }
+                default:
+                {
+                    // file
+                    file_put_contents($destinationPath, file_get_contents($path));
+                }
             }
         }
     }
