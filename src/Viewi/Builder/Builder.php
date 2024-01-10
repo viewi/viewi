@@ -567,7 +567,8 @@ class Builder
                                  */
                                 $middlewareAttribute = $attribute->newInstance();
                                 $shortNames = array_map(function (string $className) {
-                                    return array_pop(explode('\\', $className));
+                                    $exp = explode('\\', $className);
+                                    return array_pop($exp);
                                 }, $middlewareAttribute->middlewareList);
                                 $componentMeta['middleware'] = $shortNames;
                                 $publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
