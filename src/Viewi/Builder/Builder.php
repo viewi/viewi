@@ -396,7 +396,7 @@ class Builder
                 if ($buildItem->TemplatePath !== null) {
                     $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
                     $template = $this->templateCompiler->compile($rootTag, $buildItem);
-                    $this->renderInvocations = array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvokations());
+                    $this->renderInvocations = $this->array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvokations());
                     foreach ($template->usedFunctions as $funcName => $_) {
                         if (!isset($this->avaliableFunctions[$funcName])) {
                             throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
@@ -798,7 +798,7 @@ class Builder
                             'data' => $actionItem->data
                         ];
                         if ($actionItem->publicConfig !== null) {
-                            $this->publicConfig = array_merge_recursive($this->publicConfig, $actionItem->publicConfig);
+                            $this->publicConfig = $this->array_merge_recursive($this->publicConfig, $actionItem->publicConfig);
                         }
                     }
                 }
@@ -1125,5 +1125,42 @@ class Builder
             }
         }
         return $dependencies;
+    }
+
+    /**
+     * https://github.com/RikudouSage/ArrayMergeRecursive/tree/master
+     * @param array<mixed> $array1
+     * @param array<mixed> $array2
+     * @param array<mixed> ...$arrays
+     *
+     * @return array<mixed>
+     */
+    public function array_merge_recursive(array $array1, array $array2, array ...$arrays): array
+    {
+        array_unshift($arrays, $array2);
+        array_unshift($arrays, $array1);
+
+        $merged = [];
+        while ($arrays) {
+            $array = array_shift($arrays);
+            assert(is_array($array));
+            if (!$array) {
+                continue;
+            }
+
+            foreach ($array as $key => $value) {
+                if (is_string($key)) {
+                    if (is_array($value) && array_key_exists($key, $merged) && is_array($merged[$key])) {
+                        $merged[$key] = $this->array_merge_recursive($merged[$key], $value);
+                    } else {
+                        $merged[$key] = $value;
+                    }
+                } else {
+                    $merged[] = $value;
+                }
+            }
+        }
+
+        return $merged;
     }
 }
