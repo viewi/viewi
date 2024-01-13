@@ -67,6 +67,7 @@ class Request
     // Server-side only
     public function markAsExternal(bool $external = true): self
     {
+        $this->isExternal = true;
         return $this;
     }
 }
