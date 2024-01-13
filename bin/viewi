@@ -107,7 +107,7 @@ class ViewiCLITool
             echo "Viewi directory '$viewiDir' already exists. To continue please remove the old one or select another folder.\n";
             return;
         }
-        $adapterOnly = isset($inputsMap['-a']);
+        $adapterOnly = array_key_exists('-a', $inputsMap);
         echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath, 0777, true);
         $deepLevel = count(explode('/', $viewiDir)) - 1;
