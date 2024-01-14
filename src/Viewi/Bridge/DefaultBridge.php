@@ -41,11 +41,15 @@ class DefaultBridge implements IViewiBridge
             CURLOPT_URL => $request->url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => strtoupper($request->method),
-            CURLOPT_HTTPHEADER => $request->headers
+            CURLOPT_HTTPHEADER => []
         );
         if ($request->body != null) {
-            $params[CURLOPT_HTTPHEADER]['Content-Type'] = 'application/json';
+            $params[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
+            $params[CURLOPT_HTTPHEADER][] = 'Accept: application/json';
             $params[CURLOPT_POSTFIELDS] = json_encode($request->body);
+        }
+        foreach ($request->headers as $key => $value) {
+            $params[CURLOPT_HTTPHEADER][] = "$key: $value";
         }
         curl_setopt_array($curl, $params);
         $response = curl_exec($curl);
