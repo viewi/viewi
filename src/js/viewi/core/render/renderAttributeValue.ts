@@ -2,11 +2,13 @@ import { BaseComponent } from "../component/baseComponent";
 import { TemplateNode } from "../node/templateNode";
 import { componentsMeta } from "../component/componentsMeta";
 import { ContextScope } from "../lifecycle/contextScope";
+import { HtmlNodeType } from "../node/htmlNodeType";
+import { xLinkNs } from "../helpers/isSvg";
 
 export function renderAttributeValue(
     instance: BaseComponent<any>,
     attribute: TemplateNode,
-    element: HTMLElement,
+    element: HTMLElement & HtmlNodeType,
     attrName: string,
     scope: ContextScope
 ) {
@@ -32,10 +34,18 @@ export function renderAttributeValue(
             element.removeAttribute(attrName);
         }
     } else {
-        if (valueContent !== null) {
-            valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, <string>valueContent);
+        if (element.isSvg && attrName.startsWith('xlink:')) {
+            if (valueContent !== null) {
+                valueContent !== element.getAttribute(attrName) && element.setAttributeNS(xLinkNs, attrName, <string>valueContent);
+            } else {
+                element.removeAttributeNS(xLinkNs, attrName.slice(6, attrName.length));
+            }
         } else {
-            element.removeAttribute(attrName);
+            if (valueContent !== null) {
+                valueContent !== element.getAttribute(attrName) && element.setAttribute(attrName, <string>valueContent);
+            } else {
+                element.removeAttribute(attrName);
+            }
         }
     }
 };

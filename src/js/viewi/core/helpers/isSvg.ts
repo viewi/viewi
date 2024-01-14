@@ -20,3 +20,5 @@ for (let i = 0; i < svgTagsList.length; i++) {
 export function isSvg(tag: string) {
     return (tag.toLowerCase() in svgMap);
 }
+
+export const xLinkNs = "http://www.w3.org/1999/xlink";
