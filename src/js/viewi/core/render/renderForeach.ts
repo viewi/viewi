@@ -29,6 +29,7 @@ export function renderForeach(
     const isNumeric = Array.isArray(data);
     let insertTarget = anchorNode;
     let between = false;
+    let found = false;
     const usedMap = {};
     const deleteMap: ArrayScope = {};
     for (let forKey in data) {
@@ -52,14 +53,15 @@ export function renderForeach(
         scope.children[scopeId] = nextScope;
         // if (!(dataKey in currentArrayScope)) { // if unique key provided
         // }
-        let found = false;
+        const lastFound = found;
+        found = false;
         for (let di in currentArrayScope) {
             if (currentArrayScope[di] === dataItem) {
                 found = true;
                 between = false;
                 insertTarget = anchorNode;
                 break;
-            } else if (!between && !(dataKey in usedMap)) {
+            } else if (lastFound && !(dataKey in usedMap)) {
                 insertTarget = currentArrayScope[di].begin;
                 between = true;
             }
