@@ -8,11 +8,16 @@ const getPathName = function (href: string) {
     return locationScope.link.pathname;
 };
 
+export const onUrlUpdate: {
+    callback?: Function
+} = {};
+
 const updateHistory = function (href: string, forward: boolean = true) {
     if (forward) {
         window.history.pushState({ href: href }, '', href);
     }
     window.scrollTo(0, 0);
+    onUrlUpdate.callback?.();
 }
 
 export function handleUrl(href: string, forward: boolean = true) {
