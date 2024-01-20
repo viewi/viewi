@@ -31,7 +31,7 @@ export function renderPortal(portal: Portal, scope: ContextScope, hydrate = fals
         if (scope.instance._name in globalScope.iteration) {
             globalScope.iteration[scope.instance._name].slots[slotName] = anchorSlotNode;
         }
-        portal.$.anchorNode = anchorSlotNode;
+        portal.anchorNode = anchorSlotNode;
         // restore anchor position
         if (hydrate) {
             portals[portal.to!].current = anchor!.current;
