@@ -5,13 +5,13 @@ let reactiveId = 0;
 
 export type ReactiveProxy = object & { $: ReactiveProxy, $$r: { [key: string]: [path: string, instance: BaseComponent<any>] } };
 
-export function activateTarget<T>(component: T & BaseComponent<T>, prop: string, target: any) {
+export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: string, prop: string, target: any) {
     let val = target[prop];
     if (Array.isArray(val)) {
         // TODO
     }
     else if (val !== null && typeof val === 'object' && typeof val !== 'function') {
-        deepProxy(prop, component, val);
+        deepProxy(mainPath, component, val);
     }
     Object.defineProperty(target, prop, {
         enumerable: true,
@@ -22,6 +22,7 @@ export function activateTarget<T>(component: T & BaseComponent<T>, prop: string,
         set: function (value) {
             const react = val !== value;
             val = value;
+            deepProxy(mainPath, component, val);
             if (react) {
                 for (let id in target.$$r) {
                     const path = target.$$r[id][0];
@@ -51,35 +52,34 @@ export function activateTarget<T>(component: T & BaseComponent<T>, prop: string,
 
 function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targetObject: ReactiveProxy) {
     if (!(prop in ReserverProps)) {
-        let keys = Object.keys(targetObject);
-        for (let i = 0; i < keys.length; i++) {
-            const valueProp = keys[i];
-            if (!(valueProp in ReserverProps)) {
-                activateTarget(component, valueProp, targetObject);
+        if (Array.isArray(targetObject)) {
+            // TODO: 
+        }
+        else if (targetObject !== null && typeof targetObject === 'object' && typeof targetObject !== 'function') {
+            let keys = Object.keys(targetObject);
+            for (let i = 0; i < keys.length; i++) {
+                const valueProp = keys[i];
+                if (!(valueProp in ReserverProps)) {
+                    activateTarget(component, prop, valueProp, targetObject);
+                }
             }
-            // deepProxy(prop, component, val);
+            if (!targetObject.$$r) {
+                Object.defineProperty(targetObject, "$$r", {
+                    enumerable: false,
+                    writable: true,
+                    value: {}
+                });
+            }
+            const trackerId = ++reactiveId + '';
+            targetObject.$$r[trackerId] = [prop, component];
+            component.$$p.push([trackerId, targetObject]);
         }
-        if (!targetObject.$$r) {
-            Object.defineProperty(targetObject, "$$r", {
-                enumerable: false,
-                writable: true,
-                value: {}
-            });
-        }
-        const trackerId = ++reactiveId + '';
-        targetObject.$$r[trackerId] = [prop, component];
-        component.$$p.push([trackerId, targetObject]);
     }
 }
 
 export function defineReactive<T>(component: T & BaseComponent<T>, prop: string) {
     let val = component[prop];
-    if (Array.isArray(val)) {
-        // TODO: 
-    }
-    else if (val !== null && typeof val === 'object' && typeof val !== 'function') {
-        deepProxy(prop, component, val);
-    }
+    deepProxy(prop, component, val);
     Object.defineProperty(component, prop, {
         enumerable: true,
         configurable: true,
@@ -89,7 +89,7 @@ export function defineReactive<T>(component: T & BaseComponent<T>, prop: string)
         set: function (value) {
             const react = val !== value;
             val = value;
-            // deepProxy(prop, component, val);
+            deepProxy(prop, component, val);
             if (react && (prop in component.$$r)) {
                 for (let i in component.$$r[prop]) {
                     const callbackFunc = component.$$r[prop][i];
