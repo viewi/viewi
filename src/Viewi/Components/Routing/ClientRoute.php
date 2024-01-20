@@ -2,14 +2,20 @@
 
 namespace Viewi\Components\Routing;
 
+use Viewi\Components\Callbacks\Subscriber;
 use Viewi\Components\Environment\Platform;
 use Viewi\DI\Singleton;
 
 #[Singleton]
 class ClientRoute
 {
+    private Subscriber $urlUpdateSubscriber;
     public function __construct(private Platform $platform)
     {
+        $this->urlUpdateSubscriber = new Subscriber($this->platform->getCurrentUrlPath());
+        $this->platform->onUrlUpdate(function () {
+            $this->urlUpdateSubscriber->publish($this->platform->getCurrentUrlPath());
+        });
     }
 
     public function navigateBack()
@@ -35,5 +41,10 @@ class ClientRoute
     public function getQueryParams()
     {
         return $this->platform->getQueryParams();
+    }
+
+    public function urlWatcher(): Subscriber
+    {
+        return $this->urlUpdateSubscriber;
     }
 }
