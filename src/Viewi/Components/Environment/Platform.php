@@ -53,6 +53,11 @@ class Platform
         return $this->engine->getRequest()?->getQueryParams();
     }
 
+    public function onUrlUpdate($callback)
+    {
+        $callback();
+    }
+
     // server-side only
     public function app()
     {

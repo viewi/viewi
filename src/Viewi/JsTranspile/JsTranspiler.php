@@ -22,6 +22,7 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\Isset_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\NullsafePropertyFetch;
 use PhpParser\Node\Expr\PostDec;
 use PhpParser\Node\Expr\PostInc;
 use PhpParser\Node\Expr\PropertyFetch;
@@ -538,10 +539,15 @@ class JsTranspiler
             } elseif ($node instanceof ConstFetch) {
                 // TODO: validate parts
                 $this->jsCode .= implode(',', $node->name->getParts());
-            } elseif ($node instanceof PropertyFetch) {
+            } elseif ($node instanceof PropertyFetch || $node instanceof NullsafePropertyFetch) {
+                /**
+                 * @var PropertyFetch $node
+                 */
+                $nullSafe = $node instanceof NullsafePropertyFetch;
+                $fetchOperand = $nullSafe ? '?.' : '.';
                 $isThis = $node->var instanceof Variable && $node->var->name === 'this';
                 if ($isThis && isset($this->privateProperties[$node->name->name])) {
-                    $this->jsCode .= '$this.' . $node->name->name;
+                    $this->jsCode .= '$this' . $fetchOperand . $node->name->name;
                 } else {
                     $this->propertyFetchQueue[] = $node->name->name;
                     // if ($isThis) {
@@ -550,7 +556,7 @@ class JsTranspiler
                     $prevPath = $this->currentPath;
                     $this->processStmts([$node->var]);
 
-                    $this->jsCode .= '.' . $node->name->name;
+                    $this->jsCode .= $fetchOperand . $node->name->name;
                     if ($isThis) {
                         // $this->debug($this->propertyFetchQueue);
                         $index = count($this->propertyFetchQueue);
