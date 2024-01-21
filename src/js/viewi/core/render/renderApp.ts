@@ -95,8 +95,10 @@ export function renderApp(
         for (let a in anchors) {
             const anchor = anchors[a];
             // clean up what's left
-            for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
-                anchor.target.childNodes[i].remove();
+            if (anchor.target.nodeName !== 'HEAD' && anchor.target.nodeName !== 'BODY') {
+                for (let i = anchor.target.childNodes.length - 1; i >= anchor.current + 1; i--) {
+                    anchor.target.childNodes[i].remove();
+                }
             }
             // clean up not matched
             for (let i = anchor.invalid.length - 1; i >= 0; i--) {
