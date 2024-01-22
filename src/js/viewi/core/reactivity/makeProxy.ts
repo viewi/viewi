@@ -3,7 +3,7 @@ import { ReserverProps } from "../component/reserverProps";
 
 let reactiveId = 0;
 
-export type ReactiveProxy = object & { $: ReactiveProxy, $$r: { [key: string]: [path: string, instance: BaseComponent<any>] } };
+export type ReactiveProxy = object & { $: ReactiveProxy, $$r?: { [key: string]: [path: string, instance: BaseComponent<any>] } };
 
 export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: string, prop: string, target: any) {
     let val = target[prop];
@@ -55,24 +55,25 @@ function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targetObjec
         if (Array.isArray(targetObject)) {
             // TODO: 
         }
-        else if (targetObject !== null && typeof targetObject === 'object' && typeof targetObject !== 'function') {
-            let keys = Object.keys(targetObject);
-            for (let i = 0; i < keys.length; i++) {
-                const valueProp = keys[i];
-                if (!(valueProp in ReserverProps)) {
-                    activateTarget(component, prop, valueProp, targetObject);
-                }
-            }
-            if (!targetObject.$$r) {
+        else if (targetObject !== null && typeof targetObject === 'object' && typeof targetObject !== 'function' && !(targetObject instanceof EventTarget)) {
+            if (!('$$r' in targetObject)) {
                 Object.defineProperty(targetObject, "$$r", {
                     enumerable: false,
                     writable: true,
                     value: {}
                 });
+                targetObject.$$r = {};
+                let keys = Object.keys(targetObject);
+                for (let i = 0; i < keys.length; i++) {
+                    const valueProp = keys[i];
+                    if (!(valueProp in ReserverProps)) {
+                        activateTarget(component, prop, valueProp, targetObject);
+                    }
+                }
+                const trackerId = ++reactiveId + '';
+                targetObject.$$r[trackerId] = [prop, component];
+                component.$$p.push([trackerId, targetObject]);
             }
-            const trackerId = ++reactiveId + '';
-            targetObject.$$r[trackerId] = [prop, component];
-            component.$$p.push([trackerId, targetObject]);
         }
     }
 }
