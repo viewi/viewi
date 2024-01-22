@@ -220,5 +220,8 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             // console.log(name, instance);
         }
     }
+    if (info.hooks && info.hooks.rendered) {
+        (instance as any).rendered();
+    }
     return scope;
 }
