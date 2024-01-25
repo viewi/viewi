@@ -212,11 +212,13 @@ class JsTranspiler
                 $extendsCode = '';
                 $itsBase = false;
                 if ($node->extends !== null) {
-                    $exportItem->Attributes['extends'] = $node->extends->getParts();
+                    $extendParts = $node->extends->getParts();
+                    $exportItem->Attributes['extends'] = $extendParts;
                     $extendClass = $exportItem->Attributes['extends'][0];
                     $extendsCode = " extends $extendClass";
                     $itsBase = $extendClass === 'BaseComponent';
                     $this->currentExtend = $extendClass;
+                    $this->usingList[$extendClass] = new UseItem($extendParts, UseItem::Class_);
                 }
                 if ($node->attrGroups) {
                     $exportItem->Attributes['attrs'] = [];
