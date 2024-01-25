@@ -7,46 +7,43 @@ export type ReactiveProxy = object & { $: ReactiveProxy, $$r?: { [key: string]: 
 
 export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: string, prop: string, target: any) {
     let val = target[prop];
-    if (Array.isArray(val)) {
-        // TODO
-    }
-    else if (val !== null && typeof val === 'object' && typeof val !== 'function') {
-        deepProxy(mainPath, component, val);
-    }
-    Object.defineProperty(target, prop, {
-        enumerable: true,
-        configurable: true,
-        get: function () {
-            return val;
-        },
-        set: function (value) {
-            const react = val !== value;
-            val = value;
-            deepProxy(mainPath, component, val);
-            if (react) {
-                for (let id in target.$$r) {
-                    const path = target.$$r[id][0];
-                    const component = target.$$r[id][1];
-                    // const propertyPath = path + '.' + prop;
-                    // if (propertyPath in component.$$r) {
-                    //     for (let i in component.$$r[propertyPath]) {
-                    //         const callbackFunc = component.$$r[propertyPath][i];
-                    //         // TODO: schedule queue and react only once
-                    //         callbackFunc[0].apply(null, callbackFunc[1]);
-                    //     }
-                    // }
-                    // All root path dependencies should trigger updates, no need for sub path updates
-                    if (path in component.$$r) {
-                        for (let i in component.$$r[path]) {
-                            const callbackFunc = component.$$r[path][i];
-                            // TODO: schedule queue and react only once
-                            callbackFunc[0].apply(null, callbackFunc[1]);
+    if (!Object.getOwnPropertyDescriptor(target, prop)?.set) {
+        Object.defineProperty(target, prop, {
+            enumerable: true,
+            configurable: true,
+            get: function () {
+                return val;
+            },
+            set: function (value) {
+                const react = val !== value;
+                val = value;
+                deepProxy(mainPath, component, val);
+                if (react) {
+                    for (let id in target.$$r) {
+                        const path = target.$$r[id][0];
+                        const component = target.$$r[id][1];
+                        // const propertyPath = path + '.' + prop;
+                        // if (propertyPath in component.$$r) {
+                        //     for (let i in component.$$r[propertyPath]) {
+                        //         const callbackFunc = component.$$r[propertyPath][i];
+                        //         // TODO: schedule queue and react only once
+                        //         callbackFunc[0].apply(null, callbackFunc[1]);
+                        //     }
+                        // }
+                        // All root path dependencies should trigger updates, no need for sub path updates
+                        if (path in component.$$r) {
+                            for (let i in component.$$r[path]) {
+                                const callbackFunc = component.$$r[path][i];
+                                // TODO: schedule queue and react only once
+                                callbackFunc[0].apply(null, callbackFunc[1]);
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+        deepProxy(mainPath, component, val);
+    }
 }
 
 
@@ -62,18 +59,17 @@ function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targetObjec
                     writable: true,
                     value: {}
                 });
-                targetObject.$$r = {};
-                let keys = Object.keys(targetObject);
-                for (let i = 0; i < keys.length; i++) {
-                    const valueProp = keys[i];
-                    if (!(valueProp in ReserverProps)) {
-                        activateTarget(component, prop, valueProp, targetObject);
-                    }
-                }
-                const trackerId = ++reactiveId + '';
-                targetObject.$$r[trackerId] = [prop, component];
-                component.$$p.push([trackerId, targetObject]);
             }
+            let keys = Object.keys(targetObject);
+            for (let i = 0; i < keys.length; i++) {
+                const valueProp = keys[i];
+                if (!(valueProp in ReserverProps)) {
+                    activateTarget(component, prop, valueProp, targetObject);
+                }
+            }
+            const trackerId = ++reactiveId + '';
+            targetObject.$$r![trackerId] = [prop, component];
+            component.$$p.push([trackerId, targetObject]);
         }
     }
 }
