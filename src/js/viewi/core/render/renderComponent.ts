@@ -221,7 +221,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         }
     }
     if (info.hooks && info.hooks.rendered) {
-        (instance as any).rendered();
+        setTimeout(function () { (instance as any).rendered(); }, 0);
     }
     return scope;
 }
