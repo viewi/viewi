@@ -575,7 +575,7 @@ export function render(
                                 }
                             }
                         }
-                        if (valueSubs) {
+                        if (valueSubs.length) {
                             for (let subI in valueSubs) {
                                 const trackingPath = valueSubs[subI];
                                 track(instance, trackingPath, scope, [renderAttributeValue, [instance, attribute, element, attrName, scope]]);

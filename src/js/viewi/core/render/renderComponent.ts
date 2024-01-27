@@ -94,6 +94,9 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             } else if (attrName[0] === '#') {
                 const refName = attrName.substring(1, attrName.length);
                 parentInstance._refs[refName] = instance;
+                if (refName in parentInstance) {
+                    parentInstance[refName] = instance;
+                }
             } else {
                 const isModel = attrName === 'model';
                 let valueContent: any = null;
