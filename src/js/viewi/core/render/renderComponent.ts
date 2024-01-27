@@ -91,6 +91,9 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
                     instance.$_callbacks[eventName] = eventHandler;
                     // console.log('Event', attribute, eventName, eventHandler);
                 }
+            } else if (attrName[0] === '#') {
+                const refName = attrName.substring(1, attrName.length);
+                parentInstance._refs[refName] = instance;
             } else {
                 const isModel = attrName === 'model';
                 let valueContent: any = null;

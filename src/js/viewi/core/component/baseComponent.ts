@@ -4,7 +4,7 @@ export abstract class BaseComponent<T> {
     __id: string = '';
     _props: { [key: string]: any } = {};
     $_callbacks: { [key: string]: Function } = {};
-    _refs: { [key: string]: Node } = {};
+    _refs: { [key: string]: Node | BaseComponent<any> } = {};
     _slots: { [key: string]: any } = {};
     _element: Node | null = null;
     $$t: Function[] = []; // template inline expressions
