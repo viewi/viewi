@@ -4,6 +4,7 @@ namespace Viewi\JsTranspile;
 
 use Exception;
 use PhpParser\Node;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\ArrowFunction;
@@ -25,6 +26,8 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\NullsafePropertyFetch;
 use PhpParser\Node\Expr\PostDec;
 use PhpParser\Node\Expr\PostInc;
+use PhpParser\Node\Expr\PreDec;
+use PhpParser\Node\Expr\PreInc;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Ternary;
@@ -55,6 +58,7 @@ use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Switch_;
 use PhpParser\Node\Stmt\Throw_;
 use PhpParser\Node\Stmt\TryCatch;
+use PhpParser\Node\Stmt\Unset_;
 use PhpParser\Node\Stmt\Use_;
 use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
@@ -487,6 +491,21 @@ class JsTranspiler
             } elseif ($node instanceof Array_) {
                 // TODO: auto new line
                 $arrayType = 0; // 0 [], 1 {}
+                $comments = $node->getComments();
+                if ($comments) {
+                    foreach ($comments as $comment) {
+                        $commentText = $comment->getText();
+                        if (str_contains($commentText, '@jsobject')) {
+                            /**
+                             * Declaring an empty array ([]) but treat it like associative ins JS ({})
+                             * 
+                             */
+                            // Example: $subscribers = /* @jsobject */ [];
+                            $arrayType = 1;
+                        }
+                    }
+                }
+
                 $at = strlen($this->jsCode) - 1;
                 if ($node->items !== null) {
                     $rawItems = [];
@@ -705,6 +724,18 @@ class JsTranspiler
                     }
                     $comma = ' && ';
                 }
+            } elseif ($node instanceof Unset_) {
+                $comma = '';
+                foreach ($node->vars as $var) {
+                    $this->jsCode .= $comma;
+                    if ($var instanceof ArrayDimFetch) {
+                        $this->processStmts([str_repeat($this->indentationPattern, $this->level), '(', 'delete ', $var, ')', ';' . PHP_EOL]);
+                    } else {
+                        $this->jsCode .= 'unset(';
+                        $this->processStmts([$var]);
+                        $this->jsCode .= ')';
+                    }
+                }
             } elseif ($node instanceof ArrayDimFetch) {
                 if ($node->dim === null) {
                     throw new RuntimeException("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
@@ -870,20 +901,42 @@ class JsTranspiler
             } elseif ($node instanceof BinaryOp) {
                 $className = get_class($node);
                 list($precedence, $associativity) = $this->precedenceMap[$className];
+                $wrapParentheses = $node instanceof BinaryOp\Coalesce && $node->right instanceof BinaryOp\BooleanOr;
                 $leftParentheses = $this->pPrec($node->left, $precedence, $associativity, -1);
-                $this->processStmts($leftParentheses ? ['(', $node->left, ')'] : [$node->left]);
+                $leftStmts = $leftParentheses ? ['(', $node->left, ')'] : [$node->left];
+                if ($wrapParentheses) {
+                    array_unshift($leftStmts, '(');
+                }
+                $this->processStmts($leftStmts);
                 $op = $node->getOperatorSigil();
                 $op = $op === '.' ? '+' : $op;
                 $this->jsCode .= ' ' . $op . ' ';
                 $rightParentheses = $this->pPrec($node->right, $precedence, $associativity, 1);
-                $this->processStmts($rightParentheses ? ['(', $node->right, ')'] : [$node->right]);
-                // Helpers::debug([$op, $leftParentheses, $rightParentheses, $node]);
+                $rightStmts = $rightParentheses ? ['(', $node->right, ')'] : [$node->right];
+                if ($wrapParentheses) {
+                    /**
+                     * @var BinaryOp\BooleanOr $rightNode
+                     */
+                    $rightNode = $node->right;
+                    $rightStmts = [$rightNode->left, ')', ' || ', $rightNode->right];
+                }
+                $this->processStmts($rightStmts);
+
+                // if ($op === '||') {
+                //     print_r([$op, $leftParentheses, $rightParentheses, $node]);
+                //     // var_dump([!explode('.', '3.4')[1] ?? '5', !explode('.', '3.4'), !(explode('.', '3.4')[1]) ?? '5']);
+                //     //Helpers::debug([$op, $leftParentheses, $rightParentheses, $node]);
+                // }
             } elseif ($node instanceof PostInc) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '++';
             } elseif ($node instanceof PostDec) {
                 $this->processStmts([$node->var]);
                 $this->jsCode .= '--';
+            } elseif ($node instanceof PreInc) {
+                $this->processStmts(['++', $node->var]);
+            } elseif ($node instanceof PreDec) {
+                $this->processStmts(['--', $node->var]);
             } elseif ($node instanceof Assign) {
                 $this->processStmts([$node->var, '=', $node->expr]);
             } elseif ($node instanceof UnaryMinus) {
@@ -918,7 +971,7 @@ class JsTranspiler
                 $this->processStmts([$node->var, '??=', $node->expr]);
             } elseif ($node instanceof BooleanNot) {
                 $this->jsCode .= '!';
-                $this->processStmts([$node->expr]);
+                $this->processStmts(['(', $node->expr, ')']);
             } elseif ($node instanceof Nop) {
                 $ident = str_repeat($this->indentationPattern, $this->level);
                 foreach ($node->getComments() as $comment) {
