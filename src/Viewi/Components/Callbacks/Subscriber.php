@@ -13,7 +13,8 @@ class Subscriber
      * 
      * @var Subscription[]
      */
-    private array $subscribers = [];
+    private array $subscribers = /* @jsobject */ [];
+    private int $idGenerator = 0;
 
     public function __construct($defaultValue = null)
     {
@@ -24,17 +25,18 @@ class Subscriber
 
     public function subscribe(callable $callback): Subscription
     {
-        $subscription = new Subscription($this, $callback);
-        $this->subscribers[] = $subscription;
+        $subscriptionId = ++$this->idGenerator;
+        $subscription = new Subscription($this, $subscriptionId, $callback);
+        $this->subscribers[$subscriptionId] = $subscription;
         ($subscription->notifyCallback)($this->dataState ? $this->dataState['data'] : null);
         return $subscription;
     }
 
     public function unsubscribe(Subscription $subscription)
     {
-        $index = array_search($subscription, $this->subscribers);
-        if ($index !== false) {
-            array_splice($this->subscribers, $index, 1);
+        $subscriptionId = $subscription->getId();
+        if (isset($this->subscribers[$subscriptionId])) {
+            unset($this->subscribers[$subscriptionId]);
         }
     }
 
