@@ -19,6 +19,8 @@ use Viewi\Components\Attributes\PostBuildAction;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\Render\IRenderable;
+use Viewi\DI\Inject;
+use Viewi\DI\Scope;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 use Viewi\ViewiPath;
@@ -85,7 +87,9 @@ class Builder
         Singleton::class => true,
         Scoped::class => true,
         Skip::class => true,
-        CustomJs::class => true
+        CustomJs::class => true,
+        Inject::class => true,
+        Scope::class => true
     ];
 
     private array $hookMethods = [
@@ -685,6 +689,9 @@ class Builder
                     }
                 }
                 $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
+                // if($buildItem->ComponentName === 'Login') {
+                //     print_r($buildItem->JsOutput);
+                // }
                 // javascript
                 if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
                     // $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
@@ -1120,6 +1127,24 @@ class Builder
                             ];
                         // throw new Exception("Argument '$argumentName' in class" .
                         //     "{$reflectionClass->name}' can`t be resolved without a type in {$reflectionClass->getFileName()}.");
+                    }
+
+                    $attributes = $argument->getAttributes();
+                    foreach ($attributes as $attribute) {
+                        $attributeClass = $attribute->getName();
+                        switch ($attributeClass) {
+                            case Inject::class: {
+                                    /**
+                                     * @var Inject $injectAttribute
+                                     */
+                                    $injectAttribute = $attribute->newInstance();
+                                    $dependencies[$argumentName]['di'] = $injectAttribute->scope;
+                                    break;
+                                }
+                            default: {
+                                    break;
+                                }
+                        }
                     }
                 }
             }
