@@ -5,11 +5,13 @@ import { getScopeState } from "../lifecycle/scopeState";
 import { DIContainer } from "./diContainer";
 import { factoryContainer } from "./factory";
 import { globalScope } from "./globalScope";
+import { ScopeType } from "./scopeType";
 
 const singletonContainer: DIContainer = {};
 let nextInstanceId = 0;
+const rootProvides = {};
 
-export function resolve(name: string, params: { [key: string]: any } = {}, canBeNull: boolean = false) {
+export function resolve(name: string, params: { [key: string]: any } = {}, canBeNull: boolean = false, parent: BaseComponent<any> | null = null) {
     if (!(name in componentsMeta.list)) {
         if (canBeNull) {
             return null;
@@ -28,6 +30,7 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
         // console.log('Returning from cache', name, container[name]);
         return container[name];
     }
+    const toProvide = {};
     if (info.custom) {
         instance = factoryContainer[name]();
     } else if (!info.dependencies) {
@@ -36,9 +39,12 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
         const constructArguments: any[] = [];
         for (let i in info.dependencies) {
             const dependency = info.dependencies[i];
+            const diType = dependency['di'] || false;
             const argCanBeNull = !!dependency.null;
             var argument: any = null; // d.null
-            if (params && (dependency.argName in params)) {
+            if (diType === <ScopeType>'PARENT') {
+                argument = parent ? parent.inject(dependency.name) : (rootProvides[dependency.name] || null);
+            } else if (params && (dependency.argName in params)) {
                 argument = params[dependency.argName];
             }
             else if (dependency.default) {
@@ -46,7 +52,10 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
             } else if (dependency.builtIn) {
                 argument = dependency.name === 'string' ? '' : 0;
             } else {
-                argument = resolve(dependency.name, {}, argCanBeNull);
+                argument = resolve(dependency.name, {}, argCanBeNull, parent);
+            }
+            if (diType === <ScopeType>'COMPONENT') {
+                toProvide[dependency.name] = argument;
             }
             constructArguments.push(argument);
         }
@@ -54,6 +63,15 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
     }
     if (info.base) {
         (<BaseComponent<any>>instance).__id = ++nextInstanceId + '';
+        if (parent !== null) {
+            (<BaseComponent<any>>instance)._provides = parent._provides;
+            (<BaseComponent<any>>instance)._parent = parent;
+        } else {
+            (<BaseComponent<any>>instance)._provides = rootProvides;
+        }
+        for (let p in toProvide) {
+            (<BaseComponent<any>>instance).provide(p, toProvide[p]);
+        }
     }
     const scopeState = getScopeState();
     if (scopeState.state[name]) {

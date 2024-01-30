@@ -1,0 +1,1 @@
+export type ScopeType = 'COMPONENT' | 'PARENT';
