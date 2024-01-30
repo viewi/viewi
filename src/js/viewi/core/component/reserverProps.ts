@@ -7,6 +7,9 @@ export const ReserverProps = {
     $$t: true,
     $$r: true,
     $: true,
+    $$p: true,
     _name: true,
-    emitEvent: true
+    emitEvent: true,
+    _provides: true,
+    _parent: true,
 }
