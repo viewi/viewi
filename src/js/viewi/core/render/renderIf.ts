@@ -2,7 +2,7 @@ import { BaseComponent } from "../component/baseComponent";
 import { TemplateNode } from "../node/templateNode";
 import { render } from "./render";
 import { ConditionalDirective } from "../directive/conditionalDirective";
-import { DirectiveMap } from "../directive/DirectiveMap";
+import { DirectiveMap } from "../directive/directiveMap";
 import { TextAnchor } from "../anchor/textAnchor";
 import { ContextScope } from "../lifecycle/contextScope";
 import { dispose } from "../lifecycle/dispose";
@@ -37,6 +37,7 @@ export function renderIf(
                 id: scopeId,
                 why: index === 0 ? 'if' : (directive.children ? 'elseif' : 'else'),
                 instance: instance,
+                lastComponent: scope.lastComponent,
                 arguments: [...scope.arguments],
                 map: { ...scope.map },
                 track: [],
@@ -57,6 +58,7 @@ export function renderIf(
                 id: -1,
                 why: 'if',
                 instance: instance,
+                lastComponent: scope.lastComponent,
                 arguments: [],
                 map: {},
                 track: [],

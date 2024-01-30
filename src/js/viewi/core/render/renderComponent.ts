@@ -41,7 +41,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         }
         lastIteration[name].scope.keep = true;
     }
-    const instance: BaseComponent<any> & IRenderable = reuse ? lastIteration[name].instance : makeProxy(resolve(name, params));
+    const instance: BaseComponent<any> & IRenderable = reuse ? lastIteration[name].instance : makeProxy(resolve(name, params, false, props?.scope.lastComponent || null));
     if (!reuse) {
         if (info.hooks && info.hooks.init) {
             (instance as any).init();
@@ -62,10 +62,16 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         map: props ? { ...props.scope.map } : {},
         track: [],
         children: {},
+        lastComponent: props ? props.scope.lastComponent : null,
         counter: 0,
         parent: props ? props.scope : undefined,
         slots: slots
     };
+    if (scope.slots) {
+        for (let s in scope.slots) {
+            scope.slots[s].scope.lastComponent = instance;
+        }
+    }
     props && (props.scope.children[scopeId] = scope);
     if (info.refs) {
         scope.refs = info.refs;

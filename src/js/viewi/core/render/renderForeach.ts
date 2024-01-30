@@ -1,7 +1,7 @@
 import { BaseComponent } from "../component/baseComponent";
 import { TemplateNode } from "../node/templateNode";
 import { render } from "./render";
-import { DirectiveMap } from "../directive/DirectiveMap";
+import { DirectiveMap } from "../directive/directiveMap";
 import { createAnchorNode, nextAnchorNodeId } from "../anchor/createAnchorNode";
 import { TextAnchor } from "../anchor/textAnchor";
 import { ForeachAnchorEnum } from "../anchor/foreachAnchorEnum";
@@ -40,6 +40,7 @@ export function renderForeach(
             id: scopeId,
             why: 'forItem',
             instance: instance,
+            lastComponent: scope.lastComponent,
             arguments: [...scope.arguments],
             map: { ...scope.map },
             track: [],
