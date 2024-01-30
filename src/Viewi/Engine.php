@@ -4,6 +4,7 @@ namespace Viewi;
 
 use Exception;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\Context\ProvidesScope;
 use Viewi\Components\Http\Message\Request;
 use Viewi\Components\Http\Message\Response;
 use Viewi\Components\Middleware\IMIddleware;
@@ -11,6 +12,7 @@ use Viewi\Components\Middleware\MIddlewareContext;
 use Viewi\Components\Render\IRenderable;
 use Viewi\Components\Render\RenderContext;
 use Viewi\Container\Factory;
+use Viewi\DI\Scope;
 use Viewi\DI\Scoped;
 use Viewi\DI\Singleton;
 
@@ -27,9 +29,12 @@ class Engine
      */
     private array $postActions = [];
     private int $postActionIdCounter = 0;
+    private ProvidesScope $provides;
+    private ?BaseComponent $currentInstance = null;
 
     public function __construct(private AppConfig $config, private array $meta, private Factory $factory)
     {
+        $this->provides = new ProvidesScope();
     }
 
     public function render(string $component, array $params = [], ?Request $request = null): Response
@@ -43,7 +48,7 @@ class Engine
         }
         $response = $this->getResponse();
         if ($this->allow) {
-            $content = $this->renderComponent($component, [], [], [], $params);
+            $content = $this->renderComponent($component, null,  [], [], [], $params);
             $response->headers['Content-type'] = 'text/html; charset=utf-8';
             $response->body = $content;
         } else {
@@ -88,18 +93,25 @@ class Engine
         return $slotFunc($this, $component, $parentSlots, $scope);
     }
 
-    public function renderComponent(string $component, array $props, array $slots, array $scope, array $params = [])
+    public function renderComponent(string $component, ?BaseComponent $parentComponent, array $props, array $slots, array $scope, array $params = [])
     {
         // if ($component === 'Portal') {
         //     Helpers::debug([$component, 'props', $props, 'slots', $slots, 'scope', $scope, 'params', $params]);
         // }
+        // print_r([$component, 'props', $props, 'slots', $slots, 'scope', $scope, 'params', $params]);
+        // print_r([$component, 'scope', $parentComponent ? get_class($parentComponent) : 'root']);
         if (
             !isset($this->meta['components'][$component])
         ) {
             throw new Exception("Component '$component' not found.");
         }
         // Helpers::debug([$componentMeta]);
+        /**
+         * @var BaseComponent $classInstance
+         */
         $classInstance = $this->resolve($component, $params);
+        $previousInstance = $this->currentInstance;
+        $this->currentInstance = $classInstance;
         if ($classInstance instanceof IRenderable) {
             return $classInstance->render(new RenderContext($component, $props, $slots, $scope, $params));
         }
@@ -108,6 +120,9 @@ class Engine
          */
         $componentMeta = $this->meta['components'][$component];
         if (isset($componentMeta['hooks']['init'])) {
+            /**
+             * @var mixed $classInstance
+             */
             $classInstance->init();
         }
         if (
@@ -144,7 +159,9 @@ class Engine
         if (isset($componentMeta['hooks']['mounted'])) {
             $classInstance->mounted();
         }
-        return $renderFunc($this, $classInstance, $slots, $scope);
+        $content = $renderFunc($this, $classInstance, $slots, $scope);
+        $this->currentInstance = $previousInstance;
+        return $content;
     }
 
     public function isComponent(string $name)
@@ -224,6 +241,7 @@ class Engine
                     break;
             }
         }
+        $provides = [];
         if ($this->factory->has($name)) {
             $constructor = $this->factory->get($name);
             $instance = $constructor($this);
@@ -234,7 +252,10 @@ class Engine
             foreach ($componentMeta['dependencies'] as $argName => $type) {
                 // resolve router param
                 $canBeNull = isset($type['null']);
-                if (isset($params[$argName])) {
+                $diType = $type['di'] ?? false;
+                if ($diType === Scope::PARENT) {
+                    $arguments[] = $this->currentInstance->inject($type['name']);
+                } elseif (isset($params[$argName])) {
                     $arguments[] = in_array($type['name'], ['int', 'float'])
                         ? (float)$params[$argName]
                         : $params[$argName];
@@ -258,6 +279,9 @@ class Engine
                 } else {
                     $arguments[] = $this->resolve($type['name'], [], $canBeNull);
                 }
+                if ($diType === Scope::COMPONENT) {
+                    $provides[$type['name']] = $arguments[count($arguments) - 1];
+                }
             }
             $instance = new $fullClassName(...$arguments);
         }
@@ -269,6 +293,11 @@ class Engine
              * @var BaseComponent $instance
              */
             $instance->__id = ++$this->instanceIdCounter;
+            $instance->_provides = $this->currentInstance !== null ? $this->currentInstance->_provides : $this->provides;
+            $instance->_parent = $this->currentInstance;
+            foreach ($provides as $key => $value) {
+                $instance->provide($key, $value);
+            }
         }
         // Preserve
         if (isset($componentMeta['preserve'])) {
