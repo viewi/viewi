@@ -442,10 +442,15 @@ class TemplateCompiler
                             $attributeTagValue->Content = $combinedExpression;
                             $values = [$attributeTagValue];
                             $attributeItem->setChildren($values);
+                            if ($isEvent) {
+                                $this->localScope['event'] = true;
+                                $this->localScopeArguments[] = 'event';
+                            }
                         }
 
                         $concat = '';
                         $single = count($values) === 1;
+
                         foreach ($values as &$attributeValue) {
                             if ($attributeValue->ItsExpression) {
                                 $this->buildExpression($attributeValue);
@@ -464,11 +469,13 @@ class TemplateCompiler
                             $concat = ' . ';
                         }
                         if ($isEvent) {
+                            array_pop($this->localScope);
+                            array_pop($this->localScopeArguments);
                             $jsEventCode = $values[0]->JsExpression;
                             if (!ctype_alnum(str_replace(['_', '->', '$'], '', $combinedValue))) { // closure
                                 $jsEventCode = "function () { $jsEventCode; }";
                             } else {
-                                $jsEventCode = "function () { $jsEventCode(); }";
+                                $jsEventCode = "function (event) { $jsEventCode(event); }";
                             }
                             $lastExpression = array_pop($this->inlineExpressions);
                             $lastExpression[0] = $jsEventCode;
@@ -561,7 +568,7 @@ class TemplateCompiler
                     ']'
                     : '';
 
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, [$props], [$slotsMap], $scope);";
+                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, \$_component, [$props], [$slotsMap], $scope);";
                 if (!$expression) {
                     return;
                 }
