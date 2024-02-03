@@ -336,7 +336,7 @@ export function render(
                             track: [],
                             parent: nextScope,
                             instance: instance,
-                            lastComponent: scope.lastComponent,
+                            lastComponent: { instance: scope.lastComponent.instance },
                             children: {},
                             counter: 0,
                             slots: scope.slots
@@ -379,6 +379,7 @@ export function render(
                                 unpack(slot.node);
                                 slot.node.unpacked = true;
                             }
+                            slot.scope.lastComponent.instance = scope.lastComponent.instance;
                             render(element, slot.scope.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
                         } else { // default slot content
                             if (node.children) {

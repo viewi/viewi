@@ -62,15 +62,16 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
         instance = new components[name](...constructArguments);
     }
     if (info.base) {
-        (<BaseComponent<any>>instance).__id = ++nextInstanceId + '';
+        const baseComponent = instance as BaseComponent<any>;
+        baseComponent.__id = ++nextInstanceId + '';
         if (parent !== null) {
-            (<BaseComponent<any>>instance)._provides = parent._provides;
-            (<BaseComponent<any>>instance)._parent = parent;
+            baseComponent._provides = parent._provides;
+            baseComponent._parent = parent;
         } else {
-            (<BaseComponent<any>>instance)._provides = rootProvides;
+            baseComponent._provides = rootProvides;
         }
         for (let p in toProvide) {
-            (<BaseComponent<any>>instance).provide(p, toProvide[p]);
+            baseComponent.provide(p, toProvide[p]);
         }
     }
     const scopeState = getScopeState();
