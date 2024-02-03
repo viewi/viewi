@@ -4,6 +4,7 @@ namespace Viewi\Bridge;
 
 use Viewi\App;
 use Viewi\Components\Http\Message\Request;
+use Viewi\Engine;
 
 class DefaultBridge implements IViewiBridge
 {
@@ -26,7 +27,7 @@ class DefaultBridge implements IViewiBridge
         return file_get_contents($filename);
     }
 
-    public function request(Request $request): mixed
+    public function request(Request $request, Engine $currentEngine): mixed
     {
         if ($request->isExternal) {
             return $this->externalRequest($request);
@@ -34,7 +35,7 @@ class DefaultBridge implements IViewiBridge
         return $this->viewiApp->run($request->url, $request->method);
     }
 
-    private function externalRequest(Request $request)
+    protected function externalRequest(Request $request)
     {
         $curl = curl_init();
         $params = array(
