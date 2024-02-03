@@ -28,7 +28,9 @@ class Subscriber
         $subscriptionId = ++$this->idGenerator;
         $subscription = new Subscription($this, $subscriptionId, $callback);
         $this->subscribers[$subscriptionId] = $subscription;
-        ($subscription->notifyCallback)($this->dataState ? $this->dataState['data'] : null);
+        if ($this->dataState !== null) {
+            ($subscription->notifyCallback)($this->dataState['data']);
+        }
         return $subscription;
     }
 
@@ -42,8 +44,10 @@ class Subscriber
 
     public function notify()
     {
-        foreach ($this->subscribers as $subscription) {
-            ($subscription->notifyCallback)($this->dataState ? $this->dataState['data'] : null);
+        if ($this->dataState !== null) {
+            foreach ($this->subscribers as $subscription) {
+                ($subscription->notifyCallback)($this->dataState['data']);
+            }
         }
     }
 
