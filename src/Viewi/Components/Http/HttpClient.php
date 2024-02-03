@@ -46,11 +46,11 @@ class HttpClient
                         // Helpers::debug(['calling', $request]);
                         $components = parse_url($request->url);
                         $isExternal = !empty($components['host']);
+                        $currentEngine = $this->platform->engine();
                         if ($isExternal) {
                             $request->markAsExternal();
-                            $data = $this->bridge->request($request);
+                            $data = $this->bridge->request($request, $currentEngine);
                         } else {
-                            $currentEngine = $this->platform->engine();
                             $publicLocation = $this->platform->app()->getConfig()->publicPath;
                             $requestedFile = $publicLocation .= $request->url;
 
@@ -69,7 +69,7 @@ class HttpClient
                                 // recursion, inf loop
                                 throw new Exception("Infinite loop detected by requesting URL: $nextRequestUrl");
                             }
-                            $data = $this->bridge->request($request);
+                            $data = $this->bridge->request($request, $currentEngine);
                             if ($data instanceof Response) {
                                 $response = $data;
                                 $data = $data->body;
