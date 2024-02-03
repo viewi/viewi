@@ -110,6 +110,7 @@ class Engine
          * @var BaseComponent $classInstance
          */
         $classInstance = $this->resolve($component, $params);
+        // print_r([$component, $classInstance->_parent ? get_class($classInstance->_parent) : 'NULL']);
         $previousInstance = $this->currentInstance;
         $this->currentInstance = $classInstance;
         if ($classInstance instanceof IRenderable) {
@@ -203,6 +204,11 @@ class Engine
             return $this->DIContainer[$name];
         }
         return null;
+    }
+
+    public function set(string $name, $mixed)
+    {
+        $this->DIContainer[$name] = $mixed;
     }
 
     /**
