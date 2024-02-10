@@ -13,6 +13,7 @@ abstract class HtmlNode
      */
     public ?array $files = null;
     public $value;
+    public $checked;
     public $usedByRenderer = null;
     public $disabled = null;
     public $form = null;
