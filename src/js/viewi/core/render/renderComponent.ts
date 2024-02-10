@@ -78,9 +78,13 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     if (props && props.attributes) {
         const parentInstance = props.scope.instance;
         for (let a in props.attributes) {
+            let callArguments = [parentInstance];
+            if (props.scope.arguments) {
+                callArguments = callArguments.concat(props.scope.arguments);
+            }
             const attribute = props.attributes[a];
             const attrName = attribute.expression
-                ? parentInstance.$$t[attribute.code!](parentInstance) // TODO: arguments
+                ? parentInstance.$$t[attribute.code!].apply(null, callArguments)
                 : (attribute.content ?? '');
             if (attrName[0] === '(') {
                 const eventName = attrName.substring(1, attrName.length - 1);
@@ -90,7 +94,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
                             attribute.dynamic
                                 ? attribute.dynamic.code!
                                 : attribute.children[0].code!
-                        ](parentInstance) as EventListener;
+                        ].apply(null, callArguments) as EventListener;
                     instance.$_callbacks[eventName] = eventHandler;
                     // console.log('Event', attribute, eventName, eventHandler);
                 }
@@ -106,10 +110,6 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
                 let valueSubs = []; // TODO: on backend, pass attribute value subs in attribute
                 if (isModel) {
                     const attributeValue = attribute.children![0];
-                    let callArguments = [parentInstance];
-                    if (props.scope.arguments) {
-                        callArguments = callArguments.concat(props.scope.arguments);
-                    }
                     const getterSetter = parentInstance.$$t[attributeValue.code as number].apply(null, callArguments);
                     valueContent = getterSetter[0](parentInstance);
                     instance.$_callbacks[attrName] = getComponentModelHandler(parentInstance, getterSetter[1]);
