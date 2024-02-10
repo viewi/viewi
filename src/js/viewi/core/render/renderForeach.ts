@@ -13,7 +13,7 @@ export function renderForeach(
     instance: BaseComponent<any>,
     node: TemplateNode,
     directive: TemplateNode,
-    anchorNode: TextAnchor,
+    anchors: { anchorBegin: TextAnchor, anchorNode: TextAnchor },
     currentArrayScope: ArrayScope,
     localDirectiveMap: DirectiveMap,
     scope: ContextScope
@@ -22,64 +22,68 @@ export function renderForeach(
     if (scope.arguments) {
         callArguments = callArguments.concat(scope.arguments);
     }
+    const forMeta = directive.children![0];
+    const noKey = !!forMeta.forKeyAuto;
     const data = instance.$$t[
-        directive.children![0].forData!
+        forMeta.forData!
     ].apply(null, callArguments);
 
     const isNumeric = Array.isArray(data);
-    let insertTarget = anchorNode;
-    let between = false;
-    let found = false;
     const usedMap = {};
-    const deleteMap: ArrayScope = {};
+    let positionIndex = -1;
+    let moveBefore = anchors.anchorBegin.nextSibling;
     for (let forKey in data) {
+        let found = false;
+        positionIndex++;
         const dataKey = isNumeric ? +forKey : forKey;
         const dataItem = data[dataKey];
-        const scopeId = ++scope.counter;
-        const nextScope: ContextScope = {
-            id: scopeId,
-            why: 'forItem',
-            instance: instance,
-            lastComponent: scope.lastComponent,
-            arguments: [...scope.arguments],
-            map: { ...scope.map },
-            track: [],
-            parent: scope,
-            children: {},
-            counter: 0
-        };
-        if (scope.refs) {
-            nextScope.refs = scope.refs;
-        }
-        scope.children[scopeId] = nextScope;
-        // if (!(dataKey in currentArrayScope)) { // if unique key provided
-        // }
-        const lastFound = found;
-        found = false;
+        let foundIndex = -1;
         for (let di in currentArrayScope) {
-            if (currentArrayScope[di] === dataItem) {
+            foundIndex++;
+            const currentScopeItem = currentArrayScope[di];
+            if (currentScopeItem.value === dataItem && (noKey || currentScopeItem.key === dataKey)) {
                 found = true;
-                between = false;
-                insertTarget = anchorNode;
+                if (foundIndex !== positionIndex) {
+                    // move html
+                    const beginAnchor = currentScopeItem.begin;
+                    let nextToMove = beginAnchor.nextSibling;
+                    moveBefore.before(beginAnchor);
+                    while (nextToMove._anchor !== beginAnchor._anchor) {
+                        nextToMove = nextToMove.nextSibling;
+                        moveBefore.before(nextToMove.previousSibling);
+                    }
+                    moveBefore.before(nextToMove);
+                }
+                moveBefore = currentScopeItem.end.nextSibling;
                 break;
-            } else if (lastFound && !(dataKey in usedMap)) {
-                insertTarget = currentArrayScope[di].begin;
-                between = true;
             }
         }
-        usedMap[dataKey] = true;
         if (!found) {
+            const scopeId = ++scope.counter;
+            const nextScope: ContextScope = {
+                id: scopeId,
+                why: 'forItem',
+                instance: instance,
+                lastComponent: scope.lastComponent,
+                arguments: [...scope.arguments],
+                map: { ...scope.map },
+                track: [],
+                parent: scope,
+                children: {},
+                counter: 0
+            };
+            if (scope.refs) {
+                nextScope.refs = scope.refs;
+            }
+            scope.children[scopeId] = nextScope;
             nextScope.map[directive.children![0].forKey!] = nextScope.arguments.length;
             nextScope.arguments.push(dataKey);
             nextScope.map[directive.children![0].forItem!] = nextScope.arguments.length;
             nextScope.arguments.push(dataItem);
             const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
-            const itemBeginAnchor = createAnchorNode(insertTarget, true, undefined, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
-            render(insertTarget, instance, [node], nextScope, nextDirectives, false, true);
-            const itemEndAnchor = createAnchorNode(insertTarget, true, undefined, itemBeginAnchor._anchor); // end foreach item
-            if (dataKey in currentArrayScope) { // same key, different value
-                deleteMap[dataKey] = currentArrayScope[dataKey];
-            }
+            const itemBeginAnchor = createAnchorNode(moveBefore, true, undefined, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
+            render(moveBefore, instance, [node], nextScope, nextDirectives, false, true);
+            const itemEndAnchor = createAnchorNode(moveBefore, true, undefined, itemBeginAnchor._anchor); // end foreach item
             currentArrayScope[dataKey] = {
                 key: dataKey,
                 value: dataItem,
@@ -88,6 +92,7 @@ export function renderForeach(
                 scope: nextScope
             };
         }
+        usedMap[dataKey] = true;
     }
     // removing what's missing
     for (let di in currentArrayScope) {
@@ -101,14 +106,5 @@ export function renderForeach(
             dispose(currentArrayScope[di].scope);
             delete currentArrayScope[di];
         }
-    }
-    for (let di in deleteMap) {
-        const endAnchor = deleteMap[di].end;
-        while (endAnchor.previousSibling._anchor !== endAnchor._anchor) {
-            endAnchor.previousSibling!.remove();
-        }
-        deleteMap[di].begin.remove();
-        dispose(deleteMap[di].scope);
-        endAnchor.remove();
     }
 }

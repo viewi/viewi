@@ -268,7 +268,7 @@ export function render(
                                         const trackingPath = directive.children![0].subs[subI];
                                         const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
                                         track(instance, trackingPath, scope, [renderForeach,
-                                            [instance, node, directive, anchorNode, dataArrayScope, nextDirectives, scope]]);
+                                            [instance, node, directive, { anchorBegin, anchorNode }, dataArrayScope, nextDirectives, scope]]);
                                     }
                                 }
 
