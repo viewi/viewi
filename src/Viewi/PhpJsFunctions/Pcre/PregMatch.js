@@ -1,8 +1,14 @@
-function preg_match (regex, str) { // eslint-disable-line camelcase
-  //   original by: Muhammad Humayun (https://github.com/ronypt)
-  //   example 1: preg_match("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$", "rony@pharaohtools.com")
-  //   returns 1: true
-  //   example 2: preg_match("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$", "ronypharaohtools.com")
-  //   returns 2: false
-  return (new RegExp(regex).test(str))
+/**
+ * 
+ * @param {string} regex 
+ * @param {string} str 
+ */
+function preg_match(regex, str) { // eslint-disable-line camelcase
+  // "#^/admin/blog/(.*)$#i"
+  let flags = undefined;
+  const packSymbol = regex[0];
+  const parts = regex.split(packSymbol);
+  const regExpression = parts[1];
+  flags = parts[2];
+  return (new RegExp(regExpression, flags).test(str));
 }
