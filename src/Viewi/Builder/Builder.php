@@ -92,6 +92,10 @@ class Builder
         Scope::class => true
     ];
 
+    private array $systemFunctions = [
+        'ensureType' => true,
+    ];
+
     private array $hookMethods = [
         'init' => true,
         'mount' => true,
@@ -734,6 +738,20 @@ class Builder
                                     $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                 } else {
                                     $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+                                }
+                            } elseif ($useItem->Type === UseItem::System) {
+                                switch ($importName) {
+                                    case 'ensureType': {
+                                            if ($lazyLoadGroup && isset($includedInMain[$importName])) {
+                                                $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
+                                            } else {
+                                                $jsComponentCode .= "import { ensureType } from \"../../../viewi/core/helpers/ensureType\";" . PHP_EOL;
+                                            }
+                                            break;
+                                        }
+                                    default: {
+                                            break;
+                                        }
                                 }
                             }
                             $comma = PHP_EOL;
