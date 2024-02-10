@@ -32,17 +32,20 @@ export function renderForeach(
     const usedMap = {};
     let positionIndex = -1;
     let moveBefore = anchors.anchorBegin.nextSibling;
+    const nextArrayScope: ArrayScope = { data: {} };
     for (let forKey in data) {
         let found = false;
         positionIndex++;
         const dataKey = isNumeric ? +forKey : forKey;
         const dataItem = data[dataKey];
         let foundIndex = -1;
-        for (let di in currentArrayScope) {
+        for (let di in currentArrayScope.data) {
             foundIndex++;
-            const currentScopeItem = currentArrayScope[di];
+            const currentScopeItem = currentArrayScope.data[di];
             if (currentScopeItem.value === dataItem && (noKey || currentScopeItem.key === dataKey)) {
                 found = true;
+                usedMap[di] = true;
+                nextArrayScope.data[dataKey] = currentScopeItem;
                 if (foundIndex !== positionIndex) {
                     // move html
                     const beginAnchor = currentScopeItem.begin;
@@ -84,7 +87,7 @@ export function renderForeach(
             const itemBeginAnchor = createAnchorNode(moveBefore, true, undefined, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
             render(moveBefore, instance, [node], nextScope, nextDirectives, false, true);
             const itemEndAnchor = createAnchorNode(moveBefore, true, undefined, itemBeginAnchor._anchor); // end foreach item
-            currentArrayScope[dataKey] = {
+            nextArrayScope.data[dataKey] = {
                 key: dataKey,
                 value: dataItem,
                 begin: itemBeginAnchor,
@@ -92,19 +95,19 @@ export function renderForeach(
                 scope: nextScope
             };
         }
-        usedMap[dataKey] = true;
     }
     // removing what's missing
-    for (let di in currentArrayScope) {
+    for (let di in currentArrayScope.data) {
         if (!(di in usedMap)) {
-            const endAnchor = currentArrayScope[di].end;
+            const endAnchor = currentArrayScope.data[di].end;
             while (endAnchor.previousSibling._anchor !== endAnchor._anchor) {
                 endAnchor.previousSibling!.remove();
             }
-            currentArrayScope[di].begin.remove();
+            currentArrayScope.data[di].begin.remove();
             endAnchor.remove();
-            dispose(currentArrayScope[di].scope);
-            delete currentArrayScope[di];
+            dispose(currentArrayScope.data[di].scope);
+            delete currentArrayScope.data[di];
         }
     }
+    currentArrayScope.data = nextArrayScope.data;
 }

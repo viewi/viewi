@@ -222,7 +222,7 @@ export function render(
                                 const anchor = hydrate ? getAnchor(target) : undefined;
                                 const anchorBegin = createAnchorNode(target, insert, anchor); // begin foreach
                                 const isNumeric = Array.isArray(data);
-                                const dataArrayScope: ArrayScope = {};
+                                const dataArrayScope: ArrayScope = { data: {} };
                                 for (let forKey in data) {
                                     const dataKey = isNumeric ? +forKey : forKey;
                                     const dataItem = data[dataKey];
@@ -253,7 +253,7 @@ export function render(
                                     const itemBeginAnchor = createAnchorNode(target, insert, anchor, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
                                     render(target, instance, [node], nextScope, nextDirectives, hydrate, insert);
                                     const itemEndAnchor = createAnchorNode(target, insert, anchor, itemBeginAnchor._anchor); // end foreach item
-                                    dataArrayScope[dataKey] = {
+                                    dataArrayScope.data[dataKey] = {
                                         key: dataKey,
                                         value: dataItem,
                                         begin: itemBeginAnchor,
