@@ -119,6 +119,18 @@ class HttpClient {
         return this.request("post", url, body, headers);
     }
 
+    put(url: string, body?: any, headers?: { [name: string]: string }) {
+        return this.request("put", url, body, headers);
+    }
+
+    delete(url: string, body?: any, headers?: { [name: string]: string }) {
+        return this.request("delete", url, body, headers);
+    }
+
+    patch(url: string, body?: any, headers?: { [name: string]: string }) {
+        return this.request("patch", url, body, headers);
+    }
+
     withInterceptor(interceptor: string) {
         const http = new HttpClient();
         http.interceptors = [...this.interceptors, interceptor];
