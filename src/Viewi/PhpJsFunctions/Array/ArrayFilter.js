@@ -1,4 +1,4 @@
-function array_filter (arr, func) { // eslint-disable-line camelcase
+function array_filter(arr, func) { // eslint-disable-line camelcase
   //  discuss at: https://locutus.io/php/array_filter/
   // original by: Brett Zamir (https://brett-zamir.me)
   //    input by: max4ever
@@ -12,22 +12,21 @@ function array_filter (arr, func) { // eslint-disable-line camelcase
   //   returns 2: [ 6, , 8, , 10, , 12 ]
   //   example 3: array_filter({"a": 1, "b": false, "c": -1, "d": 0, "e": null, "f":'', "g":undefined})
   //   returns 3: {"a":1, "c":-1}
-
-  let retObj = {}
+  const isArray = Array.isArray(arr);
+  let retObj = isArray ? [] : {};
   let k
 
   func = func || function (v) {
     return v
   }
 
-  // @todo: Issue #73
-  if (Object.prototype.toString.call(arr) === '[object Array]') {
-    retObj = []
-  }
-
   for (k in arr) {
     if (func(arr[k])) {
-      retObj[k] = arr[k]
+      if (isArray) {
+        retObj.push(arr[k]);
+      } else {
+        retObj[k] = arr[k]
+      }
     }
   }
 
