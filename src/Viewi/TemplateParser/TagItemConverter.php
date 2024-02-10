@@ -33,6 +33,9 @@ class TagItemConverter
                 if ($tagItem->DataExpression->ForKey !== null) {
                     $node['forKey'] = $tagItem->DataExpression->ForKey;
                 }
+                if ($tagItem->DataExpression->ForKeyAuto) {
+                    $node['forKeyAuto'] = 1;
+                }
                 if ($tagItem->DataExpression->ForItem !== null) {
                     $node['forItem'] = $tagItem->DataExpression->ForItem;
                 }
