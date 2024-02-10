@@ -1,1 +1,1 @@
-export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor) };
+export type TextAnchor = Text & { _anchor?: string, previousSibling: (ChildNode & TextAnchor), nextSibling: (ChildNode & TextAnchor) };
