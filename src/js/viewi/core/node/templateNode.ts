@@ -22,6 +22,7 @@ export type TemplateNode = {
     forData?: number,
     forItem?: string,
     forKey?: string,
+    forKeyAuto?: boolean,
     func: Function,
     first?: boolean
 }
