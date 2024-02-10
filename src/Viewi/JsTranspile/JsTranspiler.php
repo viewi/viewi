@@ -576,8 +576,14 @@ class JsTranspiler
                     // }
                     $prevPath = $this->currentPath;
                     $this->processStmts([$node->var]);
-
-                    $this->jsCode .= $fetchOperand . $node->name->name;
+                    $fetchBracketS = '';
+                    $fetchBracketE = '';
+                    if ($node->name instanceof Variable) {
+                        $fetchOperand = $nullSafe ? '?.' : '';
+                        $fetchBracketS = '[';
+                        $fetchBracketE = ']';
+                    }
+                    $this->jsCode .= $fetchOperand . $fetchBracketS . $node->name->name . $fetchBracketE;
                     if ($isThis) {
                         // $this->debug($this->propertyFetchQueue);
                         $index = count($this->propertyFetchQueue);
@@ -676,13 +682,28 @@ class JsTranspiler
                 $this->jsCode .= "function (";
                 $comma = '';
                 $allscopes = $this->localVariables;
+                $ensureTypes = [];
                 foreach ($node->params as $param) {
                     $this->jsCode .= $comma . $param->var->name;
                     $comma = ', ';
                     $this->localVariables[$param->var->name] = true;
+                    // if ($param->var->name === 'post') {
+                    //     print_r($param);
+                    // }
+                    // if ($param->type !== null && $param->type instanceof Name) {
+                    //     $ensureTypes[$param->var->name] = $param->type->getLast();
+                    // } elseif ($param->type !== null && $param->type instanceof NullableType && $param->type->type instanceof Name) {
+                    //     $ensureTypes[$param->var->name] = $param->type->type->getLast();
+                    // }
                 }
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
+                if (count($ensureTypes) > 0) {
+                    $this->usingList['ensureType'] = new UseItem(['ensureType'], UseItem::System);
+                    foreach ($ensureTypes as $variable => $prototypeClass) {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . "ensureType($prototypeClass, $variable);" . PHP_EOL;
+                    }
+                }
                 if ($node->stmts !== null) {
                     $this->processStmts($node->stmts);
                 }
