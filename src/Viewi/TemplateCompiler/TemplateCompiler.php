@@ -296,6 +296,7 @@ class TemplateCompiler
                         } else {
                             $autoForKey = $this->getNextIterationKey();
                             $foreachTagValue->DataExpression->ForKey = $autoForKey;
+                            $foreachTagValue->DataExpression->ForKeyAuto = true;
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
                             $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[0]);
