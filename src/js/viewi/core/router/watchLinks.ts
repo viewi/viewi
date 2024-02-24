@@ -14,7 +14,12 @@ export function watchLinks() {
         while (nextTarget.parentElement && nextTarget.tagName !== 'A') {
             nextTarget = <HTMLLinkElement>nextTarget.parentElement;
         }
-        if (nextTarget.tagName === 'A' && nextTarget.href && nextTarget.href.indexOf(location.origin) === 0) {
+        if (
+            nextTarget.tagName === 'A' 
+            && nextTarget.href 
+            && nextTarget.href.indexOf(location.origin) === 0
+            && (nextTarget.target === "_self" || !nextTarget.target)
+        ) {
             locationScope.scrollTo = null;
             if (
                 !locationScope.link.hash
