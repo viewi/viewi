@@ -47,4 +47,9 @@ class ClientRoute
     {
         return $this->urlUpdateSubscriber;
     }
+
+    public function setResponseStatus(int $status): void
+    {
+        $this->platform->setResponseStatus($status);
+    }
 }

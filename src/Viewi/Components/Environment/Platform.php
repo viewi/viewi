@@ -43,6 +43,11 @@ class Platform
         return $this->engine->getRequest()?->url;
     }
 
+    public function setResponseStatus(int $status): void
+    {
+        $this->engine->getResponse()->status = $status;
+    }
+
     public function getCurrentUrlPath(): ?string
     {
         return explode('?', $this->engine->getRequest()?->url)[0];

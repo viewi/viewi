@@ -24,6 +24,10 @@ class Platform {
         return location.pathname + location.search;
     }
 
+    setResponseStatus(status: number): void {
+        // server side only
+    }
+
     getCurrentUrlPath(): string {
         return location.pathname;
     }
