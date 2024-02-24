@@ -41,12 +41,15 @@ export function renderForeach(
         let foundIndex = -1;
         for (let di in currentArrayScope.data) {
             foundIndex++;
+            if (di in usedMap) {
+                continue;
+            }
             const currentScopeItem = currentArrayScope.data[di];
             if (currentScopeItem.value === dataItem && (noKey || currentScopeItem.key === dataKey)) {
                 found = true;
                 usedMap[di] = true;
                 nextArrayScope.data[dataKey] = currentScopeItem;
-                if (foundIndex !== positionIndex) {
+                if (foundIndex !== positionIndex && moveBefore !== currentScopeItem.begin) {
                     // move html
                     const beginAnchor = currentScopeItem.begin;
                     let nextToMove = beginAnchor.nextSibling;
@@ -87,6 +90,7 @@ export function renderForeach(
             const itemBeginAnchor = createAnchorNode(moveBefore, true, undefined, ForeachAnchorEnum.BeginAnchor + nextAnchorNodeId()); // begin foreach item
             render(moveBefore, instance, [node], nextScope, nextDirectives, false, true);
             const itemEndAnchor = createAnchorNode(moveBefore, true, undefined, itemBeginAnchor._anchor); // end foreach item
+            moveBefore = itemEndAnchor.nextSibling;
             nextArrayScope.data[dataKey] = {
                 key: dataKey,
                 value: dataItem,
