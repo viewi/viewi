@@ -75,9 +75,9 @@ class HttpClient
                                 $data = $data->body;
                             }
                         }
-                        $this->platform->httpState[$requestKey] = json_encode($data);
                         // continue to response handler
                         $response = $response ?? new Response('/', 200, 'OK', [], $data);
+                        $this->platform->httpState[$requestKey] = json_encode(['status' => $response->status, 'data' => $data]);
                         $this->interceptResponse($response, $callback, $interceptorInstances);
                     } else {
                         $response = new Response('/', 0, 'Rejected', [], null);
@@ -100,7 +100,7 @@ class HttpClient
             if ($continue && $response->status >= 200 && $response->status < 300) {
                 $callback($response->body);
             } else {
-                $callback(null, $response->body ?? 'Failed');
+                $callback(null, $response);
             }
         };
         $responseHandler = new ResponseHandler($onHandle, $interceptorInstances);
