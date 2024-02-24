@@ -512,9 +512,13 @@ export function render(
                     : null;
                 const hasMap: { [key: string]: boolean } | null = hydrate ? {} : null;
                 for (let a = 0; a < node.attributes.length; a++) {
+                    let callArguments = [instance];
+                    if (scope.arguments) {
+                      callArguments = callArguments.concat(scope.arguments);
+                    }
                     const attribute: TemplateNode = node.attributes[a];
                     const attrName = attribute.expression
-                        ? instance.$$t[attribute.code!](instance) // TODO: arguments
+                        ? instance.$$t[attribute.code!].apply(null, callArguments)
                         : (attribute.content ?? '');
                     if (attrName[0] === '#') {
                         const refName = attrName.substring(1, attrName.length);
@@ -534,7 +538,7 @@ export function render(
                                     attribute.dynamic
                                         ? attribute.dynamic.code!
                                         : attribute.children[0].code!
-                                ](instance) as EventListener;
+                                ].apply(null, callArguments) as EventListener;
                             element.addEventListener(eventName, eventHandler);
                             // console.log('Event', attribute, eventName, eventHandler);
                         }
@@ -550,7 +554,7 @@ export function render(
                         const isOnChange = inputType === "checkbox"
                             || inputType === "radio" || inputType === "select";
                         const valueNode = attribute.children![0];
-                        const getterSetter: [(_component: BaseComponent<any>) => any, (_component: BaseComponent<any>, value: any) => void] = instance.$$t[valueNode.code!](instance);
+                        const getterSetter: [(_component: BaseComponent<any>) => any, (_component: BaseComponent<any>, value: any) => void] = instance.$$t[valueNode.code!].apply(null, callArguments);
                         const eventName = isOnChange ? 'change' : 'input';
                         const inputOptions: ModelHandler = {
                             getter: getterSetter[0],
