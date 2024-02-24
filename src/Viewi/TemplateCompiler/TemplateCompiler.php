@@ -429,6 +429,8 @@ class TemplateCompiler
                         $combinedValue = $hasValues ? '' : 'true';
                         $isEvent = $attributeItem->Content[0] === '(';
                         $itsModel = $attributeItem->Content === 'model';
+                        $backupLocalScope = $this->localScope;
+                        $backupLocalScopeArg = $this->localScopeArguments;
                         if ($isEvent || $itsModel) {
                             $combinedExpression = '';
                             foreach ($values as &$subValue) {
@@ -470,8 +472,8 @@ class TemplateCompiler
                             $concat = ' . ';
                         }
                         if ($isEvent) {
-                            array_pop($this->localScope);
-                            array_pop($this->localScopeArguments);
+                            $this->localScope = $backupLocalScope;
+                            $this->localScopeArguments = $backupLocalScopeArg;
                             $jsEventCode = $values[0]->JsExpression;
                             if (!ctype_alnum(str_replace(['_', '->', '$'], '', $combinedValue))) { // closure
                                 $jsEventCode = "function () { $jsEventCode; }";
@@ -782,8 +784,9 @@ class TemplateCompiler
             return;
         }
         $itsModel = $attributeItem->Content === 'model';
+        $itsEvent = $attributeItem->Content[0] === '(';
         // $itsRef = $attributeItem->Content[0] === '#';
-        if (!$attributeItem->Content || $attributeItem->Content[0] === '(' || $attributeItem->ItsExpression || $itsModel) {
+        if (!$attributeItem->Content || $itsEvent || $attributeItem->ItsExpression || $itsModel) {
             $expression = '';
             foreach ($children as &$subValue) {
                 $expression .= $subValue->Content;
@@ -800,14 +803,21 @@ class TemplateCompiler
             }
             $attributeTagValue->ItsExpression = true;
             $attributeTagValue->Content = $expression;
+            $backupLocalScope = $this->localScope;
+            $backupLocalScopeArg = $this->localScopeArguments;
+            //if ($itsEvent) {
+            // $this->localScope = ['event' => true];
+            // $this->localScopeArguments = ['event'];
+            //} else {
             $this->localScope['event'] = true;
             $this->localScopeArguments[] = 'event';
+            //}
             $this->buildExpression($attributeTagValue);
-            array_pop($this->localScope);
-            array_pop($this->localScopeArguments);
+            $this->localScope = $backupLocalScope;
+            $this->localScopeArguments = $backupLocalScopeArg;
             $jsEventCodeTupple = array_pop($this->inlineExpressions);
             $jsEventCode = $jsEventCodeTupple[0];
-            $funcArguments = implode(', ', $jsEventCodeTupple[1]);
+            $funcArguments = $itsEvent ? 'event' : implode(', ', $jsEventCodeTupple[1]);
             if (!$itsModel) {
                 if (!ctype_alnum(str_replace(['_', '->', '$'], '', $expression))) { // closure
                     $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
