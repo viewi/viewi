@@ -612,12 +612,12 @@ class JsTranspiler
                 // }
                 // $this->debug($node);
             } elseif ($node instanceof MethodCall) {
-                if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
-                    $this->jsCode .= $node->name->name . '(';
-                } else {
-                    $this->processStmts([$node->var]);
-                    $this->jsCode .= '.' . $node->name . '(';
-                }
+                // if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
+                //     $this->jsCode .= $node->name->name . '(';
+                // } else {
+                $this->processStmts([$node->var]);
+                $this->jsCode .= '.' . $node->name . '(';
+                // }
                 if (count($node->args) > 0) {
                     $comma = '';
                     foreach ($node->args as $argument) {
@@ -808,30 +808,7 @@ class JsTranspiler
                 $this->processStmts([$node->cond, ' ? ', $node->if ?? $node->cond, ' : ', $node->else]);
             } elseif ($node instanceof Expression) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '';
-                if ($node->expr instanceof Assign) {
-                    if ($node->expr->var instanceof ArrayDimFetch && $node->expr->var->dim === null) {
-                        $this->processStmts([$node->expr->var->var]);
-                        $this->jsCode .= '.push(';
-                        $this->processStmts([$node->expr->expr]);
-                        $this->jsCode .= ')';
-                    } else {
-                        if ($node->expr->var instanceof Variable) {
-                            $name = $node->expr->var->name;
-                            $isThis = $name === 'this';
-                            if (!$isThis && !$this->inlineExpression && !isset($this->localVariables[$name]) && !isset($this->privateProperties[$name])) {
-                                $this->jsCode .= 'var ';
-                                $this->localVariables[$name] = true;
-                            }
-                        }
-                        $this->processStmts([$node->expr->var]);
-                        $this->jsCode .= ' = ';
-                        $this->processStmts([$node->expr->expr]);
-                        // TODO: if ArrayDimFetch - notify array change for reactivity
-                    }
-                    // $this->debug($node);
-                } else {
-                    $this->processStmts([$node->expr]);
-                }
+                $this->processStmts([$node->expr]);
                 if (!$this->inlineExpression || $this->level > 0) {
                     $this->jsCode .= ';' . PHP_EOL;
                 }
@@ -901,6 +878,7 @@ class JsTranspiler
                     $node->loop,
                     [') {' . PHP_EOL]
                 );
+                // print_r($loopStmts);
                 $this->processStmts($loopStmts);
                 $this->level++;
                 $this->processStmts($node->stmts);
@@ -959,7 +937,27 @@ class JsTranspiler
             } elseif ($node instanceof PreDec) {
                 $this->processStmts(['--', $node->var]);
             } elseif ($node instanceof Assign) {
-                $this->processStmts([$node->var, '=', $node->expr]);
+                if ($node->var instanceof ArrayDimFetch && $node->var->dim === null) {
+                    $this->processStmts([$node->var->var]);
+                    $this->jsCode .= '.push(';
+                    $this->processStmts([$node->expr]);
+                    $this->jsCode .= ')';
+                } else {
+                    if ($node->var instanceof Variable) {
+                        $name = $node->var->name;
+                        $isThis = $name === 'this';
+                        if (!$isThis && !$this->inlineExpression && !isset($this->localVariables[$name]) && !isset($this->privateProperties[$name])) {
+                            $this->jsCode .= 'var ';
+                            $this->localVariables[$name] = true;
+                        }
+                    }
+                    $this->processStmts([$node->var]);
+                    $this->jsCode .= ' = ';
+                    $this->processStmts([$node->expr]);
+                    // TODO: if ArrayDimFetch - notify array change for reactivity
+                }
+                // $this->debug($node);
+                // $this->processStmts([$node->var, '=', $node->expr]);
             } elseif ($node instanceof UnaryMinus) {
                 $this->processStmts(['-', $node->expr]);
             } elseif ($node instanceof UnaryPlus) {
