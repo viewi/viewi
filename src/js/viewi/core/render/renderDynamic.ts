@@ -33,7 +33,8 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         lastComponent: scope.lastComponent,
         parent: scope,
         children: {},
-        counter: 0
+        counter: 0,
+        slots: scope.slots
     };
     if (scope.refs) {
         nextScope.refs = scope.refs;

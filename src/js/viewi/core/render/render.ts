@@ -94,7 +94,8 @@ export function render(
                                     track: [],
                                     parent: scope,
                                     children: {},
-                                    counter: 0
+                                    counter: 0,
+                                    slots: scope.slots
                                 };
                                 if (scope.refs) {
                                     nextScope.refs = scope.refs;
@@ -142,7 +143,8 @@ export function render(
                                         track: [],
                                         parent: scope,
                                         children: {},
-                                        counter: 0
+                                        counter: 0,
+                                        slots: scope.slots
                                     };
                                     if (scope.refs) {
                                         nextScope.refs = scope.refs;
@@ -192,7 +194,8 @@ export function render(
                                         track: [],
                                         parent: scope,
                                         children: {},
-                                        counter: 0
+                                        counter: 0,
+                                        slots: scope.slots
                                     };
                                     if (scope.refs) {
                                         nextScope.refs = scope.refs;
@@ -237,7 +240,8 @@ export function render(
                                         track: [],
                                         parent: scope,
                                         children: {},
-                                        counter: 0
+                                        counter: 0,
+                                        slots: scope.slots
                                     };
                                     if (scope.refs) {
                                         nextScope.refs = scope.refs;
@@ -315,7 +319,8 @@ export function render(
                         lastComponent: scope.lastComponent,
                         parent: scope,
                         children: {},
-                        counter: 0
+                        counter: 0,
+                        slots: scope.slots
                     };
                     if (scope.refs) {
                         nextScope.refs = scope.refs;

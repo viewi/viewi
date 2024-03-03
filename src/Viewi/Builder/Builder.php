@@ -433,15 +433,17 @@ class Builder
     {
         if (!$buildItem->HtmlRootComponentCalculated) {
             $buildItem->HtmlRootComponentCalculated = true;
-            if ($buildItem->RenderFunction->hasHtmlTag) {
-                $buildItem->HtmlRootComponent = $buildItem->ComponentName;
-                return $buildItem->ComponentName;
-            }
-            foreach ($buildItem->RenderFunction->usedComponents as $name => $_) {
-                $htmlComponent = $this->getHtmlRootComponent($this->components[$name]);
-                if ($htmlComponent !== null) {
-                    $buildItem->HtmlRootComponent = $htmlComponent;
-                    break;
+            if ($buildItem->RenderFunction !== null) {
+                if ($buildItem->RenderFunction->hasHtmlTag) {
+                    $buildItem->HtmlRootComponent = $buildItem->ComponentName;
+                    return $buildItem->ComponentName;
+                }
+                foreach ($buildItem->RenderFunction->usedComponents as $name => $_) {
+                    $htmlComponent = $this->getHtmlRootComponent($this->components[$name]);
+                    if ($htmlComponent !== null) {
+                        $buildItem->HtmlRootComponent = $htmlComponent;
+                        break;
+                    }
                 }
             }
         }
@@ -451,9 +453,7 @@ class Builder
     private function collectHtmlRootComponentName(): void
     {
         foreach ($this->components as $buildItem) {
-            if ($buildItem->RenderFunction !== null) {
-                $this->getHtmlRootComponent($buildItem);
-            }
+            $this->getHtmlRootComponent($buildItem);
             // Helpers::debug([$buildItem->ComponentName, $buildItem->HtmlRootComponent]);
         }
     }
