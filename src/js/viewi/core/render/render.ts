@@ -568,7 +568,8 @@ export function render(
                             isMultiple: isMultiple
                         };
                         // set initial value
-                        updateModelValue(<HTMLModelInputElement>element, instance, inputOptions);
+                        // wait for child options to be rendered
+                        setTimeout(() => updateModelValue(<HTMLModelInputElement>element, instance, inputOptions), 0);
                         // watch for property changes
                         for (let subI in valueNode.subs!) {
                             const trackingPath = valueNode.subs[subI];
