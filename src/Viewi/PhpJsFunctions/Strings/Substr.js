@@ -30,7 +30,7 @@ function substr (input, start, len) {
 
 
 
-  input = _php_cast_string(input)
+  input = _phpCastString(input)
 
 
   const multibyte = ini_get('unicode.semantics') === 'on'
