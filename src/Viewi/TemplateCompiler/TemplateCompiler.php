@@ -54,6 +54,7 @@ class TemplateCompiler
     private bool $hasHtmlTag = false;
     private $nullVar = null;
     private array $renderedComponents = [];
+    private array $globalEntries = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -64,6 +65,11 @@ class TemplateCompiler
     public function getBooleanAttributesString()
     {
         return $this->booleanAttributesString;
+    }
+
+    public function setGlobals(array $globals)
+    {
+        $this->globalEntries = $globals;
     }
 
     public function compile(
@@ -958,8 +964,17 @@ class TemplateCompiler
                     $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
                 } else {
                     // probably call to a global function, collect and validate outside
-                    $tagItem->JsExpression = preg_replace('/\b_component.' . $input . '\b/', $input, $tagItem->JsExpression);
-                    $this->usedFunctions[$input] = true;
+                    if (isset($this->globalEntries[$input])) {
+                        $phpCode = preg_replace('/\b' . $input . '\b\(/', "\$_engine->call('$input', ", $phpCode);
+                        // print_r([
+                        //     $phpCode,
+                        //     $tagItem->JsExpression,
+                        //     $input
+                        // ]);
+                    } else {
+                        $tagItem->JsExpression = preg_replace('/\b_component.' . $input . '\b/', $input, $tagItem->JsExpression);
+                        $this->usedFunctions[$input] = true;
+                    }
                 }
             }
         }
