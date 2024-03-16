@@ -7,6 +7,7 @@ use Viewi\Components\BaseComponent;
 use Viewi\Components\Context\ProvidesScope;
 use Viewi\Components\Http\Message\Request;
 use Viewi\Components\Http\Message\Response;
+use Viewi\Components\IStartUp\IStartUp;
 use Viewi\Components\Middleware\IMIddleware;
 use Viewi\Components\Middleware\MIddlewareContext;
 use Viewi\Components\Render\IRenderable;
@@ -31,6 +32,7 @@ class Engine
     private int $postActionIdCounter = 0;
     private ProvidesScope $provides;
     private ?BaseComponent $currentInstance = null;
+    private bool $started = false;
 
     public function __construct(private AppConfig $config, private array $meta, private Factory $factory)
     {
@@ -43,6 +45,10 @@ class Engine
             substr(strrchr($component, "\\"), 1)
             : $component;
         $this->request = $request;
+        if (!$this->started && isset($this->meta['startup'])) {
+            $this->started = true;
+            $this->setUp($this->meta['startup']);
+        }
         if (isset($this->meta['components'][$component]['middleware'])) {
             $this->guard($this->meta['components'][$component]['middleware']);
         }
@@ -70,6 +76,22 @@ class Engine
     public function getRequest(): ?Request
     {
         return $this->request;
+    }
+
+    /**
+     * 
+     * @param string[] $startups 
+     * @return void 
+     */
+    public function setUp(array $startups)
+    {
+        foreach ($startups as $serviceName) {
+            /**
+             * @var IStartUp $service
+             */
+            $service = $this->resolve($serviceName);
+            $service->setUp();
+        }
     }
 
     public function guard(array $middlewareList): void
@@ -341,5 +363,16 @@ class Engine
     public function postActionExists(string $id): bool
     {
         return isset($this->postActions[$id]);
+    }
+
+    // Globals
+    private array $globalInstances = [];
+
+    public function call(string $method, ...$params)
+    {
+        if (!isset($this->globalInstances[$method])) {
+            $this->globalInstances[$method] = $this->resolve($this->meta['globals'][$method] ?? throw new Exception("Global method $method is not registered."));
+        }
+        return ($this->globalInstances[$method])->{$method}(...$params);
     }
 }
