@@ -11,6 +11,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use Viewi\AppConfig;
 use Viewi\Builder\Attributes\CustomJs;
+use Viewi\Builder\Attributes\GlobalEntry;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Builder\BuildAction\IPostBuildAction;
 use Viewi\Components\Attributes\LazyLoad;
@@ -18,6 +19,7 @@ use Viewi\Components\Attributes\Middleware;
 use Viewi\Components\Attributes\PostBuildAction;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\IStartUp\IStartUp;
 use Viewi\Components\Render\IRenderable;
 use Viewi\DI\Inject;
 use Viewi\DI\Scope;
@@ -89,7 +91,8 @@ class Builder
         Skip::class => true,
         CustomJs::class => true,
         Inject::class => true,
-        Scope::class => true
+        Scope::class => true,
+        GlobalEntry::class => true
     ];
 
     private array $systemFunctions = [
@@ -105,6 +108,7 @@ class Builder
     ];
 
     private array $renderInvocations = [];
+    private array $globalEntries = [];
 
     public function __construct(private Router $router)
     {
@@ -168,12 +172,9 @@ class Builder
         //      mark used components,
         //      collect reactivity deps
         $this->templateParser->setAvaliableComponents(array_flip(array_keys($this->components)));
+        $this->templateCompiler->setGlobals($this->globalEntries);
         $this->logs .= "Parsing templates and validating.." . PHP_EOL;
         foreach ($this->components as $buildItem) {
-            $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
-            $buildItem->ReflectionClass = new ReflectionClass($class);
-            $buildItem->Props = $this->getProps($buildItem->ReflectionClass);
-            $buildItem->Methods = $this->getMethods($buildItem->ReflectionClass);
             $this->validateAndParseTemplate($buildItem);
         }
         // 5. cache metadata on each step if enabled
@@ -215,8 +216,10 @@ class Builder
             if ($exportItem->Type === ExportItem::Namespace) {
                 $this->collectExports($jsOutput, $exportItem->Children, $include);
             } elseif ($exportItem->Type === ExportItem::Class_) {
-                $this->components[$exportItem->Name] = new BuildItem($exportItem->Name, $jsOutput, $include);
-                $this->components[$exportItem->Name]->Uses = $jsOutput->getUses();
+                $buildItem = new BuildItem($exportItem->Name, $jsOutput, $include);
+                $buildItem->Uses = $jsOutput->getUses();
+
+                $this->components[$exportItem->Name] = $buildItem;
                 if ($exportItem->Attributes !== null) {
                     if (isset($exportItem->Attributes['extends'])) {
                         $this->components[$exportItem->Name]->Extends = $exportItem->Attributes['extends'];
@@ -242,6 +245,12 @@ class Builder
                 if (!$this->components[$exportItem->Name]->CustomJs && !$this->components[$exportItem->Name]->Skip) {
                     $this->collectPublicNodes($this->components[$exportItem->Name], $exportItem->Children);
                 }
+
+                $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
+                $buildItem->ReflectionClass = new ReflectionClass($class);
+                $buildItem->Props = $this->getProps($buildItem->ReflectionClass);
+                $buildItem->Methods = $this->getMethods($buildItem->ReflectionClass);
+                $buildItem->StartUp = $buildItem->ReflectionClass->implementsInterface(IStartUp::class);
             }
         }
     }
@@ -525,7 +534,7 @@ class Builder
         Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
         $publicJson = [];
         $this->meta['buildPath'] = $this->buildPath;
-
+        $startups = [];
         $componentFilter = 0; // 0 - main, 1 - lazy load
         $includedInMain = [];
         $includedInGroups = [];
@@ -663,6 +672,9 @@ class Builder
                 }
                 if ($buildItem->HtmlRootComponent !== null) {
                     $publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
+                }
+                if ($buildItem->StartUp) {
+                    $startups[] = $buildItem->ComponentName;
                 }
                 // template, render function
                 $expressionsJs = '';
@@ -849,7 +861,11 @@ class Builder
             'publicRoot' => $this->publicRootPath,
             'publicAppRoot' => $this->publicPath
         ];
+        if (count($startups) > 0) {
+            $this->meta['startup'] = $startups;
+        }
         $this->meta['publicConfig'] = $this->publicConfig;
+        $this->meta['globals'] = $this->globalEntries;
         $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
         // core PHP functions in JS
@@ -874,6 +890,8 @@ class Builder
         $resourcesIndexJs .= '};';
 
         $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
+        $publicJson['_startup'] = $startups;
+        $publicJson['_globals'] = $this->globalEntries;
         $publicJson['_routes'] = [];
         $routes = $this->router->getRoutes();
         foreach ($routes as $route) {
@@ -1068,13 +1086,17 @@ class Builder
             foreach ($props as $propertyInfo) {
                 $attributeMetadata = [];
                 $attributes = $propertyInfo->getAttributes();
+                $propName = $propertyInfo->getName();
                 if ($attributes) {
                     foreach ($attributes as $attribute) {
                         $attributeClass = $attribute->getName();
                         $attributeMetadata[$attributeClass] = $attribute;
+                        if ($attributeClass === GlobalEntry::class) {
+                            $this->globalEntries[$propName] = $reflectionClass->getShortName();
+                        }
                     }
                 }
-                $inputs[$propertyInfo->getName()] = $attributeMetadata;
+                $inputs[$propName] = $attributeMetadata;
             }
         }
         return $inputs;
@@ -1091,7 +1113,18 @@ class Builder
         $methods = $reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC);
         foreach ($methods as $method) {
             if (!$method->isStatic() && !$method->isAbstract()) {
-                $list[$method->name] = 1;
+                $attributeMetadata = [];
+                $attributes = $method->getAttributes();
+                if ($attributes) {
+                    foreach ($attributes as $attribute) {
+                        $attributeClass = $attribute->getName();
+                        $attributeMetadata[$attributeClass] = $attribute;
+                        if ($attributeClass === GlobalEntry::class) {
+                            $this->globalEntries[$method->name] = $reflectionClass->getShortName();
+                        }
+                    }
+                }
+                $list[$method->name] = $attributeMetadata;
             }
         }
         return $list;
