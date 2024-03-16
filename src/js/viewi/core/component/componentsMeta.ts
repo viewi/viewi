@@ -5,10 +5,12 @@ export const componentsMeta: {
     list: ComponentMetaDataList,
     router: Router,
     config: { [key: string]: any },
-    booleanAttributes: {}
+    booleanAttributes: {},
+    globals: { [key: string]: string }
 } = {
     list: {},
     config: {},
+    globals: {},
     booleanAttributes: {},
     router: new Router()
 };

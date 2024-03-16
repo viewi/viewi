@@ -4,6 +4,7 @@ import { resources } from "../app/main/resources";
 import "../modules/main";
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
+import { makeGlobal } from "./core/component/makeGlobal";
 import { delay } from "./core/di/delay";
 import { register } from "./core/di/register";
 import { setUp } from "./core/di/setUp";
@@ -42,11 +43,13 @@ window.ViewiApp[resources.name] = ViewiApp;
     componentsMeta.list = data;
     componentsMeta.router.setRoutes(data._routes);
     componentsMeta.config = data._config;
+    componentsMeta.globals = data._globals;
     const booleanArray = data._meta['boolean'].split(',');
     for (let i = 0; i < booleanArray.length; i++) {
         componentsMeta.booleanAttributes[booleanArray[i]] = true;
     }
-    setUp();
+    setUp(data._startup);
+    makeGlobal();
     ViewiApp.register = { ...components, ...register, ...functions };
     watchLinks();
     handleUrl(location.href);
