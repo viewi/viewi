@@ -57,7 +57,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     const scope: ContextScope = reuse ? lastIteration[name].scope : {
         id: scopeId,
         why: name,
-        arguments: props ? [...props.scope.arguments] : [],
+        arguments: [], // props ? [...props.scope.arguments] : [],
         instance: instance,
         main: true,
         map: props ? { ...props.scope.map } : {},
