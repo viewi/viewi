@@ -3,6 +3,31 @@ import { ReserverProps } from "../component/reserverProps";
 
 let reactiveId = 0;
 
+let queue = {};
+
+let timeoutId: number = 0;
+
+function executeQueue() {
+    timeoutId = 0;
+    const currentQueue = queue;
+    queue = {};
+    for (let uid in currentQueue) {
+        const callbackFunc = currentQueue[uid];
+        try {
+            callbackFunc[0].apply(null, callbackFunc[1]);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+}
+
+function schedule(path: string, i: string, callbackFunc: any) {
+    queue[path + '-' + i] = callbackFunc;
+    if (timeoutId === 0) {
+        timeoutId = setTimeout(executeQueue, 0);
+    }
+}
+
 export type ReactiveProxy = object & { $: ReactiveProxy, $$r?: { [key: string]: [path: string, instance: BaseComponent<any>] } };
 
 export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: string, prop: string, target: any) {
@@ -34,8 +59,7 @@ export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: str
                         if (path in component.$$r) {
                             for (let i in component.$$r[path]) {
                                 const callbackFunc = component.$$r[path][i];
-                                // TODO: schedule queue and react only once
-                                callbackFunc[0].apply(null, callbackFunc[1]);
+                                schedule(path, i, callbackFunc);
                             }
                         }
                     }
@@ -90,8 +114,7 @@ export function defineReactive<T>(component: T & BaseComponent<T>, prop: string)
             if (react && (prop in component.$$r)) {
                 for (let i in component.$$r[prop]) {
                     const callbackFunc = component.$$r[prop][i];
-                    // TODO: schedule queue and react only once
-                    callbackFunc[0].apply(null, callbackFunc[1]);
+                    schedule(prop, i, callbackFunc);
                 }
             }
         }
