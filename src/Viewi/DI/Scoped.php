@@ -7,5 +7,5 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER)]
 class Scoped
 {
-    public const NAME = 'Scoped';
+    public const NAME = 'SCOPED';
 }

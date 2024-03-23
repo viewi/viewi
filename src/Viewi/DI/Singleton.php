@@ -7,5 +7,5 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER)]
 class Singleton
 {
-    public const NAME = 'Singleton';
+    public const NAME = 'SINGLETON';
 }
