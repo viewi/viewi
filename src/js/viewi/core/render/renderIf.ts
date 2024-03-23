@@ -20,15 +20,19 @@ export function renderIf(
     for (let i = 0; i < index; i++) {
         nextValue = nextValue && !ifConditions.values[i];
     }
+    const scope = scopeContainer.scope.parent!;
     if (directive.children) {
+        let callArguments = [instance];
+        if (scope.arguments) {
+            callArguments = callArguments.concat(scope.arguments);
+        }
         nextValue = nextValue && !!(instance.$$t[
             directive.children[0].code!
-        ](instance));
+        ].apply(null, callArguments));
     }
     const anchorNode = scopeContainer.anchorNode;
     const nextDirectives: DirectiveMap = { map: { ...localDirectiveMap.map }, storage: { ...localDirectiveMap.storage } };
     if (ifConditions.values[index] !== nextValue) {
-        const scope = scopeContainer.scope.parent!;
         ifConditions.values[index] = nextValue;
         if (nextValue) {
             // render
