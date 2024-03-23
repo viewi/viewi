@@ -24,6 +24,7 @@ class BuildItem
     public ReflectionClass $ReflectionClass;
     public array $Props;
     public array $Methods;
+    public array $DiProps = [];
     /**
      * 
      * @var array<string, string> see ExportItem
