@@ -1,9 +1,16 @@
+import { ScopeType } from "../di/scopeType"
 import { TemplateNode } from "../node/templateNode"
 
 export type ComponentMetaData = {
     nodes?: TemplateNode,
     dependencies?: any[],
-    di?: 'Singleton' | 'Scoped' | 'Transient',
+    di?: ScopeType,
+    diProps?: {
+        [key: string]: {
+            name: string,
+            di: ScopeType
+        }
+    }
     base?: boolean,
     custom?: boolean,
     renderer?: boolean,
