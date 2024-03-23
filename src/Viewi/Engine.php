@@ -316,6 +316,26 @@ class Engine
         if ($storeInContainer) {
             $this->DIContainer[$fullClassName] = $instance;
         }
+
+        // DI Props
+        if (isset($componentMeta['diProps'])) {
+            foreach ($componentMeta['diProps'] as $prop => $type) {
+                $diType = $type['di'];
+
+                $propMeta = $this->meta['components'][$type['name']];
+                $propFullClassName = $propMeta['Namespace'] . '\\' . $propMeta['Name'];
+                $propInstance = $diType === Scope::PARENT
+                    ? $this->currentInstance->inject($type['name'])
+                    : (isset($this->DIContainer[$propFullClassName]) ? $this->DIContainer[$propFullClassName] : $this->resolve($type['name']));
+                $instance->{$prop} = $propInstance;
+                if ($diType === Scope::COMPONENT) {
+                    $provides[$type['name']] = $propInstance;
+                } elseif ($diType === Scope::SCOPED || $diType === Scope::SINGLETON) {
+                    $this->DIContainer[$propFullClassName] = $propInstance;
+                }
+            }
+        }
+
         if (isset($componentMeta['base'])) {
             /**
              * @var BaseComponent $instance
