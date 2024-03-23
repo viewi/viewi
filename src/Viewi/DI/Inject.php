@@ -4,7 +4,7 @@ namespace Viewi\DI;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_PARAMETER)]
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 class Inject
 {
     public const NAME = 'Inject';
