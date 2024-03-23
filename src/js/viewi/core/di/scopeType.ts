@@ -1,1 +1,1 @@
-export type ScopeType = 'COMPONENT' | 'PARENT';
+export type ScopeType = 'SINGLETON' | 'SCOPED' | 'TRANSIENT' | 'COMPONENT' | 'PARENT';
