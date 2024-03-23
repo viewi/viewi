@@ -43,6 +43,7 @@ use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Continue_;
 use PhpParser\Node\Stmt\Echo_;
@@ -57,6 +58,7 @@ use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Switch_;
 use PhpParser\Node\Stmt\Throw_;
+use PhpParser\Node\Stmt\TraitUse;
 use PhpParser\Node\Stmt\TryCatch;
 use PhpParser\Node\Stmt\Unset_;
 use PhpParser\Node\Stmt\Use_;
@@ -83,6 +85,7 @@ class JsTranspiler
     private array $privateProperties = [];
     private $stmts;
     private ?string $currentClass = null;
+    private array $currentTraits = [];
     private ?string $currentExtend = null;
     private bool $currentConstructor = false;
     private ?string $currentMethod = null;
@@ -211,11 +214,11 @@ class JsTranspiler
                 // TODO: validation
             } elseif ($node instanceof Interface_) {
                 // ignore, javascript does not support interfaces
-            } elseif ($node instanceof Class_) {
+            } elseif ($node instanceof ClassLike) {
                 $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
                 $extendsCode = '';
                 $itsBase = false;
-                if ($node->extends !== null) {
+                if ($node instanceof Class_ && $node->extends !== null) {
                     $extendParts = $node->extends->getParts();
                     $exportItem->Attributes['extends'] = $extendParts;
                     $extendClass = $exportItem->Attributes['extends'][0];
@@ -236,6 +239,7 @@ class JsTranspiler
                 $this->jsCode .= "class {$node->name}{$extendsCode} {";
                 $this->level++;
                 $this->currentClass = $node->name;
+                $this->currentTraits = [];
                 $this->variablePaths[$this->currentClass] = [];
                 $this->exports[$this->currentNamespace]->Children[$this->currentClass] = $exportItem;
                 if ($itsBase) {
@@ -257,8 +261,15 @@ class JsTranspiler
                 $this->privateProperties = [];
                 $this->level--;
                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "}" . PHP_EOL;
+                foreach ($this->currentTraits as $trait) {
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "Object.assign({$this->currentClass}.prototype, $trait.prototype);" . PHP_EOL;
+                }
                 $this->currentClass = null;
                 $this->currentExtend = null;
+            } elseif ($node instanceof TraitUse) {
+                foreach ($node->traits as $trait) {
+                    $this->currentTraits[] = $trait->getLast();
+                }
             } elseif ($node instanceof Property) {
                 $name = $node->props[0]->name->name;
                 $isStatic = $node->isStatic();
@@ -665,6 +676,9 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
+                // if ($node->name instanceof Name && $node->name->getParts()[0] === 'gmdate') {
+                //     print_r($node);
+                // }
             } elseif ($node instanceof New_) {
                 // TODO: validate parts
                 $this->jsCode .= 'new ';
@@ -790,6 +804,13 @@ class JsTranspiler
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'continue;' . PHP_EOL;
             } elseif ($node instanceof Cast) {
                 // skip
+                if ($node instanceof Cast\Int_) {
+                    $this->processStmts(['parseInt(', $node->expr, ')']);
+                } elseif ($node instanceof Cast\Double) {
+                    $this->processStmts(['parseFloat(', $node->expr, ')']);
+                } else {
+                    $this->processStmts([$node->expr]);
+                }
             } elseif ($node instanceof Echo_) {
                 $forStmts = [str_repeat($this->indentationPattern, $this->level) . 'console.log('];
                 $comma = false;
