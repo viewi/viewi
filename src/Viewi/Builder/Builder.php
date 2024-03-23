@@ -248,7 +248,7 @@ class Builder
 
                 $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
                 $buildItem->ReflectionClass = new ReflectionClass($class);
-                $buildItem->Props = $this->getProps($buildItem->ReflectionClass);
+                $buildItem->Props = $this->getProps($buildItem);
                 $buildItem->Methods = $this->getMethods($buildItem->ReflectionClass);
                 $buildItem->StartUp = $buildItem->ReflectionClass->implementsInterface(IStartUp::class);
             }
@@ -570,6 +570,10 @@ class Builder
                 // dependencies, props
 
                 $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
+                if (count($buildItem->DiProps) > 0) {
+                    $componentMeta['diProps'] = $buildItem->DiProps;
+                    $publicJson[$buildItem->ComponentName]['diProps'] = $buildItem->DiProps;
+                }
                 if ($buildItem->ReflectionClass->implementsInterface(IRenderable::class)) {
                     $componentMeta['renderer'] = true;
                     $publicJson[$buildItem->ComponentName]['renderer'] = true;
@@ -1078,8 +1082,9 @@ class Builder
      * @param ReflectionClass $reflectionClass 
      * @return array 
      */
-    private function getProps(ReflectionClass $reflectionClass): array
+    private function getProps(BuildItem $buildItem): array
     {
+        $reflectionClass = $buildItem->ReflectionClass;
         $inputs = [];
         $props = $reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC);
         if (count($props) > 0) {
@@ -1093,6 +1098,17 @@ class Builder
                         $attributeMetadata[$attributeClass] = $attribute;
                         if ($attributeClass === GlobalEntry::class) {
                             $this->globalEntries[$propName] = $reflectionClass->getShortName();
+                        } elseif ($attributeClass === Inject::class) {
+                            /**
+                             * @var Inject $injectAttribute
+                             */
+                            $injectAttribute = $attribute->newInstance();
+                            $argumentClass = $propertyInfo->getType() && !$propertyInfo->getType()->isBuiltin()
+                                ? new ReflectionClass($propertyInfo->getType()->getName())
+                                : null; // check if class exists
+                            if ($argumentClass !== null) {
+                                $buildItem->DiProps[$propName] = ['name' => $argumentClass->getShortName(), 'di' => $injectAttribute->scope];
+                            }
                         }
                     }
                 }
