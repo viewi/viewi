@@ -21,9 +21,9 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
     const info = componentsMeta.list[name];
     let instance: any = null;
     let container: boolean | DIContainer = false;
-    if (info.di === "Singleton") {
+    if (info.di === "SINGLETON") {
         container = singletonContainer;
-    } else if (info.di === "Scoped") {
+    } else if (info.di === "SCOPED") {
         container = globalScope.scopedContainer;
     }
     if (container && (name in container)) {
@@ -74,6 +74,37 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
             baseComponent.provide(p, toProvide[p]);
         }
     }
+
+    // DI Props
+    if (info.diProps) {
+        for (let prop in info.diProps) {
+            const dependency = info.diProps[prop];
+            const diType = dependency.di;
+            let propInstance = null;
+            if (diType === 'PARENT') {
+                propInstance = parent ? parent.inject(dependency.name) : (rootProvides[dependency.name] || null);
+            } else if (diType === 'SINGLETON') {
+                if (!(dependency.name in singletonContainer)) {
+                    propInstance = resolve(dependency.name, {}, false, parent);
+                    singletonContainer[dependency.name] = propInstance;
+                }
+                propInstance = singletonContainer[dependency.name];
+            } else if (diType === 'SCOPED') {
+                if (!(dependency.name in globalScope.scopedContainer)) {
+                    propInstance = resolve(dependency.name, {}, false, parent);
+                    globalScope.scopedContainer[dependency.name] = propInstance;
+                }
+                propInstance = globalScope.scopedContainer[dependency.name];
+            } else {
+                propInstance = resolve(dependency.name, {}, false, parent);
+            }
+            instance[prop] = propInstance;
+            if (diType === 'COMPONENT') {
+                (instance as BaseComponent<any>).provide(dependency.name, propInstance);
+            }
+        }
+    }
+
     const scopeState = getScopeState();
     if (scopeState.state[name]) {
         for (let prop in scopeState.state[name]) {
