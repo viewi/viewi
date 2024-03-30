@@ -64,7 +64,7 @@ class HttpClient
                             }
 
                             $nextRequestUrl = $request->url;
-                            $currentRequestUrl = $currentEngine->getRequest()->url;
+                            $currentRequestUrl = $currentEngine->getRequest()?->url;
                             if ($request->url === $currentRequestUrl) {
                                 // recursion, inf loop
                                 throw new Exception("Infinite loop detected by requesting URL: $nextRequestUrl");
