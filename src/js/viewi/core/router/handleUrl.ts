@@ -21,6 +21,11 @@ const updateHistory = function (href: string, forward: boolean = true) {
 }
 
 export function handleUrl(href: string, forward: boolean = true) {
+    if (href.indexOf(location.origin) !== 0) {
+        // external
+        location.href = href;
+        return;
+    }
     globalScope.cancel = true;
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
