@@ -21,7 +21,7 @@ const updateHistory = function (href: string, forward: boolean = true) {
 }
 
 export function handleUrl(href: string, forward: boolean = true) {
-    if (href.indexOf(location.origin) !== 0) {
+    if (href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0) {
         // external
         location.href = href;
         return;
