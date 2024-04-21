@@ -16,6 +16,7 @@ class BuildItem
     public bool $Skip = false;
     public bool $CustomJs = false;
     public bool $LazyLoad = false;
+    public ?string $LazyLoadName = null;
     public bool $StartUp = false;
     public ?string $Namespace = null;
     public ?string $TemplatePath = null;
