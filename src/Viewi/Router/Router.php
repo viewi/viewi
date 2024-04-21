@@ -12,6 +12,8 @@ class Router
      */
     protected array $routes = [];
 
+    protected ?string $lazyLoadName = null;
+
     /**
      * 
      * @param array<RouteItem> $routeList 
@@ -35,6 +37,7 @@ class Router
     {
         if (is_string($action) && is_subclass_of($action, BaseComponent::class)) {
             $action = new ComponentRoute($action);
+            $action->lazyGroup = $this->lazyLoadName;
         }
         $item = new RouteItem(
             $method,
@@ -81,6 +84,13 @@ class Router
     public function all(string $url, $action, ?array $defaults = null, array $wheres = [])
     {
         return $this->register('*', $url, $action, $defaults, $wheres);
+    }
+
+    public function lazy(string $name, $callable)
+    {
+        $this->lazyLoadName = $name;
+        $callable($this);
+        $this->lazyLoadName = null;
     }
 
     /**
