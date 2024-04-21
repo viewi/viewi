@@ -109,6 +109,8 @@ class Builder
 
     private array $renderInvocations = [];
     private array $globalEntries = [];
+    private array $lazyLoadNamespaces = [];
+    private array $ignoreNamespaces = [];
 
     public function __construct(private Router $router)
     {
@@ -151,6 +153,8 @@ class Builder
         $this->combineJsJson = $config->combineJsJson;
         $this->appendVersion = $config->appendVersionPath;
         $this->buildJsSourceCode = $config->buildJSwithNode;
+        $this->lazyLoadNamespaces = $config->lazyLoadNamespace;
+        $this->ignoreNamespaces = $config->ignoreNamespace;
         $this->publicConfig = $publicConfig;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -225,7 +229,19 @@ class Builder
                         $this->components[$exportItem->Name]->Extends = $exportItem->Attributes['extends'];
                     }
                     if (isset($exportItem->Attributes['namespace'])) {
-                        $this->components[$exportItem->Name]->Namespace = $exportItem->Attributes['namespace'];
+                        $ns = $exportItem->Attributes['namespace'];
+                        $this->components[$exportItem->Name]->Namespace = $ns;
+                        foreach ($this->lazyLoadNamespaces as $namespace => $groupName) {
+                            if (str_starts_with($ns, $namespace)) {
+                                $this->components[$exportItem->Name]->LazyLoad = true;
+                                $this->components[$exportItem->Name]->LazyLoadName = $groupName;
+                            }
+                        }
+                        foreach ($this->ignoreNamespaces as $namespace) {
+                            if (str_starts_with($ns, $namespace)) {
+                                $this->components[$exportItem->Name]->Skip = true;
+                            }
+                        }
                     }
                     if (isset($exportItem->Attributes['attrs'])) {
                         $this->components[$exportItem->Name]->Attributes = $exportItem->Attributes['attrs'];
@@ -542,7 +558,24 @@ class Builder
          * @var IPostBuildAction[] $postBuild
          */
         $postBuild = [];
-
+        $routes = $this->router->getRoutes();
+        $publicRoutes = [];
+        foreach ($routes as $route) {
+            if ($route->action instanceof ComponentRoute) {
+                $item = (array)$route;
+                $component = $route->action->component;
+                $item['action'] = strpos($component, '\\') !== false ?
+                    substr(strrchr($component, "\\"), 1)
+                    : $component;
+                unset($item['transformCallback']);
+                unset($item['lazyGroup']);
+                $publicRoutes[] = $item;
+                if ($route->action->lazyGroup !== null) {
+                    $this->components[$item['action']]->LazyLoad = true;
+                    $this->components[$item['action']]->LazyLoadName = $route->action->lazyGroup;
+                }
+            }
+        }
         /** COMPONENTS FOREACH **/
         while ($componentFilter < 2) {
             $componentFilter++;
@@ -561,7 +594,7 @@ class Builder
                 /**
                  * @var string|false
                  */
-                $lazyLoadGroup = false;
+                $lazyLoadGroup = $buildItem->LazyLoad && $buildItem->LazyLoadName !== null ? $buildItem->LazyLoadName : false;
                 $componentMeta = [
                     'Namespace' => $buildItem->Namespace,
                     'Name' => $buildItem->ComponentName
@@ -626,17 +659,7 @@ class Builder
                                  * @var LazyLoad $lazyAttribute
                                  */
                                 $lazyAttribute = $attribute->newInstance();
-                                $lazyGoup = !$lazyAttribute->groupName ? $buildItem->ComponentName : $lazyAttribute->groupName;
-                                $componentMeta['lazy'] = $lazyGoup;
-                                $publicJson[$buildItem->ComponentName]['lazy'] = $lazyGoup;
-                                $lazyLoadGroup = $lazyGoup;
-                                if (isset($chunks->chunks[$lazyLoadGroup])) {
-                                    $currentChunk = $chunks->chunks[$lazyLoadGroup];
-                                } else {
-                                    [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
-                                    $currentChunk = $chunks->create($lazyLoadGroup, $jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath);
-                                    $currentChunk->addComponent($buildItem->ComponentName);
-                                }
+                                $lazyLoadGroup = !$lazyAttribute->groupName ? $buildItem->ComponentName : $lazyAttribute->groupName;
                                 break;
                             }
                         case PostBuildAction::class: {
@@ -656,6 +679,19 @@ class Builder
                     }
                     // Helpers::debug($attributeClass);
                 }
+                if ($lazyLoadGroup) {
+                    $componentMeta['lazy'] = $lazyLoadGroup;
+                    $publicJson[$buildItem->ComponentName]['lazy'] = $lazyLoadGroup;
+                    $lazyLoadGroup = $lazyLoadGroup;
+                    if (isset($chunks->chunks[$lazyLoadGroup])) {
+                        $currentChunk = $chunks->chunks[$lazyLoadGroup];
+                    } else {
+                        [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
+                        $currentChunk = $chunks->create($lazyLoadGroup, $jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath);
+                        $currentChunk->addComponent($buildItem->ComponentName);
+                    }
+                }
+
                 $componentMeta['inputs'] = [];
                 $preservedProps = [];
                 foreach ($buildItem->Props as $prop => $propMetadata) {
@@ -897,18 +933,7 @@ class Builder
         $publicJson['_startup'] = $startups;
         $publicJson['_globals'] = $this->globalEntries;
         $publicJson['_routes'] = [];
-        $routes = $this->router->getRoutes();
-        foreach ($routes as $route) {
-            if ($route->action instanceof ComponentRoute) {
-                $item = (array)$route;
-                $component = $route->action->component;
-                $item['action'] = strpos($component, '\\') !== false ?
-                    substr(strrchr($component, "\\"), 1)
-                    : $component;
-                unset($item['transformCallback']);
-                $publicJson['_routes'][] = $item;
-            }
-        }
+        $publicJson['_routes'] = $publicRoutes;
         $publicJson['_config'] = $this->publicConfig;
         $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
         // components/index.js
