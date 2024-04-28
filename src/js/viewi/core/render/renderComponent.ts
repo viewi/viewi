@@ -73,7 +73,9 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     if (info.refs) {
         scope.refs = info.refs;
     }
-
+    if (!globalScope.cancel && info.hooks && info.hooks.mounting) {
+        (instance as any).mounting();
+    }
     // set props
     if (props && props.attributes) {
         const parentInstance = props.scope.instance;

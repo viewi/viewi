@@ -20,7 +20,7 @@ export type ComponentMetaData = {
     middleware?: string[],
     hooks?: {
         init?: boolean,
-        mount?: boolean,
+        mounting?: boolean,
         mounted?: boolean,
         rendered?: boolean,
         destroy?: boolean
