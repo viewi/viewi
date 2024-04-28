@@ -22,7 +22,8 @@ class AppConfig
      * @param bool $useNpmWatch Watch changes with Node js npm script and rebuild
      * @param string[] $includes Additional components and packages
      * @param string[] $lazyLoadNamespace Lazy load namespace list (start with)
-     * @param string[] $ignoreNamespace Do not build JavaScript version for this namespace list (start with)
+     * @param string[] $ignoreNamespace Do not process items for this namespace list (start with)
+     * @param string[] $noJsNamespace Do not build JavaScript version for this namespace list (start with)
      * @return void 
      */
     public function __construct(
@@ -42,8 +43,9 @@ class AppConfig
         public bool $buildJSwithNode = false,
         public bool $useNpmWatch = false,
         public array $includes = [],
-        public array $lazyLoadNamespace = [],        
-        public array $ignoreNamespace = []
+        public array $lazyLoadNamespace = [],
+        public array $ignoreNamespace = [],
+        public array $noJsNamespace = [],
     ) {
     }
 

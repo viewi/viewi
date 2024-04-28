@@ -104,6 +104,7 @@ class JsTranspiler
      */
     private array $exports = []; // tree of [namespace->]class/function->public method/prop
     private array $transforms = [];
+    private array $skipNamespaces = [];
 
     public function __construct(string $content = '')
     {
@@ -149,6 +150,11 @@ class JsTranspiler
         $this->buffer = null;
         $this->forks .= $ret;
         return $ret;
+    }
+
+    public function setSkipNamespaces(array $toSkip)
+    {
+        $this->skipNamespaces = $toSkip;
     }
 
     public function convert(?string $content = null, bool $inlineExpression = false, ?string $objectRefName = null, array $locals = []): JsOutput
@@ -250,6 +256,12 @@ class JsTranspiler
                 if (isset($exportItem->Attributes['attrs']['Skip']) || isset($exportItem->Attributes['attrs']['CustomJs'])) {
                     return;
                 }
+                foreach ($this->skipNamespaces as $namespace) {
+                    if (str_starts_with($this->currentNamespace, $namespace)) {
+                        return;
+                    }
+                }
+
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);

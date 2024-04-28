@@ -101,7 +101,7 @@ class Builder
 
     private array $hookMethods = [
         'init' => true,
-        'mount' => true,
+        'mounting' => true,
         'mounted' => true,
         'rendered' => true,
         'destroy' => true,
@@ -111,6 +111,7 @@ class Builder
     private array $globalEntries = [];
     private array $lazyLoadNamespaces = [];
     private array $ignoreNamespaces = [];
+    private array $noJsNamespaces = [];
 
     public function __construct(private Router $router)
     {
@@ -155,6 +156,8 @@ class Builder
         $this->buildJsSourceCode = $config->buildJSwithNode;
         $this->lazyLoadNamespaces = $config->lazyLoadNamespace;
         $this->ignoreNamespaces = $config->ignoreNamespace;
+        $this->noJsNamespaces = $config->noJsNamespace;
+        $this->jsTranspiler->setSkipNamespaces(array_merge($this->noJsNamespaces, $this->ignoreNamespaces));
         $this->publicConfig = $publicConfig;
         // $includes will be shaken if not used in the $entryPath
         // 1. collect avaliable components
@@ -240,6 +243,11 @@ class Builder
                         foreach ($this->ignoreNamespaces as $namespace) {
                             if (str_starts_with($ns, $namespace)) {
                                 $this->components[$exportItem->Name]->Skip = true;
+                            }
+                        }
+                        foreach ($this->noJsNamespaces as $namespace) {
+                            if (str_starts_with($ns, $namespace)) {
+                                $this->components[$exportItem->Name]->CustomJs = true;
                             }
                         }
                     }
@@ -396,24 +404,26 @@ class Builder
     {
         if (!$buildItem->Ready) {
             $buildItem->Ready = true;
-            if (!($buildItem->CustomJs || $buildItem->Skip)) {
+            if (!$buildItem->Skip) { // $buildItem->CustomJs ||
                 // 1. validate uses
                 // 2. validate core functions
-                foreach ($buildItem->Uses as $baseName => $useItem) {
-                    if ($useItem->Type === UseItem::Class_) {
-                        if (!isset($this->components[$baseName])) {
-                            $fullName = implode('\\', $useItem->Parts);
-                            if (class_exists($fullName)) {
-                                if (!isset($this->systemClasses[$fullName])) {
-                                    throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                if (!$buildItem->CustomJs) {
+                    foreach ($buildItem->Uses as $baseName => $useItem) {
+                        if ($useItem->Type === UseItem::Class_) {
+                            if (!isset($this->components[$baseName])) {
+                                $fullName = implode('\\', $useItem->Parts);
+                                if (class_exists($fullName)) {
+                                    if (!isset($this->systemClasses[$fullName])) {
+                                        throw new Exception("Class '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                                    }
                                 }
+                                $useItem->Skip = true;
                             }
-                            $useItem->Skip = true;
-                        }
-                    } elseif ($useItem->Type === UseItem::Function) {
-                        if (!isset($this->avaliableFunctions[$baseName])) {
-                            $fullName = implode('\\', $useItem->Parts);
-                            throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                        } elseif ($useItem->Type === UseItem::Function) {
+                            if (!isset($this->avaliableFunctions[$baseName])) {
+                                $fullName = implode('\\', $useItem->Parts);
+                                throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
+                            }
                         }
                     }
                 }
@@ -423,7 +433,10 @@ class Builder
                 foreach ($buildItem->Methods as $method => $_) {
                     $buildItem->publicNodes[$method] = ExportItem::Method;
                 }
-                $this->collectExtends($buildItem, $buildItem);
+                if (!$buildItem->CustomJs) {
+                    $this->collectExtends($buildItem, $buildItem);
+                }
+
                 // 3. parse and compile template if exists
                 // 4. transpile and validate expressions
                 if ($buildItem->TemplatePath !== null) {
@@ -446,7 +459,7 @@ class Builder
                     // Helpers::debug([$buildItem->ComponentName, $template->usedComponents, $template->hasHtmlTag]);
                 }
 
-                if ($buildItem->Include) {
+                if ($buildItem->Include && !$buildItem->CustomJs) {
                     // Helpers::debug([$buildItem->ComponentName, $buildItem->CustomJs, $buildItem->Skip]);
                     $this->collectIncludes($buildItem);
                 }
@@ -735,7 +748,9 @@ class Builder
                     foreach ($buildItem->RenderFunction->slots as $slotTuple) {
                         $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
                     }
-                    $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
+                    if (!$buildItem->CustomJs) {
+                        $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
+                    }
                     // inline expressions
                     $exprComma = '';
                     foreach ($buildItem->RenderFunction->inlineExpressions as $code => [$expression, $arguments]) {
