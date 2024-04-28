@@ -156,6 +156,9 @@ class Engine
         include_once $this->config->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
+        if (isset($componentMeta['hooks']['mounting'])) {
+            $classInstance->mounting();
+        }
         foreach ($props as $key => $inputValue) {
             if ($key === '_props') {
                 // passing props as object (array)
