@@ -605,8 +605,17 @@ class JsTranspiler
                         $fetchOperand = $nullSafe ? '?.' : '';
                         $fetchBracketS = '[';
                         $fetchBracketE = ']';
+                        if ($this->objectRefName !== null && !isset($this->localVariables[$node->name->name])) {
+                            $fetchBracketS = '[' . $this->objectRefName . '.';
+                            $this->transforms['$' . $node->name->name] = $this->objectRefName . '->' . $node->name->name;
+                        }
+                        $this->jsCode .= $fetchOperand . $fetchBracketS . $node->name->name . $fetchBracketE;
+                    } elseif ($node->name instanceof PropertyFetch) {
+                        $fetchOperand = $nullSafe ? '?.' : '';
+                        $this->processStmts([$fetchOperand, '[', $node->name, ']']);
+                    } else {
+                        $this->jsCode .= $fetchOperand . $fetchBracketS . $node->name->name . $fetchBracketE;
                     }
-                    $this->jsCode .= $fetchOperand . $fetchBracketS . $node->name->name . $fetchBracketE;
                     if ($isThis) {
                         // $this->debug($this->propertyFetchQueue);
                         $index = count($this->propertyFetchQueue);
@@ -650,6 +659,9 @@ class JsTranspiler
                     }
                 }
                 $this->jsCode .= ')';
+                // if($node->name->name === 'emitEvent') {
+                //      print_r($node);
+                // }
             } elseif ($node instanceof StaticCall) {
                 // TODO: validate parts
                 $class = $node->class->getParts()[0];
