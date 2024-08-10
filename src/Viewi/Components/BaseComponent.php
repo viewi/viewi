@@ -43,4 +43,9 @@ abstract class BaseComponent
     {
         return $this->_provides->{$key} ?? null;
     }
+
+    function watch(string $path, callable $callback)
+    {
+        // nothing here, only client-side
+    }
 }

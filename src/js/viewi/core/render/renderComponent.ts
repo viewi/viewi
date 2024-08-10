@@ -206,6 +206,12 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         }
         return scope;
     }
+
+    for (let i = 0; i < instance.$$watchList.length; i++) {
+        const watchItem = instance.$$watchList[i];
+        track(instance, watchItem[0], scope, [watchItem[1], []]);
+    }
+
     // render
     if (info.renderer) {
         instance.render(target, name, scope, props, hydrate, insert, params);

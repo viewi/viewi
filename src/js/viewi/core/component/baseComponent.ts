@@ -11,6 +11,7 @@ export abstract class BaseComponent<T> {
     $$r: { [key: string]: { [key: string]: [Function, any[]] } } = {}; // reactivity callbacks
     $$p: [trackerId: string, activated: ReactiveProxy][] = []; // shared reactivity track ids
     $: T;
+    $$watchList: any[] = [];
     _provides: Object;
     _parent: null | BaseComponent<any> = null;
     _name: string = 'BaseComponent';
@@ -30,5 +31,9 @@ export abstract class BaseComponent<T> {
 
     inject(key: string): any {
         return this._provides[key] || null;
+    }
+
+    watch(path: string, callback: Function): void {
+        this.$$watchList.push([path, callback]);
     }
 }
