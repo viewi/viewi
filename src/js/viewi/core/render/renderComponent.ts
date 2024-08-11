@@ -25,24 +25,41 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     }
     const info = componentsMeta.list[name];
     const root = info.nodes;
+    const renderable = target && root;
+    const reuseIt = props?.reuse;
+    if (
+        renderable
+    ) {
+        if (!root.unpacked) {
+            unpack(root);
+            root.unpacked = true;
+        }
+        const rootChildren = root.children;
+        if (rootChildren) {
+            rootChildren[0].reuse = (rootChildren[0].type === 'component' || rootChildren[0].type === 'doctype') && (!props || reuseIt)
+            if (reuseIt) {
+                globalScope.located[name] = true;
+            }
+            rootChildren[0].first = true;
+        }
+    }
     // 'Reuse' is the concept of reusing same layout(s) to avoid rerendering the whole page and side-effects, including visual.
     // Top level component tag should be reused along with their rendered content, except slots
     // Duplicates are not allowed, otherwise the architecture is wrong and you must reconsider it
     const lastIteration = globalScope.lastIteration;
-    const reuse = name in lastIteration;
+    const reuse = reuseIt && name in lastIteration;
     if (reuse) {
         // clean up previous page slots
         const slotHolders = lastIteration[name].slots;
         for (let slotName in slotHolders) {
             const anchorNode = slotHolders[slotName];
-            while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
+            while (anchorNode.previousSibling && anchorNode.previousSibling._anchor !== anchorNode._anchor) {
                 anchorNode.previousSibling!.remove();
             }
         }
         lastIteration[name].scope.keep = true;
     }
     const instance: BaseComponent<any> & IRenderable = reuse ? lastIteration[name].instance : makeProxy(resolve(name, params, false, props?.scope.lastComponent.instance || props?.scope.instance || null));
-    // console.log(name, instance._parent?._name, latestComponent?._name);
     if (!reuse) {
         if (info.hooks && info.hooks.init) {
             (instance as any).init();
@@ -217,24 +234,10 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         instance.render(target, name, scope, props, hydrate, insert, params);
     }
 
-    if (
-        target
-        && root
-    ) {
-        if (!root.unpacked) {
-            unpack(root);
-            root.unpacked = true;
-        }
+    if (renderable) {
         const rootChildren = root.children;
         if (rootChildren) {
-            if (rootChildren[0].type === 'component') {
-                globalScope.located[rootChildren[0].content!] = true;
-            }
-            // console.log(target, instance, rootChildren);
-            rootChildren[0].first = true;
             render(target, instance, rootChildren, scope, undefined, hydrate, insert);
-            // console.log(name, instance, rootChildren);
-            // console.log(name, instance);
         }
     }
     if (info.hooks && info.hooks.rendered) {

@@ -7,4 +7,5 @@ export function updateComponentModel(
     parentInstance: BaseComponent<any>
 ) {
     instance[attrName] = getter(parentInstance);
+    // TODO: on model change event
 }

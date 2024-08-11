@@ -357,7 +357,7 @@ export function render(
                             };
                         }
                     }
-                    renderComponent(target, content, <PropsContext>{ attributes: node.attributes, scope: scope }, slots, hydrate, insert);
+                    renderComponent(target, content, <PropsContext>{ attributes: node.attributes, scope: scope, reuse: node.reuse }, slots, hydrate, insert,);
                 } else {
                     // template
                     if (node.content === 'template') {

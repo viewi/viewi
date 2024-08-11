@@ -37,5 +37,6 @@ export function updateProp(instance: BaseComponent<any>, attribute: TemplateNode
             instance[attrName] = valueContent;
             instance._props[attrName] = valueContent;
         }
+        // TODO: prop change event
     }
 }
