@@ -55,6 +55,7 @@ class TemplateCompiler
     private $nullVar = null;
     private array $renderedComponents = [];
     private array $globalEntries = [];
+    private array $nestedDependencies = [];
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -143,6 +144,7 @@ class TemplateCompiler
             $this->hasHtmlTag = false;
             $this->usedComponents = [];
             $this->renderedComponents = [];
+            $this->nestedDependencies = [];
         }
     }
 
@@ -317,7 +319,11 @@ class TemplateCompiler
                         $this->flushBuffer();
                         $this->code .= PHP_EOL . $this->i() . "foreach ({$foreachTagValue->PhpExpression} as $foreachLoop) {";
                         $this->level++;
+                        // TODO: pass parent subscriptions
+                        $this->nestedDependencies[$argument] = $foreachTagValue->Subscriptions;
+                        // print_r([$argument, $this->nestedDependencies]);
                         $this->buildTag($tagItem);
+                        unset($this->nestedDependencies[$argument]);
                         $this->flushBuffer();
                         $this->level--;
                         $this->code .= PHP_EOL . $this->i() . "}";
@@ -903,7 +909,14 @@ class TemplateCompiler
             foreach ($pending as $name => $_1) {
                 if (!isset($result[$name])) {
                     $result[$name] = true;
-
+                    $parts = explode('.', $name, 2);
+                    $parent = array_pop($parts);
+                    if (isset($this->nestedDependencies[$parent])) {
+                        foreach ($this->nestedDependencies[$parent] as $key) {
+                            $result[$key] = true;
+                        }
+                        // print_r([$name, $result]);
+                    }
                     foreach ($classSubs as $className => $methods) {
                         if (isset($methods[$name])) {
                             $repeat = true;
@@ -914,6 +927,11 @@ class TemplateCompiler
                 }
             }
         }
+        // foreach ($this->nestedDependencies as $parent => $list) {
+        //     foreach ($list as $key) {
+        //         $result[$key] = true;
+        //     }
+        // }
         return $result;
     }
 
@@ -935,6 +953,7 @@ class TemplateCompiler
         // }
         $tagItem->JsExpression = $jsOutput->__toString();
         $transforms = $jsOutput->getTransforms();
+        $subsIncluded = false;
         foreach ($transforms as $input => $replacement) {
             if ($input[0] === '$') {
                 $propName = substr($input, 1);
@@ -952,6 +971,7 @@ class TemplateCompiler
                 $subs = $jsOutput->getDeps();
                 $classSubs = $this->buildItem->JsOutput->getDeps();
                 $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
+                $subsIncluded = true;
             } else {
                 if (
                     isset($this->buildItem->publicNodes[$input])
@@ -962,6 +982,7 @@ class TemplateCompiler
                     $subs[$input] = true;
                     $classSubs = $this->buildItem->JsOutput->getDeps();
                     $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
+                    $subsIncluded = true;
                 } else {
                     // probably call to a global function, collect and validate outside
                     if (isset($this->globalEntries[$input])) {
@@ -977,6 +998,11 @@ class TemplateCompiler
                     }
                 }
             }
+        }
+        if (!$subsIncluded) {
+            $subs = $jsOutput->getDeps();
+            $classSubs = $this->buildItem->JsOutput->getDeps();
+            $tagItem->Subscriptions = array_keys($this->collectSubscriptions($subs, $classSubs));
         }
         if (
             !isset($this->localScope[$tagItem->JsExpression])
