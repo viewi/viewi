@@ -18,7 +18,7 @@ export function dispose(scope: ContextScope) {
         // dispose instance
         for (let i = 0; i < scope.instance.$$p.length; i++) {
             const trackGroup = scope.instance.$$p[i];
-            delete trackGroup[1].$$r[trackGroup[0]];
+            delete trackGroup[1].$$r![trackGroup[0]];
         }
         // TODO: call dispose hook
         const instance = scope.instance as any;
