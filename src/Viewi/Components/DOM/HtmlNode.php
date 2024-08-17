@@ -174,6 +174,9 @@ abstract class HtmlNode
     public $scrollLeft = null;
     public $scrollWidth = null;
     public $scrollHeight = null;
+    public $scrollY = null;
+    public $scrollX = null;
+    public $scroll = null;
     public $clientTop = null;
     public $clientLeft = null;
     public $clientWidth = null;
