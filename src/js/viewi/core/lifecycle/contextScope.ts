@@ -4,6 +4,7 @@ import { Slots } from "../node/slots";
 export type ContextScope = {
     counter: number, // current id counter
     id: number, // unique per parent scope
+    iteration: number, // app render iteration
     why: ContextReason,
     instance: BaseComponent<any>,
     lastComponent: { instance: BaseComponent<any> | null },

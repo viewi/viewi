@@ -25,6 +25,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
     const scopeId = ++scope.counter;
     const nextScope: ContextScope = {
         id: scopeId,
+        iteration: scope.iteration,
         why: 'dynamic',
         arguments: [...scope.arguments],
         map: { ...scope.map },
@@ -46,8 +47,9 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
         const slots = {};
         if (node.slots) {
             const scopeId = ++nextScope!.counter;
-            const slotScope: ContextScope= {
+            const slotScope: ContextScope = {
                 id: scopeId,
+                iteration: scope.iteration,
                 why: 'slot',
                 arguments: [...scope.arguments],
                 map: { ...scope.map },
@@ -66,7 +68,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
                 };
             }
         }
-        renderComponent(anchorNode, content, <PropsContext>{ attributes: node.attributes, scope: scope, instance: instance }, slots, false, true);
+        renderComponent(anchorNode, content, <PropsContext>{ attributes: node.attributes, scope: scope }, slots, false, true);
         return;
     } else {
         const element = anchorNode.parentElement!.insertBefore(document.createElement(content), anchorNode);

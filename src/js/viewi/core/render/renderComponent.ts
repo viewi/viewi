@@ -73,6 +73,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     // TODO: on reuse - attach scope to a new parent
     const scope: ContextScope = reuse ? lastIteration[name].scope : {
         id: scopeId,
+        iteration: props ? props.scope.iteration : ++globalScope.iterationId,
         why: name,
         arguments: [], // props ? [...props.scope.arguments] : [],
         instance: instance,
@@ -90,7 +91,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
     if (info.refs) {
         scope.refs = info.refs;
     }
-    if (!globalScope.cancel && info.hooks && info.hooks.mounting) {
+    if (!(globalScope.cancel && globalScope.cancelIterationId === scope.iteration) && info.hooks && info.hooks.mounting) {
         (instance as any).mounting();
     }
     // set props
@@ -179,7 +180,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             }
         }
     }
-    if (!globalScope.cancel && info.hooks && info.hooks.mounted) {
+    if (!(globalScope.cancel && globalScope.cancelIterationId === scope.iteration) && info.hooks && info.hooks.mounted) {
         (instance as any).mounted();
     }
 

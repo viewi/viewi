@@ -15,9 +15,11 @@ type GlobalScope = {
     scopedContainer: DIContainer,
     located: { [key: string]: boolean },
     iteration: { [key: string]: RenderIteration },
+    iterationId: number,
     lastIteration: { [key: string]: RenderIteration },
     layout: string,
-    cancel: boolean
+    cancel: boolean,
+    cancelIterationId: number,
 }
 
 export const globalScope: GlobalScope = {
@@ -26,7 +28,9 @@ export const globalScope: GlobalScope = {
     scopedContainer: {},
     located: {},
     iteration: {},
+    iterationId: 0,
     lastIteration: {},
     layout: '',
-    cancel: false
+    cancel: false,
+    cancelIterationId: 0
 }

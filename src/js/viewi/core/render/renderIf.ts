@@ -39,6 +39,7 @@ export function renderIf(
             const scopeId = ++scope.counter;
             const nextScope: ContextScope = {
                 id: scopeId,
+                iteration: scope.iteration,
                 why: index === 0 ? 'if' : (directive.children ? 'elseif' : 'else'),
                 instance: instance,
                 lastComponent: scope.lastComponent,
@@ -61,6 +62,7 @@ export function renderIf(
             dispose(scopeContainer.scope);
             scopeContainer.scope = {
                 id: -1,
+                iteration: scope.iteration,
                 why: 'if',
                 instance: instance,
                 lastComponent: scope.lastComponent,

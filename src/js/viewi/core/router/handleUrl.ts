@@ -27,6 +27,7 @@ export function handleUrl(href: string, forward: boolean = true) {
         return;
     }
     globalScope.cancel = true;
+    globalScope.cancelIterationId = globalScope.iterationId + 1;
     const urlPath = getPathName(href);
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {

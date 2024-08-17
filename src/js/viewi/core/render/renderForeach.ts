@@ -68,6 +68,7 @@ export function renderForeach(
             const scopeId = ++scope.counter;
             const nextScope: ContextScope = {
                 id: scopeId,
+                iteration: scope.iteration,
                 why: 'forItem',
                 instance: instance,
                 lastComponent: scope.lastComponent,

@@ -86,6 +86,7 @@ export function render(
                                 const scopeId = ++scope.counter;
                                 const nextScope: ContextScope = {
                                     id: scopeId,
+                                    iteration: scope.iteration,
                                     why: 'if',
                                     arguments: scope.arguments,
                                     map: scope.map,
@@ -135,6 +136,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        iteration: scope.iteration,
                                         why: 'elseif',
                                         instance: instance,
                                         lastComponent: scope.lastComponent,
@@ -186,6 +188,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        iteration: scope.iteration,
                                         why: "else",
                                         instance: instance,
                                         lastComponent: scope.lastComponent,
@@ -232,6 +235,7 @@ export function render(
                                     const scopeId = ++scope.counter;
                                     const nextScope: ContextScope = {
                                         id: scopeId,
+                                        iteration: scope.iteration,
                                         why: "foreach",
                                         instance: instance,
                                         lastComponent: scope.lastComponent,
@@ -311,6 +315,7 @@ export function render(
                     const scopeId = ++scope.counter;
                     nextScope = {
                         id: scopeId,
+                        iteration: scope.iteration,
                         why: 'dynamic',
                         arguments: [...scope.arguments],
                         map: { ...scope.map },
@@ -335,6 +340,7 @@ export function render(
                         const scopeId = ++nextScope!.counter;
                         const slotScope: ContextScope = {
                             id: scopeId,
+                            iteration: scope.iteration,
                             why: "slot",
                             arguments: [...scope.arguments],
                             map: { ...scope.map },
@@ -519,7 +525,7 @@ export function render(
                 for (let a = 0; a < node.attributes.length; a++) {
                     let callArguments = [instance];
                     if (scope.arguments) {
-                      callArguments = callArguments.concat(scope.arguments);
+                        callArguments = callArguments.concat(scope.arguments);
                     }
                     const attribute: TemplateNode = node.attributes[a];
                     const attrName = attribute.expression
