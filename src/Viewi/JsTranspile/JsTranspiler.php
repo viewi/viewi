@@ -205,7 +205,7 @@ class JsTranspiler
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->currentNamespace = $node->name;
-                    $this->exports[$this->currentNamespace] = ExportItem::NewNamespace($this->currentNamespace);
+                    $this->exports[$this->currentNamespace] = ExportItem::NewNamespace($this->currentNamespace ?? '');
                     $this->processStmts($node->stmts);
                     $this->currentNamespace = null;
                     array_pop($this->currentPath);
@@ -634,6 +634,9 @@ class JsTranspiler
                             // if ($this->phpCode === '$user->name') {
                             //     Helpers::debug([$node, $this->variablePaths, $this->propertyFetchQueue, $this->currentPath]);
                             // }
+                            // if (isset($this->localVariables['menuItem'])) {
+                            //     print_r($this->variablePaths);
+                            // }
                         }
                         array_pop($this->propertyFetchQueue);
                     }
@@ -767,6 +770,7 @@ class JsTranspiler
                 $this->jsCode .= $isThis ? ($this->currentConstructor ? '$this' : '$this') : $node->name;
                 if ($this->inlineExpression) {
                     $this->variablePaths[$node->name] = true;
+                    // print_r($this->variablePaths);
                     $this->currentPath[] = $node->name;
                 }
                 // TODO: variable declaration
