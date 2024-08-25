@@ -9,7 +9,7 @@ import { portals } from "./portals";
 
 export function renderPortal(portal: Portal, scope: ContextScope, hydrate = false, insert = false) {
     const portalEndMark = document.getElementById('portal_' + portal.to! + '_end');
-    if (portalEndMark) {
+    if (portalEndMark) { // TODO: delay render when portal is not ready
         const portalAnchorCurrent = portals[portal.to!].current;
         const renderTarget = insert ? portalEndMark : portalEndMark.parentElement!;
         const anchor = hydrate ? getAnchor(renderTarget) : undefined;

@@ -63,6 +63,10 @@ export class Portal extends BaseComponent<Portal> implements IRenderable, IDestr
                 insert
                     ? target.parentElement!.insertBefore(portalEndElement, target)
                     : target.appendChild(portalEndElement);
+                if (!(this.name in portals)) {
+                    portals[this.name] = {};
+                }
+                portals[this.name].current = 0;
             }
         } else if (this.to) {
             if (hydrate) {
