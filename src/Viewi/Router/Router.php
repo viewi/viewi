@@ -14,6 +14,10 @@ class Router
 
     protected ?string $lazyLoadName = null;
 
+    protected string $sectionName = '';
+
+    protected array $sections = [];
+
     /**
      * 
      * @param array<RouteItem> $routeList 
@@ -41,13 +45,12 @@ class Router
         }
         $item = new RouteItem(
             $method,
-            $url,
+            $this->sectionName . $url,
             $action,
             $defaults,
             $wheres
         );
         $this->routes[] = $item;
-        // TODO: adapter
         return $item;
     }
 
@@ -91,6 +94,14 @@ class Router
         $this->lazyLoadName = $name;
         $callable($this);
         $this->lazyLoadName = null;
+    }
+
+    public function section(string $name, $callable)
+    {
+        $this->sections[] = $this->sectionName;
+        $this->sectionName = $this->sectionName . $name;
+        $callable($this);
+        $this->sectionName = array_pop($this->sections) ?? '';
     }
 
     /**
