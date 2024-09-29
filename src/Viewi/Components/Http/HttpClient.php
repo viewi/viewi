@@ -14,7 +14,7 @@ use Viewi\Components\Http\Message\Response;
 use Viewi\DI\Singleton;
 
 #[Singleton]
-#[CustomJs]
+#[CustomJs(false)]
 class HttpClient
 {
     /**
