@@ -128,7 +128,7 @@ const runBuildAll = async function () {
 let buildTimer = 0;
 
 const runWatch = async function () {
-  const ignored = ['**/build/**', '/js/dist/**', '/js/viewi/**', '**/node_modules/**', '**/app/**', '**/combined.css'];
+  const ignored = ['**/build/**', '/js/dist/**', '/js/viewi/**', '/js/exports/**', '**/node_modules/**', '**/app/**', '**/combined.css'];
   // https://github.com/paulmillr/chokidar
   chokidar.watch(['.\\..\\']).on('all', (event, itemPath) => {
     const normalizedPath = path.normalize(itemPath).replace(/\\/g, '/').replace('..', '');
