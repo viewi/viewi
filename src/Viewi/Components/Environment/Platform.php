@@ -7,7 +7,7 @@ use Viewi\Builder\Attributes\CustomJs;
 use Viewi\DI\Singleton;
 use Viewi\Engine;
 
-// src\js\viewi\core\environment\process.ts
+// src/js/modules/package/platform/platform.ts
 
 #[Singleton]
 #[CustomJs]
@@ -18,9 +18,7 @@ class Platform
     public array $httpState = [];
     public array $runtimeState = [];
 
-    public function __construct(private App $appInstance, private Engine $engine)
-    {
-    }
+    public function __construct(private App $appInstance, private Engine $engine) {}
 
     public function getConfig()
     {
