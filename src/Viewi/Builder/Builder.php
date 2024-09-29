@@ -11,6 +11,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use Viewi\AppConfig;
 use Viewi\Builder\Attributes\CustomJs;
+use Viewi\Builder\Attributes\ExtendWithJs;
 use Viewi\Builder\Attributes\GlobalEntry;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Builder\BuildAction\IPostBuildAction;
@@ -21,6 +22,7 @@ use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\IStartUp\IStartUp;
 use Viewi\Components\Render\IRenderable;
+use Viewi\Components\ViewiCorePackge;
 use Viewi\DI\Inject;
 use Viewi\DI\Scope;
 use Viewi\DI\Scoped;
@@ -32,6 +34,7 @@ use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\JsTranspile\UseItem;
+use Viewi\Packages\ViewiPackage;
 use Viewi\Router\ComponentRoute;
 use Viewi\Router\Router;
 use Viewi\TemplateCompiler\TemplateCompiler;
@@ -92,7 +95,8 @@ class Builder
         CustomJs::class => true,
         Inject::class => true,
         Scope::class => true,
-        GlobalEntry::class => true
+        GlobalEntry::class => true,
+        ExtendWithJs::class => true
     ];
 
     private array $systemFunctions = [
@@ -112,6 +116,11 @@ class Builder
     private array $lazyLoadNamespaces = [];
     private array $ignoreNamespaces = [];
     private array $noJsNamespaces = [];
+    /**
+     * 
+     * @var array<ViewiPackage|string>
+     */
+    private array $packages = [];
 
     public function __construct(private Router $router)
     {
@@ -167,9 +176,19 @@ class Builder
         $this->avaliableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
         $this->logs .= "Collecting components from '{$config->sourcePath}'.." . PHP_EOL;
         $this->collectComponents($config->sourcePath, true);
-        foreach ([...$config->includes, $this->getCoreComponentsPath()] as $path) {
+        foreach ($config->includes as $path) {
             $this->logs .= "Collecting components from '{$path}'.." . PHP_EOL;
             $this->collectComponents($path, !$this->shakeTree);
+        }
+
+        $this->packages = [$this->getCorePackage()];
+        // collecting packages
+        foreach ($this->packages as $package) {
+            $path = $package::getComponentsPath();
+            if ($path) {
+                $this->logs .= "Collecting components from '{$path}'.." . PHP_EOL;
+                $this->collectComponents($path, !$this->shakeTree, $package);
+            }
         }
         // Helpers::debug($this->components);
         // 3. validate components and parse html templates
@@ -205,9 +224,13 @@ class Builder
         $this->meta = ['components' => [], 'map' => [], 'buildPath' => '', 'publicConfig' => []];
     }
 
-    private function getCoreComponentsPath(): string
+    /**
+     * 
+     * @return ViewiPackage 
+     */
+    private function getCorePackage(): string
     {
-        return ViewiPath::dir() . DIRECTORY_SEPARATOR . 'Components';
+        return ViewiCorePackge::class;
     }
 
     /**
@@ -248,6 +271,7 @@ class Builder
                         foreach ($this->noJsNamespaces as $namespace) {
                             if (str_starts_with($ns, $namespace)) {
                                 $this->components[$exportItem->Name]->CustomJs = true;
+                                $this->components[$exportItem->Name]->NoJs = true;
                             }
                         }
                     }
@@ -297,7 +321,14 @@ class Builder
         }
     }
 
-    private function collectComponents(string $path, bool $include = false): void
+    /**
+     * 
+     * @param string $path 
+     * @param bool $include 
+     * @param null|ViewiPackage|string $package 
+     * @return void 
+     */
+    private function collectComponents(string $path, bool $include = false, ?string $package = null): void
     {
         $files = Helpers::collectFiles($path);
         foreach ($files as $filePath => $_) {
@@ -306,10 +337,22 @@ class Builder
             if ($extension === 'php') {
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
                 $this->collectExports($jsOutput, $jsOutput->getExports(), $include);
-                $templatePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.html';
-                if (is_file($templatePath) && isset($this->components[$pathinfo['filename']])) {
-                    $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
-                    $this->avaliableComponents[$pathinfo['filename']] = true;
+                if (isset($this->components[$pathinfo['filename']])) {
+                    $this->components[$pathinfo['filename']]->Package = $package;
+                    $templatePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.html';
+                    if (is_file($templatePath)) {
+                        $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
+                        $this->avaliableComponents[$pathinfo['filename']] = true;
+                    }
+                    $tsPath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.ts';
+                    if (is_file($tsPath)) {
+                        $this->components[$pathinfo['filename']]->CustomJsPath = $tsPath;
+                        $this->components[$pathinfo['filename']]->CustomTs = true;
+                    }
+                    $jsPath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.js';
+                    if (is_file($jsPath)) {
+                        $this->components[$pathinfo['filename']]->CustomJsPath = $jsPath;
+                    }
                 }
             }
         }
@@ -405,6 +448,10 @@ class Builder
         if (!$buildItem->Ready) {
             $buildItem->Ready = true;
             if (!$buildItem->Skip) { // $buildItem->CustomJs ||
+
+                $buildItem->RelativePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, ($buildItem->Namespace ?? ''));
+                $buildItem->RelativePathDepth = substr_count($buildItem->RelativePath, DIRECTORY_SEPARATOR);
+                $buildItem->RelativeLookupPath = str_repeat('..' . DIRECTORY_SEPARATOR, $buildItem->RelativePathDepth);
                 // 1. validate uses
                 // 2. validate core functions
                 if (!$buildItem->CustomJs) {
@@ -496,7 +543,7 @@ class Builder
         }
     }
 
-    private function makeAppFolders(string $subFolder = 'main'): array
+    private function makeAppFolders(string $subFolder = 'main', bool $createFolders = true): array
     {
         $d = DIRECTORY_SEPARATOR;
         if ($subFolder) { // TODO: validate folder name
@@ -505,21 +552,22 @@ class Builder
         $jsComponentsPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'components';
         $jsFunctionsPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'functions';
         $jsResourcesPath = $this->jsPath . $d . 'app' . $d . $subFolder . 'resources';
+        if ($createFolders) {
+            if (!file_exists($jsComponentsPath)) {
+                mkdir($jsComponentsPath, 0777, true);
+            }
+            Helpers::removeDirectory($jsComponentsPath);
 
-        if (!file_exists($jsComponentsPath)) {
-            mkdir($jsComponentsPath, 0777, true);
-        }
-        Helpers::removeDirectory($jsComponentsPath);
+            if (!file_exists($jsFunctionsPath)) {
+                mkdir($jsFunctionsPath, 0777, true);
+            }
+            Helpers::removeDirectory($jsFunctionsPath);
 
-        if (!file_exists($jsFunctionsPath)) {
-            mkdir($jsFunctionsPath, 0777, true);
+            if (!file_exists($jsResourcesPath)) {
+                mkdir($jsResourcesPath, 0777, true);
+            }
+            Helpers::removeDirectory($jsResourcesPath);
         }
-        Helpers::removeDirectory($jsFunctionsPath);
-
-        if (!file_exists($jsResourcesPath)) {
-            mkdir($jsResourcesPath, 0777, true);
-        }
-        Helpers::removeDirectory($jsResourcesPath);
         return [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath];
     }
 
@@ -561,6 +609,26 @@ class Builder
             Helpers::copyAll(ViewiPath::viewiJsDir() . $d, $this->jsPath . $d);
         }
         Helpers::copyAll(ViewiPath::viewiJsCoreDir() . $d, $this->jsPath . $d . 'viewi' . $d);
+        // server\viewi-app\js\modules\CustomJsPage\index.ts
+        $modulesFolder = $this->jsPath . $d . 'modules' . $d . $this->appName;
+        $modulesFile = $modulesFolder . $d . 'index.ts';
+        if (!file_exists($modulesFolder)) {
+            mkdir($modulesFolder, 0777, true);
+        }
+        if (!file_exists($modulesFile)) {
+            file_put_contents($modulesFile, "export {};");
+        }
+        foreach ($this->packages as $package) {
+            $packageJsDir = $package::jsDir();
+            if ($packageJsDir) {
+                $packageModulePath = $package::jsModulePackagePath();
+                $exportDestinationPath = $this->jsPath . $d . 'exports' . $d . $packageModulePath;
+                if (!file_exists($exportDestinationPath)) {
+                    mkdir($exportDestinationPath, 0777, true);
+                }
+                Helpers::copyAll($packageJsDir . $d . 'modules' . $d . $packageModulePath, $exportDestinationPath);
+            }
+        }
         $publicJson = [];
         $this->meta['buildPath'] = $this->buildPath;
         $startups = [];
@@ -641,9 +709,23 @@ class Builder
                     }
                 }
                 $attributes = $buildItem->ReflectionClass->getAttributes();
+                $includeCustomCodeFile = null;
+                $includeExtendedJs = false;
                 foreach ($attributes as $attribute) {
                     $attributeClass = $attribute->getName();
                     switch ($attributeClass) {
+                        case CustomJs::class: {
+                                /**
+                                 * @var CustomJs $customJsInstance
+                                 */
+                                $customJsInstance = $attribute->newInstance();
+                                $exportJsCode = $customJsInstance->export;
+                                break;
+                            }
+                        case ExtendWithJs::class: {
+                                $includeExtendedJs = true;
+                                break;
+                            }
                         case Singleton::class: {
                                 $componentMeta['di'] = Singleton::NAME;
                                 $publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
@@ -699,10 +781,10 @@ class Builder
                     if (isset($chunks->chunks[$lazyLoadGroup])) {
                         $currentChunk = $chunks->chunks[$lazyLoadGroup];
                     } else {
-                        [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup);
+                        [$jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath] = $this->makeAppFolders($lazyLoadGroup, false);
                         $currentChunk = $chunks->create($lazyLoadGroup, $jsLazyComponentsPath, $jsLazyFunctionsPath, $jsLazyResourcesPath);
-                        $currentChunk->addComponent($buildItem->ComponentName);
                     }
+                    $currentChunk->addComponent($buildItem->ComponentName);
                 }
 
                 $componentMeta['inputs'] = [];
@@ -732,8 +814,7 @@ class Builder
                 // template, render function
                 $expressionsJs = '';
                 if ($buildItem->RenderFunction !== null) {
-                    $renderRelativePath = $d .
-                        str_replace(array('/', '\\'), $d, ($buildItem->Namespace ?? ''));
+                    $renderRelativePath = $d . $buildItem->RelativePath;
                     $renderFunctionDir = $this->buildPath . $renderRelativePath;
                     $renderFunctionPath = $renderRelativePath . $d .
                         $buildItem->ComponentName . '.php';
@@ -764,15 +845,17 @@ class Builder
                 //     print_r($buildItem->JsOutput);
                 // }
                 // javascript
+                $depthPath = $buildItem->RelativeLookupPath;
                 if (!$buildItem->CustomJs) { // $buildItem->ComponentName !== 'BaseComponent'
                     // $lazyLoadGroups[$lazyLoadGroup]['path'] = ['components' => $jsLazyComponentsPath, 'functions' => $jsLazyFunctionsPath, 'resources' => $jsLazyResourcesPath];
-                    $jsComponentPath = $currentChunk->jsComponentsPath . $d . $buildItem->ComponentName . '.js';
+                    $jsComponentDirectory = $mainChunk->jsComponentsPath . $d . $buildItem->RelativePath;
+                    $jsComponentPath = $jsComponentDirectory . $d . $buildItem->ComponentName . '.js';
                     $jsComponentCode = '';
                     $comma = '';
                     $registerIncluded = false;
                     $additionalCode = "";
                     if ($lazyLoadGroup) {
-                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
+                        $jsComponentCode .= 'import { register } from "' . $depthPath . '../../../../viewi/core/di/register";' . PHP_EOL;
                         $registerIncluded = true;
                     }
 
@@ -783,11 +866,11 @@ class Builder
                                     if ($lazyLoadGroup && isset($includedInMain[$importName])) {
                                         $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                     } else {
-                                        $jsComponentCode .= 'import { BaseComponent } from "../../../viewi/core/component/baseComponent";' . PHP_EOL;
+                                        $jsComponentCode .= 'import { BaseComponent } from "' . $depthPath . '../../../../viewi/core/component/baseComponent";' . PHP_EOL;
                                     }
                                 } elseif (isset($this->components[$importName]) && $this->components[$importName]->CustomJs) {
                                     if (!$registerIncluded) {
-                                        $jsComponentCode .= 'import { register } from "../../../viewi/core/di/register";' . PHP_EOL;
+                                        $jsComponentCode .= 'import { register } from "' . $depthPath . '../../../../viewi/core/di/register";' . PHP_EOL;
                                         $registerIncluded = true;
                                     }
                                     $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
@@ -795,7 +878,8 @@ class Builder
                                     if ($lazyLoadGroup && isset($includedInMain[$importName])) {
                                         $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                     } else {
-                                        $jsComponentCode .= "import { $importName } from \"./$importName\";" . PHP_EOL;
+                                        $importPath = $this->components[$importName]->RelativePath;
+                                        $jsComponentCode .= "import { $importName } from \"./../{$depthPath}{$importPath}/{$importName}\";" . PHP_EOL;
                                     }
                                 }
                             } elseif ($useItem->Type === UseItem::Function) {
@@ -804,7 +888,7 @@ class Builder
                                 if ($lazyLoadGroup && isset($includedInMain[$importName])) {
                                     $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                 } else {
-                                    $jsComponentCode .= "import { $importName } from \"../functions/$importName\";" . PHP_EOL;
+                                    $jsComponentCode .= "import { $importName } from \"./$depthPath../../functions/$importName\";" . PHP_EOL;
                                 }
                             } elseif ($useItem->Type === UseItem::System) {
                                 switch ($importName) {
@@ -812,7 +896,7 @@ class Builder
                                             if ($lazyLoadGroup && isset($includedInMain[$importName])) {
                                                 $additionalCode .= "var $importName = register.$importName;" . PHP_EOL;
                                             } else {
-                                                $jsComponentCode .= "import { ensureType } from \"../../../viewi/core/helpers/ensureType\";" . PHP_EOL;
+                                                $jsComponentCode .= "import { ensureType } from \"$depthPath../../../../viewi/core/helpers/ensureType\";" . PHP_EOL;
                                             }
                                             break;
                                         }
@@ -843,6 +927,7 @@ class Builder
                         $jsComponentCode .= $comma . $additionalCode;
                     }
                     $jsComponentCode .= $comma . $buildItem->JsOutput->__toString();
+                    $expressionsImports = [];
                     $expressionsImport = '';
                     if ($expressionsJs !== '') {
                         $expressionName = $buildItem->ComponentName . '_x';
@@ -850,7 +935,7 @@ class Builder
                         $jsComponentCode .= $comma .
                             "export const $expressionName = [$expressionsJs];" . PHP_EOL;
                         $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
-                        $expressionsImport .= ", $expressionName";
+                        $expressionsImports[] = $expressionName;
                     }
 
                     if ($lazyLoadGroup && isset($publicJson[$buildItem->ComponentName])) {
@@ -859,15 +944,58 @@ class Builder
                             "export const $expressionName = { _t: 'template', name: '{$buildItem->ComponentName}', data: " .
                             json_encode(json_encode($publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ' };' . PHP_EOL;
                         $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
-                        $expressionsImport .= ", $expressionName";
+                        $expressionsImports[] = $expressionName;
                     }
 
                     $jsComponentCode .= PHP_EOL . 'export { ' . $buildItem->ComponentName . ' }';
+                    if (!file_exists($jsComponentDirectory)) {
+                        mkdir($jsComponentDirectory, 0777, true);
+                    }
                     file_put_contents($jsComponentPath, $jsComponentCode);
-                    $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->ComponentName}\";" . PHP_EOL;
+                    if ($buildItem->CustomJsPath) {
+                        file_put_contents($jsComponentPath . 'custom', file_get_contents($buildItem->CustomJsPath));
+                    }
+                    if ($includeExtendedJs) {
+                        $currentPackage = $buildItem->Package === null;
+                        $packageName = $currentPackage ? $this->appName : $buildItem->Package::name();
+                        $pathToInclude = ($currentPackage ? "modules/" : "exports/") . $packageName . "/index.ts";
+                        $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName} } from \"../../../$pathToInclude\";" . PHP_EOL;
+                        if (count($expressionsImports)) {
+                            $expressionsImport = implode(", ", $expressionsImports);
+                            $currentChunk->componentsIndex .= "import { $expressionsImport } from \"./{$buildItem->RelativePath}/{$buildItem->ComponentName}\";" . PHP_EOL;
+                        }
+                    } else {
+                        if (count($expressionsImports)) {
+                            $expressionsImport = ', ' . implode(", ", $expressionsImports);
+                        }
+                        $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName}$expressionsImport } from \"./{$buildItem->RelativePath}/{$buildItem->ComponentName}\";" . PHP_EOL;
+                    }
                     $currentChunk->componentsExport .= PHP_EOL . "    {$buildItem->ComponentName},";
                 } else {
                     $publicJson[$buildItem->ComponentName]['custom'] = 1;
+                    if (!$buildItem->NoJs && $exportJsCode) {
+                        $currentPackage = $buildItem->Package === null;
+                        $packageName = $currentPackage ? $this->appName : $buildItem->Package::name();
+                        $pathToInclude = ($currentPackage ? "modules/" : "exports/") . $packageName . "/index.ts";
+                        // print_r([$pathToInclude, $buildItem->ComponentName, $packageName]);
+                        $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName} } from \"../../../$pathToInclude\";" . PHP_EOL;
+                        $currentChunk->componentsExport .= PHP_EOL . "    {$buildItem->ComponentName},";
+                        // if ($includeCustomCodeFile) {
+                        //     $pathToInclude =  'packages' . $d . ViewiPath::viewiJsPackageName() . $includeCustomCodeFile;
+                        //     $currentChunk->componentsIndex .= "import { {$buildItem->ComponentName} } from \"../../../$pathToInclude\";" . PHP_EOL;
+                        //     $currentChunk->componentsExport .= PHP_EOL . "    {$buildItem->ComponentName},";
+                        //     print_r([$pathToInclude]);
+                        // }
+                        // if ($buildItem->CustomJsPath) {
+                        //     $jsComponentDirectory = $mainChunk->jsComponentsPath . $d . $buildItem->RelativePath;
+                        //     $jsComponentPath = $jsComponentDirectory . $d . $buildItem->ComponentName . ($buildItem->CustomTs ? '.ts' :  '.js');
+                        //     if (!file_exists($jsComponentDirectory)) {
+                        //         mkdir($jsComponentDirectory, 0777, true);
+                        //     }
+                        //     print_r(['Copy', $buildItem->CustomJsPath, $jsComponentPath]);
+                        //     file_put_contents($jsComponentPath, file_get_contents($buildItem->CustomJsPath));
+                        // }
+                    }
                 }
                 if ($lazyLoadGroup) {
                     $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = $publicJson[$buildItem->ComponentName];
@@ -957,18 +1085,18 @@ class Builder
             $isMain = $chunk->name === Chunk::MAIN;
 
             // components
-            if (!$isMain) {
-                $chunk->componentsIndex .= "import \"../../../modules/{$chunk->name}\";" . PHP_EOL;
-                // server\viewi-app\js\modules\CustomJsPage\index.ts
-                $modulesFolder = $this->jsPath . $d . 'modules' . $d . $chunk->name;
-                $modulesFile = $modulesFolder . $d . 'index.ts';
-                if (!file_exists($modulesFolder)) {
-                    mkdir($modulesFolder, 0777, true);
-                }
-                if (!file_exists($modulesFile)) {
-                    file_put_contents($modulesFile, "export const modules = {};");
-                }
-            }
+            // if (!$isMain) {
+            //     $chunk->componentsIndex .= "import \"../../../modules/{$chunk->name}\";" . PHP_EOL;
+            //     // server\viewi-app\js\modules\CustomJsPage\index.ts
+            //     $modulesFolder = $this->jsPath . $d . 'modules' . $d . $chunk->name;
+            //     $modulesFile = $modulesFolder . $d . 'index.ts';
+            //     if (!file_exists($modulesFolder)) {
+            //         mkdir($modulesFolder, 0777, true);
+            //     }
+            //     if (!file_exists($modulesFile)) {
+            //         file_put_contents($modulesFile, "export const modules = {};");
+            //     }
+            // }
             $chunk->componentsIndex .= PHP_EOL . "export const components = {{$chunk->componentsExport}";
             $chunk->componentsIndex .= ($chunk->componentsExport ? PHP_EOL . '};' : '};') . PHP_EOL;
             if ($isMain) {
@@ -977,7 +1105,7 @@ class Builder
             } else {
                 $chunk->componentsIndex .= PHP_EOL . "window.ViewiApp.{$this->appName}.publish(\"$chunkName\", components);" . PHP_EOL;
             }
-            file_put_contents($chunk->jsComponentsPath . $d . 'index.js', $chunk->componentsIndex);
+            file_put_contents($mainChunk->jsComponentsPath . $d . ($isMain ? 'index.js' : $chunkName . '.js'), $chunk->componentsIndex);
             if ($isMain) {
                 $chunk->distFileName = "viewi.js";
                 $chunk->distFileMinName = "viewi.min.js";
@@ -991,7 +1119,7 @@ class Builder
                 $chunk->distFileMinName = "viewi.$chunkName.min.js";
                 $chunk->publicFileName = "$chunckBaseName.$chunkName.js";
                 $chunk->publicFileMinName = "$chunckBaseName.$chunkName.min.js";
-                $lazyGroupEntry = "./app/$chunkName/components/index.js";
+                $lazyGroupEntry = "./app/main/components/$chunkName.js";
                 $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'," . PHP_EOL;
             }
 
@@ -1006,7 +1134,7 @@ class Builder
             foreach ($chunk->functions as $functionName => $_) {
                 if ($isMain || !isset($mainChunk->functions[$functionName])) {
                     $baseFunction = $this->usedFunctions[$functionName];
-                    $functionPath = $chunk->jsFunctionsPath . $d . $functionName . '.js';
+                    $functionPath = $mainChunk->jsFunctionsPath . $d . $functionName . '.js';
                     $importDepsJs = '';
                     $registerDepsJs = '';
                     foreach ($baseFunction::getUses() as $requiredFunction) {
@@ -1035,7 +1163,7 @@ class Builder
             }
             $functionsIndexJs .= PHP_EOL . "export const functions = {{$functionsExportList}";
             $functionsIndexJs .= $functionsExportList ? PHP_EOL . '};' : '};';
-            file_put_contents($chunk->jsFunctionsPath . $d . 'index.js', $functionsIndexJs);
+            file_put_contents($mainChunk->jsFunctionsPath . $d . ($isMain ? 'index.js' : $chunkName . '.js'), $functionsIndexJs);
         }
 
         file_put_contents($jsResourcesPath . $d . 'index.js', $resourcesIndexJs);
