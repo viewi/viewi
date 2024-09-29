@@ -11,7 +11,7 @@ use Viewi\Components\Render\IRenderable;
 use Viewi\Components\Render\RenderContext;
 use Viewi\Helpers;
 
-#[CustomJs]
+#[CustomJs(false)]
 class Portal extends BaseComponent implements IRenderable
 {
     public function __construct(private Platform $platform)
