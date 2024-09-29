@@ -7,6 +7,8 @@ export const factoryContainer: { [name: string]: <T>() => T } = {};
 
 export function factory<T extends Constructor>(name: string, implementation: T, factory: () => InstanceType<T>) {
     register[name] = implementation;
-    components[name] = implementation;
+    if (components) {
+        components[name] = implementation;
+    }
     factoryContainer[name] = factory;
 };

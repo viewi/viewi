@@ -4,6 +4,9 @@ import { TemplateNode } from "../node/templateNode";
 import { ContextScope } from "../lifecycle/contextScope";
 
 export function renderRaw(instance: BaseComponent<any>, node: TemplateNode, scope: ContextScope, anchorNode: TextAnchor) {
+    if (scope.disposed) {
+        return;
+    }
     // remove
     while (anchorNode.previousSibling._anchor !== anchorNode._anchor) {
         anchorNode.previousSibling!.remove();

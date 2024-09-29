@@ -30,4 +30,5 @@ export function dispose(scope: ContextScope) {
         delete scope.parent.children[scope.id];
         delete scope.parent;
     }
+    scope.disposed = true;
 }

@@ -21,6 +21,9 @@ export function renderIf(
         nextValue = nextValue && !ifConditions.values[i];
     }
     const scope = scopeContainer.scope.parent!;
+    if (!scope || scope.disposed) {
+        return;
+    }
     if (directive.children) {
         let callArguments = [instance];
         if (scope.arguments) {

@@ -16,7 +16,8 @@ export type ContextScope = {
     children: { [key: string]: ContextScope }, // all nested scopes from directives and components, tree disposal
     slots?: Slots,
     refs?: { [key: string]: boolean },
-    keep?: boolean // do not dispose
+    keep?: boolean, // do not dispose
+    disposed?: boolean // disposed
 }
 
 export type ContextReason = 'if' | 'elseif' | 'else' | 'foreach' | 'forItem' | 'dynamic' | 'slot' | 'component' | string
