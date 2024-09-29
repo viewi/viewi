@@ -43,6 +43,7 @@ use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Continue_;
@@ -282,6 +283,16 @@ class JsTranspiler
                 foreach ($node->traits as $trait) {
                     $this->currentTraits[] = $trait->getLast();
                 }
+            } elseif ($node instanceof ClassConst) {
+                $this->fork();
+                $this->level--;
+                foreach ($node->consts as $const) {
+                    $name = $const->name->name;
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . $this->currentClass . ".$name = ";
+                    $this->processStmts([$const->value, ';']);
+                }
+                $this->unfork();
+                $this->level++;
             } elseif ($node instanceof Property) {
                 $name = $node->props[0]->name->name;
                 $isStatic = $node->isStatic();
