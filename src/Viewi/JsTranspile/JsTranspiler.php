@@ -23,6 +23,7 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\Isset_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\NullsafePropertyFetch;
 use PhpParser\Node\Expr\PostDec;
 use PhpParser\Node\Expr\PostInc;
@@ -657,12 +658,13 @@ class JsTranspiler
                 //     Helpers::debug([$node, $this->variablePaths, $this->propertyFetchQueue]);
                 // }
                 // $this->debug($node);
-            } elseif ($node instanceof MethodCall) {
+            } elseif ($node instanceof MethodCall || $node instanceof NullsafeMethodCall) {
                 // if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
                 //     $this->jsCode .= $node->name->name . '(';
                 // } else {
+                $nullSafe = $node instanceof NullsafeMethodCall;
                 $this->processStmts([$node->var]);
-                $this->jsCode .= '.' . $node->name . '(';
+                $this->jsCode .= ($nullSafe ? '?.' : '.') . $node->name . '(';
                 // }
                 if (count($node->args) > 0) {
                     $comma = '';
