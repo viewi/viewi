@@ -529,7 +529,7 @@ class Builder
      */
     private function makeFiles(): void
     {
-        $d = DIRECTORY_SEPARATOR;
+        $d = '/';
         if (!file_exists($this->buildPath)) {
             mkdir($this->buildPath, 0777, true);
         }
