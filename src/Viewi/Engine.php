@@ -153,7 +153,7 @@ class Engine
         ) {
             throw new Exception("Component '$component' not found.");
         }
-        include_once $this->config->buildPath . DIRECTORY_SEPARATOR . $componentMeta['Path'];
+        include_once $this->config->buildPath . $componentMeta['Path'];
         $renderFunc = $componentMeta['Function'];
         // Helpers::debug([$props, $componentMeta]);
         if (isset($componentMeta['hooks']['mounting'])) {
