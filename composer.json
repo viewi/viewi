@@ -14,7 +14,7 @@
         "ext-zlib": "*",
         "ext-curl": "*",
         "ext-ctype": "*",
-        "nikic/php-parser": "^4.16"
+        "nikic/php-parser": "^5.3"
     },
     "autoload": {
         "psr-4": {

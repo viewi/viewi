@@ -3,6 +3,7 @@
 namespace Viewi\JsTranspile;
 
 use Exception;
+use PhpParser\Modifiers;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
@@ -11,11 +12,9 @@ use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\AssignOp;
 use PhpParser\Node\Expr\AssignOp\Concat;
-use PhpParser\Node\Expr\AssignOp\Plus;
 use PhpParser\Node\Expr\BinaryOp;
 use PhpParser\Node\Expr\BooleanNot;
 use PhpParser\Node\Expr\Cast;
-use PhpParser\Node\Expr\Cast\Int_;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
@@ -32,16 +31,18 @@ use PhpParser\Node\Expr\PreInc;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Ternary;
+use PhpParser\Node\Expr\Throw_;
 use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Expr\UnaryPlus;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\InterpolatedStringPart;
 use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
-use PhpParser\Node\Scalar\Encapsed;
-use PhpParser\Node\Scalar\EncapsedStringPart;
-use PhpParser\Node\Scalar\LNumber;
+use PhpParser\Node\Scalar\Int_ as ScalarInt_;
+use PhpParser\Node\Scalar\InterpolatedString;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Block;
 use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassConst;
@@ -59,7 +60,6 @@ use PhpParser\Node\Stmt\Nop;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Switch_;
-use PhpParser\Node\Stmt\Throw_;
 use PhpParser\Node\Stmt\TraitUse;
 use PhpParser\Node\Stmt\TryCatch;
 use PhpParser\Node\Stmt\Unset_;
@@ -68,8 +68,6 @@ use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use RuntimeException;
-use Throwable;
-use Viewi\Helpers;
 
 class JsTranspiler
 {
@@ -170,7 +168,7 @@ class JsTranspiler
         $this->localVariables = $locals;
         try {
             if ($this->parser == null) {
-                $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+                $this->parser = (new ParserFactory)->createForNewestSupportedVersion();
             }
             $this->stmts = $this->parser->parse(($this->inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($this->inlineExpression ? ';' : ''));
             $this->processStmts($this->stmts);
@@ -363,18 +361,18 @@ class JsTranspiler
                             $argumentName = $param->var->name;
                             $promoted = false;
                             if (
-                                ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC)
-                                || ($param->flags & Node\Stmt\Class_::MODIFIER_PROTECTED)
+                                ($param->flags & Modifiers::PUBLIC)
+                                || ($param->flags & Modifiers::PRIVATE)
                             ) {
                                 $promoted = true;
                                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                                     "$paramName = null;";
-                            } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                            } elseif ($param->flags & Modifiers::PRIVATE) {
                                 $promoted = true;
                                 $paramName = $param->var->name;
                                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) .
                                     "$paramName = null;";
-                            } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+                            } elseif ($param->flags & Modifiers::PUBLIC) {
                                 $promoted = true;
                             }
                             if ($promoted) {
@@ -408,9 +406,9 @@ class JsTranspiler
                     $comma = ', ';
                     $this->localVariables[$param->var->name] = true;
                     if ($itsConstructor) {
-                        if ($param->flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+                        if ($param->flags & Modifiers::PUBLIC) {
                             $this->exports[$this->currentNamespace]->Children[$this->currentClass]->Children[$param->var->name] = ExportItem::NewProperty($param->var->name);
-                        } elseif ($param->flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+                        } elseif ($param->flags & Modifiers::PRIVATE) {
                             $this->privateProperties[$param->var->name] = true;
                         }
                     }
@@ -475,7 +473,7 @@ class JsTranspiler
                     $this->jsCode .= json_encode($node->value);
                 }
                 // TODO: multiline string <<<pre
-            } elseif ($node instanceof Encapsed) {
+            } elseif ($node instanceof InterpolatedString) {
                 $parts = [];
                 $insert = false;
                 foreach ($node->parts as $part) {
@@ -486,9 +484,9 @@ class JsTranspiler
                     $insert = true;
                 }
                 $this->processStmts($parts);
-            } elseif ($node instanceof EncapsedStringPart) {
+            } elseif ($node instanceof InterpolatedStringPart) {
                 $this->jsCode .= json_encode($node->value);
-            } elseif ($node instanceof LNumber) {
+            } elseif ($node instanceof ScalarInt_) {
                 $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
             } elseif ($node instanceof Foreach_) {
                 $key = $node->keyVar ?? ('_i' . ($this->foreachKeyIndex++));
@@ -896,6 +894,12 @@ class JsTranspiler
                 $this->processStmts([$node->expr, ';' . PHP_EOL]);
             } elseif ($node instanceof Concat) {
                 $this->processStmts([$node->var, ' += ', $node->expr]);
+            } elseif ($node instanceof Block) {
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '{' . PHP_EOL;
+                $this->level++;
+                $this->processStmts($node->stmts);
+                $this->level--;
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
             } elseif ($node instanceof If_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'if (';
                 $this->processStmts([$node->cond]);
