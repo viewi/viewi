@@ -554,6 +554,7 @@ class JsTranspiler
                         }
                         if ($item->unpack) {
                             $this->jsCode .= '...';
+                            $rawItem[] = true;
                         }
                         $this->processStmts([$item->value]);
                         $rawItem[] = $this->jsCode;
@@ -570,12 +571,13 @@ class JsTranspiler
                     $index = 0;
                     foreach ($rawItems as $rawItem) {
                         if ($arrayType === 0) {
-                            $this->jsCode .= $comma . $rawItem[0];
+                            $this->jsCode .= $comma . (isset($rawItem[1]) ?  $rawItem[1] : $rawItem[0]);
                         } else {
-                            if (isset($rawItem[1])) {
+                            if ($rawItem[0] === true) {
+                                $this->jsCode .= $comma . $rawItem[1];
+                            } elseif (isset($rawItem[1])) {
                                 $this->jsCode .= $comma . $rawItem[0] . ': ' . $rawItem[1];
                             } else {
-
                                 $this->jsCode .= $comma . "\"$index\"" . ': ' . $rawItem[0];
                             }
                             $index++;
