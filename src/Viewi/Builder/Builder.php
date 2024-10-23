@@ -449,9 +449,9 @@ class Builder
             $buildItem->Ready = true;
             if (!$buildItem->Skip) { // $buildItem->CustomJs ||
 
-                $buildItem->RelativePath = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, ($buildItem->Namespace ?? ''));
-                $buildItem->RelativePathDepth = substr_count($buildItem->RelativePath, DIRECTORY_SEPARATOR);
-                $buildItem->RelativeLookupPath = str_repeat('..' . DIRECTORY_SEPARATOR, $buildItem->RelativePathDepth);
+                $buildItem->RelativePath = str_replace(array('/', '\\'), '/', ($buildItem->Namespace ?? ''));
+                $buildItem->RelativePathDepth = substr_count($buildItem->RelativePath, '/');
+                $buildItem->RelativeLookupPath = str_repeat('../', $buildItem->RelativePathDepth);
                 // 1. validate uses
                 // 2. validate core functions
                 if (!$buildItem->CustomJs) {
