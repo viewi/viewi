@@ -71,6 +71,10 @@ class TemplateParser
             if (!$itsBlockExpression) {
                 switch ($char) {
                     case '\\': {
+                            if ($escapeNextChar) {
+                                $escapeNextChar = false;
+                                break;
+                            }
                             $escapeNextChar = true;
                             $skipCount = 1;
                             break;
