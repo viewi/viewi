@@ -257,7 +257,8 @@ class TemplateParser
                             // allow inline style and scripts
                             if (
                                 ($currentParent->Content === 'style'
-                                    || $currentParent->Content === 'script')
+                                    || $currentParent->Content === 'script'
+                                    || $currentParent->Content === 'iframe')
                                 && $currentParent->Type->Name === TagItemType::Tag
                             ) {
                                 break;
