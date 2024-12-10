@@ -6,13 +6,13 @@ export abstract class BaseComponent<T> {
     $_callbacks: { [key: string]: Function } = {};
     _refs: { [key: string]: Node | BaseComponent<any> } = {};
     _slots: { [key: string]: any } = {};
-    _element: Node | null = null;
+    _element: HTMLElement | null = null;
     $$t: Function[] = []; // template inline expressions
     $$r: { [key: string]: { [key: string]: [Function, any[]] } } = {}; // reactivity callbacks
     $$p: [trackerId: string, activated: ReactiveProxy][] = []; // shared reactivity track ids
     $: T;
     $$watchList: any[] = [];
-    _provides: Object;
+    _provides: Object = {};
     _parent: null | BaseComponent<any> = null;
     _name: string = 'BaseComponent';
 
