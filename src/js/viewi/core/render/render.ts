@@ -384,6 +384,9 @@ export function render(
                             }
                         }
                         const anchorSlotBegin = createAnchorNode(target, insert, anchor); // begin slot
+                        if (!instance._element) {
+                            instance._element = anchorSlotBegin;
+                        }
                         if (slotName in scope.slots!) { // slot from parent
                             const slot = scope.slots![slotName];
                             if (!slot.node.unpacked) {
