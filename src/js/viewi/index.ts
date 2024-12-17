@@ -1,7 +1,6 @@
 import { components, templates } from "../app/main/components";
 import { functions } from "../app/main/functions";
 import { resources } from "../app/main/resources";
-// import "../modules/main";
 import { ComponentsJson } from "./core/component/componentsJson";
 import { componentsMeta } from "./core/component/componentsMeta";
 import { makeGlobal } from "./core/component/makeGlobal";
@@ -20,11 +19,11 @@ const ViewiApp: ViewiApp = {
     publish(group: string, importComponents: { [name: string]: any }) {
         for (let name in importComponents) {
             if (!(name in components)) {
-                const imortItem = importComponents[name];
-                if (imortItem._t === 'template') {
-                    componentsMeta.list[imortItem.name] = JSON.parse(imortItem.data);
+                const importItem = importComponents[name];
+                if (importItem._t === 'template') {
+                    componentsMeta.list[importItem.name] = JSON.parse(importItem.data);
                 } else {
-                    components[name] = imortItem;
+                    components[name] = importItem;
                 }
             }
         }
@@ -53,5 +52,4 @@ window.ViewiApp[resources.name] = ViewiApp;
     ViewiApp.register = { ...components, ...register, ...functions };
     watchLinks();
     handleUrl(location.href);
-    //setTimeout(() => renderApp('TestComponent'), 500);
 })();

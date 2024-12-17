@@ -16,7 +16,14 @@ const updateHistory = function (href: string, forward: boolean = true) {
     if (forward) {
         window.history.pushState({ href: href }, '', href);
     }
-    window.scrollTo(0, 0);
+    setTimeout(function () {
+        if (locationScope.scrollTo) {
+            var toTarget = document.getElementById(locationScope.scrollTo.substring(1));
+            toTarget && toTarget.scrollIntoView();
+        } else {
+            window.scrollTo(0, 0);
+        }
+    }, 50);
     onUrlUpdate.callback?.();
 }
 
@@ -29,6 +36,11 @@ export function handleUrl(href: string, forward: boolean = true) {
     globalScope.cancel = true;
     globalScope.cancelIterationId = globalScope.iterationId + 1;
     const urlPath = getPathName(href);
+    if (locationScope.scrollTo && locationScope.skipRender) {
+        var toTarget = document.getElementById(locationScope.scrollTo.substring(1));
+        toTarget && toTarget.scrollIntoView();
+        return;
+    }
     const routeItem = componentsMeta.router.resolve(urlPath);
     if (routeItem == null) {
         throw 'Can\'t resolve route for uri: ' + urlPath;

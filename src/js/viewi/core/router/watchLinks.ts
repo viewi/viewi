@@ -2,34 +2,34 @@ import { handleUrl } from "./handleUrl";
 import { locationScope } from "./locationScope";
 
 export function watchLinks() {
+    locationScope.scrollTo = location.hash;
     document.addEventListener('click', function (event: MouseEvent) {
         if (event.defaultPrevented) {
             return;
         }
         if (!event.target) {
-            console.warn('Can not aquire event target at "watchLinks".');
+            console.warn('Can not acquire event target at "watchLinks".');
         }
-        const target = <HTMLLinkElement>event.target!;
-        let nextTarget: HTMLLinkElement = target;
+        const target = <HTMLAnchorElement>event.target!;
+        let nextTarget: HTMLAnchorElement = target;
         while (nextTarget.parentElement && nextTarget.tagName !== 'A') {
-            nextTarget = <HTMLLinkElement>nextTarget.parentElement;
+            nextTarget = <HTMLAnchorElement>nextTarget.parentElement;
         }
         if (
-            nextTarget.tagName === 'A' 
-            && nextTarget.href 
+            nextTarget.tagName === 'A'
+            && nextTarget.href
             && nextTarget.href.indexOf(location.origin) === 0
             && (nextTarget.target === "_self" || !nextTarget.target)
         ) {
             locationScope.scrollTo = null;
-            if (
-                !locationScope.link.hash
-                || locationScope.link.pathname !== location.pathname
-            ) {
+            locationScope.skipRender = false;
+            if (nextTarget.hash && nextTarget.pathname === location.pathname) {
+                locationScope.scrollTo = nextTarget.hash;
+                locationScope.skipRender = true;
+            } else {
                 event.preventDefault(); // Cancel native event
-                // e.stopPropagation(); // Don't bubble/capture the event
-                if (locationScope.link.hash) {
-                    locationScope.scrollTo = locationScope.link.hash;
-                }
+                // e.stopPropagation(); // Don't bubble/capture the event      
+                locationScope.scrollTo = nextTarget.hash;
                 handleUrl(nextTarget.href, true);
             }
         }
