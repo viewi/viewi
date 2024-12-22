@@ -27,7 +27,7 @@ const updateHistory = function (href: string, forward: boolean = true) {
     onUrlUpdate.callback?.();
 }
 
-export function handleUrl(href: string, forward: boolean = true) {
+export function handleUrl(href: string, forward: boolean = true, clean: boolean = false) {
     if (href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0) {
         // external
         location.href = href;
@@ -36,7 +36,7 @@ export function handleUrl(href: string, forward: boolean = true) {
     globalScope.cancel = true;
     globalScope.cancelIterationId = globalScope.iterationId + 1;
     const urlPath = getPathName(href);
-    if (locationScope.scrollTo && locationScope.skipRender) {
+    if (!clean && locationScope.scrollTo && locationScope.skipRender) {
         var toTarget = document.getElementById(locationScope.scrollTo.substring(1));
         toTarget && toTarget.scrollIntoView();
         return;

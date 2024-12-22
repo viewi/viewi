@@ -14,7 +14,7 @@ class Platform {
     }
 
     redirect(url: string) {
-        handleUrl(url);
+        handleUrl(url, true, true);
     }
 
     navigateBack() {
