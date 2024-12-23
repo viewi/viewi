@@ -43,18 +43,24 @@ export function renderAttributeValue(
         }
     } else {
         if (element.isSvg) {
-            const baseAttrName = attrName.split(':')[0];
-            const attrNS = baseAttrName in SVG_NAMESPACES ? SVG_NAMESPACES[baseAttrName] : (attrName.startsWith('xlink:') ? xLinkNs : null);
+            const parts = attrName.split(':', 2);
+            const baseAttrName = parts[0];
+            const targetName = parts.length > 1 ? parts[1] : attrName;
+            const attrNS = baseAttrName in SVG_NAMESPACES ? SVG_NAMESPACES[baseAttrName] : null;
             try {
                 if (valueContent !== null) {
-                    if (valueContent !== element.getAttribute(attrName)) {
-                        element.setAttributeNS(attrNS, attrName, <string>valueContent);
+                    if (valueContent !== element.getAttributeNS(attrNS, targetName)) {
+                        element.setAttributeNS(attrNS, attrNS ? targetName : attrName, <string>valueContent);
                     }
                 } else {
-                    element.removeAttributeNS(attrNS, attrNS ? attrName.slice(6, attrName.length) : attrName);
+                    element.removeAttributeNS(attrNS, attrNS ? targetName : attrName);
                 }
+                // Debug Safari
+                // document.getElementById('logs')!.innerHTML += ' *** Rendered ' + ' NS=' + attrNS + ' ' + attrName  + ' T=' + targetName + ' ' + element.nodeName + ' *** ';
             } catch (err) {
                 console.error('Can not render namespace attribute', attrName, err);
+                // Debug Safari
+                // document.getElementById('logs')!.innerHTML += ' XXX Can not render namespace attribute ' + ' NS=' + attrNS + ' ' + attrName + ' T=' + targetName + ' ' + element.nodeName + ' XXX ';
             }
         } else {
             if (valueContent !== null) {
