@@ -5,6 +5,14 @@ import { ContextScope } from "../lifecycle/contextScope";
 import { HtmlNodeType } from "../node/htmlNodeType";
 import { xLinkNs } from "../helpers/isSvg";
 
+const SVG_NAMESPACES = {
+    svg: 'http://www.w3.org/2000/svg',
+    html: 'http://www.w3.org/1999/xhtml',
+    xml: 'http://www.w3.org/XML/1998/namespace',
+    xlink: 'http://www.w3.org/1999/xlink',
+    xmlns: 'http://www.w3.org/2000/xmlns/'
+}
+
 export function renderAttributeValue(
     instance: BaseComponent<any>,
     attribute: TemplateNode,
@@ -35,11 +43,18 @@ export function renderAttributeValue(
         }
     } else {
         if (element.isSvg) {
-            const attrNS = attrName.startsWith('xlink:') ? xLinkNs : null;
-            if (valueContent !== null) {
-                valueContent !== element.getAttribute(attrName) && element.setAttributeNS(attrNS, attrName, <string>valueContent);
-            } else {
-                element.removeAttributeNS(attrNS, attrNS ? attrName.slice(6, attrName.length) : attrName);
+            const baseAttrName = attrName.split(':')[0];
+            const attrNS = baseAttrName in SVG_NAMESPACES ? SVG_NAMESPACES[baseAttrName] : (attrName.startsWith('xlink:') ? xLinkNs : null);
+            try {
+                if (valueContent !== null) {
+                    if (valueContent !== element.getAttribute(attrName)) {
+                        element.setAttributeNS(attrNS, attrName, <string>valueContent);
+                    }
+                } else {
+                    element.removeAttributeNS(attrNS, attrNS ? attrName.slice(6, attrName.length) : attrName);
+                }
+            } catch (err) {
+                console.error('Can not render namespace attribute', attrName, err);
             }
         } else {
             if (valueContent !== null) {
