@@ -34,11 +34,12 @@ export function renderAttributeValue(
             element.removeAttribute(attrName);
         }
     } else {
-        if (element.isSvg && attrName.startsWith('xlink:')) {
+        if (element.isSvg) {
+            const attrNS = attrName.startsWith('xlink:') ? xLinkNs : null;
             if (valueContent !== null) {
-                valueContent !== element.getAttribute(attrName) && element.setAttributeNS(xLinkNs, attrName, <string>valueContent);
+                valueContent !== element.getAttribute(attrName) && element.setAttributeNS(attrNS, attrName, <string>valueContent);
             } else {
-                element.removeAttributeNS(xLinkNs, attrName.slice(6, attrName.length));
+                element.removeAttributeNS(attrNS, attrNS ? attrName.slice(6, attrName.length) : attrName);
             }
         } else {
             if (valueContent !== null) {
