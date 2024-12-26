@@ -215,6 +215,7 @@ use Viewi\PhpJsFunctions\Strings\Lcfirst;
 use Viewi\PhpJsFunctions\Strings\Levenshtein;
 use Viewi\PhpJsFunctions\Strings\Localeconv;
 use Viewi\PhpJsFunctions\Strings\Ltrim;
+use Viewi\PhpJsFunctions\Strings\MbStrlen;
 use Viewi\PhpJsFunctions\Strings\Md5;
 use Viewi\PhpJsFunctions\Strings\Md5File;
 use Viewi\PhpJsFunctions\Strings\Metaphone;
@@ -583,6 +584,7 @@ return [
     'stripslashes' => Stripslashes::class,
     'stristr' => Stristr::class,
     'strlen' => Strlen::class,
+    'mb_strlen' => MbStrlen::class,
     'strnatcasecmp' => Strnatcasecmp::class,
     'strnatcmp' => Strnatcmp::class,
     'strncasecmp' => Strncasecmp::class,
