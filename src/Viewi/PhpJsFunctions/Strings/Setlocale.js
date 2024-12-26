@@ -282,6 +282,7 @@ function setlocale (category, locale) {
     if ($locutus.php.locale.replace(/_[a-zA-Z]+$/, '') in $locutus.php.locales) {
       $locutus.php.locale = $locutus.php.locale.replace(/_[a-zA-Z]+$/, '')
     }
+    $locutus.php.locales[$locutus.php.locale] = _copy($locutus.php.locales.en)
   }
 
   if (!$locutus.php.localeCategories) {
