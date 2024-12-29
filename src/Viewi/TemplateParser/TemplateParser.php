@@ -31,6 +31,7 @@ class TemplateParser
     /** @var array<string, string> */
     private array $reservedTags;
     private array $components = [];
+    private array $tokens = [];
 
     public function __construct()
     {
@@ -38,9 +39,14 @@ class TemplateParser
         $this->reservedTags = array_flip(explode(',', $this->reservedTagsString));
     }
 
-    public function setAvaliableComponents(array $components): void
+    public function setAvailableComponents(array $components): void
     {
         $this->components = $components;
+    }
+
+    public function getTokens(): array
+    {
+        return $this->tokens;
     }
 
     public function parse(string $htmlContent): TagItem
@@ -66,8 +72,20 @@ class TemplateParser
         $goUp = false;
         $waitForTagEnd = false;
         $escapeNextChar = false; // $ < > { }
+        $this->tokens = [];
+        $currentToken = '';
         while ($i < $length) {
             $char = $raw[$i];
+            // tokens
+            if (ctype_alnum($char) || $char === '-'  || $char === '_') {
+                $currentToken .= $char;
+            } else {
+                if ($currentToken !== '') {
+                    $this->tokens[$currentToken] = 1;
+                    $currentToken = '';
+                }
+            }
+            // template
             if (!$itsBlockExpression) {
                 switch ($char) {
                     case '\\': {
@@ -391,6 +409,11 @@ class TemplateParser
             }
             // end of while
             $i++;
+        }
+
+        if ($currentToken !== '') {
+            $this->tokens[$currentToken] = 1;
+            $currentToken = '';
         }
 
         if ($content !== false) {
