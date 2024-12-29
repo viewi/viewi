@@ -6,7 +6,7 @@ use Viewi\Builder\Attributes\Skip;
 use Viewi\Packages\ViewiPackage;
 
 #[Skip]
-class ViewiCorePackge extends ViewiPackage
+class ViewiCorePackage extends ViewiPackage
 {
     public static function getComponentsPath(): ?string
     {
