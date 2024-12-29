@@ -25,7 +25,7 @@ class TemplateCompiler
     private string $template;
     private int $level = 0;
     private string $indentationPattern = '    ';
-    private array $identations = [];
+    private array $indentations = [];
     private array $slotsIndex = [];
     private string $voidTagsString = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
 
@@ -125,7 +125,7 @@ class TemplateCompiler
         );
     }
 
-    public function getRenderInvokations(): array
+    public function getRenderInvocations(): array
     {
         return $this->renderedComponents;
     }
@@ -212,8 +212,8 @@ class TemplateCompiler
                                 throw new Exception("if/else-if/else directive requires expression.");
                             }
                             $expression = '';
-                            foreach ($ifValues as &$ifvalue) {
-                                $expression .= $ifvalue->Content;
+                            foreach ($ifValues as &$ifValue) {
+                                $expression .= $ifValue->Content;
                             }
                             $ifTagValue = &$ifValues[0];
                             $ifTagValue->ItsExpression = true;
@@ -255,8 +255,8 @@ class TemplateCompiler
                             throw new Exception("foreach directive requires expression.");
                         }
                         $expression = '';
-                        foreach ($foreachValues as &$ifvalue) {
-                            $expression .= $ifvalue->Content;
+                        foreach ($foreachValues as &$ifValue) {
+                            $expression .= $ifValue->Content;
                         }
                         $foreachTagValue = &$foreachValues[0];
                         $foreachTagValue->ItsExpression = true;
@@ -637,7 +637,7 @@ class TemplateCompiler
                      * @var TagItem[]
                      */
                     $textCollection = [];
-                    $textsCout = 0;
+                    $textsCount = 0;
                     $lastChild = false;
                     $lastIndex = $childrenCount - 1;
                     foreach ($children as $order => &$childItem) {
@@ -650,30 +650,30 @@ class TemplateCompiler
                                 $raw = true;
                             } else {
                                 $textCollection[] = &$childItem;
-                                $textsCout++;
+                                $textsCount++;
                                 $notText = false;
                             }
                         }
                         $lastChild = $lastIndex === $order;
                         if ($notText || $lastChild) {
-                            if ($textsCout > 0) {
+                            if ($textsCount > 0) {
                                 $textTagItem = &$textCollection[0];
-                                if ($textsCout > 1) {
+                                if ($textsCount > 1) {
                                     if (!$textTagItem->ItsExpression) {
                                         $textTagItem->Content = var_export(html_entity_decode($textTagItem->Content, ENT_HTML5), true);
                                     }
                                     if ($textTagItem->ItsExpression) {
                                         $textTagItem->Content = '(' . $textTagItem->Content . ')';
                                     }
-                                    for ($textI = 1; $textI < $textsCout; $textI++) {
-                                        $neigbourText = &$textCollection[$textI];
+                                    for ($textI = 1; $textI < $textsCount; $textI++) {
+                                        $neighborText = &$textCollection[$textI];
                                         $textTagItem->ItsExpression =
-                                            $textTagItem->ItsExpression || $neigbourText->ItsExpression;
+                                            $textTagItem->ItsExpression || $neighborText->ItsExpression;
                                         $textTagItem->Content .= ' . ' .
-                                            ($neigbourText->ItsExpression
-                                                ? '((' . $neigbourText->Content . ') ?? \'\')'
-                                                : var_export(html_entity_decode($neigbourText->Content, ENT_HTML5), true));
-                                        $neigbourText->Skip = true;
+                                            ($neighborText->ItsExpression
+                                                ? '((' . $neighborText->Content . ') ?? \'\')'
+                                                : var_export(html_entity_decode($neighborText->Content, ENT_HTML5), true));
+                                        $neighborText->Skip = true;
                                     }
                                     $textTagItem->Content = '(' . $textTagItem->Content . ')';
                                 }
@@ -683,7 +683,7 @@ class TemplateCompiler
                                     $this->plainItems[] = $textTagItem->Content;
                                 }
                                 $textCollection = [];
-                                $textsCout = 0;
+                                $textsCount = 0;
                             }
                             if ($childItem->Type->Name === TagItemType::Comment) {
                                 $this->plainItems[] = '<!--' . htmlentities($childItem->Content) . '-->';
@@ -827,9 +827,9 @@ class TemplateCompiler
             $this->buildExpression($attributeTagValue);
             $this->localScope = $backupLocalScope;
             $this->localScopeArguments = $backupLocalScopeArg;
-            $jsEventCodeTupple = array_pop($this->inlineExpressions);
-            $jsEventCode = $jsEventCodeTupple[0];
-            $funcArguments = $itsEvent ? 'event' : implode(', ', $jsEventCodeTupple[1]);
+            $jsEventCodeTuple = array_pop($this->inlineExpressions);
+            $jsEventCode = $jsEventCodeTuple[0];
+            $funcArguments = $itsEvent ? 'event' : implode(', ', $jsEventCodeTuple[1]);
             if (!$itsModel) {
                 if (!ctype_alnum(str_replace(['_', '->', '$'], '', $expression))) { // closure
                     $jsEventCode = "function ($funcArguments) { $jsEventCode; }";
@@ -1031,7 +1031,7 @@ class TemplateCompiler
 
     private function i(): string
     {
-        return ($this->identations[$this->level]
-            ?? ($this->identations[$this->level] = str_repeat($this->indentationPattern, $this->level)));
+        return ($this->indentations[$this->level]
+            ?? ($this->indentations[$this->level] = str_repeat($this->indentationPattern, $this->level)));
     }
 }
