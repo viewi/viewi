@@ -179,6 +179,32 @@ class JsTranspiler
             // Helpers::debug($this->phpCode);
 
         }
+        // tokens
+        $tokens = [];
+        if (!$this->inlineExpression) {
+            $currentToken = '';
+            $raw = str_split($this->phpCode);
+            $length = count($raw);
+            $i = 0;
+            while ($i < $length) {
+                $char = $raw[$i];
+                if (ctype_alnum($char) || $char === '-'  || $char === '_') {
+                    $currentToken .= $char;
+                } else {
+                    if ($currentToken !== '') {
+                        $tokens[$currentToken] = 1;
+                        $currentToken = '';
+                    }
+                }
+
+                $i++;
+            }
+
+            if ($currentToken !== '') {
+                $tokens[$currentToken] = 1;
+                $currentToken = '';
+            }
+        }
         $this->jsCode .= $this->forks;
         // die();
         // $this->debug([$this->phpCode,  $this->jsCode]);
@@ -188,7 +214,7 @@ class JsTranspiler
         //     . htmlentities($this->jsCode)
         //     . "</pre></td></tr></tbody></table>";
         // $this->debug($this->variablePaths);
-        return new JsOutput($this->jsCode, $this->exports, $this->usingList, $this->variablePaths, $this->transforms);
+        return new JsOutput($this->jsCode, $this->exports, $this->usingList, $this->variablePaths, $this->transforms, $tokens);
     }
 
     /**
