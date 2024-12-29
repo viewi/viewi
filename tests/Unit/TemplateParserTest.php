@@ -106,7 +106,7 @@ class TemplateParserTest extends \Codeception\Test\Unit
 
     public function testComponent()
     {
-        $this->parser->setAvaliableComponents(['MyComponent' => 1]);
+        $this->parser->setAvailableComponents(['MyComponent' => 1]);
         $root = $this->parser->parse(
             <<<'html'
             <MyComponent id="my-id" />
