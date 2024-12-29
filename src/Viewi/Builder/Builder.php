@@ -22,7 +22,7 @@ use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
 use Viewi\Components\IStartUp\IStartUp;
 use Viewi\Components\Render\IRenderable;
-use Viewi\Components\ViewiCorePackge;
+use Viewi\Components\ViewiCorePackage;
 use Viewi\DI\Inject;
 use Viewi\DI\Scope;
 use Viewi\DI\Scoped;
@@ -52,12 +52,12 @@ class Builder
      */
     private array $components;
 
-    private array $avaliableComponents;
+    private array $availableComponents;
     /**
      * 
      * @var array<string, BaseFunction>
      */
-    private array $avaliableFunctions;
+    private array $availableFunctions;
     /**
      * 
      * @var array<string, BaseFunction>
@@ -81,11 +81,8 @@ class Builder
     private bool $buildJsSourceCode;
     private string $logs;
     // Keep it as associative array
-    /**
-     * 
-     * @var array{meta: array, components: array}
-     */
-    private array $meta = [];
+
+    private MetaList $metaList;
     private array $systemClasses = [
         Attribute::class => true,
         Exception::class => true,
@@ -121,12 +118,14 @@ class Builder
      * @var array<ViewiPackage|string>
      */
     private array $packages = [];
+    private array $tokensMap = [];
 
     public function __construct(private Router $router)
     {
         $this->templateParser = new TemplateParser();
         $this->jsTranspiler = new JsTranspiler();
         $this->templateCompiler = new TemplateCompiler($this->jsTranspiler);
+        $this->metaList = new MetaList();
     }
 
     public function getLogs(): string
@@ -169,11 +168,11 @@ class Builder
         $this->jsTranspiler->setSkipNamespaces(array_merge($this->noJsNamespaces, $this->ignoreNamespaces));
         $this->publicConfig = $publicConfig;
         // $includes will be shaken if not used in the $entryPath
-        // 1. collect avaliable components
+        // 1. collect available components
         // 2. transpile to js and collect uses, props, methods and paths
-        $this->avaliableComponents = [];
+        $this->availableComponents = [];
         $this->usedFunctions = [];
-        $this->avaliableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
+        $this->availableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
         $this->logs .= "Collecting components from '{$config->sourcePath}'.." . PHP_EOL;
         $this->collectComponents($config->sourcePath, true);
         foreach ($config->includes as $path) {
@@ -181,7 +180,7 @@ class Builder
             $this->collectComponents($path, !$this->shakeTree);
         }
 
-        $this->packages = [$this->getCorePackage()];
+        $this->packages = [$this->getCorePackage(), ...$config->packages];
         // collecting packages
         foreach ($this->packages as $package) {
             $path = $package::getComponentsPath();
@@ -197,7 +196,7 @@ class Builder
         //      expressions,
         //      mark used components,
         //      collect reactivity deps
-        $this->templateParser->setAvaliableComponents(array_flip(array_keys($this->components)));
+        $this->templateParser->setAvailableComponents(array_flip(array_keys($this->components)));
         $this->templateCompiler->setGlobals($this->globalEntries);
         $this->logs .= "Parsing templates and validating.." . PHP_EOL;
         foreach ($this->components as $buildItem) {
@@ -206,7 +205,7 @@ class Builder
         // 5. cache metadata on each step if enabled
         // 6. return metadata
         // Helpers::debug(array_flip(array_keys($this->components)));
-        // Helpers::debug($this->avaliableComponents);
+        // Helpers::debug($this->availableComponents);
         // Helpers::debug($this->usedFunctions);
         $this->logs .= "Collecting metadata.." . PHP_EOL;
         $this->collectHtmlRootComponentName();
@@ -221,7 +220,8 @@ class Builder
     {
         $this->logs = '';
         $this->components = [];
-        $this->meta = ['components' => [], 'map' => [], 'buildPath' => '', 'publicConfig' => []];
+        $this->tokensMap = [];
+        $this->metaList->meta = ['components' => [], 'map' => [], 'buildPath' => '', 'publicConfig' => []];
     }
 
     /**
@@ -230,7 +230,7 @@ class Builder
      */
     private function getCorePackage(): string
     {
-        return ViewiCorePackge::class;
+        return ViewiCorePackage::class;
     }
 
     /**
@@ -337,12 +337,13 @@ class Builder
             if ($extension === 'php') {
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
                 $this->collectExports($jsOutput, $jsOutput->getExports(), $include);
+                $this->tokensMap += $jsOutput->getTokens();
                 if (isset($this->components[$pathinfo['filename']])) {
                     $this->components[$pathinfo['filename']]->Package = $package;
                     $templatePath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.html';
                     if (is_file($templatePath)) {
                         $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
-                        $this->avaliableComponents[$pathinfo['filename']] = true;
+                        $this->availableComponents[$pathinfo['filename']] = true;
                     }
                     $tsPath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.ts';
                     if (is_file($tsPath)) {
@@ -390,10 +391,10 @@ class Builder
                 }
             } elseif ($useItem->Type === UseItem::Function) {
                 if (!isset($this->usedFunctions[$baseName])) {
-                    if (!isset($this->avaliableFunctions[$baseName])) {
+                    if (!isset($this->availableFunctions[$baseName])) {
                         throw new Exception("Function '$baseName' can not be found.");
                     }
-                    $this->usedFunctions[$baseName] = $this->avaliableFunctions[$baseName];
+                    $this->usedFunctions[$baseName] = $this->availableFunctions[$baseName];
                     $this->collectFunctionDependencies($this->usedFunctions[$baseName]);
                 }
             }
@@ -410,10 +411,10 @@ class Builder
     {
         foreach ($functionMeta::getUses() as $functionName) {
             if (!isset($this->usedFunctions[$functionName])) {
-                if (!isset($this->avaliableFunctions[$functionName])) {
+                if (!isset($this->availableFunctions[$functionName])) {
                     throw new Exception("Function '$functionName' can not be found.");
                 }
-                $this->usedFunctions[$functionName] = $this->avaliableFunctions[$functionName];
+                $this->usedFunctions[$functionName] = $this->availableFunctions[$functionName];
                 $this->collectFunctionDependencies($this->usedFunctions[$functionName]);
             }
         }
@@ -467,7 +468,7 @@ class Builder
                                 $useItem->Skip = true;
                             }
                         } elseif ($useItem->Type === UseItem::Function) {
-                            if (!isset($this->avaliableFunctions[$baseName])) {
+                            if (!isset($this->availableFunctions[$baseName])) {
                                 $fullName = implode('\\', $useItem->Parts);
                                 throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                             }
@@ -488,10 +489,11 @@ class Builder
                 // 4. transpile and validate expressions
                 if ($buildItem->TemplatePath !== null) {
                     $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
+                    $this->tokensMap += $this->templateParser->getTokens();
                     $template = $this->templateCompiler->compile($rootTag, $buildItem);
-                    $this->renderInvocations = $this->array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvokations());
+                    $this->renderInvocations = $this->array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvocations());
                     foreach ($template->usedFunctions as $funcName => $_) {
-                        if (!isset($this->avaliableFunctions[$funcName])) {
+                        if (!isset($this->availableFunctions[$funcName])) {
                             throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                         }
                         if (!isset($buildItem->Uses[$funcName])) {
@@ -629,8 +631,8 @@ class Builder
                 Helpers::copyAll($packageJsDir . $d . 'modules' . $d . $packageModulePath, $exportDestinationPath);
             }
         }
-        $publicJson = [];
-        $this->meta['buildPath'] = $this->buildPath;
+        $this->metaList->publicJson = [];
+        $this->metaList->meta['buildPath'] = $this->buildPath;
         $startups = [];
         $componentFilter = 0; // 0 - main, 1 - lazy load
         $includedInMain = [];
@@ -680,17 +682,17 @@ class Builder
                     'Namespace' => $buildItem->Namespace,
                     'Name' => $buildItem->ComponentName
                 ];
-                $publicJson[$buildItem->ComponentName] = [];
+                $this->metaList->publicJson[$buildItem->ComponentName] = [];
                 // dependencies, props
 
                 $componentMeta['dependencies'] = $this->getDependencies($buildItem->ReflectionClass);
                 if (count($buildItem->DiProps) > 0) {
                     $componentMeta['diProps'] = $buildItem->DiProps;
-                    $publicJson[$buildItem->ComponentName]['diProps'] = $buildItem->DiProps;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['diProps'] = $buildItem->DiProps;
                 }
                 if ($buildItem->ReflectionClass->implementsInterface(IRenderable::class)) {
                     $componentMeta['renderer'] = true;
-                    $publicJson[$buildItem->ComponentName]['renderer'] = true;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['renderer'] = true;
                 }
                 $lifecycleHooks = [];
                 foreach ($buildItem->Methods as $method => $_) {
@@ -700,12 +702,12 @@ class Builder
                 }
                 if ($lifecycleHooks) {
                     $componentMeta['hooks'] = $lifecycleHooks;
-                    $publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['hooks'] = $lifecycleHooks;
                 }
                 if (!$buildItem->CustomJs && count($componentMeta['dependencies']) > 0) {
-                    $publicJson[$buildItem->ComponentName]['dependencies'] = [];
+                    $this->metaList->publicJson[$buildItem->ComponentName]['dependencies'] = [];
                     foreach ($componentMeta['dependencies'] as $argumentName => $argumentInfo) {
-                        $publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
+                        $this->metaList->publicJson[$buildItem->ComponentName]['dependencies'][] = array_merge(['argName' => $argumentName], $argumentInfo);
                     }
                 }
                 $attributes = $buildItem->ReflectionClass->getAttributes();
@@ -728,12 +730,12 @@ class Builder
                             }
                         case Singleton::class: {
                                 $componentMeta['di'] = Singleton::NAME;
-                                $publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
+                                $this->metaList->publicJson[$buildItem->ComponentName]['di'] = Singleton::NAME;
                                 break;
                             }
                         case Scoped::class: {
                                 $componentMeta['di'] = Scoped::NAME;
-                                $publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
+                                $this->metaList->publicJson[$buildItem->ComponentName]['di'] = Scoped::NAME;
                                 break;
                             }
                         case Middleware::class: {
@@ -746,7 +748,7 @@ class Builder
                                     return array_pop($exp);
                                 }, $middlewareAttribute->middlewareList);
                                 $componentMeta['middleware'] = $shortNames;
-                                $publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
+                                $this->metaList->publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
                                 break;
                             }
                         case LazyLoad::class: {
@@ -776,7 +778,7 @@ class Builder
                 }
                 if ($lazyLoadGroup) {
                     $componentMeta['lazy'] = $lazyLoadGroup;
-                    $publicJson[$buildItem->ComponentName]['lazy'] = $lazyLoadGroup;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['lazy'] = $lazyLoadGroup;
                     $lazyLoadGroup = $lazyLoadGroup;
                     if (isset($chunks->chunks[$lazyLoadGroup])) {
                         $currentChunk = $chunks->chunks[$lazyLoadGroup];
@@ -800,13 +802,13 @@ class Builder
                 }
                 if ($buildItem->ReflectionClass->isSubclassOf(BaseComponent::class)) {
                     $componentMeta['base'] = 1;
-                    $publicJson[$buildItem->ComponentName]['base'] = 1;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['base'] = 1;
                     if ($buildItem->refs) {
-                        $publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
+                        $this->metaList->publicJson[$buildItem->ComponentName]['refs'] = $buildItem->refs;
                     }
                 }
                 if ($buildItem->HtmlRootComponent !== null) {
-                    $publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['parent'] = $buildItem->HtmlRootComponent;
                 }
                 if ($buildItem->StartUp) {
                     $startups[] = $buildItem->ComponentName;
@@ -825,12 +827,12 @@ class Builder
                     }
                     $content = $buildItem->RenderFunction->generatePhpContent();
                     file_put_contents($this->buildPath . $renderFunctionPath, $content);
-                    $this->meta['map'][$buildItem->RenderFunction->renderName] = $buildItem->ComponentName;
+                    $this->metaList->meta['map'][$buildItem->RenderFunction->renderName] = $buildItem->ComponentName;
                     foreach ($buildItem->RenderFunction->slots as $slotTuple) {
-                        $this->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
+                        $this->metaList->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
                     }
                     if (!$buildItem->CustomJs) {
-                        $publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
+                        $this->metaList->publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
                     }
                     // inline expressions
                     $exprComma = '';
@@ -840,7 +842,7 @@ class Builder
                         $exprComma = ',' . PHP_EOL;
                     }
                 }
-                $this->meta['components'][$buildItem->ComponentName] = $componentMeta;
+                $this->metaList->meta['components'][$buildItem->ComponentName] = $componentMeta;
                 // if($buildItem->ComponentName === 'Login') {
                 //     print_r($buildItem->JsOutput);
                 // }
@@ -938,11 +940,11 @@ class Builder
                         $expressionsImports[] = $expressionName;
                     }
 
-                    if ($lazyLoadGroup && isset($publicJson[$buildItem->ComponentName])) {
+                    if ($lazyLoadGroup && isset($this->metaList->publicJson[$buildItem->ComponentName])) {
                         $expressionName = $buildItem->ComponentName . '_t';
                         $jsComponentCode .= $comma .
                             "export const $expressionName = { _t: 'template', name: '{$buildItem->ComponentName}', data: " .
-                            json_encode(json_encode($publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ' };' . PHP_EOL;
+                            json_encode(json_encode($this->metaList->publicJson[$buildItem->ComponentName], 0, 1024 * 32)) . ' };' . PHP_EOL;
                         $currentChunk->componentsExport .= PHP_EOL . "    $expressionName,";
                         $expressionsImports[] = $expressionName;
                     }
@@ -972,7 +974,7 @@ class Builder
                     }
                     $currentChunk->componentsExport .= PHP_EOL . "    {$buildItem->ComponentName},";
                 } else {
-                    $publicJson[$buildItem->ComponentName]['custom'] = 1;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['custom'] = 1;
                     if (!$buildItem->NoJs && $exportJsCode) {
                         $currentPackage = $buildItem->Package === null;
                         $packageName = $currentPackage ? $this->appName : $buildItem->Package::name();
@@ -998,13 +1000,14 @@ class Builder
                     }
                 }
                 if ($lazyLoadGroup) {
-                    $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = $publicJson[$buildItem->ComponentName];
-                    $publicJson[$buildItem->ComponentName] = ['lazy' => $lazyLoadGroup];
+                    $lazyLoadGroups[$lazyLoadGroup]['public'][$buildItem->ComponentName] = $this->metaList->publicJson[$buildItem->ComponentName];
+                    $this->metaList->publicJson[$buildItem->ComponentName] = ['lazy' => $lazyLoadGroup];
                 }
             }
         }
         /** END COMPONENTS FOREACH **/
-        $this->meta['publicConfig']['assets'] = $this->assetsPath;
+
+        $this->metaList->meta['publicConfig']['assets'] = $this->assetsPath;
         /** Post build actions **/
         $buildActionsModuleFile = $this->jsPath . $d . 'app' . $d . 'buildActions.mjs';
         $buildActionsList = [];
@@ -1029,27 +1032,27 @@ class Builder
         file_put_contents($buildActionsModuleFile, $buildActionsContent);
         /** END Post build actions **/
 
-        $chunckBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
-        $conponentsJsonPublicPath = $this->assetsPath . "/$chunckBaseName.json";
+        $chunkBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
+        $componentsJsonPublicPath = $this->assetsPath . "/$chunkBaseName.json";
         $publicPath = $this->assetsPath . '/';
         $buildId = Helpers::randomString();
-        $this->meta['assets'] = [
-            'app' => $this->assetsPath . "/$chunckBaseName.js",
-            'app-min' => $this->assetsPath . "/$chunckBaseName.min.js",
+        $this->metaList->meta['assets'] = [
+            'app' => $this->assetsPath . "/$chunkBaseName.js",
+            'app-min' => $this->assetsPath . "/$chunkBaseName.min.js",
             'build-id' => $buildId,
             'minify' => $this->minifyJs,
             'append-version' => $this->appendVersion,
-            'components' => $conponentsJsonPublicPath,
+            'components' => $componentsJsonPublicPath,
             'publicRootUrl' => $this->publicRootUrl,
             'publicRoot' => $this->publicRootPath,
             'publicAppRoot' => $this->publicPath
         ];
         if (count($startups) > 0) {
-            $this->meta['startup'] = $startups;
+            $this->metaList->meta['startup'] = $startups;
         }
-        $this->meta['publicConfig'] = $this->publicConfig;
-        $this->meta['globals'] = $this->globalEntries;
-        $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->meta, true) . ';';
+        $this->metaList->meta['publicConfig'] = $this->publicConfig;
+        $this->metaList->meta['globals'] = $this->globalEntries;
+        $componentsContent = '<?php' . PHP_EOL . 'return ' . var_export($this->metaList->meta, true) . ';';
         file_put_contents($this->buildPath . $d . 'components.php', $componentsContent); // TODO: make const or static helper
         // core PHP functions in JS
         // foreach ($this->usedFunctions as $functionName => $baseFunction) {
@@ -1062,7 +1065,7 @@ class Builder
         $appendVersionStr = var_export($this->appendVersion, true);
         $combineStr = var_export($this->combineJsJson, true);
         $resourcesIndexJs = 'export const resources = {' . PHP_EOL;
-        $resourcesIndexJs .= "    componentsPath: '$conponentsJsonPublicPath'," . PHP_EOL;
+        $resourcesIndexJs .= "    componentsPath: '$componentsJsonPublicPath'," . PHP_EOL;
         $resourcesIndexJs .= "    publicPath: '$publicPath'," . PHP_EOL;
         $resourcesIndexJs .= "    name: '{$this->appName}'," . PHP_EOL;
         $resourcesIndexJs .= "    minify: {$minifyStr}," . PHP_EOL;
@@ -1072,13 +1075,13 @@ class Builder
         $resourcesIndexJs .= "    version: '$viewiVersion'," . PHP_EOL;
         $resourcesIndexJs .= '};';
 
-        $publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
-        $publicJson['_startup'] = $startups;
-        $publicJson['_globals'] = $this->globalEntries;
-        $publicJson['_routes'] = [];
-        $publicJson['_routes'] = $publicRoutes;
-        $publicJson['_config'] = $this->publicConfig;
-        $publicJsonContent = json_encode($publicJson, 0, 1024 * 32);
+        $this->metaList->publicJson['_meta'] = ['boolean' => $this->templateCompiler->getBooleanAttributesString()];
+        $this->metaList->publicJson['_startup'] = $startups;
+        $this->metaList->publicJson['_globals'] = $this->globalEntries;
+        $this->metaList->publicJson['_routes'] = [];
+        $this->metaList->publicJson['_routes'] = $publicRoutes;
+        $this->metaList->publicJson['_config'] = $this->publicConfig;
+        $publicJsonContent = json_encode($this->metaList->publicJson, 0, 1024 * 32);
         // components/index.js
         // functions/index.js
         foreach ($chunks->chunks as $chunkName => $chunk) {
@@ -1109,16 +1112,16 @@ class Builder
             if ($isMain) {
                 $chunk->distFileName = "viewi.js";
                 $chunk->distFileMinName = "viewi.min.js";
-                $chunk->publicFileName = "$chunckBaseName.js";
-                $chunk->publicFileMinName = "$chunckBaseName.min.js";
-                $chunk->distFileJsonName = "$chunckBaseName.json";
-                $chunk->publicFileJsonName = "$chunckBaseName.json";
+                $chunk->publicFileName = "$chunkBaseName.js";
+                $chunk->publicFileMinName = "$chunkBaseName.min.js";
+                $chunk->distFileJsonName = "$chunkBaseName.json";
+                $chunk->publicFileJsonName = "$chunkBaseName.json";
                 file_put_contents($this->jsPath . $d . 'dist' . $d . $chunk->distFileJsonName, $publicJsonContent);
             } else {
                 $chunk->distFileName = "viewi.$chunkName.js";
                 $chunk->distFileMinName = "viewi.$chunkName.min.js";
-                $chunk->publicFileName = "$chunckBaseName.$chunkName.js";
-                $chunk->publicFileMinName = "$chunckBaseName.$chunkName.min.js";
+                $chunk->publicFileName = "$chunkBaseName.$chunkName.js";
+                $chunk->publicFileMinName = "$chunkBaseName.$chunkName.min.js";
                 $lazyGroupEntry = "./app/main/components/$chunkName.js";
                 $viewiLazyLoadGroupsModuleContent .= "    $chunkName: '$lazyGroupEntry'," . PHP_EOL;
             }
@@ -1171,11 +1174,7 @@ class Builder
         $viewiLazyLoadGroupsModuleContent = 'export const lazyGroups = {' . PHP_EOL . $viewiLazyLoadGroupsModuleContent . '};';
         file_put_contents($viewiLazyLoadGroupsModuleFile, $viewiLazyLoadGroupsModuleContent);
 
-
-
-        // file_put_contents($this->jsPath . $d . 'dist' . $d . 'components.json', $publicJsonContent);
         // Run NPM command
-        // TODO: no node mode (means no minfication and all the node features)
 
         if ($this->buildJsSourceCode) {
             $npmFolder = $this->jsPath . $d;
@@ -1422,5 +1421,35 @@ class Builder
         }
 
         return $merged;
+    }
+
+    public function getTokensMap(): array
+    {
+        return $this->tokensMap;
+    }
+
+    public function getTemplateParser(): TemplateParser
+    {
+        return $this->templateParser;
+    }
+
+    public function getTemplateCompiler(): TemplateCompiler
+    {
+        return $this->templateCompiler;
+    }
+
+    public function getBuildItem(string $name): ?BuildItem
+    {
+        return $this->components[$name] ?? null;
+    }
+
+    public function getBuildPath(): string
+    {
+        return $this->buildPath;
+    }
+
+    public function getMeta(): MetaList
+    {
+        return $this->metaList;
     }
 }
