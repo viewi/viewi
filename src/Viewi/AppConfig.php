@@ -2,6 +2,8 @@
 
 namespace Viewi;
 
+use Viewi\Packages\ViewiPackage;
+
 class AppConfig
 {
     /**
@@ -46,8 +48,8 @@ class AppConfig
         public array $lazyLoadNamespace = [],
         public array $ignoreNamespace = [],
         public array $noJsNamespace = [],
-    ) {
-    }
+        public array $packages = [],
+    ) {}
 
     /**
      * Enables development mode - each new request will trigger build process
@@ -206,5 +208,16 @@ class AppConfig
     public function getPublicPath(): string
     {
         return $this->publicUrl . '/' . $this->getSubFolderName();
+    }
+
+    /**
+     * 
+     * @param ViewiPackage $viewiPackage 
+     * @return AppConfig 
+     */
+    public function use($package): self
+    {
+        $this->packages[] = $package;
+        return $this;
     }
 }
