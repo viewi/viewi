@@ -9,9 +9,9 @@ class JsOutput
         private array $exports = [],
         private array $uses = [],
         private array $varDeps = [],
-        private array $transforms = []
-    ) {
-    }
+        private array $transforms = [],
+        private array $tokens = []
+    ) {}
 
     /**
      * 
@@ -21,6 +21,16 @@ class JsOutput
     {
         return $this->exports;
     }
+
+    /**
+     * 
+     * @return array<string, bool>
+     */
+    public function getTokens(): array
+    {
+        return $this->tokens;
+    }
+
     /**
      * 
      * @return array<string, UseItem>> 
