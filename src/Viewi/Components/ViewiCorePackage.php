@@ -27,4 +27,14 @@ class ViewiCorePackage extends ViewiPackage
     {
         return 'viewi';
     }
+
+    public static function assetsPath(): ?string
+    {
+        return null;
+    }
+
+    public static function getDependencies(): array
+    {
+        return [];
+    }
 }
