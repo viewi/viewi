@@ -59,7 +59,7 @@ class Helpers
         echo '</pre>';
     }
 
-    public static function copyAll(string $fromPath, string $toPath): void
+    public static function copyAll(string $fromPath, string $toPath, bool $override = true): void
     {
         $resources = [];
         $relFromPath = realpath($fromPath);
@@ -72,19 +72,21 @@ class Helpers
             $destinationPath = $toPath . $basePath;
             // $this->debug([$type, $fromPath, $path, $basePath, $toPath, $destinationPath]);
             switch ($type) {
-                case 'folder':
-                {
-                    if (!file_exists($destinationPath)) {
-                        mkdir($destinationPath, 0777, true);
+                case 'folder': {
+                        if (!file_exists($destinationPath)) {
+                            mkdir($destinationPath, 0777, true);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case 'file':
-                default:
-                {
-                    // file
-                    file_put_contents($destinationPath, file_get_contents($path));
-                }
+                default: {
+                        // file
+                        $content = file_get_contents($path);
+                        $write = $override || !file_exists($destinationPath) || $content !== file_get_contents($destinationPath);
+                        if ($write) {
+                            file_put_contents($destinationPath, $content);
+                        }
+                    }
             }
         }
     }
