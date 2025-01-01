@@ -115,7 +115,7 @@ class Builder
     private array $noJsNamespaces = [];
     /**
      * 
-     * @var array<ViewiPackage|string>
+     * @var array<ViewiPackage|string, int>
      */
     private array $packages = [];
     private array $tokensMap = [];
@@ -180,9 +180,12 @@ class Builder
             $this->collectComponents($path, !$this->shakeTree);
         }
 
-        $this->packages = [$this->getCorePackage(), ...$config->packages];
+        $this->packages = array_flip([$this->getCorePackage(), ...$config->packages]);
+        foreach ($this->packages as  $package => $_) {
+            $this->collectPackageDependencies($package);
+        }
         // collecting packages
-        foreach ($this->packages as $package) {
+        foreach ($this->packages as $package => $_) {
             $path = $package::getComponentsPath();
             if ($path) {
                 $this->logs .= "Collecting components from '{$path}'.." . PHP_EOL;
@@ -231,6 +234,22 @@ class Builder
     private function getCorePackage(): string
     {
         return ViewiCorePackage::class;
+    }
+
+    /**
+     * 
+     * @param string|ViewiPackage $package 
+     * @return void 
+     */
+    private function collectPackageDependencies($package)
+    {
+        $dependencies = $package::getDependencies();
+        foreach ($dependencies as $package) {
+            if (!isset($this->packages[$package])) {
+                $this->packages[$package] = 1;
+                $this->collectPackageDependencies($package);
+            }
+        }
     }
 
     /**
@@ -620,7 +639,7 @@ class Builder
         if (!file_exists($modulesFile)) {
             file_put_contents($modulesFile, "export {};");
         }
-        foreach ($this->packages as $package) {
+        foreach ($this->packages as $package => $_) {
             $packageJsDir = $package::jsDir();
             if ($packageJsDir) {
                 $packageModulePath = $package::jsModulePackagePath();
@@ -629,6 +648,10 @@ class Builder
                     mkdir($exportDestinationPath, 0777, true);
                 }
                 Helpers::copyAll($packageJsDir . $d . 'modules' . $d . $packageModulePath, $exportDestinationPath);
+            }
+            $assetsDir = $package::assetsPath();
+            if ($assetsDir) {
+                Helpers::copyAll($assetsDir . $d, $this->assetsSourcePath . $d, false);
             }
         }
         $this->metaList->publicJson = [];
