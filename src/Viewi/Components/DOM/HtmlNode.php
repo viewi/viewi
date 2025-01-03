@@ -28,6 +28,7 @@ abstract class HtmlNode
     public $validity = null;
     public $validationMessage = null;
     public $labels = null;
+    public $location;
     public abstract function checkValidity();
     public abstract function reportValidity();
     public abstract function setCustomValidity();
@@ -211,6 +212,7 @@ abstract class HtmlNode
     public abstract function getAttributeNodeNS();
     public abstract function getBoundingClientRect();
     public abstract function getClientRects();
+    public abstract function getElementById(): ?HtmlNode;
     public abstract function getElementsByClassName();
     public abstract function getElementsByTagName();
     public abstract function getElementsByTagNameNS();
