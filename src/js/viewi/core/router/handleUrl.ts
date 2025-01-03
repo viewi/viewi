@@ -18,7 +18,7 @@ const updateHistory = function (href: string, forward: boolean = true) {
     }
     setTimeout(function () {
         if (locationScope.scrollTo) {
-            var toTarget = document.getElementById(locationScope.scrollTo.substring(1));
+            const toTarget = document.getElementById(locationScope.scrollTo.substring(1));
             toTarget && toTarget.scrollIntoView();
         } else {
             window.scrollTo(0, 0);
@@ -37,7 +37,7 @@ export function handleUrl(href: string, forward: boolean = true, clean: boolean 
     globalScope.cancelIterationId = globalScope.iterationId + 1;
     const urlPath = getPathName(href);
     if (!clean && locationScope.scrollTo && locationScope.skipRender) {
-        var toTarget = document.getElementById(locationScope.scrollTo.substring(1));
+        const toTarget = document.getElementById(locationScope.scrollTo.substring(1));
         toTarget && toTarget.scrollIntoView();
         return;
     }

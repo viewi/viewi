@@ -14,13 +14,13 @@ export class Response {
     }
 
     withUrl(url: any) {
-        var clone = this.clone();
+        const clone = this.clone();
         clone.url = url;
         return clone;
     }
 
     withStatus(status: number, statusText: string | null = null) {
-        var clone = this.clone();
+        const clone = this.clone();
         clone.status = status;
         if (statusText !== null) {
             clone.statusText = statusText;
@@ -29,19 +29,19 @@ export class Response {
     }
 
     withHeaders(headers: { [name: string]: string }) {
-        var clone = this.clone();
+        const clone = this.clone();
         clone.headers = { ...clone.headers, ...headers };
         return clone;
     }
 
     withHeader(name: string | number, value: any) {
-        var clone = this.clone();
+        const clone = this.clone();
         clone.headers[name] = value;
         return clone;
     }
 
     withBody(body: any = null) {
-        var clone = this.clone();
+        const clone = this.clone();
         clone.body = body;
         return clone;
     }
@@ -51,7 +51,7 @@ export class Response {
     }
 
     clone() {
-        var clone = new Response(this.url, this.status, this.statusText, this.headers, this.body);
+        const clone = new Response(this.url, this.status, this.statusText, this.headers, this.body);
         return clone;
     }
 };

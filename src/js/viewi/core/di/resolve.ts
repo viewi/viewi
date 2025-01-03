@@ -41,7 +41,7 @@ export function resolve(name: string, params: { [key: string]: any } = {}, canBe
             const dependency = info.dependencies[i];
             const diType = dependency['di'] || false;
             const argCanBeNull = !!dependency.null;
-            var argument: any = null; // d.null
+            let argument: any = null; // d.null
             if (diType === <ScopeType>'PARENT') {
                 argument = parent ? parent.inject(dependency.name) : (rootProvides[dependency.name] || null);
             } else if (params && (dependency.argName in params)) {
