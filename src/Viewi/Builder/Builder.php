@@ -38,6 +38,7 @@ use Viewi\Packages\ViewiPackage;
 use Viewi\Router\ComponentRoute;
 use Viewi\Router\Router;
 use Viewi\TemplateCompiler\TemplateCompiler;
+use Viewi\TemplateParser\TagItem;
 use Viewi\TemplateParser\TagItemConverter;
 use Viewi\TemplateParser\TemplateParser;
 
@@ -186,8 +187,8 @@ class Builder
         }
         // collecting packages
         foreach ($this->packages as $package => $_) {
-            $path = $package::getComponentsPath();
-            if ($path) {
+            $paths = $package::getComponentsPath();
+            foreach ($paths as $path) {
                 $this->logs .= "Collecting components from '{$path}'.." . PHP_EOL;
                 $this->collectComponents($path, !$this->shakeTree, $package);
             }
@@ -1254,6 +1255,36 @@ class Builder
         if (!empty($this->assetsSourcePath)) {
             Helpers::copyAll($viewiDistAssetsPath . $d, $this->publicPath . $d);
         }
+    }
+
+    public function replaceTemplate(string $name, ?string $newContent = null, ?TagItem $rootTag = null)
+    {
+        if ($newContent !== null) {
+            $parser = $this->getTemplateParser();
+            $rootTag = $parser->parse($newContent);
+        }
+
+        // parse template
+        $templateCompiler = $this->getTemplateCompiler();
+        $buildItem = $this->getBuildItem($name);
+
+        $template = $templateCompiler->compile($rootTag, $buildItem);
+        // build render function
+        $buildItem->RenderFunction = $template;
+        $buildItem->RootTag = $rootTag;
+        $content = $buildItem->RenderFunction->generatePhpContent();
+        $renderRelativePath = DIRECTORY_SEPARATOR . $buildItem->RelativePath;
+        $buildPath = $this->getBuildPath();
+        $renderFunctionDir = $buildPath . $renderRelativePath;
+        $renderFunctionPath = $renderRelativePath . DIRECTORY_SEPARATOR .
+            $buildItem->ComponentName . '.php';
+        file_put_contents($buildPath . $renderFunctionPath, $content);
+        $meta = $this->getMeta();
+
+        $meta->meta['components'][$buildItem->ComponentName]['Path'] = $renderFunctionPath;
+        $meta->meta['components'][$buildItem->ComponentName]['Function'] = $buildItem->RenderFunction->renderName;
+        // build js render
+        $meta->publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
     }
 
     private function collectChunkFunctions(Chunk $chunk, string $functionName): void
