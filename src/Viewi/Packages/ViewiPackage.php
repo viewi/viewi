@@ -4,7 +4,11 @@ namespace Viewi\Packages;
 
 abstract class ViewiPackage
 {
-    abstract static function getComponentsPath(): ?string;
+    /**
+     * 
+     * @return string[] 
+     */
+    abstract static function getComponentsPath(): array;
     abstract static function jsDir(): ?string;
     abstract static function jsModulePackagePath(): ?string;
     abstract static function name(): string;

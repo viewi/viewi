@@ -8,9 +8,9 @@ use Viewi\Packages\ViewiPackage;
 #[Skip]
 class ViewiCorePackage extends ViewiPackage
 {
-    public static function getComponentsPath(): ?string
+    public static function getComponentsPath(): array
     {
-        return __DIR__;
+        return [__DIR__];
     }
 
     public static function jsDir(): string
