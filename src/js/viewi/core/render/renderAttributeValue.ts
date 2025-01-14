@@ -32,7 +32,7 @@ export function renderAttributeValue(
             const childContent = attributeValue.expression
                 ? instance.$$t[attributeValue.code as number].apply(null, callArguments)
                 : (attributeValue.content ?? '');
-            valueContent = av === 0 ? childContent : valueContent + (childContent ?? '');
+            valueContent = av === 0 ? childContent : (valueContent ?? '') + (childContent ?? '');
         }
     }
     if (attrName.toLowerCase() in componentsMeta.booleanAttributes) {
