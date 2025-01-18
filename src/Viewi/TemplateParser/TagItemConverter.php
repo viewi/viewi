@@ -84,4 +84,17 @@ class TagItemConverter
 
         return $node;
     }
+
+    public static function prettyOutput(TagItem $tagItem, $indentation = '')
+    {
+        $output = "";
+
+        $output .= PHP_EOL . $indentation . ($tagItem->Type->Name !== TagItemType::Root ? $tagItem->Content : 'ROOT');
+        foreach ($tagItem->getChildren() as &$child) {
+            if ($child->Type->Name === TagItemType::Tag) {
+                $output .= ":" . self::prettyOutput($child, $indentation . '  ');
+            }
+        }
+        return $output;
+    }
 }

@@ -74,6 +74,7 @@ class TemplateParser
         $escapeNextChar = false; // $ < > { }
         $this->tokens = [];
         $currentToken = '';
+        $skipContent = '';
         while ($i < $length) {
             $char = $raw[$i];
             // tokens
@@ -122,7 +123,7 @@ class TemplateParser
                                     && $raw[$i + 2] === '-' // comment
                                     && $raw[$i + 3] === '-' // comment
                                 ) {
-                                    // it's a tag
+                                    // it's a comment
                                     $nextType = new TagItemType(TagItemType::Comment);
                                     $skipCount = 4;
                                     $saveContent = true;
@@ -352,6 +353,7 @@ class TemplateParser
                 $skipCount = 1;
             }
             if ($saveContent) {
+                $pastContent = $content;
                 if ($content === false && !$nextIsExpression && $currentType->Name === TagItemType::AttributeValue && !$currentParent->hasChildren()) {
                     $content = '';
                 }
@@ -366,7 +368,8 @@ class TemplateParser
                             && !isset($this->reservedTags[$content])
                         ) {
                             if (!isset($this->components[$content])) {
-                                throw new Exception("Component `$content` not found.");
+                                $tagsPath = TagItemConverter::prettyOutput($template);
+                                throw new Exception("Component `$content` not found. Path: $tagsPath");
                             }
 
                             $child->Type = new TagItemType(TagItemType::Component);
@@ -385,7 +388,8 @@ class TemplateParser
                     if ($currentParent->getChildren()) {
                         $currentParent = &$currentParent->currentChild();
                     } else {
-                        throw new Exception("Can't get child node.");
+                        $tagsPath = TagItemConverter::prettyOutput($template);
+                        throw new Exception("Can't get child node $skipContent. Path: $tagsPath");
                         break;
                     }
                 }
@@ -393,7 +397,8 @@ class TemplateParser
                     if ($currentParent->parent()) {
                         $currentParent = &$currentParent->parent();
                     } else {
-                        throw new Exception("Can't get parent node.");
+                        $tagsPath = TagItemConverter::prettyOutput($template);
+                        throw new Exception("Can't get parent node $skipContent. Path: $tagsPath");
                         break;
                     }
                 }
@@ -404,8 +409,10 @@ class TemplateParser
 
             if ($skipCount > 0) {
                 $skipCount--;
+                $skipContent .= $char;
             } else {
                 $content .= $char;
+                $skipContent = '';
             }
             // end of while
             $i++;
