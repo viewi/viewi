@@ -17,6 +17,7 @@ export type ComponentMetaData = {
     refs?: { [key: string]: boolean },
     parent?: string,
     lazy?: string,
+    override?: string,
     middleware?: string[],
     hooks?: {
         init?: boolean,

@@ -17,6 +17,7 @@ use Viewi\Builder\Attributes\Skip;
 use Viewi\Builder\BuildAction\IPostBuildAction;
 use Viewi\Components\Attributes\LazyLoad;
 use Viewi\Components\Attributes\Middleware;
+use Viewi\Components\Attributes\OverrideComponent;
 use Viewi\Components\Attributes\PostBuildAction;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
@@ -120,6 +121,7 @@ class Builder
      */
     private array $packages = [];
     private array $tokensMap = [];
+    private array $routesMap = [];
 
     public function __construct(private Router $router)
     {
@@ -174,6 +176,7 @@ class Builder
         $this->availableComponents = [];
         $this->usedFunctions = [];
         $this->availableFunctions = require ViewiPath::dir() . $d . 'JsTranspile' . $d . 'functions.php';
+        $this->prepareRoutes();
         $this->logs .= "Collecting components from '{$config->sourcePath}'.." . PHP_EOL;
         $this->collectComponents($config->sourcePath, true);
         foreach ($config->includes as $path) {
@@ -193,6 +196,7 @@ class Builder
                 $this->collectComponents($path, !$this->shakeTree, $package);
             }
         }
+        // print_r(array_keys($this->components));
         // Helpers::debug($this->components);
         // 3. validate components and parse html templates
         // 4. validate and build template:
@@ -226,6 +230,25 @@ class Builder
         $this->components = [];
         $this->tokensMap = [];
         $this->metaList->meta = ['components' => [], 'map' => [], 'buildPath' => '', 'publicConfig' => []];
+    }
+
+    private function prepareRoutes()
+    {
+        $routes = $this->router->getRoutes();
+        foreach ($routes as $route) {
+            if ($route->action instanceof ComponentRoute) {
+                $item = (array)$route;
+                $component = $route->action->component;
+                $action = strpos($component, '\\') !== false ?
+                    substr(strrchr($component, "\\"), 1)
+                    : $component;
+                $item['action'] = $action;
+                $item['route'] = $route;
+                unset($item['transformCallback']);
+                unset($item['lazyGroup']);
+                $this->routesMap[$action] = $item;
+            }
+        }
     }
 
     /**
@@ -266,6 +289,9 @@ class Builder
             if ($exportItem->Type === ExportItem::Namespace) {
                 $this->collectExports($jsOutput, $exportItem->Children, $include);
             } elseif ($exportItem->Type === ExportItem::Class_) {
+                if (isset($this->routesMap[$exportItem->Name])) {
+                    $include = true;
+                }
                 $buildItem = new BuildItem($exportItem->Name, $jsOutput, $include);
                 $buildItem->Uses = $jsOutput->getUses();
 
@@ -665,23 +691,14 @@ class Builder
          * @var IPostBuildAction[] $postBuild
          */
         $postBuild = [];
-        $routes = $this->router->getRoutes();
         $publicRoutes = [];
-        foreach ($routes as $route) {
-            if ($route->action instanceof ComponentRoute) {
-                $item = (array)$route;
-                $component = $route->action->component;
-                $item['action'] = strpos($component, '\\') !== false ?
-                    substr(strrchr($component, "\\"), 1)
-                    : $component;
-                unset($item['transformCallback']);
-                unset($item['lazyGroup']);
-                $publicRoutes[] = $item;
-                if ($route->action->lazyGroup !== null) {
-                    $this->components[$item['action']]->LazyLoad = true;
-                    $this->components[$item['action']]->LazyLoadName = $route->action->lazyGroup;
-                }
+        foreach ($this->routesMap as $item) {
+            if ($item['route']->action->lazyGroup !== null) {
+                $this->components[$item['action']]->LazyLoad = true;
+                $this->components[$item['action']]->LazyLoadName = $item['route']->action->lazyGroup;
             }
+            unset($item['route']);
+            $publicRoutes[] = $item;
         }
         /** COMPONENTS FOREACH **/
         while ($componentFilter < 2) {
@@ -775,6 +792,22 @@ class Builder
                                 $this->metaList->publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
                                 break;
                             }
+                        case OverrideComponent::class: {
+                                /**
+                                 * @var OverrideComponent $overrideAttribute
+                                 */
+                                $overrideAttribute = $attribute->newInstance();
+                                $exp = explode('\\', $overrideAttribute->component);
+                                $shortName = array_pop($exp);
+                                $buildItem->OverrideTarget = $shortName;
+                                $componentMeta['overrideSource'] = $shortName;
+                                $this->components[$shortName]->OverrideWith = $buildItem->ComponentName;
+                                if (isset($this->metaList->meta['components'][$shortName])) {
+                                    $this->metaList->meta['components'][$shortName]['override'] = $buildItem->ComponentName;
+                                    $this->metaList->publicJson[$shortName]['override'] = $buildItem->ComponentName;
+                                }
+                                break;
+                            }
                         case LazyLoad::class: {
                                 /**
                                  * @var LazyLoad $lazyAttribute
@@ -820,6 +853,10 @@ class Builder
                     if (isset($propMetadata[Preserve::class])) {
                         $preservedProps[$prop] = 1;
                     }
+                }
+                if ($buildItem->OverrideWith !== null) {
+                    $componentMeta['override'] = $buildItem->OverrideWith;
+                    $this->metaList->publicJson[$buildItem->ComponentName]['override'] = $buildItem->OverrideWith;
                 }
                 if ($preservedProps) {
                     $componentMeta['preserve'] = $preservedProps;

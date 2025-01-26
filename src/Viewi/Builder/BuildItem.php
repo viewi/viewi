@@ -33,6 +33,8 @@ class BuildItem
     public array $Props;
     public array $Methods;
     public array $DiProps = [];
+    public ?string $OverrideTarget = null;
+    public ?string $OverrideWith = null;
     /**
      * 
      * @var array<string, string> see ExportItem

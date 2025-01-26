@@ -127,6 +127,9 @@ class Engine
         ) {
             throw new Exception("Component '$component' not found.");
         }
+        if (isset($this->meta['components'][$component]['override'])) {
+            return $this->renderComponent($this->meta['components'][$component]['override'], $parentComponent, $props, $slots, $scope, $params);
+        }
         // Helpers::debug([$componentMeta]);
         /**
          * @var BaseComponent $classInstance

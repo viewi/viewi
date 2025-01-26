@@ -24,6 +24,9 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
         throw new Error(`Component ${name} not found.`);
     }
     const info = componentsMeta.list[name];
+    if (info.override) {
+        return renderComponent(target, info.override, props, slots, hydrate, insert, params);
+    }
     const root = info.nodes;
     const renderable = target && root;
     const reuseIt = props?.reuse;
