@@ -287,7 +287,6 @@ class JsTranspiler
                         return;
                     }
                 }
-
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -300,7 +299,10 @@ class JsTranspiler
                 $this->level--;
                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "}" . PHP_EOL;
                 foreach ($this->currentTraits as $trait) {
-                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "Object.assign({$this->currentClass}.prototype, $trait.prototype);" . PHP_EOL;
+                    // $this->appendTraits[] = $trait;
+                    $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level)
+                        . "Object.assign({$this->currentClass}.prototype, Object.getOwnPropertyNames($trait.prototype).reduce((x, v) => { x[v] = $trait.prototype[v]; return x; }, {}));"
+                        . PHP_EOL;
                 }
                 $this->currentClass = null;
                 $this->currentExtend = null;
@@ -460,6 +462,14 @@ class JsTranspiler
                     $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
                 }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'var $this = this;' . PHP_EOL; // TODO: inject only if used
+                if ($itsConstructor) {
+                    foreach ($this->currentTraits as $trait) {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) .
+                            "/** has trait $trait **/" . PHP_EOL;
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) .
+                            "Object.assign(this, new $trait());" . PHP_EOL;
+                    }
+                }
                 if ($stmtsParams) {
                     $this->processStmts($stmtsParams);
                 }
