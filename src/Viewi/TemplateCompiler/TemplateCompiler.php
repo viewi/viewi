@@ -16,6 +16,7 @@ use Viewi\TemplateParser\TagItemType;
 class TemplateCompiler
 {
     const UndefinedValue = '___undefined___';
+    const KeySkip = '_key_skip_';
     private string $code;
     /**
      * 
@@ -311,7 +312,7 @@ class TemplateCompiler
                             if ($argument[0] === '$') {
                                 $argument = substr($argument, 1);
                             }
-                            $this->localScope[$autoForKey] = true;
+                            $this->localScope[$autoForKey] = self::KeySkip;
                             $this->localScopeArguments[] = $autoForKey;
                             $this->localScope[$argument] = true;
                             $this->localScopeArguments[] = $argument;
@@ -568,9 +569,11 @@ class TemplateCompiler
                 $scopeVariables = [];
                 $comma = '';
                 $this->level++;
-                foreach ($this->localScope as $varName => $_) {
-                    $scopeVariables[] = "{$comma}'$varName' => \$$varName";
-                    $comma = ',' . PHP_EOL . $this->i();
+                foreach ($this->localScope as $varName => $flag) {
+                    if ($flag !== self::KeySkip) {
+                        $scopeVariables[] = "{$comma}'$varName' => \$$varName";
+                        $comma = ',' . PHP_EOL . $this->i();
+                    }
                 }
                 $this->level--;
                 $scope = $scopeVariables
