@@ -56,7 +56,9 @@ class TemplateCompiler
     private $nullVar = null;
     private array $renderedComponents = [];
     private array $globalEntries = [];
+    private array $localEntries = [];
     private array $nestedDependencies = [];
+    private bool $errorUndeclaredAccess = true;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -106,8 +108,9 @@ class TemplateCompiler
             $scopeVariables = '[';
             $this->level++;
             $comma = PHP_EOL . $this->i();
-            foreach ($this->localScope as $varName => $_) {
-                $scopeVariables .= "{$comma}'$varName' => \$$varName";
+            foreach ($this->localScope as $varName => $varKeyType) {
+                $varKey = $varKeyType === true ? $varName : $varKeyType;
+                $scopeVariables .= "{$comma}'$varKey' => \$$varName";
                 $comma = ',' . PHP_EOL . $this->i();
             }
             $this->level--;
@@ -138,6 +141,7 @@ class TemplateCompiler
         $this->level = 1;
         $this->slots = [];
         if ($all) {
+            $this->errorUndeclaredAccess = true;
             $this->localScope = [];
             $this->forIterationKey = 0;
             $this->usedFunctions = [];
@@ -146,6 +150,7 @@ class TemplateCompiler
             $this->usedComponents = [];
             $this->renderedComponents = [];
             $this->nestedDependencies = [];
+            $this->localEntries = [];
         }
     }
 
@@ -387,9 +392,9 @@ class TemplateCompiler
                 $slotContentRawName = 'default';
                 $slotAttribute = $this->extractAttribute('name', $attributes);
                 if ($slotAttribute !== null) {
-                    $ifValue = $slotAttribute->getChildren();
-                    if (count($ifValue) > 0) {
-                        $nameValue = $ifValue[0];
+                    $slotNameValue = $slotAttribute->getChildren();
+                    if (count($slotNameValue) > 0) {
+                        $nameValue = $slotNameValue[0];
                         if ($nameValue->ItsExpression) {
                             $this->buildExpression($nameValue);
                             $slotContentName = $nameValue->PhpExpression;
@@ -400,6 +405,33 @@ class TemplateCompiler
                         }
                     }
                 }
+
+                $slotData = $this->extractAttribute('data', $attributes);
+                $dataExpression = '';
+                if ($slotData !== null) {
+                    $this->errorUndeclaredAccess = false;
+                    $dataValue = $slotData->getChildren();
+                    if (count($dataValue) > 0) {
+                        // TODO: combine value expressions, ex.: using without{}
+                        $dataValue = $dataValue[0];
+                        if ($dataValue->ItsExpression) {
+                            $this->buildExpression($dataValue);
+                            $dataExpression = $dataValue->PhpExpression;
+                        } else {
+                            $dataExpression = var_export($dataValue->Content, true);
+                        }
+                    }
+                    $argument = $dataExpression;
+                    if ($argument[0] === '$') {
+                        $argument = substr($dataExpression, 1);
+                    }
+                    $prevScope = $this->localScope;
+                    $prevScopeArguments = $this->localScopeArguments;
+                    $this->localScope[$argument] = 'slot-data';
+                    $this->localScopeArguments[] = $argument;
+                    $this->errorUndeclaredAccess = true;
+                }
+
                 // build slot content
                 $lastState = $this->preserve();
                 $slotRoot = new TagItem();
@@ -412,6 +444,10 @@ class TemplateCompiler
                     $this->parentComponentName,
                     false
                 );
+                if ($dataExpression) {
+                    $this->localScope = $prevScope;
+                    $this->localScopeArguments = $prevScopeArguments;
+                }
                 $this->restore($lastState);
                 $this->slots[] = [$slotContentRawName, $slotFunction, $slotRoot];
                 // Helpers::debug($slotFunction);
@@ -616,9 +652,9 @@ class TemplateCompiler
                     $slotContentName = '\'default\'';
                     $slotAttribute = $this->extractAttribute('name', $attributes);
                     if ($slotAttribute !== null) {
-                        $ifValue = $slotAttribute->getChildren();
-                        if (count($ifValue) > 0) {
-                            $nameValue = $ifValue[0];
+                        $nameValue = $slotAttribute->getChildren();
+                        if (count($nameValue) > 0) {
+                            $nameValue = $nameValue[0];
                             if ($nameValue->ItsExpression) {
                                 $this->buildExpression($nameValue);
                                 $slotContentName = $nameValue->PhpExpression;
@@ -627,8 +663,26 @@ class TemplateCompiler
                             }
                         }
                     }
+                    $slotData = $this->extractAttribute('data', $attributes);
+                    $dataExpression = '';
+                    if ($slotData !== null) {
+                        $dataValue = $slotData->getChildren();
+                        if (count($dataValue) > 0) {
+                            // TODO: combine value expressions, ex.: using without{}
+                            $dataValue = $dataValue[0];
+                            if ($dataValue->ItsExpression) {
+                                $this->buildExpression($dataValue);
+                                $dataExpression = $dataValue->PhpExpression;
+                            } else {
+                                $dataExpression = var_export($dataValue->Content, true);
+                            }
+                        }
+                        // print_r(['dataExpression', $dataExpression]);
+                    }
                     $this->code .= PHP_EOL . $this->i() . "if (isset(\$_slots['map'][$slotContentName])) {";
                     $this->level++;
+                    $dataExpression = $dataExpression ? $dataExpression : 'null';
+                    $this->code .= PHP_EOL . $this->i() . "\$_scope['slot-data'] = $dataExpression;";
                     $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderSlot(\$_slots['component'], \$_scope, \$_slots['map'][$slotContentName], \$_slots['parent']);";
                     $this->level--;
                     $this->code .= PHP_EOL . $this->i() . ($hasChildren ? '} else {' : '}');
@@ -965,7 +1019,7 @@ class TemplateCompiler
                     && $this->buildItem->publicNodes[$propName] === ExportItem::Property
                 ) {
                     $phpCode = preg_replace('/\$\b' . substr($input, 1) . '\b/', '$' . $replacement, $phpCode);
-                } else {
+                } elseif ($this->errorUndeclaredAccess) {
                     throw new Exception("Access to undeclared public property $propName in {$this->buildItem->TemplatePath}.");
                 }
                 if ($tagItem->Subscriptions === null) {

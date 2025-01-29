@@ -136,6 +136,7 @@ class Engine
          */
         $classInstance = $this->resolve($component, $params);
         // print_r([$component, $classInstance->_parent ? get_class($classInstance->_parent) : 'NULL']);
+        $classInstance->_slots = $slots['map'] ?? [];
         $previousInstance = $this->currentInstance;
         $this->currentInstance = $classInstance;
         if ($classInstance instanceof IRenderable) {
