@@ -376,10 +376,33 @@ export function render(
                         }
                         nextInsert = insert;
                         let slotName: string = 'default';
+                        let slotData: any = null;
                         if (node.attributes) {
                             for (let attrIndex in node.attributes) {
-                                if (node.attributes[attrIndex].content === 'name') {
-                                    slotName = node.attributes![attrIndex]!.children![0]!.content!;
+                                const slotAttributeName = node.attributes[attrIndex].content;
+                                if (slotAttributeName === 'name' || slotAttributeName === 'data') {
+                                    const attribute = node.attributes[attrIndex];
+                                    if (attribute.children) {
+                                        let attrCombinedValue = '';
+                                        for (let av = 0; av < attribute.children.length; av++) {
+                                            const attributeValue = attribute.children[av];
+                                            let callArguments = [instance];
+                                            if (scope.arguments) {
+                                                callArguments = callArguments.concat(scope.arguments);
+                                            }
+                                            const childContent = attributeValue.expression
+                                                ? instance.$$t[attributeValue.code as number].apply(null, callArguments)
+                                                : (attributeValue.content ?? '');
+                                            attrCombinedValue = av === 0 ? childContent : (attrCombinedValue ?? '') + (childContent ?? '');
+                                        }
+                                        if (slotAttributeName === 'name') {
+                                            slotName = attrCombinedValue;
+                                        } else if (slotAttributeName === 'data') {
+                                            slotData = attrCombinedValue;
+                                        } else {
+                                            // not suppose to happen
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -394,6 +417,10 @@ export function render(
                                 slot.node.unpacked = true;
                             }
                             slot.scope.lastComponent.instance = scope.lastComponent.instance;
+                            if (slotData) {
+                                slot.scope.map['slotData'] = slot.scope.arguments.length;
+                                slot.scope.arguments.push(slotData);
+                            }
                             render(element, slot.scope.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
                         } else { // default slot content
                             if (node.children) {

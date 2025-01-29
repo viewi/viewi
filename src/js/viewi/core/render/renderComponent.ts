@@ -68,6 +68,7 @@ export function renderComponent(target: HtmlNodeType, name: string, props?: Prop
             (instance as any).init();
         }
     }
+    instance._slots = slots!;
     const inlineExpressions = name + '_x';
     if (!reuse && inlineExpressions in components) {
         instance.$$t = components[inlineExpressions];

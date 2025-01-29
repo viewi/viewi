@@ -77,7 +77,8 @@ export function renderForeach(
                 track: [],
                 parent: scope,
                 children: {},
-                counter: 0
+                counter: 0,
+                slots: scope.slots
             };
             if (scope.refs) {
                 nextScope.refs = scope.refs;
