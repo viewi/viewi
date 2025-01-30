@@ -36,6 +36,7 @@ import { isSvg } from "../helpers/isSvg";
 import { svgNameSpace } from "../helpers/svgNameSpace";
 import { HtmlNodeType } from "../node/htmlNodeType";
 import { hydrateRaw } from "../hydrate/hydrateRaw";
+import { deepProxy } from "../reactivity/makeProxy";
 
 export function render(
     target: HtmlNodeType,
@@ -417,11 +418,35 @@ export function render(
                                 slot.node.unpacked = true;
                             }
                             slot.scope.lastComponent.instance = scope.lastComponent.instance;
-                            if (slotData) {
-                                slot.scope.map['slotData'] = slot.scope.arguments.length;
-                                slot.scope.arguments.push(slotData);
+
+                            const scopeId = ++slot.scope.counter;
+                            const slotContentScope: ContextScope = {
+                                id: scopeId,
+                                iteration: slot.scope.iteration,
+                                why: "slotContent",
+                                instance: slot.scope.instance,
+                                lastComponent: slot.scope.lastComponent,
+                                arguments: [...slot.scope.arguments],
+                                map: { ...slot.scope.map },
+                                track: [],
+                                parent: slot.scope,
+                                children: {},
+                                counter: 0,
+                                slots: slot.scope.slots
+                            };
+                            if (scope.refs) {
+                                slotContentScope.refs = slot.scope.refs;
                             }
-                            render(element, slot.scope.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
+                            slot.scope.children[scopeId] = slotContentScope;
+
+                            if (slotData) {
+                                slotContentScope.map['slotData'] = slotContentScope.arguments.length;
+                                slotContentScope.arguments.push(slotData);
+                                if (slot.node.slotDataKey) {
+                                    deepProxy(slot.node.slotDataKey, slotContentScope.instance, slotData);
+                                }
+                            }
+                            render(element, slotContentScope.instance, slot.node.children!, slotContentScope, undefined, hydrate, nextInsert);
                         } else { // default slot content
                             if (node.children) {
                                 render(element, instance, node.children, scope, undefined, hydrate, nextInsert);

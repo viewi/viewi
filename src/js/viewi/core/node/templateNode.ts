@@ -7,6 +7,7 @@ export type TemplateNode = {
     content?: string,
     code?: number,
     subs?: string[],
+    slotDataKey?: string,
     e?: boolean,
     expression?: boolean,
     raw?: boolean,

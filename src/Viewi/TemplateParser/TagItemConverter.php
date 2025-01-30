@@ -20,6 +20,9 @@ class TagItemConverter
         if ($tagItem->RawHtml) {
             $node['raw'] = 1;
         }
+        if ($tagItem->SlotDataKey) {
+            $node['slotDataKey'] = $tagItem->SlotDataKey;
+        }
         if ($tagItem->ItsExpression) {
             $node['code'] = $tagItem->JsExpressionCode;
             unset($node['c']);

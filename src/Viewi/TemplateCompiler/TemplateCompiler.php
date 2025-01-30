@@ -408,6 +408,7 @@ class TemplateCompiler
 
                 $slotData = $this->extractAttribute('data', $attributes);
                 $dataExpression = '';
+                $slotDataKey = null;
                 if ($slotData !== null) {
                     $this->errorUndeclaredAccess = false;
                     $dataValue = $slotData->getChildren();
@@ -425,6 +426,7 @@ class TemplateCompiler
                     if ($argument[0] === '$') {
                         $argument = substr($dataExpression, 1);
                     }
+                    $slotDataKey = $argument;
                     $prevScope = $this->localScope;
                     $prevScopeArguments = $this->localScopeArguments;
                     $this->localScope[$argument] = 'slot-data';
@@ -449,6 +451,7 @@ class TemplateCompiler
                     $this->localScopeArguments = $prevScopeArguments;
                 }
                 $this->restore($lastState);
+                $slotRoot->SlotDataKey = $slotDataKey;
                 $this->slots[] = [$slotContentRawName, $slotFunction, $slotRoot];
                 // Helpers::debug($slotFunction);
                 // $tagItem->setChildren([]);

@@ -20,8 +20,10 @@ class TagItem
     public bool $RawHtml = false;
     public bool $Used = false;
     public ?DataExpression $DataExpression = null;
+    public ?string $SlotDataKey = null;
     /** @var TagItem[] */
     private ?array $Children;
+    /** @var array<string, TagItem> */
     public array $Slots;
 
     // TODO: get rid of Parent to avoid recursion
