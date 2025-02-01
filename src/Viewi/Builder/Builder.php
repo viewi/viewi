@@ -1394,7 +1394,9 @@ class Builder
                         $attributeClass = $attribute->getName();
                         $attributeMetadata[$attributeClass] = $attribute;
                         if ($attributeClass === GlobalEntry::class) {
-                            $this->globalEntries[$method->name] = $reflectionClass->getShortName();
+                            $componentName = $reflectionClass->getShortName();
+                            $this->components[$componentName]->Include = true;
+                            $this->globalEntries[$method->name] = $componentName;
                         }
                     }
                 }

@@ -71,7 +71,7 @@ export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: str
 }
 
 
-function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targetObject: ReactiveProxy) {
+export function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targetObject: ReactiveProxy) {
     if (!(prop in ReserverProps) && prop[0] !== '_') {
         if (Array.isArray(targetObject)) {
             // TODO: optimization, track index, render dependent node only, do not render full foreach

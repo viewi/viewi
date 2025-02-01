@@ -18,4 +18,5 @@ abstract class ViewiPackage
      * @return ViewiPackage[] 
      */
     abstract static function getDependencies(): array;
+    // TODO: configure(AppConfig $config){}
 }

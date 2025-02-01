@@ -30,6 +30,7 @@ use PhpParser\Node\Expr\PreDec;
 use PhpParser\Node\Expr\PreInc;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\StaticPropertyFetch;
 use PhpParser\Node\Expr\Ternary;
 use PhpParser\Node\Expr\Throw_;
 use PhpParser\Node\Expr\UnaryMinus;
@@ -861,11 +862,24 @@ class JsTranspiler
                     $this->propertyFetchQueue = $queue;
                 }
             } elseif ($node instanceof ClassConstFetch) {
-                if ($node->class instanceof Name) {
-                    $parts = $node->class->getParts();
-                    $this->jsCode .= '"' . array_pop($parts) . '"';
+                if ($node->name instanceof Identifier && $node->name->name === 'class') {
+                    if ($node->class instanceof Name) {
+                        $parts = $node->class->getParts();
+                        $this->jsCode .= '"' . array_pop($parts) . '"';
+                    } else {
+                        $this->processStmts([$node->class]);
+                    }
                 } else {
-                    $this->processStmts([$node->class]);
+                    $classStmt = $node->class;
+                    if ($node->class instanceof Name) {
+                        $parts = $node->class->getParts();
+                        $classStmt = array_pop($parts);
+                    }
+                    $nameStmt = $node->class;
+                    if ($node->name instanceof Identifier) {
+                        $nameStmt = $node->name->name;
+                    }
+                    $this->processStmts([$classStmt, '.', $nameStmt]);
                 }
             } elseif ($node instanceof Return_) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'return';

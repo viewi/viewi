@@ -36,6 +36,7 @@ import { isSvg } from "../helpers/isSvg";
 import { svgNameSpace } from "../helpers/svgNameSpace";
 import { HtmlNodeType } from "../node/htmlNodeType";
 import { hydrateRaw } from "../hydrate/hydrateRaw";
+import { deepProxy } from "../reactivity/makeProxy";
 
 export function render(
     target: HtmlNodeType,
@@ -376,10 +377,33 @@ export function render(
                         }
                         nextInsert = insert;
                         let slotName: string = 'default';
+                        let slotData: any = null;
                         if (node.attributes) {
                             for (let attrIndex in node.attributes) {
-                                if (node.attributes[attrIndex].content === 'name') {
-                                    slotName = node.attributes![attrIndex]!.children![0]!.content!;
+                                const slotAttributeName = node.attributes[attrIndex].content;
+                                if (slotAttributeName === 'name' || slotAttributeName === 'data') {
+                                    const attribute = node.attributes[attrIndex];
+                                    if (attribute.children) {
+                                        let attrCombinedValue = '';
+                                        for (let av = 0; av < attribute.children.length; av++) {
+                                            const attributeValue = attribute.children[av];
+                                            let callArguments = [instance];
+                                            if (scope.arguments) {
+                                                callArguments = callArguments.concat(scope.arguments);
+                                            }
+                                            const childContent = attributeValue.expression
+                                                ? instance.$$t[attributeValue.code as number].apply(null, callArguments)
+                                                : (attributeValue.content ?? '');
+                                            attrCombinedValue = av === 0 ? childContent : (attrCombinedValue ?? '') + (childContent ?? '');
+                                        }
+                                        if (slotAttributeName === 'name') {
+                                            slotName = attrCombinedValue;
+                                        } else if (slotAttributeName === 'data') {
+                                            slotData = attrCombinedValue;
+                                        } else {
+                                            // not suppose to happen
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -394,7 +418,35 @@ export function render(
                                 slot.node.unpacked = true;
                             }
                             slot.scope.lastComponent.instance = scope.lastComponent.instance;
-                            render(element, slot.scope.instance, slot.node.children!, slot.scope, undefined, hydrate, nextInsert);
+
+                            const scopeId = ++slot.scope.counter;
+                            const slotContentScope: ContextScope = {
+                                id: scopeId,
+                                iteration: slot.scope.iteration,
+                                why: "slotContent",
+                                instance: slot.scope.instance,
+                                lastComponent: slot.scope.lastComponent,
+                                arguments: [...slot.scope.arguments],
+                                map: { ...slot.scope.map },
+                                track: [],
+                                parent: slot.scope,
+                                children: {},
+                                counter: 0,
+                                slots: slot.scope.slots
+                            };
+                            if (scope.refs) {
+                                slotContentScope.refs = slot.scope.refs;
+                            }
+                            slot.scope.children[scopeId] = slotContentScope;
+
+                            if (slotData) {
+                                slotContentScope.map['slotData'] = slotContentScope.arguments.length;
+                                slotContentScope.arguments.push(slotData);
+                                if (slot.node.slotDataKey) {
+                                    deepProxy(slot.node.slotDataKey, slotContentScope.instance, slotData);
+                                }
+                            }
+                            render(element, slotContentScope.instance, slot.node.children!, slotContentScope, undefined, hydrate, nextInsert);
                         } else { // default slot content
                             if (node.children) {
                                 render(element, instance, node.children, scope, undefined, hydrate, nextInsert);
