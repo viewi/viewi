@@ -874,6 +874,9 @@ class JsTranspiler
                     if ($node->class instanceof Name) {
                         $parts = $node->class->getParts();
                         $classStmt = array_pop($parts);
+                        if ($classStmt === 'self') {
+                            $classStmt = $this->currentClass;
+                        }
                     }
                     $nameStmt = $node->class;
                     if ($node->name instanceof Identifier) {
