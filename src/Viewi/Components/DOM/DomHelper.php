@@ -24,4 +24,12 @@ class DomHelper
         // nothing on server-side
         return null;
     }
+
+    public static function getFiles(HtmlNode $input): array
+    {
+        <<<'javascript'
+            return Array.prototype.slice.call(input.files);
+            javascript;
+        return [];
+    }
 }
