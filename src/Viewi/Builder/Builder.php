@@ -15,6 +15,7 @@ use Viewi\Builder\Attributes\ExtendWithJs;
 use Viewi\Builder\Attributes\GlobalEntry;
 use Viewi\Builder\Attributes\Skip;
 use Viewi\Builder\BuildAction\IPostBuildAction;
+use Viewi\Components\Attributes\IncludeAlways;
 use Viewi\Components\Attributes\LazyLoad;
 use Viewi\Components\Attributes\Middleware;
 use Viewi\Components\Attributes\OverrideComponent;
@@ -332,6 +333,9 @@ class Builder
                             }
                             if (isset($this->components[$exportItem->Name]->Attributes['LazyLoad'])) {
                                 $this->components[$exportItem->Name]->LazyLoad = true;
+                            }
+                            if (isset($this->components[$exportItem->Name]->Attributes['IncludeAlways'])) {
+                                $this->components[$exportItem->Name]->Include = true;
                             }
                         }
                     }
