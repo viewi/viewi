@@ -298,9 +298,14 @@ export function render(
                         continue;
                     }
                 }
+                let callArguments = [instance];
+                if (scope.arguments) {
+                    callArguments = callArguments.concat(scope.arguments);
+                }
                 const content = node.expression
-                    ? instance.$$t[node.code!](instance)
+                    ? instance.$$t[node.code!].apply(null, callArguments)
                     : (node.content ?? '');
+
                 const isDynamic = node.expression;
                 const componentTag = node.type === "component"
                     || (node.expression && isComponent(content));
