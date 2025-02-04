@@ -298,6 +298,9 @@ class Builder
 
                 $this->components[$exportItem->Name] = $buildItem;
                 if ($exportItem->Attributes !== null) {
+                    if (isset($exportItem->Attributes['implements']['IStartUp'])) {
+                        $this->components[$exportItem->Name]->Include = true;
+                    }
                     if (isset($exportItem->Attributes['extends'])) {
                         $this->components[$exportItem->Name]->Extends = $exportItem->Attributes['extends'];
                     }
