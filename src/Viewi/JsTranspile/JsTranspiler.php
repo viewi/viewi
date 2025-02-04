@@ -251,14 +251,22 @@ class JsTranspiler
                 $exportItem = ExportItem::NewClass($node->name, $this->currentNamespace);
                 $extendsCode = '';
                 $itsBase = false;
-                if ($node instanceof Class_ && $node->extends !== null) {
-                    $extendParts = $node->extends->getParts();
-                    $exportItem->Attributes['extends'] = $extendParts;
-                    $extendClass = $exportItem->Attributes['extends'][0];
-                    $extendsCode = " extends $extendClass";
-                    $itsBase = $extendClass === 'BaseComponent';
-                    $this->currentExtend = $extendClass;
-                    $this->usingList[$extendClass] = new UseItem($extendParts, UseItem::Class_);
+                if ($node instanceof Class_) {
+                    if ($node->extends !== null) {
+                        $extendParts = $node->extends->getParts();
+                        $exportItem->Attributes['extends'] = $extendParts;
+                        $extendClass = $exportItem->Attributes['extends'][0];
+                        $extendsCode = " extends $extendClass";
+                        $itsBase = $extendClass === 'BaseComponent';
+                        $this->currentExtend = $extendClass;
+                        $this->usingList[$extendClass] = new UseItem($extendParts, UseItem::Class_);
+                    }
+                    if (count($node->implements) > 0) {
+                        $exportItem->Attributes['implements'] = [];
+                        foreach ($node->implements as $implement) {
+                            $exportItem->Attributes['implements'][$implement->name] = $implement->name;
+                        }
+                    }
                 }
                 if ($node->attrGroups) {
                     $exportItem->Attributes['attrs'] = [];
@@ -759,7 +767,12 @@ class JsTranspiler
             } elseif ($node instanceof New_) {
                 // TODO: validate parts
                 $this->jsCode .= 'new ';
-                $this->jsCode .= $node->class->getParts()[0] . '(';
+                $nameIdParts = $node->class->getParts();
+                $className = $nameIdParts[0];
+                $this->jsCode .=  $className . '(';
+                if ($className !== $this->currentClass) {
+                    $this->usingList[$className] = new UseItem($nameIdParts, UseItem::Class_);
+                }
                 if (count($node->args) > 0) {
                     $comma = '';
                     foreach ($node->args as $argument) {
@@ -862,6 +875,29 @@ class JsTranspiler
                     $this->propertyFetchQueue = $queue;
                 }
             } elseif ($node instanceof ClassConstFetch) {
+                if ($node->name instanceof Identifier && $node->name->name === 'class') {
+                    if ($node->class instanceof Name) {
+                        $parts = $node->class->getParts();
+                        $this->jsCode .= '"' . array_pop($parts) . '"';
+                    } else {
+                        $this->processStmts([$node->class]);
+                    }
+                } else {
+                    $classStmt = $node->class;
+                    if ($node->class instanceof Name) {
+                        $parts = $node->class->getParts();
+                        $classStmt = array_pop($parts);
+                        if ($classStmt === 'self') {
+                            $classStmt = $this->currentClass;
+                        }
+                    }
+                    $nameStmt = $node->class;
+                    if ($node->name instanceof Identifier) {
+                        $nameStmt = $node->name->name;
+                    }
+                    $this->processStmts([$classStmt, '.', $nameStmt]);
+                }
+            } elseif ($node instanceof StaticPropertyFetch) {
                 if ($node->name instanceof Identifier && $node->name->name === 'class') {
                     if ($node->class instanceof Name) {
                         $parts = $node->class->getParts();
