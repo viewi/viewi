@@ -247,7 +247,10 @@ class Builder
                 $item['route'] = $route;
                 unset($item['transformCallback']);
                 unset($item['lazyGroup']);
-                $this->routesMap[$action] = $item;
+                if (!isset($this->routesMap[$action])) {
+                    $this->routesMap[$action] = [];
+                }
+                $this->routesMap[$action][] = $item;
             }
         }
     }
@@ -699,13 +702,15 @@ class Builder
          */
         $postBuild = [];
         $publicRoutes = [];
-        foreach ($this->routesMap as $item) {
-            if ($item['route']->action->lazyGroup !== null) {
-                $this->components[$item['action']]->LazyLoad = true;
-                $this->components[$item['action']]->LazyLoadName = $item['route']->action->lazyGroup;
+        foreach ($this->routesMap as $routeList) {
+            foreach ($routeList as $item) {
+                if ($item['route']->action->lazyGroup !== null) {
+                    $this->components[$item['action']]->LazyLoad = true;
+                    $this->components[$item['action']]->LazyLoadName = $item['route']->action->lazyGroup;
+                }
+                unset($item['route']);
+                $publicRoutes[] = $item;
             }
-            unset($item['route']);
-            $publicRoutes[] = $item;
         }
         /** COMPONENTS FOREACH **/
         while ($componentFilter < 2) {
