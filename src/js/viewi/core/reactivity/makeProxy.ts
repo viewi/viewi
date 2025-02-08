@@ -28,7 +28,7 @@ function schedule(path: string, i: string, callbackFunc: any) {
     }
 }
 
-export type ReactiveProxy = object & { $: ReactiveProxy, $$r?: { [key: string]: [path: string, instance: BaseComponent<any>] } };
+export type ReactiveProxy = object & { __id: number, $: ReactiveProxy, $$r?: { [key: string]: [path: string, instance: BaseComponent<any>] } };
 
 export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: string, prop: string, target: any) {
     let val = target[prop];
@@ -66,8 +66,8 @@ export function activateTarget<T>(component: T & BaseComponent<T>, mainPath: str
                 }
             }
         });
-        deepProxy(mainPath, component, val);
     }
+    deepProxy(mainPath, component, val);
 }
 
 
@@ -87,16 +87,27 @@ export function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targ
                     value: {}
                 });
             }
-            let keys = Object.keys(targetObject);
-            for (let i = 0; i < keys.length; i++) {
-                const valueProp = keys[i];
-                if (!(valueProp in ReserverProps)) {
-                    activateTarget(component, prop, valueProp, targetObject);
-                }
+            if (!('__id' in targetObject)) {
+                Object.defineProperty(targetObject, "__id", {
+                    enumerable: false,
+                    writable: true,
+                    value: ++reactiveId
+                });
             }
-            const trackerId = ++reactiveId + '';
-            targetObject.$$r![trackerId] = [prop, component];
-            component.$$p.push([trackerId, targetObject]);
+            const targetTrackId = prop + '__' + targetObject.__id + '__' + component.__id;
+            if (!(targetTrackId in targetObject.$$r!)) {
+                targetObject.$$r![targetTrackId] = [prop, component];
+                let keys = Object.keys(targetObject);
+                for (let i = 0; i < keys.length; i++) {
+                    const valueProp = keys[i];
+                    if (!(valueProp in ReserverProps)) {
+                        activateTarget(component, prop, valueProp, targetObject);
+                    }
+                }
+                const trackerId = prop + '__' + component.__id;// ++reactiveId + '';
+                targetObject.$$r![trackerId] = [prop, component];
+                component.$$p.push([trackerId, targetObject]);
+            }
         }
     }
 }
