@@ -323,6 +323,7 @@ class TemplateCompiler
                             $this->localScopeArguments[] = $argument;
                         }
                         $this->flushBuffer();
+                        $tagItem->ForeachPhpExpression = "foreach ({$foreachTagValue->PhpExpression} as $foreachLoop) {";
                         $this->code .= PHP_EOL . $this->i() . "foreach ({$foreachTagValue->PhpExpression} as $foreachLoop) {";
                         $this->level++;
                         // TODO: pass parent subscriptions
@@ -452,7 +453,7 @@ class TemplateCompiler
                 }
                 $this->restore($lastState);
                 $slotRoot->SlotDataKey = $slotDataKey;
-                $this->slots[] = [$slotContentRawName, $slotFunction, $slotRoot];
+                $this->slots[] = [$slotContentRawName, $slotFunction, $slotRoot, $slotContentName, $tagItem->ForeachPhpExpression];
                 // Helpers::debug($slotFunction);
                 // $tagItem->setChildren([]);
                 return;
@@ -573,6 +574,9 @@ class TemplateCompiler
                 $comma = '';
                 $this->level++;
                 $trackMap = [];
+
+                $foreachSlotsCode = '';
+
                 if (!$slotFunction->empty) {
                     $this->slots[] = ['default', $slotFunction, $slotRoot];
                     $tagItem->addSlot('default', $slotRoot);
@@ -592,10 +596,22 @@ class TemplateCompiler
                         $tagItem->addSlot($nextSlotName, $childSlot[2]);
                     }
                     if (!isset($trackMap[$childSlot[0]])) {
+                        //$slotKey = $childSlot[3];
                         $slotKey = var_export($childSlot[0], true);
                         $renderName = var_export($childSlot[1]->renderName, true);
+                        // if ($childSlot[4] !== null) { // foreach slot
+                        //     $this->level--;
+                        //     $foreachSlotsCode .= PHP_EOL . $this->i() . $childSlot[4];
+                        //     $this->level++;
+                        //     $foreachSlotsCode .= PHP_EOL . $this->i() . '$dynamicSlots['.$slotKey.'] = ' . $renderName . ';';
+
+                        //     $this->level--;
+                        //     $foreachSlotsCode .= PHP_EOL . $this->i() .'}';
+                        //     $this->level++;
+                        // } else {
                         $passThroughSlots[] = "{$comma}$slotKey => $renderName";
                         $comma = ',' . PHP_EOL . $this->i();
+                        //}
                     }
                 }
                 $this->level--;
@@ -625,7 +641,7 @@ class TemplateCompiler
                     ']'
                     : '';
 
-                $this->code .= PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, \$_component, [$props], [$slotsMap], $scope);";
+                $this->code .= $foreachSlotsCode . PHP_EOL . $this->i() . "\$_content .= \$_engine->renderComponent($componentName, \$_component, [$props], [$slotsMap], $scope);";
                 if (!$expression) {
                     return;
                 }

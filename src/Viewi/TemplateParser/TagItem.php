@@ -20,6 +20,7 @@ class TagItem
     public bool $RawHtml = false;
     public bool $Used = false;
     public ?DataExpression $DataExpression = null;
+    public ?string $ForeachPhpExpression = null;
     public ?string $SlotDataKey = null;
     /** @var TagItem[] */
     private ?array $Children;
