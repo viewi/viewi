@@ -325,6 +325,7 @@ class Builder
                             if (str_starts_with($ns, $namespace)) {
                                 $this->components[$exportItem->Name]->CustomJs = true;
                                 $this->components[$exportItem->Name]->NoJs = true;
+                                $this->components[$exportItem->Name]->Include = true;
                             }
                         }
                     }
