@@ -107,6 +107,7 @@ export function deepProxy<T>(prop: string, component: T & BaseComponent<T>, targ
                 const trackerId = prop + '__' + component.__id;// ++reactiveId + '';
                 targetObject.$$r![trackerId] = [prop, component];
                 component.$$p.push([trackerId, targetObject]);
+                component.$$p.push([targetTrackId, targetObject]);
             }
         }
     }
