@@ -9,7 +9,7 @@ function str_split (string, splitLength) { // eslint-disable-line camelcase
   //   example 1: str_split('Hello Friend', 3)
   //   returns 1: ['Hel', 'lo ', 'Fri', 'end']
 
-  if (splitLength === null) {
+  if (!splitLength) {
     splitLength = 1
   }
   if (string === null || splitLength < 1) {

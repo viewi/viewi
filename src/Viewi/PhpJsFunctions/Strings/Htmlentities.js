@@ -17,7 +17,7 @@ function htmlentities (string, quoteStyle, charset, doubleEncode) {
   //   returns 2: 'foo&#039;bar'
 
 
-  const hashMap = getHtmlTranslationTable('HTML_ENTITIES', quoteStyle)
+  const hashMap = get_html_translation_table('HTML_ENTITIES', quoteStyle)
 
   string = string === null ? '' : string + ''
 
