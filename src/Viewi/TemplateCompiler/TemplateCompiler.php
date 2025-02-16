@@ -109,9 +109,11 @@ class TemplateCompiler
             $this->level++;
             $comma = PHP_EOL . $this->i();
             foreach ($this->localScope as $varName => $varKeyType) {
-                $varKey = $varKeyType === true ? $varName : $varKeyType;
-                $scopeVariables .= "{$comma}'$varKey' => \$$varName";
-                $comma = ',' . PHP_EOL . $this->i();
+                if ($varKeyType !== self::KeySkip) {
+                    $varKey = $varKeyType === true ? $varName : $varKeyType;
+                    $scopeVariables .= "{$comma}'$varKey' => \$$varName";
+                    $comma = ',' . PHP_EOL . $this->i();
+                }
             }
             $this->level--;
             $scopeVariables .= PHP_EOL . $this->i() . ']';
