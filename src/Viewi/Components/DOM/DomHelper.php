@@ -32,4 +32,12 @@ class DomHelper
             javascript;
         return [];
     }
+
+    public static function getDomList(array $nodes): array
+    {
+        <<<'javascript'
+            return Array.prototype.slice.call(nodes);
+            javascript;
+        return [];
+    }
 }
