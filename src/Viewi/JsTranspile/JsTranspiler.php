@@ -468,7 +468,28 @@ class JsTranspiler
                 $this->jsCode .= ") {" . PHP_EOL;
                 $this->level++;
                 if ($itsConstructor && $this->currentExtend !== null) {
-                    $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
+                    $hasSuper = false;
+                    if ($node->stmts !== null) {
+                        foreach ($node->stmts as $stmt) {
+                            $childExpression = $stmt;
+                            if ($childExpression instanceof Expression) {
+                                $childExpression = $childExpression->expr;
+                            }
+                            if (
+                                $childExpression instanceof StaticCall
+                                && $childExpression->class->name === 'parent'
+                                && $childExpression->name->name === '__construct'
+                            ) {
+                                $this->processStmts([$stmt]);
+                                $stmt->setAttribute('skip', true);
+                                $childExpression->name->name = '%skip%';
+                                $hasSuper = true;
+                            }
+                        }
+                    }
+                    if (!$hasSuper) {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'super();' . PHP_EOL;
+                    }
                 }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'var $this = this;' . PHP_EOL; // TODO: inject only if used
                 if ($itsConstructor) {
@@ -726,8 +747,17 @@ class JsTranspiler
             } elseif ($node instanceof StaticCall) {
                 // TODO: validate parts
                 $class = $node->class->getParts()[0];
-                $this->jsCode .= $class === 'self' ? $this->currentClass : $class;
-                $this->jsCode .= '.' . $node->name . '(';
+                $skipNode = $node->name->name === '%skip%';
+                if ($skipNode) {
+                    continue;
+                }
+                $itsConstructor = $node->name->name === '__construct';
+                $this->jsCode .= match ($class) {
+                    'self' => $this->currentClass,
+                    'parent' => 'super',
+                    default => $class
+                };
+                $this->jsCode .= ($itsConstructor ? '' :  '.' . $node->name->name) . '(';
                 if (count($node->args) > 0) {
                     $comma = '';
                     foreach ($node->args as $argument) {
@@ -958,6 +988,9 @@ class JsTranspiler
             } elseif ($node instanceof Ternary) {
                 $this->processStmts([$node->cond, ' ? ', $node->if ?? $node->cond, ' : ', $node->else]);
             } elseif ($node instanceof Expression) {
+                if ($node->getAttribute('skip')) {
+                    continue;
+                }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '';
                 $this->processStmts([$node->expr]);
                 if (!$this->inlineExpression || $this->level > 0) {
