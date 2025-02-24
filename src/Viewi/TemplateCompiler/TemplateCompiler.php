@@ -721,11 +721,13 @@ class TemplateCompiler
                     foreach ($children as $order => &$childItem) {
                         $notText = true;
                         $raw = false;
+                        $buildTime = false;
                         if (
                             $childItem->Type->Name === TagItemType::TextContent
                         ) {
-                            if ($childItem->ItsExpression && $childItem->Content[0] === '{') {
+                            if ($childItem->ItsExpression && ($childItem->Content[0] === '{' || $childItem->Content[0] === '#')) {
                                 $raw = true;
+                                $buildTime = $childItem->Content[0] === '#';
                             } else {
                                 $textCollection[] = &$childItem;
                                 $textsCount++;
@@ -766,7 +768,15 @@ class TemplateCompiler
                             if ($childItem->Type->Name === TagItemType::Comment) {
                                 $this->plainItems[] = '<!--' . htmlentities($childItem->Content) . '-->';
                             } elseif ($raw) {
-                                $this->appendExpression($childItem);
+                                if ($buildTime) {
+                                    $this->flushBuffer();
+
+                                    $this->buildExpression($childItem);
+                                    $rawEval = eval('return ' . $childItem->PhpExpression . ';');
+                                    $this->code .= PHP_EOL . $this->i() . '$_content .= ' . var_export($rawEval, true) . ';';
+                                } else {
+                                    $this->appendExpression($childItem);
+                                }
                                 // Helpers::debug([$childItem->Type->Name, $childItem->Content]);
                             } elseif ($notText) {
                                 $this->buildTag($childItem);
@@ -1022,6 +1032,13 @@ class TemplateCompiler
         if ($phpCode[0] === '{' && $phpCode[strlen($phpCode) - 1] === '}') {
             $phpCode = substr($phpCode, 1, strlen($phpCode) - 2);
             $tagItem->RawHtml = true;
+            // Helpers::debug([$phpCode, $tagItem->Content]);
+        } elseif ($phpCode[0] === '#' && $phpCode[strlen($phpCode) - 1] === '#') {
+            $phpCode = substr($phpCode, 1, strlen($phpCode) - 2);
+            $tagItem->RawHtml = true;
+            $tagItem->ItsExpression = false;
+            $tagItem->Content = eval('return ' . $phpCode . ';');
+            // print_r([$phpCode, $tagItem->Content]);
             // Helpers::debug([$phpCode, $tagItem->Content]);
         }
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
