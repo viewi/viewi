@@ -1,7 +1,7 @@
 export type ResolverAction = (callback: (result: any, error?: any) => void) => void;
 
 class Resolver {
-    onSuccess: CallableFunction;
+    onSuccess: CallableFunction | null = null;
     onError: CallableFunction | null = null;
     onAlways: CallableFunction | null = null;
     result = null;
@@ -38,7 +38,9 @@ class Resolver {
                     throwError = true;
                 }
             } else {
-                $this.onSuccess($this.result);
+                if ($this.onSuccess !== null) {
+                    $this.onSuccess($this.result);
+                }
             }
             if ($this.onAlways != null) {
                 $this.onAlways();

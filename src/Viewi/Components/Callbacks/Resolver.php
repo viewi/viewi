@@ -3,14 +3,17 @@
 namespace Viewi\Components\Callbacks;
 
 use Exception;
+use Throwable;
+use Viewi\Builder\Attributes\Skip;
 
+#[Skip]
 class Resolver
 {
     /**
      * 
      * @var callable $onSuccess
      */
-    protected $onSuccess;
+    protected $onSuccess = null;
     /**
      * 
      * @var callable $onError
@@ -28,9 +31,7 @@ class Resolver
      * @param callable $action 
      * @return void 
      */
-    public function __construct(protected $action)
-    {
-    }
+    public function __construct(protected $action) {}
 
     public function error(callable $onError)
     {
@@ -60,12 +61,17 @@ class Resolver
                     $throwError = true;
                 }
             } else {
-                ($this->onSuccess)($this->result);
+                if ($this->onSuccess !== null) {
+                    ($this->onSuccess)($this->result);
+                }
             }
             if ($this->onAlways != null) {
                 ($this->onAlways)();
             }
             if ($throwError) {
+                if (!($this->lastError instanceof Exception)) {
+                    $this->lastError = new ResolverError($this->lastError);
+                }
                 throw $this->lastError;
             }
         });
@@ -81,5 +87,10 @@ class Resolver
             $this->onAlways = $always;
         }
         $this->run();
+    }
+
+    public function getResult()
+    {
+        return $this->result;
     }
 }
