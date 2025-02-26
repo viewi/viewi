@@ -61,6 +61,7 @@ const runBuild = async function () {
             const purgeCSSResult = await new PurgeCSS().purge({
               content: ['./../**/*.js', './../**/*.php', './../**/*.html'],
               css: entries,
+              variables: false,
               skippedContentGlobs: ['**/node_modules/**', '**/build/**']
             });
             for (let i = 0; i < purgeCSSResult.length; i++) {
