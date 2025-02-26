@@ -26,6 +26,7 @@ class TagItem
     private ?array $Children;
     /** @var array<string, TagItem> */
     public array $Slots;
+    public bool $SelfClosing = false;
 
     // TODO: get rid of Parent to avoid recursion
     public function &parent(): ?TagItem

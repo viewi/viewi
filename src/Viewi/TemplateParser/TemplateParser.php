@@ -49,7 +49,7 @@ class TemplateParser
         return $this->tokens;
     }
 
-    public function parse(string $htmlContent): TagItem
+    public function parse(string $htmlContent, ?string $name = null): TagItem
     {
         $template = new TagItem();
         $template->Type = new TagItemType(TagItemType::Root);
@@ -71,6 +71,7 @@ class TemplateParser
         $goDown = false;
         $goUp = false;
         $waitForTagEnd = false;
+        $selfClosing = false;
         $escapeNextChar = false; // $ < > { }
         $this->tokens = [];
         $currentToken = '';
@@ -215,6 +216,8 @@ class TemplateParser
                                     $skipCount = 1;
                                     $saveContent = true;
                                     $waitForTagEnd = true;
+                                    $selfClosing = true;
+                                    // print_r(['self closing', $selfClosing]);
                                     $goDown = true;
                                 }
                                 break;
@@ -224,6 +227,9 @@ class TemplateParser
                                 $skipCount = 1;
                                 $waitForTagEnd = true;
                                 $saveContent = true;
+
+                                $selfClosing = true;
+                                // print_r(['self closing', $selfClosing]);
                             }
                             break;
                         }
@@ -368,8 +374,8 @@ class TemplateParser
                             && !isset($this->reservedTags[$content])
                         ) {
                             if (!isset($this->components[$content])) {
-                                $tagsPath = TagItemConverter::prettyOutput($template);
-                                throw new Exception("Component `$content` not found. Path: $tagsPath");
+                                $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
+                                throw new Exception(TagItemConverter::terminalRed("Component `$content` not found.") . $tagsPath);
                             }
 
                             $child->Type = new TagItemType(TagItemType::Component);
@@ -384,23 +390,38 @@ class TemplateParser
                 $saveContent = false;
                 $currentType = $nextType;
                 $content = false;
+
                 if ($goDown && !$goUp) {
                     if ($currentParent->getChildren()) {
                         $currentParent = &$currentParent->currentChild();
                     } else {
-                        $tagsPath = TagItemConverter::prettyOutput($template);
-                        throw new Exception("Can't get child node $skipContent. Path: $tagsPath");
+                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i) . PHP_EOL;
+                        throw new Exception(TagItemConverter::terminalRed("Can't get child node $skipContent.") . $tagsPath);
                         break;
                     }
+                    $skipContent = '';
                 }
                 if ($goUp && !$goDown) {
                     if ($currentParent->parent()) {
+                        if ($currentParent->Type->Name === TagItemType::Tag) {
+                            if (!$selfClosing && !isset($this->voidTags[$currentParent->Content])) {
+                                $closingTag = preg_replace('/[\W]/', '', $skipContent);
+                                if ($currentParent->Content !== $closingTag) {
+                                    $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
+                                    print_r([$currentParent->Content, $skipContent, $closingTag, $selfClosing]);
+                                    throw new Exception(TagItemConverter::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
+                                }
+                            }
+                            $selfClosing = false;
+                        }
                         $currentParent = &$currentParent->parent();
                     } else {
-                        $tagsPath = TagItemConverter::prettyOutput($template);
-                        throw new Exception("Can't get parent node $skipContent. Path: $tagsPath");
+                        $closingTag = preg_replace('/[\W]/', '', $skipContent);
+                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
+                        throw new Exception(TagItemConverter::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
                         break;
                     }
+                    $skipContent = '';
                 }
                 $goDown = false;
                 $goUp = false;
@@ -434,7 +455,8 @@ class TemplateParser
                     && !isset($this->reservedTags[$content])
                 ) {
                     if (!isset($this->components[$content])) {
-                        throw new Exception("Component `$content` not found.");
+                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
+                        throw new Exception(TagItemConverter::terminalRed("Component sssss `$content` not found.") . $tagsPath);
                     }
                     $child->Type = new TagItemType(TagItemType::Component);
                 }
