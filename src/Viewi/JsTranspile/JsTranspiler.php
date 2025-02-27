@@ -3,6 +3,8 @@
 namespace Viewi\JsTranspile;
 
 use Exception;
+use ParseError;
+use PhpParser\Error;
 use PhpParser\Modifiers;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
@@ -43,6 +45,7 @@ use PhpParser\Node\NullableType;
 use PhpParser\Node\Scalar\Int_ as ScalarInt_;
 use PhpParser\Node\Scalar\InterpolatedString;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt;
 use PhpParser\Node\Stmt\Block;
 use PhpParser\Node\Stmt\Break_;
 use PhpParser\Node\Stmt\Class_;
@@ -54,7 +57,9 @@ use PhpParser\Node\Stmt\Echo_;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\For_;
 use PhpParser\Node\Stmt\Foreach_;
+use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\If_;
+use PhpParser\Node\Stmt\InlineHTML;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Nop;
@@ -69,6 +74,7 @@ use PhpParser\Node\Stmt\While_;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use RuntimeException;
+use Throwable;
 
 class JsTranspiler
 {
@@ -106,6 +112,11 @@ class JsTranspiler
     private array $exports = []; // tree of [namespace->]class/function->public method/prop
     private array $transforms = [];
     private array $skipNamespaces = [];
+    /**
+     * 
+     * @var Node | string | null
+     */
+    private $lastNode = null;
 
     public function __construct(string $content = '')
     {
@@ -136,6 +147,7 @@ class JsTranspiler
         $this->exports = [];
         $this->usingList = [];
         $this->transforms = [];
+        $this->lastNode = null;
     }
 
     private function fork()
@@ -174,10 +186,35 @@ class JsTranspiler
             $this->stmts = $this->parser->parse(($this->inlineExpression ? '<?php ' . PHP_EOL : '') . $this->phpCode . ($this->inlineExpression ? ';' : ''));
             $this->processStmts($this->stmts);
             // $this->debug([$this->phpCode,  $this->jsCode, $this->stmts]);
-        } catch (Exception $exc) {
-            // Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
-            echo 'Parse Error: ' . PHP_EOL, $exc->getMessage() . PHP_EOL;
-            // Helpers::debug($this->phpCode);
+        } catch (ConvertError $convertError) {
+            $error = new JsOutput('');
+            $error->errorCode = $this->phpCode;
+            $error->errorMessage = $convertError->getMessage();
+            if ($this->lastNode !== null) {
+                $error->errorPosition = $this->lastNode->getStartFilePos();
+                $error->errorEndPosition = $this->lastNode->getEndFilePos();
+                $error->errorLine = $this->lastNode->getStartLine();
+                // print_r($this->lastNode);
+            }
+            $error->error = $convertError;
+            return $error;
+        } catch (Error $convertError) {
+            $error = new JsOutput('');
+            $error->errorCode = $this->phpCode;
+            $error->errorMessage = $convertError->getMessage();
+            
+                $error->errorPosition = $convertError->getAttributes()['startFilePos'];
+                $error->errorEndPosition = $convertError->getAttributes()['endFilePos'];
+                $error->errorLine = $convertError->getStartLine();
+                // print_r($this->lastNode);
+           
+            $error->error = $convertError;
+            return $error;
+        }  catch (Throwable $exc) {
+            throw $exc;
+            //     // Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
+            //     echo 'Parse Error: ' . PHP_EOL, $exc->getMessage() . PHP_EOL;
+            //     // Helpers::debug($this->phpCode);
 
         }
         // tokens
@@ -226,6 +263,10 @@ class JsTranspiler
     private function processStmts(?array $stmts)
     {
         foreach ($stmts as $node) {
+            $this->lastNode = $node;
+            // if(!is_string($node)){
+            //     print_r($node->getStartFilePos() . " " . $node->getType() . PHP_EOL);
+            // }
             // use if else for intellisense support. switch does not support it in vs code 
             if ($node instanceof Namespace_) {
                 // skip, no namespaces in JS
@@ -377,6 +418,10 @@ class JsTranspiler
                     $this->membersCount++;
                 }
                 // TODO: track public/priv:protected
+                // } elseif ($node instanceof Function_) {
+                // }elseif( $node instanceof InlineHTML){
+
+
             } elseif ($node instanceof ClassMethod) {
                 $name = $node->name->name;
                 $itsConstructor = false;
@@ -729,8 +774,12 @@ class JsTranspiler
                 //     $this->jsCode .= $node->name->name . '(';
                 // } else {
                 $nullSafe = $node instanceof NullsafeMethodCall;
+                // if ($node->name->name === 'await') {
+                //     $this->jsCode .= 'await ';
+                // }
                 $this->processStmts([$node->var]);
                 $this->jsCode .= ($nullSafe ? '?.' : '.') . $node->name . '(';
+
                 // }
                 if (count($node->args) > 0) {
                     $comma = '';
@@ -894,7 +943,7 @@ class JsTranspiler
                 }
             } elseif ($node instanceof ArrayDimFetch) {
                 if ($node->dim === null) {
-                    throw new RuntimeException("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
+                    throw new ConvertError("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
                 } else {
                     $this->propertyFetchQueue[] = '[]';
                     $this->processStmts([$node->var, '[']);
@@ -959,7 +1008,7 @@ class JsTranspiler
                 $this->jsCode .= ';' . PHP_EOL;
             } elseif ($node instanceof Continue_) {
                 if ($node->num !== null) {
-                    throw new RuntimeException("Node type 'Continue' with number loops to continue is not supported in javascript.");
+                    throw new ConvertError("Node type 'Continue' with number loops to continue is not supported in javascript.");
                 }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'continue;' . PHP_EOL;
             } elseif ($node instanceof Cast) {
@@ -1175,7 +1224,7 @@ class JsTranspiler
             } elseif ($node instanceof AssignOp\ShiftRight) {
                 $this->processStmts([$node->var, '>>=', $node->expr]);
             } elseif ($node instanceof AssignOp\Pow) {
-                throw new RuntimeException("Node type '{$node->getType()}' is not implemented");
+                throw new ConvertError("Node type '{$node->getType()}' is not implemented");
             } elseif ($node instanceof AssignOp\Coalesce) {
                 $this->processStmts([$node->var, '??=', $node->expr]);
             } elseif ($node instanceof BooleanNot) {
@@ -1191,7 +1240,7 @@ class JsTranspiler
             } else {
                 // Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
                 // Helpers::debug($node);
-                throw new RuntimeException("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
+                throw new ConvertError("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
             }
         }
     }

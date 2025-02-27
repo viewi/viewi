@@ -2,8 +2,17 @@
 
 namespace Viewi\JsTranspile;
 
+use Throwable;
+
 class JsOutput
 {
+    public ?Throwable $error = null;
+    public ?string $errorCode = null;
+    public ?int $errorPosition = null;
+    public ?int $errorLine = null;
+    public ?int $errorEndPosition = null;
+    public ?string $errorMessage = null;
+
     public function __construct(
         private string $jsCode,
         private array $exports = [],
