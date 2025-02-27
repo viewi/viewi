@@ -7,6 +7,7 @@ use Throwable;
 use Viewi\Builder\BuildItem;
 use Viewi\Helpers;
 use Viewi\JsTranspile\ExportItem;
+use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
 use Viewi\Meta\Meta;
 use Viewi\TemplateParser\DataExpression;
@@ -59,6 +60,7 @@ class TemplateCompiler
     private array $localEntries = [];
     private array $nestedDependencies = [];
     private bool $errorUndeclaredAccess = true;
+    private ?TagItem $lastTagItem = null;
 
     public function __construct(private JsTranspiler $jsTranspiler)
     {
@@ -83,52 +85,59 @@ class TemplateCompiler
         ?string $parentComponentName = null, // for slots
         bool $resetAll = true
     ): RenderItem {
-        $this->reset($resetAll);
-        $this->buildItem = $buildItem;
-        $this->parentComponentName = $parentComponentName;
-        $renderFunctionTemplate = $this->template
-            ?? ($this->template = str_replace('<?php', '', file_get_contents(Meta::renderFunctionPath())));
-        $parts = explode("//#content", $renderFunctionTemplate, 2);
-        $funcBegin = $parts[0];
-        $renderFunction = "Render{$buildItem->ComponentName}$templateKey";
-        if (!isset($this->slotsIndex[$renderFunction])) {
-            $this->slotsIndex[$renderFunction] = -1;
-        }
-        $this->slotsIndex[$renderFunction]++;
-        if ($this->slotsIndex[$renderFunction] > 0) {
-            $renderFunction .= $this->slotsIndex[$renderFunction];
-        }
-        $funcBegin = str_replace('BaseComponent $', ($buildItem->Namespace ?? '') . '\\' . $buildItem->ComponentName . ' $', $funcBegin);
-        $funcBegin = str_replace('RenderFunction', $renderFunction, $funcBegin);
-
-        $this->buildTag($rootTag);
-
-        $this->flushBuffer();
-        if (count($this->localScope) > 0) {
-            $scopeVariables = '[';
-            $this->level++;
-            $comma = PHP_EOL . $this->i();
-            foreach ($this->localScope as $varName => $varKeyType) {
-                if ($varKeyType !== self::KeySkip) {
-                    $varKey = $varKeyType === true ? $varName : $varKeyType;
-                    $scopeVariables .= "{$comma}'$varKey' => \$$varName";
-                    $comma = ',' . PHP_EOL . $this->i();
-                }
+        try {
+            $this->reset($resetAll);
+            $this->buildItem = $buildItem;
+            $this->parentComponentName = $parentComponentName;
+            $renderFunctionTemplate = $this->template
+                ?? ($this->template = str_replace('<?php', '', file_get_contents(Meta::renderFunctionPath())));
+            $parts = explode("//#content", $renderFunctionTemplate, 2);
+            $funcBegin = $parts[0];
+            $renderFunction = "Render{$buildItem->ComponentName}$templateKey";
+            if (!isset($this->slotsIndex[$renderFunction])) {
+                $this->slotsIndex[$renderFunction] = -1;
             }
-            $this->level--;
-            $scopeVariables .= PHP_EOL . $this->i() . ']';
-            $funcBegin .= $scopeVariables . ' = $_scope;';
+            $this->slotsIndex[$renderFunction]++;
+            if ($this->slotsIndex[$renderFunction] > 0) {
+                $renderFunction .= $this->slotsIndex[$renderFunction];
+            }
+            $funcBegin = str_replace('BaseComponent $', ($buildItem->Namespace ?? '') . '\\' . $buildItem->ComponentName . ' $', $funcBegin);
+            $funcBegin = str_replace('RenderFunction', $renderFunction, $funcBegin);
+
+            $this->buildTag($rootTag);
+
+            $this->flushBuffer();
+            if (count($this->localScope) > 0) {
+                $scopeVariables = '[';
+                $this->level++;
+                $comma = PHP_EOL . $this->i();
+                foreach ($this->localScope as $varName => $varKeyType) {
+                    if ($varKeyType !== self::KeySkip) {
+                        $varKey = $varKeyType === true ? $varName : $varKeyType;
+                        $scopeVariables .= "{$comma}'$varKey' => \$$varName";
+                        $comma = ',' . PHP_EOL . $this->i();
+                    }
+                }
+                $this->level--;
+                $scopeVariables .= PHP_EOL . $this->i() . ']';
+                $funcBegin .= $scopeVariables . ' = $_scope;';
+            }
+            return new RenderItem(
+                $funcBegin . $this->code . $parts[1],
+                !$this->code,
+                $renderFunction,
+                $this->slots,
+                $this->usedFunctions,
+                $this->inlineExpressions,
+                $this->hasHtmlTag,
+                $this->usedComponents
+            );
+        } catch (Throwable $th) {
+            $error = new CompileTemplateError($th->getMessage());
+            $error->errorPosition = $this->lastTagItem?->FilePosition;
+            $error->errorEndPosition = strlen($this->lastTagItem?->Content ?? '');
+            throw $error;
         }
-        return new RenderItem(
-            $funcBegin . $this->code . $parts[1],
-            !$this->code,
-            $renderFunction,
-            $this->slots,
-            $this->usedFunctions,
-            $this->inlineExpressions,
-            $this->hasHtmlTag,
-            $this->usedComponents
-        );
     }
 
     public function getRenderInvocations(): array
@@ -200,6 +209,8 @@ class TemplateCompiler
          */
         $children = [];
         foreach ($allChildren as &$child) {
+
+            $this->lastTagItem = $child;
             if (!$child->Used) {
                 if ($child->Type->Name === TagItemType::Attribute) {
                     if (
@@ -274,6 +285,9 @@ class TemplateCompiler
                         $phpCode = $foreachParts[0];
                         $foreachTagValue->DataExpression = new DataExpression();
                         $jsOutput = $this->jsTranspiler->convert($foreachParts[0], true, $this->_CompileJsComponentName, $this->localScope);
+                        if ($jsOutput->error) {
+                            throw $jsOutput->error;
+                        }
                         $this->inlineExpressions[] = [$jsOutput->__toString(), $this->localScopeArguments];
                         $foreachTagValue->DataExpression->ForData = count($this->inlineExpressions) - 1;
                         $transforms = $jsOutput->getTransforms();
@@ -294,6 +308,9 @@ class TemplateCompiler
                         $prevScopeArguments = $this->localScopeArguments;
                         if (count($foreachAsParts) > 1) {
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
+                            if ($jsOutput->error) {
+                                throw $jsOutput->error;
+                            }
                             $foreachTagValue->DataExpression->ForKey = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[0]);
                             if ($argument[0] === '$') {
@@ -302,6 +319,9 @@ class TemplateCompiler
                             $this->localScope[$argument] = true;
                             $this->localScopeArguments[] = $argument;
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[1], true, null, $this->localScope);
+                            if ($jsOutput->error) {
+                                throw $jsOutput->error;
+                            }
                             $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[1]);
                             if ($argument[0] === '$') {
@@ -314,6 +334,9 @@ class TemplateCompiler
                             $foreachTagValue->DataExpression->ForKey = $autoForKey;
                             $foreachTagValue->DataExpression->ForKeyAuto = true;
                             $jsOutput = $this->jsTranspiler->convert($foreachAsParts[0], true, null, $this->localScope);
+                            if ($jsOutput->error) {
+                                throw $jsOutput->error;
+                            }
                             $foreachTagValue->DataExpression->ForItem = $jsOutput->__toString();
                             $argument = trim($foreachAsParts[0]);
                             if ($argument[0] === '$') {
@@ -460,6 +483,7 @@ class TemplateCompiler
                 // $tagItem->setChildren([]);
                 return;
             }
+            $this->lastTagItem = $tagItem;
             // == COMPONENT ==
             if ($component) {
                 $this->flushBuffer();
@@ -476,6 +500,7 @@ class TemplateCompiler
                     $comma = '';
                     $this->level++;
                     foreach ($attributes as &$attributeItem) {
+                        $this->lastTagItem = $attributeItem;
                         if ($attributeItem->ItsExpression) {
                             $this->buildExpression($attributeItem);
                         }
@@ -1028,6 +1053,7 @@ class TemplateCompiler
         if ($tagItem->PhpExpression) {
             return;
         }
+        $this->lastTagItem = $tagItem;
         $phpCode = $tagItem->Content;
         if ($phpCode[0] === '{' && $phpCode[strlen($phpCode) - 1] === '}') {
             $phpCode = substr($phpCode, 1, strlen($phpCode) - 2);
@@ -1042,7 +1068,9 @@ class TemplateCompiler
             // Helpers::debug([$phpCode, $tagItem->Content]);
         }
         $jsOutput = $this->jsTranspiler->convert($phpCode, true, $this->_CompileJsComponentName, $this->localScope);
-
+        if ($jsOutput->error) {
+            throw $jsOutput->error;
+        }
         // if ($phpCode === '$user->name') {
         //     Helpers::debug([$tagItem->JsExpression, $phpCode, $jsOutput->getDeps()]);
         // }
