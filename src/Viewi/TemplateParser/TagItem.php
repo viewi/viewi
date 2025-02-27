@@ -27,6 +27,7 @@ class TagItem
     /** @var array<string, TagItem> */
     public array $Slots;
     public bool $SelfClosing = false;
+    public int $FilePosition = 0;
 
     // TODO: get rid of Parent to avoid recursion
     public function &parent(): ?TagItem

@@ -76,6 +76,7 @@ class TemplateParser
         $this->tokens = [];
         $currentToken = '';
         $skipContent = '';
+        $currentParent->FilePosition = $i;
         while ($i < $length) {
             $char = $raw[$i];
             // tokens
@@ -368,14 +369,15 @@ class TemplateParser
                     $child->Type = $currentType;
                     $child->Content = $content;
                     $child->ItsExpression = $itsExpression;
+                    $child->FilePosition = $i;
                     if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
                         if (
                             !strpos($content, ':')
                             && !isset($this->reservedTags[$content])
                         ) {
                             if (!isset($this->components[$content])) {
-                                $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
-                                throw new Exception(TagItemConverter::terminalRed("Component `$content` not found.") . $tagsPath);
+                                $tagsPath = PHP_EOL . Helpers::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
+                                throw new Exception(Helpers::terminalRed("Component `$content` not found.") . $tagsPath);
                             }
 
                             $child->Type = new TagItemType(TagItemType::Component);
@@ -395,8 +397,8 @@ class TemplateParser
                     if ($currentParent->getChildren()) {
                         $currentParent = &$currentParent->currentChild();
                     } else {
-                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i) . PHP_EOL;
-                        throw new Exception(TagItemConverter::terminalRed("Can't get child node $skipContent.") . $tagsPath);
+                        $tagsPath = PHP_EOL . Helpers::errorOutput($name, $htmlContent, $i) . PHP_EOL;
+                        throw new Exception(Helpers::terminalRed("Can't get child node $skipContent.") . $tagsPath);
                         break;
                     }
                     $skipContent = '';
@@ -407,9 +409,9 @@ class TemplateParser
                             if (!$selfClosing && !isset($this->voidTags[$currentParent->Content])) {
                                 $closingTag = preg_replace('/[\W]/', '', $skipContent);
                                 if ($currentParent->Content !== $closingTag) {
-                                    $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
-                                    print_r([$currentParent->Content, $skipContent, $closingTag, $selfClosing]);
-                                    throw new Exception(TagItemConverter::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
+                                    $tagsPath = PHP_EOL . Helpers::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
+                                    // print_r([$currentParent->Content, $skipContent, $closingTag, $selfClosing]);
+                                    throw new Exception(Helpers::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
                                 }
                             }
                             $selfClosing = false;
@@ -417,8 +419,8 @@ class TemplateParser
                         $currentParent = &$currentParent->parent();
                     } else {
                         $closingTag = preg_replace('/[\W]/', '', $skipContent);
-                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
-                        throw new Exception(TagItemConverter::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
+                        $tagsPath = PHP_EOL . Helpers::errorOutput($name, $htmlContent, $i, strlen($closingTag)) . PHP_EOL;
+                        throw new Exception(Helpers::terminalRed("There is no an opening tag for '$closingTag'.") . $tagsPath);
                         break;
                     }
                     $skipContent = '';
@@ -449,14 +451,15 @@ class TemplateParser
             $child->Type = $currentType;
             $child->Content = $content;
             $child->ItsExpression = $itsExpression;
+            $child->FilePosition = $i;
             if ($currentType->Name === TagItemType::Tag && !$itsExpression) {
                 if (
                     !strpos($content, ':')
                     && !isset($this->reservedTags[$content])
                 ) {
                     if (!isset($this->components[$content])) {
-                        $tagsPath = PHP_EOL . TagItemConverter::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
-                        throw new Exception(TagItemConverter::terminalRed("Component sssss `$content` not found.") . $tagsPath);
+                        $tagsPath = PHP_EOL . Helpers::errorOutput($name, $htmlContent, $i, strlen($content))  . PHP_EOL;
+                        throw new Exception(Helpers::terminalRed("Component sssss `$content` not found.") . $tagsPath);
                     }
                     $child->Type = new TagItemType(TagItemType::Component);
                 }
