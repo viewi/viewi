@@ -39,6 +39,7 @@ use Viewi\JsTranspile\UseItem;
 use Viewi\Packages\ViewiPackage;
 use Viewi\Router\ComponentRoute;
 use Viewi\Router\Router;
+use Viewi\TemplateCompiler\CompileTemplateError;
 use Viewi\TemplateCompiler\TemplateCompiler;
 use Viewi\TemplateParser\TagItem;
 use Viewi\TemplateParser\TagItemConverter;
@@ -393,6 +394,17 @@ class Builder
             $extension = $pathinfo['extension'] ?? null;
             if ($extension === 'php') {
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
+                if ($jsOutput->error !== null) {
+                    // print_r($jsOutput);
+                    $codeSample = PHP_EOL . Helpers::errorOutput(
+                        $filePath,
+                        $jsOutput->errorCode,
+                        $jsOutput->errorPosition ?? 0,
+                        0,
+                        $jsOutput->errorEndPosition - $jsOutput->errorPosition
+                    )  . PHP_EOL;
+                    throw new Exception(Helpers::terminalRed("Converting into JavaScript error. {$jsOutput->errorMessage}") . $codeSample);
+                }
                 $this->collectExports($jsOutput, $jsOutput->getExports(), $include);
                 $this->tokensMap += $jsOutput->getTokens();
                 if (isset($this->components[$pathinfo['filename']])) {
@@ -545,9 +557,21 @@ class Builder
                 // 3. parse and compile template if exists
                 // 4. transpile and validate expressions
                 if ($buildItem->TemplatePath !== null) {
-                    $rootTag = $this->templateParser->parse(file_get_contents($buildItem->TemplatePath));
+                    $fileContent = file_get_contents($buildItem->TemplatePath);
+                    $rootTag = $this->templateParser->parse($fileContent, $buildItem->TemplatePath);
                     $this->tokensMap += $this->templateParser->getTokens();
+                    try{
                     $template = $this->templateCompiler->compile($rootTag, $buildItem);
+                    }catch(CompileTemplateError $err)
+                    {
+                        $codeSample = PHP_EOL . Helpers::errorOutput(
+                            $buildItem->TemplatePath,
+                            $fileContent,
+                            $err->errorPosition ?? 0,
+                            $err->errorEndPosition ?? 6,
+                        )  . PHP_EOL;
+                        throw new Exception(Helpers::terminalRed($err->getMessage()) . $codeSample);
+                    }
                     $this->renderInvocations = $this->array_merge_recursive($this->renderInvocations, $this->templateCompiler->getRenderInvocations());
                     foreach ($template->usedFunctions as $funcName => $_) {
                         if (!isset($this->availableFunctions[$funcName])) {
