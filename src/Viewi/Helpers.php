@@ -129,6 +129,9 @@ class Helpers
 
     public static function errorOutput(?string $fileOrName, string $html, int $position, int $highlightSize = 3, int $highlightAfter = 0)
     {
+        if(!$fileOrName) {
+            $fileOrName = 'INLINE';
+        }
         $length = 100;
         if ($position < $length) {
             $length = $position;

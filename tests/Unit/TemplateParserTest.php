@@ -200,7 +200,7 @@ class TemplateParserTest extends \Codeception\Test\Unit
                 foreach ($childrenToTest as $i => $child) {
                     if ($child !== null) {
                         if ($i >= $totalChildren) {
-                            $this->fail("Chidlren count does not match the expected number. Count: $totalChildren. Fetching $i.");
+                            $this->fail("Children count does not match the expected number. Count: $totalChildren. Fetching $i.");
                         }
                         $childTagItem = $children[$i];
                         $childType = $child[0];

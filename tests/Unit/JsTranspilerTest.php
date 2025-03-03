@@ -38,7 +38,7 @@ class JsTranspilerTest extends \Codeception\Test\Unit
             use Viewi\DI\Singleton;
 
             #[Singleton]
-            class MermberGuard implements IMIddleware
+            class MemberGuard implements IMIddleware
             {
                 public function run(IMIddlewareContext $c)
                 {
@@ -50,7 +50,7 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         $this->assertEquals(
             $this->normalizeString(
                 <<<'javascript'
-                class MermberGuard {
+                class MemberGuard {
                     run(c) {
                         var $this = this;
                         c.next();
@@ -75,7 +75,7 @@ class JsTranspilerTest extends \Codeception\Test\Unit
             use Viewi\DI\Singleton;
 
             #[Singleton]
-            class MermberGuard implements IMIddleware
+            class MemberGuard implements IMIddleware
             {
                 public function run(IMIddlewareContext $c)
                 {
@@ -97,15 +97,16 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         $this->assertEquals($middlewareKey, $middleware->Name);
         $this->assertEquals(ExportItem::Namespace, $middleware->Type);
         $this->assertCount(1, $middleware->Children);
-        $guardKey = 'MermberGuard';
+        $guardKey = 'MemberGuard';
         $this->assertArrayHasKey($guardKey, $middleware->Children);
         $guard = $middleware->Children[$guardKey];
         $this->assertEquals($guardKey, $guard->Name);
         $this->assertEquals(ExportItem::Class_, $guard->Type);
         // attributes
-        $this->assertCount(2, $guard->Attributes);
+        $this->assertCount(3, $guard->Attributes);
         $this->assertEquals('Components\Services\Middleware', $guard->Attributes['namespace']);
         $this->assertEqualsCanonicalizing(['Singleton' => ['Singleton']], $guard->Attributes['attrs']);
+        $this->assertEqualsCanonicalizing(['IMIddleware' => 'IMIddleware'], $guard->Attributes['implements']);
         // method
         $this->assertCount(1, $guard->Children);
         $runKey = 'run';
@@ -128,7 +129,7 @@ class JsTranspilerTest extends \Codeception\Test\Unit
             use Viewi\DI\Singleton;
 
             #[Singleton]
-            class MermberGuard implements IMIddleware
+            class MemberGuard implements IMIddleware
             {
                 public function run(IMIddlewareContext $c)
                 {
