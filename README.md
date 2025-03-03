@@ -1,33 +1,38 @@
 [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
 
-<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://dev.viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
-<h1 align="center">Viewi V2</h1>
+<p align="center"><a href="https://github.com/viewi/viewi#logo"><img src="https://viewi.net/logo.svg" alt="Viewi" height="180"/></a></p>
+<h1 align="center">Viewi</h1>
 <h2 align="center">Unique and efficient front-end framework for PHP</h2>
 
+### Examples
 
-<h3 align="center"><a href="https://github.com/viewi/viewi/tree/v1">Click here for Viewi v1</a></h3>
+```html
+<div>
+    <Thumbnail blog="$blog" />
+    <a href="{$blog->url}">
+        <h3>{$blog->title}</h3>
+        <p>{$blog->description}</p>
+    </a>
+    <LikeButton liked="{$blog->favorite}" (click)="like" />
+</div>
+```
 
-UI framework for PHP with reactivity on the front end and efficient SSR.
+```php
+class Blog extends BaseComponent
+{
+    public BlogModel $blog;
 
-Viewi is not about avoiding javascript, it's about integrating them both for mutual benefits.
+    public function like(bool $liked)
+    {
+        $this->blog->favorite = !$this->blog->favorite;
+    }
+}
+```
 
-Front-end framework designed for PHP.
+![Blog](/images/blog.png)
 
-How? - by transpiring PHP/HTML code into javascript to fuel the front-end.
 
-Transpiling works with a limited subset of PHP (not everything can be converted into JavaScript), but even then, it is still more than enough for building advanced web applications. And if you need more custom JS - there is a way to inject it.
-
-Viewi takes your PHP components and converts them into JavaScript.
-
-The flow:
-
-- The user opens the URL in the browser.
-- Viewi generates SEO-friendly HTML pages based on your components.
-- The browser receives an HTML page with Viewi scripts included.
-- Viewi JS framework runs a hydration process (creates events, makes page alive and reactive, as any other JS framework would).
-- From now on users can interact with the page without requesting new content from the server.
-- When navigating by clicking on links Viewi JS will render the page without making a request to your server using front-end routing.
-- API data can be requested with a built-in HTTP Client.
+Discover more at [https://viewi.net](https://viewi.net).
 
 ## Documentation
 
