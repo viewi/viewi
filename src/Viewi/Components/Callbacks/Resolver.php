@@ -69,15 +69,15 @@ class Resolver
                 ($this->onAlways)();
             }
             if ($throwError) {
-                if (!($this->lastError instanceof Exception)) {
-                    $this->lastError = new ResolverError($this->lastError);
-                }
+                // if (!($this->lastError instanceof Exception)) {
+                //     $this->lastError = new ResolverError($this->lastError);
+                // }
                 throw $this->lastError;
             }
         });
     }
 
-    public function then(callable $onSuccess, callable $onError = null, callable $always = null)
+    public function then(callable $onSuccess, ?callable $onError = null, ?callable $always = null)
     {
         $this->onSuccess = $onSuccess;
         if ($onError !== null) {

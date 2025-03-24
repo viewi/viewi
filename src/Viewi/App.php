@@ -92,7 +92,7 @@ class App
     }
 
     // TODO: adapter, PSR request/response, framework handler
-    public function run(?string $uri = null, string $method = null)
+    public function run(?string $uri = null, ?string $method = null)
     {
         $uri ??= $_SERVER['REQUEST_URI'];
         $method ??= $_SERVER['REQUEST_METHOD'];
