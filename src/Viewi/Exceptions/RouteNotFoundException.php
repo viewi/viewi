@@ -9,7 +9,7 @@ class RouteNotFoundException extends InvalidArgumentException
 {
     protected array $routeData;
 
-    public function __construct(string $message = "", int $code = 0, Throwable $previous = null, array $routeData = [])
+    public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null, array $routeData = [])
     {
         parent::__construct($message, $code, $previous);
         $this->routeData = $routeData;
