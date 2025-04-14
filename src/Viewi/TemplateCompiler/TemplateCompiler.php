@@ -135,7 +135,7 @@ class TemplateCompiler
         } catch (Throwable $th) {
             $error = new CompileTemplateError($th->getMessage());
             $error->errorPosition = $this->lastTagItem?->FilePosition;
-            $error->errorEndPosition = strlen($this->lastTagItem?->Content ?? '');
+            $error->errorEndPosition = strlen($this->lastTagItem?->OriginContent ?? $this->lastTagItem?->Content ?? '');
             throw $error;
         }
     }
@@ -236,6 +236,7 @@ class TemplateCompiler
                             }
                             $ifTagValue = &$ifValues[0];
                             $ifTagValue->ItsExpression = true;
+                            $ifTagValue->OriginContent = $ifTagValue->Content;
                             $ifTagValue->Content = $expression;
                             $child->setChildren([$ifTagValue]);
                             $this->buildExpression($ifTagValue);
@@ -279,6 +280,7 @@ class TemplateCompiler
                         }
                         $foreachTagValue = &$foreachValues[0];
                         $foreachTagValue->ItsExpression = true;
+                        $foreachTagValue->OriginContent = $foreachTagValue->Content;
                         $foreachTagValue->Content = $expression;
                         $child->setChildren([$foreachTagValue]);
                         $foreachParts = explode(' as ', $expression);
@@ -513,15 +515,19 @@ class TemplateCompiler
                         $backupLocalScopeArg = $this->localScopeArguments;
                         if ($isEvent || $itsModel) {
                             $combinedExpression = '';
+                            $attributeTagValue = new TagItem();
+                            $attributeTagValue->FilePosition = $attributeItem->FilePosition;
                             foreach ($values as &$subValue) {
                                 $combinedExpression .= $subValue->Content;
+                                $attributeTagValue->FilePosition = $subValue->FilePosition;
                             }
-                            $attributeTagValue = new TagItem();
                             $attributeTagValue->Type = new TagItemType(TagItemType::AttributeValue);
                             $attributeTagValue->ItsExpression = true;
+                            $originValue = $attributeItem->Content . '="' . $combinedExpression . '"';
                             if ($itsModel) {
                                 $combinedExpression = "[function (\${$this->_CompileJsComponentName}) { return $combinedExpression; }, function (\${$this->_CompileJsComponentName}, \$value) { $combinedExpression = \$value; }]";
                             }
+                            $attributeTagValue->OriginContent = $originValue;
                             $attributeTagValue->Content = $combinedExpression;
                             $values = [$attributeTagValue];
                             $attributeItem->setChildren($values);
@@ -764,6 +770,7 @@ class TemplateCompiler
                             if ($textsCount > 0) {
                                 $textTagItem = &$textCollection[0];
                                 if ($textsCount > 1) {
+                                    $textTagItem->OriginContent = $textTagItem->Content;
                                     if (!$textTagItem->ItsExpression) {
                                         $textTagItem->Content = var_export(html_entity_decode($textTagItem->Content, ENT_HTML5), true);
                                     }
@@ -863,6 +870,7 @@ class TemplateCompiler
                 $parts = explode('.', $attributeName, 2);
                 $attributeName = $parts[0];
                 $valueToReplace = $parts[1];
+                $attributeItem->OriginContent = $attributeItem->Content;
                 $attributeItem->Content = $attributeName;
             }
             $mutated = isset($attributeMap[$attributeName]);
@@ -872,6 +880,7 @@ class TemplateCompiler
                 foreach ($attributeChildren as $aci => &$attributeChild) {
                     $space = $mutated && $aci === 0 ? ' ' : '';
                     if ($valueToReplace) {
+                        $attributeChild->OriginContent = $attributeChild->Content;
                         if ($attributeChild->ItsExpression) {
                             $attributeChild->Content = "{$attributeChild->Content} ? '{$space}$valueToReplace' : ''";
                         } else {
@@ -920,13 +929,16 @@ class TemplateCompiler
             if ($attributeItem->ItsExpression) {
                 $attributeTagValue = new TagItem();
                 $attributeTagValue->Type = new TagItemType(TagItemType::AttributeValue);
+                $attributeTagValue->FilePosition = $attributeItem->FilePosition;
             } else {
                 $attributeTagValue = &$children[0];
             }
+            $originValue = $attributeItem->Content . '="' . $expression . '"';
             if ($itsModel) {
                 $expression = "[function (\${$this->_CompileJsComponentName}) { return $expression; }, function (\${$this->_CompileJsComponentName}, \$value) { $expression = \$value; }]";
             }
             $attributeTagValue->ItsExpression = true;
+            $attributeTagValue->OriginContent = $originValue;
             $attributeTagValue->Content = $expression;
             $backupLocalScope = $this->localScope;
             $backupLocalScopeArg = $this->localScopeArguments;
@@ -1063,6 +1075,7 @@ class TemplateCompiler
             $phpCode = substr($phpCode, 1, strlen($phpCode) - 2);
             $tagItem->RawHtml = true;
             $tagItem->ItsExpression = false;
+            $tagItem->OriginContent = $tagItem->Content;
             $tagItem->Content = eval('return ' . $phpCode . ';');
             // print_r([$phpCode, $tagItem->Content]);
             // Helpers::debug([$phpCode, $tagItem->Content]);

@@ -560,10 +560,9 @@ class Builder
                     $fileContent = file_get_contents($buildItem->TemplatePath);
                     $rootTag = $this->templateParser->parse($fileContent, $buildItem->TemplatePath);
                     $this->tokensMap += $this->templateParser->getTokens();
-                    try{
-                    $template = $this->templateCompiler->compile($rootTag, $buildItem);
-                    }catch(CompileTemplateError $err)
-                    {
+                    try {
+                        $template = $this->templateCompiler->compile($rootTag, $buildItem);
+                    } catch (CompileTemplateError $err) {
                         $codeSample = PHP_EOL . Helpers::errorOutput(
                             $buildItem->TemplatePath,
                             $fileContent,
