@@ -19,6 +19,8 @@ class CssBundlePostBuildAction implements IPostBuildAction
         $cssBundle->inline = $props['inline'] ?? false;
         $cssBundle->purge = $props['purge'] ?? false;
         $version = $cssBundle->version();
+        $buildId = $builder->getMeta()->meta['assets']['build-id'];
+        $appendVersion = $builder->getMeta()->meta['assets']['append-version'];
         $output = $cssBundle->combine && count($cssBundle->links) > 1
             ? '/' . crc32($version) . '.css'
             : $cssBundle->links[0];
@@ -46,7 +48,7 @@ class CssBundlePostBuildAction implements IPostBuildAction
             'version' => $version,
             'output' => $output
         ], [
-            'cssBundle' => [$version => $output]
+            'cssBundle' => [$version => $output . ( $appendVersion ? "?$buildId" : '')]
         ]);
     }
 }

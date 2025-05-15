@@ -1105,6 +1105,21 @@ class Builder
         /** END COMPONENTS FOREACH **/
 
         $this->metaList->meta['publicConfig']['assets'] = $this->assetsPath;
+        $chunkBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
+        $componentsJsonPublicPath = $this->assetsPath . "/$chunkBaseName.json";
+        $publicPath = $this->assetsPath . '/';
+        $buildId = Helpers::randomString();
+        $this->metaList->meta['assets'] = [
+            'app' => $this->assetsPath . "/$chunkBaseName.js",
+            'app-min' => $this->assetsPath . "/$chunkBaseName.min.js",
+            'build-id' => $buildId,
+            'minify' => $this->minifyJs,
+            'append-version' => $this->appendVersion,
+            'components' => $componentsJsonPublicPath,
+            'publicRootUrl' => $this->publicRootUrl,
+            'publicRoot' => $this->publicRootPath,
+            'publicAppRoot' => $this->publicPath
+        ];
         /** Post build actions **/
         $buildActionsModuleFile = $this->jsPath . $d . 'app' . $d . 'buildActions.mjs';
         $buildActionsList = [];
@@ -1128,22 +1143,7 @@ class Builder
         $buildActionsContent = 'export const buildActions = {' . PHP_EOL . $buildActionsContent . '};';
         file_put_contents($buildActionsModuleFile, $buildActionsContent);
         /** END Post build actions **/
-
-        $chunkBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
-        $componentsJsonPublicPath = $this->assetsPath . "/$chunkBaseName.json";
-        $publicPath = $this->assetsPath . '/';
-        $buildId = Helpers::randomString();
-        $this->metaList->meta['assets'] = [
-            'app' => $this->assetsPath . "/$chunkBaseName.js",
-            'app-min' => $this->assetsPath . "/$chunkBaseName.min.js",
-            'build-id' => $buildId,
-            'minify' => $this->minifyJs,
-            'append-version' => $this->appendVersion,
-            'components' => $componentsJsonPublicPath,
-            'publicRootUrl' => $this->publicRootUrl,
-            'publicRoot' => $this->publicRootPath,
-            'publicAppRoot' => $this->publicPath
-        ];
+        
         if (count($startups) > 0) {
             $this->metaList->meta['startup'] = $startups;
         }
