@@ -3,6 +3,9 @@ import { ContextScope } from "../lifecycle/contextScope";
 import { TemplateNode } from "../node/templateNode";
 
 export function renderText(instance: BaseComponent<any>, node: TemplateNode, textNode: Text, scope: ContextScope) {
+    if (scope.disposed) {
+        return;
+    }
     let callArguments = [instance];
     if (scope.arguments) {
         callArguments = callArguments.concat(scope.arguments);
