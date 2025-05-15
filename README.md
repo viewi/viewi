@@ -73,7 +73,7 @@ We all have full-time jobs and dedicate our free time to this project, and we wo
  - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
  - Follow us on [Twitter](https://twitter.com/viewiphp).
  - Contribute by sending pull requests.
- - Any other ideas or proposals? Please mail me voitovych.ivan.v@gmail.com.
+ - Any other ideas or proposals? Please mail me contact@viewi.net.
  - Feel welcome to share this project with your friends.
 
 
