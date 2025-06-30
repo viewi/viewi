@@ -12,6 +12,7 @@ class JsOutput
     public ?int $errorLine = null;
     public ?int $errorEndPosition = null;
     public ?string $errorMessage = null;
+    public ?string $filePath = null;
 
     public function __construct(
         private string $jsCode,
