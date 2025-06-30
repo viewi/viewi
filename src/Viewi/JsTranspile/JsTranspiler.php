@@ -66,6 +66,7 @@ use PhpParser\Node\Stmt\Nop;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Switch_;
+use PhpParser\Node\Stmt\Trait_;
 use PhpParser\Node\Stmt\TraitUse;
 use PhpParser\Node\Stmt\TryCatch;
 use PhpParser\Node\Stmt\Unset_;
@@ -202,15 +203,15 @@ class JsTranspiler
             $error = new JsOutput('');
             $error->errorCode = $this->phpCode;
             $error->errorMessage = $convertError->getMessage();
-            
-                $error->errorPosition = $convertError->getAttributes()['startFilePos'];
-                $error->errorEndPosition = $convertError->getAttributes()['endFilePos'];
-                $error->errorLine = $convertError->getStartLine();
-                // print_r($this->lastNode);
-           
+
+            $error->errorPosition = $convertError->getAttributes()['startFilePos'];
+            $error->errorEndPosition = $convertError->getAttributes()['endFilePos'];
+            $error->errorLine = $convertError->getStartLine();
+            // print_r($this->lastNode);
+
             $error->error = $convertError;
             return $error;
-        }  catch (Throwable $exc) {
+        } catch (Throwable $exc) {
             throw $exc;
             //     // Helpers::debug([$this->phpCode,  $this->jsCode, $this->forks]);
             //     echo 'Parse Error: ' . PHP_EOL, $exc->getMessage() . PHP_EOL;
@@ -308,6 +309,9 @@ class JsTranspiler
                             $exportItem->Attributes['implements'][$implement->name] = $implement->name;
                         }
                     }
+                }
+                if ($node instanceof Trait_) {
+                    $exportItem->Type = ExportItem::Trait_;
                 }
                 if ($node->attrGroups) {
                     $exportItem->Attributes['attrs'] = [];
