@@ -79,6 +79,11 @@ class Helpers
                         if (!file_exists($destinationPath)) {
                             mkdir($destinationPath, 0777, true);
                         }
+                        // print_r([
+                        //     $path . DIRECTORY_SEPARATOR,
+                        //     $toPath . basename($basePath) . DIRECTORY_SEPARATOR
+                        // ]);
+                        // self::copyAll($path . DIRECTORY_SEPARATOR,  $toPath . basename($basePath) . DIRECTORY_SEPARATOR,  $override);
                         break;
                     }
                 case 'file':
@@ -86,6 +91,7 @@ class Helpers
                         // file
                         $content = file_get_contents($path);
                         $write = $override || !file_exists($destinationPath) || $content !== file_get_contents($destinationPath);
+                        // print_r([$path, $destinationPath]);
                         if ($write) {
                             file_put_contents($destinationPath, $content);
                         }
@@ -113,7 +119,7 @@ class Helpers
         return $randomString;
     }
 
-    
+
     public static function prettyOutput(TagItem $tagItem, $indentation = '')
     {
         $output = "";
@@ -129,7 +135,7 @@ class Helpers
 
     public static function errorOutput(?string $fileOrName, string $html, int $position, int $highlightSize = 3, int $highlightAfter = 0)
     {
-        if(!$fileOrName) {
+        if (!$fileOrName) {
             $fileOrName = 'INLINE';
         }
         $length = 100;
@@ -165,6 +171,11 @@ class Helpers
     public static function terminalRed(string $text)
     {
         return "\e[31m{$text}\e[0m";
+    }
+
+    public static function terminalOrange(string $text)
+    {
+        return "\033[35m{$text}\033[0m";
     }
 
     public static function terminalBold(string $text)
