@@ -6,6 +6,7 @@ class ExportItem
 {
     const Namespace = 'NS';
     const Class_ = 'CL';
+    const Trait_ = 'TR';
     const Method = 'M';
     const Property = 'P';
     const Function = 'F';
