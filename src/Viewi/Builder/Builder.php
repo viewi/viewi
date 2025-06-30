@@ -293,7 +293,7 @@ class Builder
         foreach ($exports as $exportItem) {
             if ($exportItem->Type === ExportItem::Namespace) {
                 $this->collectExports($jsOutput, $exportItem->Children, $include);
-            } elseif ($exportItem->Type === ExportItem::Class_) {
+            } elseif ($exportItem->Type === ExportItem::Class_ || $exportItem->Type === ExportItem::Trait_) {
                 if (isset($this->routesMap[$exportItem->Name])) {
                     $include = true;
                 }
@@ -353,6 +353,11 @@ class Builder
                 }
 
                 $class = $buildItem->Namespace . '\\' . $buildItem->ComponentName;
+                if (($exportItem->Type === ExportItem::Class_ && !class_exists($class)) || ($exportItem->Type === ExportItem::Trait_ && !trait_exists($class))) {
+                    echo Helpers::terminalBold(Helpers::terminalOrange("Class/trait $class can not be found or has wrong location/namespace: {$jsOutput->filePath}")) . PHP_EOL;
+                    unset($this->components[$exportItem->Name]);
+                    return;
+                }
                 $buildItem->ReflectionClass = new ReflectionClass($class);
                 $buildItem->Props = $this->getProps($buildItem);
                 $buildItem->Methods = $this->getMethods($buildItem->ReflectionClass);
@@ -394,6 +399,7 @@ class Builder
             $extension = $pathinfo['extension'] ?? null;
             if ($extension === 'php') {
                 $jsOutput = $this->jsTranspiler->convert(file_get_contents($filePath));
+                $jsOutput->filePath = $filePath;
                 if ($jsOutput->error !== null) {
                     // print_r($jsOutput);
                     $codeSample = PHP_EOL . Helpers::errorOutput(
@@ -708,7 +714,7 @@ class Builder
                 if (!file_exists($exportDestinationPath)) {
                     mkdir($exportDestinationPath, 0777, true);
                 }
-                Helpers::copyAll($packageJsDir . $d . 'modules' . $d . $packageModulePath, $exportDestinationPath);
+                Helpers::copyAll($packageJsDir . $d . 'modules' . $d . $packageModulePath . $d, $exportDestinationPath);
             }
             $assetsDir = $package::assetsPath();
             if ($assetsDir) {
@@ -1143,7 +1149,7 @@ class Builder
         $buildActionsContent = 'export const buildActions = {' . PHP_EOL . $buildActionsContent . '};';
         file_put_contents($buildActionsModuleFile, $buildActionsContent);
         /** END Post build actions **/
-        
+
         if (count($startups) > 0) {
             $this->metaList->meta['startup'] = $startups;
         }
@@ -1326,6 +1332,8 @@ class Builder
             $this->logs .= "Ready!" . PHP_EOL;
         }
         if (!empty($this->assetsSourcePath)) {
+            // copy all assets, built ones too
+            Helpers::copyAll($this->assetsSourcePath . $d, $this->publicPath . $d);
             Helpers::copyAll($viewiDistAssetsPath . $d, $this->publicPath . $d);
         }
     }
