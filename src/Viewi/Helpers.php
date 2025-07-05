@@ -2,6 +2,7 @@
 
 namespace Viewi;
 
+use Exception;
 use Viewi\TemplateParser\TagItem;
 use Viewi\TemplateParser\TagItemType;
 
@@ -40,15 +41,23 @@ class Helpers
      */
     public static function removeDirectory(string $path, bool $removeRoot = false): void
     {
-        $files = glob($path . '/*');
-        foreach ($files as $file) {
+        $files = scandir($path);
+
+        foreach ($files as $key => $value) {
+            $file = realpath($path . DIRECTORY_SEPARATOR . $value);
+            if ($value === "." || $value === "..") {
+                continue;
+            }
             if (file_exists($file)) {
                 is_dir($file) ? self::removeDirectory($file, true) : unlink($file);
             }
         }
-
         if ($removeRoot) {
             rmdir($path);
+            // if (!rmdir($path)) {
+            //     echo new Exception()->getTraceAsString();
+            //     die();
+            // }
         }
     }
 
