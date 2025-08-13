@@ -18,6 +18,11 @@ class RouteItem
      * @var callable
      */
     public $transformCallback = null;
+    /**
+     * Priority of the route, higher - first, lower - last
+     * @var int
+     */
+    public int $priority = 0;
 
     function __construct(string $method, string $url, $action, ?array $defaults = null, array $wheres = [])
     {
@@ -41,6 +46,12 @@ class RouteItem
     public function transform($transform)
     {
         $this->transformCallback = $transform;
+        return $this;
+    }
+
+    public function priority(int $priority)
+    {
+        $this->priority = $priority;
         return $this;
     }
 }

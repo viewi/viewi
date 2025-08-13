@@ -18,6 +18,8 @@ class Router
 
     protected array $sections = [];
 
+    protected bool $ready = false;
+
     /**
      * 
      * @param array<RouteItem> $routeList 
@@ -34,6 +36,9 @@ class Router
      */
     public function getRoutes(): array
     {
+        if (!$this->ready) {
+            $this->prepare();
+        }
         return $this->routes;
     }
 
@@ -51,6 +56,7 @@ class Router
             $wheres
         );
         $this->routes[] = $item;
+        $this->ready = false;
         return $item;
     }
 
@@ -104,6 +110,20 @@ class Router
         $this->sectionName = array_pop($this->sections) ?? '';
     }
 
+    public function prepare()
+    {
+        $this->ready = true;
+        usort($this->routes, function (RouteItem $a, RouteItem $b) {
+            return $b->priority - $a->priority;
+        });
+        // $routes = [];
+        // foreach ($this->routes as $routeItem) {
+        //     $routes[] = "{$routeItem->method}: {$routeItem->url} {$routeItem->priority}";
+        //     //print_r([$routeItem->url, $routeItem->method, $routeItem->action]);
+        // }
+        // print_r($this->routes);
+    }
+
     /**
      *
      * @param mixed $url
@@ -112,6 +132,9 @@ class Router
      */
     public function resolve(string $url, string $method = 'get'): ?array
     {
+        if (!$this->ready) {
+            $this->prepare();
+        }
         if (empty($url)) {
             $url = '/';
         }
