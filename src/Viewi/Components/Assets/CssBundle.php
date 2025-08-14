@@ -20,6 +20,12 @@ class CssBundle extends BaseComponent
     public bool $combine = false;
     public bool $inline = false;
     public bool $purge = false;
+    public string $to = '';
+    /**
+     * Unique name
+     * @var string
+     */
+    public string $name = '';
     public string $cssHtml = '<!--- CssBundle not initiated --->';
 
     public function mounted()

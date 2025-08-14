@@ -124,6 +124,10 @@ class Builder
     private array $packages = [];
     private array $tokensMap = [];
     private array $routesMap = [];
+    /**
+     * @var array{action: IPostBuildAction, component: string}[]
+     */
+    private array $postBuild = [];
 
     public function __construct(private Router $router)
     {
@@ -231,6 +235,7 @@ class Builder
         $this->logs = '';
         $this->components = [];
         $this->tokensMap = [];
+        $this->postBuild = [];
         $this->metaList->meta = ['components' => [], 'map' => [], 'buildPath' => '', 'publicConfig' => []];
     }
 
@@ -727,10 +732,7 @@ class Builder
         $componentFilter = 0; // 0 - main, 1 - lazy load
         $includedInMain = [];
         $includedInGroups = [];
-        /**
-         * @var IPostBuildAction[] $postBuild
-         */
-        $postBuild = [];
+
         $publicRoutes = [];
         foreach ($this->routesMap as $routeList) {
             foreach ($routeList as $item) {
@@ -866,7 +868,7 @@ class Builder
                                 $actionClass = $postBuildAttributeInstance->className;
                                 $actionInstance = new $actionClass();
                                 if ($actionInstance instanceof IPostBuildAction) {
-                                    $postBuild[$buildItem->ComponentName] = $actionInstance;
+                                    $this->postBuild[] = ['component' => $buildItem->ComponentName, 'action' => $actionInstance];
                                 }
                                 break;
                             }
@@ -1129,8 +1131,10 @@ class Builder
         /** Post build actions **/
         $buildActionsModuleFile = $this->jsPath . $d . 'app' . $d . 'buildActions.mjs';
         $buildActionsList = [];
-        foreach ($postBuild as $componentName => $buildAction) {
+        foreach ($this->postBuild as $buildActionPair) {
+            $componentName = $buildActionPair['component'];
             if (isset($this->renderInvocations[$componentName])) {
+                $buildAction = $buildActionPair['action'];
                 foreach ($this->renderInvocations[$componentName] as $staticProps) {
                     $actionItem = $buildAction->build($this, $staticProps);
                     if ($actionItem !== null) {
@@ -1333,6 +1337,7 @@ class Builder
         }
         if (!empty($this->assetsSourcePath)) {
             // copy all assets, built ones too
+            // print_r([$this->assetsSourcePath, $viewiDistAssetsPath, $this->publicPath]);
             Helpers::copyAll($this->assetsSourcePath . $d, $this->publicPath . $d);
             Helpers::copyAll($viewiDistAssetsPath . $d, $this->publicPath . $d);
         }
@@ -1588,5 +1593,23 @@ class Builder
     public function getMeta(): MetaList
     {
         return $this->metaList;
+    }
+
+    /**
+     * 
+     * @return array{action: \Viewi\Builder\BuildAction\IPostBuildAction, component: string}[] Post build actions
+     */
+    public function getPostBuildActions()
+    {
+        return $this->postBuild;
+    }
+
+    /**
+     * 
+     * @return array 
+     */
+    public function getRenderInvocations()
+    {
+        return $this->renderInvocations;
     }
 }

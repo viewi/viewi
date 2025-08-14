@@ -12,6 +12,11 @@ class CssBundlePostBuildAction implements IPostBuildAction
 {
     public function build(Builder $builder, array $props): ?BuildActionItem
     {
+        if (isset($props['to'])) {
+            // skip the action
+            return null;
+        }
+
         $cssBundle = new CssBundle();
         $cssBundle->links = $props['links'] ?? [];
         $cssBundle->minify = $props['minify'] ?? false;
@@ -39,6 +44,21 @@ class CssBundlePostBuildAction implements IPostBuildAction
             }
             $output .= '.css';
         }
+
+        if (isset($props['name']) && $props['name']) {
+            // unique css bundle, collect links from other 'to' bundlers
+            $bundleUniqueName = $props['name'];
+            $renderInvocations = $builder->getRenderInvocations();
+
+            foreach ($renderInvocations['CssBundle'] as $staticProps) {
+                if (isset($staticProps['to']) && $staticProps['to'] === $bundleUniqueName) {
+                    if (isset($staticProps['links'])) {
+                        $cssBundle->links = array_merge($cssBundle->links, $staticProps['links']);
+                    }
+                }
+            }
+        }
+
         return new BuildActionItem('css', [
             'links' => $cssBundle->links,
             'minify' => $cssBundle->minify,
@@ -48,7 +68,7 @@ class CssBundlePostBuildAction implements IPostBuildAction
             'version' => $version,
             'output' => $output
         ], [
-            'cssBundle' => [$version => $output . ( $appendVersion ? "?$buildId" : '')]
+            'cssBundle' => [$version => $output . ($appendVersion ? "?$buildId" : '')]
         ]);
     }
 }
