@@ -936,7 +936,7 @@ class Builder
                     foreach ($buildItem->RenderFunction->slots as $slotTuple) {
                         $this->metaList->meta['map'][$slotTuple[1]->renderName] = $buildItem->ComponentName;
                     }
-                    if (!$buildItem->CustomJs) {
+                    if (!$buildItem->CustomJs && $buildItem->OverrideWith === null) {
                         $this->metaList->publicJson[$buildItem->ComponentName]['nodes'] = TagItemConverter::getRaw($buildItem->RootTag);
                     }
                     // inline expressions
