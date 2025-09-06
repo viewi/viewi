@@ -22,7 +22,7 @@ class Blog extends BaseComponent
 {
     public BlogModel $blog;
 
-    public function like(bool $liked)
+    public function like()
     {
         $this->blog->favorite = !$this->blog->favorite;
     }
