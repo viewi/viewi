@@ -2,13 +2,19 @@
 
 namespace Viewi\Components\Http\Message;
 
+use Throwable;
 use Viewi\Builder\Attributes\Skip;
 
 #[Skip]
 class Response
 {
-    public function __construct(public string $url, public int $status, public string $statusText, public array $headers = [], public $body = null)
+    public ?Throwable $error = null;
+
+    public function __construct(public string $url, public int $status, public string $statusText, public array $headers = [], public $body = null) {}
+
+    public function setError(Throwable $error)
     {
+        $this->error = $error;
     }
 
     public function withUrl(string $url): self

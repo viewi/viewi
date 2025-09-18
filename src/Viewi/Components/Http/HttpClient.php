@@ -23,9 +23,7 @@ class HttpClient
      */
     private array $interceptors = [];
 
-    public function __construct(private Platform $platform, private IViewiBridge $bridge)
-    {
-    }
+    public function __construct(private Platform $platform, private IViewiBridge $bridge) {}
 
     public function getScopeResponses()
     {
@@ -88,7 +86,9 @@ class HttpClient
                 $requestHandler = new RequestHandler($onHandle, $this->platform->engine(), $this->interceptors, $request);
                 $requestHandler->next($request);
             } catch (Exception $ex) {
-                $callback(null, $ex);
+                $errorResponse = new Response('/', 500, 'Server Error', [], null);
+                $errorResponse->setError($ex);
+                $callback(null, $errorResponse);
             }
         });
         return $resolver;
