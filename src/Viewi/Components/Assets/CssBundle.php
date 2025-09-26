@@ -11,9 +11,7 @@ use Viewi\Components\Http\HttpClient;
 #[PostBuildAction(CssBundlePostBuildAction::class)]
 class CssBundle extends BaseComponent
 {
-    public function __construct(private ?ConfigService $config = null, private ?HttpClient $http = null)
-    {
-    }
+    public function __construct(private ?ConfigService $config = null, private ?HttpClient $http = null) {}
 
     public array $links = [];
     public bool $minify = false;
@@ -30,6 +28,11 @@ class CssBundle extends BaseComponent
 
     public function mounted()
     {
+        if ($this->to) {
+            // portal to another place, this one is empty
+            $this->cssHtml = "<!--Portal to {$this->to} -->";
+            return;
+        }
         $baseUrl = $this->config->get('assetsUrl');
         if ($this->combine) {
             $cssBundleList = $this->config->get('cssBundle');
