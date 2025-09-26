@@ -94,6 +94,7 @@ class JsTranspiler
     private $stmts;
     private ?string $currentClass = null;
     private array $currentTraits = [];
+    private bool $hasConstructor = false;
     private ?string $currentExtend = null;
     private bool $currentConstructor = false;
     private ?string $currentMethod = null;
@@ -285,6 +286,7 @@ class JsTranspiler
                     $last = $use->name->getLast();
                     $this->usingList[$last] = new UseItem($parts, UseItem::Class_);
                 }
+                //print_r($node);
                 // Helpers::debug($node);
                 // TODO: validation
             } elseif ($node instanceof Interface_) {
@@ -341,6 +343,7 @@ class JsTranspiler
                         return;
                     }
                 }
+                $this->hasConstructor = false;
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
@@ -350,6 +353,20 @@ class JsTranspiler
                 // $base(this);"
                 $this->membersCount = 0;
                 $this->privateProperties = [];
+
+                // if no constructor
+                if (!$this->hasConstructor && count($this->currentTraits) > 0) {
+                    //$this->jsCode .= "constructor() {";
+                    foreach ($this->currentTraits as $trait) {
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) .
+                            "/** has trait $trait **/" . PHP_EOL;
+                        $this->jsCode .= str_repeat($this->indentationPattern, $this->level) .
+                            "____ = (Object.assign(this, new $trait()));" . PHP_EOL;
+                    }
+                    
+                    //$this->jsCode .= "}";
+                }
+
                 $this->level--;
                 $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "}" . PHP_EOL;
                 foreach ($this->currentTraits as $trait) {
@@ -362,7 +379,9 @@ class JsTranspiler
                 $this->currentExtend = null;
             } elseif ($node instanceof TraitUse) {
                 foreach ($node->traits as $trait) {
-                    $this->currentTraits[] = $trait->getLast();
+                    $lastPart = $trait->getLast();
+                    $this->currentTraits[] = $lastPart;
+                    $this->usingList[$lastPart] = new UseItem($trait->getParts(), UseItem::Class_);
                 }
             } elseif ($node instanceof ClassConst) {
                 $this->fork();
@@ -432,6 +451,7 @@ class JsTranspiler
                 if ($name === '__construct') {
                     $name = 'constructor';
                     $itsConstructor = true;
+                    $this->hasConstructor = true;
                     $this->currentConstructor = true;
                 }
                 $promotedParams = [];
