@@ -22,6 +22,7 @@ use Viewi\Components\Attributes\OverrideComponent;
 use Viewi\Components\Attributes\PostBuildAction;
 use Viewi\Components\Attributes\Preserve;
 use Viewi\Components\BaseComponent;
+use Viewi\Components\DOM\HtmlNode;
 use Viewi\Components\IStartUp\IStartUp;
 use Viewi\Components\Render\IRenderable;
 use Viewi\Components\ViewiCorePackage;
@@ -424,6 +425,22 @@ class Builder
                     if (is_file($templatePath)) {
                         $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
                         $this->availableComponents[$pathinfo['filename']] = true;
+                    } elseif (isset($this->components[$pathinfo['filename']]->Attributes['OverrideComponent'])) {
+                        $overrideAttributes = $this->components[$pathinfo['filename']]->ReflectionClass->getAttributes(OverrideComponent::class);
+                        if ($overrideAttributes && count($overrideAttributes) > 0) {
+                            /**
+                             * @var OverrideComponent $overrideInstance 
+                             */
+                            $overrideInstance = $overrideAttributes[0]->newInstance();
+                            $reflector = new ReflectionClass($overrideInstance->component);
+                            $classFileLocation = $reflector->getFileName();
+                            $htmlFile = substr($classFileLocation, 0, -4) . '.html';
+                            if (is_file($htmlFile)) {
+                                $templatePath = $htmlFile;
+                                $this->components[$pathinfo['filename']]->TemplatePath = $templatePath;
+                                $this->availableComponents[$pathinfo['filename']] = true;
+                            }
+                        }
                     }
                     $tsPath = $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.ts';
                     if (is_file($tsPath)) {
@@ -1399,6 +1416,10 @@ class Builder
                 $attributeMetadata = [];
                 $attributes = $propertyInfo->getAttributes();
                 $propName = $propertyInfo->getName();
+                $propType = $propertyInfo->getType();
+                if ($propType && $propType->getName() === HtmlNode::class) {
+                    $buildItem->refs[$propName] = 1;
+                }
                 if ($attributes) {
                     foreach ($attributes as $attribute) {
                         $attributeClass = $attribute->getName();
@@ -1410,8 +1431,8 @@ class Builder
                              * @var Inject $injectAttribute
                              */
                             $injectAttribute = $attribute->newInstance();
-                            $argumentClass = $propertyInfo->getType() && !$propertyInfo->getType()->isBuiltin()
-                                ? new ReflectionClass($propertyInfo->getType()->getName())
+                            $argumentClass = $propType && !$propType->isBuiltin()
+                                ? new ReflectionClass($propType->getName())
                                 : null; // check if class exists
                             if ($argumentClass !== null) {
                                 $buildItem->DiProps[$propName] = ['name' => $argumentClass->getShortName(), 'di' => $injectAttribute->scope];
