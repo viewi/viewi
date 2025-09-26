@@ -8,6 +8,7 @@ import { injectScript } from "../http/injectScript";
 import { dispose } from "../lifecycle/dispose";
 import { IMiddleware } from "../lifecycle/imiddleware";
 import { HtmlNodeType } from "../node/htmlNodeType";
+import { delayRenderQueue } from "../portal/delayRenderQueue";
 import { renderComponent } from "./renderComponent";
 
 const lazyRecords = {};
@@ -80,6 +81,10 @@ export function renderApp(
     globalScope.scopedContainer = {};
     globalScope.located = {};
     globalScope.rootScope = renderComponent(target ?? document, name, undefined, {}, hydrate, false, params);
+    let delayedRenderAction: Function | undefined = undefined;
+    while ((delayedRenderAction = delayRenderQueue.pop())) {
+        delayedRenderAction();
+    }
     globalScope.hydrate = false; // TODO: scope managment function
     for (let name in globalScope.lastIteration) {
         if (!(name in globalScope.iteration)) {
