@@ -4,7 +4,7 @@ use Viewi\AppConfig;
 
 $d = DIRECTORY_SEPARATOR;
 $viewiAppPath = __DIR__ . $d;
-$componentsPath =  $viewiAppPath . 'Components';
+$componentsPath =  $viewiAppPath . '_NSPATH_';
 $buildPath = $viewiAppPath . 'build';
 $jsPath = $viewiAppPath . 'js';
 $assetsSourcePath = $viewiAppPath . 'assets';

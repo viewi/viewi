@@ -1,6 +1,6 @@
 <?php
 
-namespace Components\Views\Home;
+namespace _NS_\Views\Home;
 
 use Viewi\Components\BaseComponent;
 

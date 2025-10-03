@@ -1,7 +1,7 @@
 <?php
 
-use Components\Views\Home\HomePage;
-use Components\Views\NotFound\NotFoundPage;
+use _NS_\Views\Home\HomePage;
+use _NS_\Views\NotFound\NotFoundPage;
 use Viewi\App;
 use Viewi\Components\Http\Message\Response;
 

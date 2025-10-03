@@ -1,6 +1,6 @@
 <?php
 
-namespace Components\Views\Layouts;
+namespace _NS_\Views\Layouts;
 
 use Viewi\Components\BaseComponent;
 use Viewi\Components\Config\ConfigService;

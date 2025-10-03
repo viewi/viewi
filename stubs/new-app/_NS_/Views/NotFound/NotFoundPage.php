@@ -1,6 +1,6 @@
 <?php
 
-namespace Components\Views\NotFound;
+namespace _NS_\Views\NotFound;
 
 use Viewi\Components\BaseComponent;
 

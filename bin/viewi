@@ -10,6 +10,7 @@ $cliTool->exec($argv);
 
 class ViewiCLITool
 {
+    static array $defaultNamespace = ['Components'];
     static array $commands = [
         'new' => [
             'description' => 'Initialize Viewi application.',
@@ -34,6 +35,11 @@ class ViewiCLITool
             'action' => 'help'
         ]
     ];
+    static string $nsTag = '_NS_';
+    static string $nsPathTag = '_NSPATH_';
+
+    protected string $namespaceString = '';
+    protected string $namespacePathString = '';
 
     function exec($argv)
     {
@@ -107,6 +113,13 @@ class ViewiCLITool
             echo "Viewi directory '$viewiDir' already exists. To continue please remove the old one or select another folder.\n";
             return;
         }
+        $namespace = [...self::$defaultNamespace];
+        if (isset($inputsMap['-ns'])) {
+            $namespace = preg_split('/(\/|\\\\)/', $inputsMap['-ns']);
+        }
+        $this->namespaceString = implode('\\', $namespace);
+        $this->namespacePathString = implode('/', $namespace);
+        $viewiDirComponents = $viewiDir . '/' . $this->namespacePathString;
         $adapterOnly = array_key_exists('-a', $inputsMap);
         echo "Creating directory '$viewiDir'..\n";
         mkdir($viewiDirFullPath, 0777, true);
@@ -133,9 +146,10 @@ class ViewiCLITool
         $newAppStubsPath = "$projectDir/$newAppStubs";
         echo "Copying files..\n";
         if (file_exists($newAppStubsPath)) {
-            $this->recurse_copy($newAppStubsPath, $viewiDirFullPath);
+            $this->recurse_copy($newAppStubsPath, $viewiDirFullPath, true);
         } else {
             echo "Can't find path '$newAppStubsPath'\n";
+            return;
         }
 
         $viewiJsDirFullPath = "$viewiDirFullPath/js";
@@ -178,7 +192,8 @@ class ViewiCLITool
             if (!isset($json['autoload']['psr-4'])) {
                 $json['autoload']['psr-4'] = [];
             }
-            $json['autoload']['psr-4']['Components\\'] = "$viewiDir/Components/";
+            $pathNS = implode('/', $namespace);
+            $json['autoload']['psr-4'][implode('\\', $namespace) . '\\'] = "$viewiDir/$pathNS/";
             $content = json_encode(
                 $json,
                 JSON_PRETTY_PRINT |
@@ -265,16 +280,25 @@ class ViewiCLITool
         chdir($currentDir);
     }
 
-    function recurse_copy($src, $dst)
+    function recurse_copy(string $src, string $dst, bool $applyNs = false)
     {
         $dir = opendir($src);
         @mkdir($dst);
         while (false !== ($file = readdir($dir))) {
             if (($file != '.') && ($file != '..')) {
                 if (is_dir($src . '/' . $file)) {
-                    $this->recurse_copy($src . '/' . $file, $dst . '/' . $file);
+                    $destFilePath = $file;
+                    if ($file === self::$nsTag) {
+                        $destFilePath = $this->namespacePathString;
+                        @mkdir($dst . '/' . $destFilePath, 0777, true);
+                    }
+                    $this->recurse_copy($src . '/' . $file, $dst . '/' . $destFilePath, $applyNs);
                 } else {
-                    copy($src . '/' . $file, $dst . '/' . $file);
+                    $content = file_get_contents($src . '/' . $file);
+                    file_put_contents($dst . '/' . $file, $applyNs
+                        ? str_replace(self::$nsPathTag, $this->namespacePathString, str_replace(self::$nsTag, $this->namespaceString, $content))
+                        : $content);
+                    // copy($src . '/' . $file, $dst . '/' . $file);
                 }
             }
         }
