@@ -77,7 +77,7 @@ function is_array (mixedVar) { // eslint-disable-line camelcase
     return true
   }
 
-  const iniVal = (typeof require !== 'undefined' ? require('../info/ini_get')('locutus.objectsAsArrays') : undefined) || 'on'
+  const iniVal = 'on'
   if (iniVal === 'on') {
     const asString = Object.prototype.toString.call(mixedVar)
     const asFunc = _getFuncName(mixedVar.constructor)

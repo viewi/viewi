@@ -29,7 +29,7 @@ function shuffle (inputArr) {
     return 0.5 - Math.random()
   })
 
-  const iniVal = (typeof require !== 'undefined' ? require('../info/ini_get')('locutus.sortByReference') : undefined) || 'on'
+  const iniVal = 'on'
   sortByReference = iniVal === 'on'
   populateArr = sortByReference ? inputArr : populateArr
 

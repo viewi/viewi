@@ -30,7 +30,7 @@ function uasort (inputArr, sorter) {
     sorter = this[sorter[0]][sorter[1]]
   }
 
-  const iniVal = (typeof require !== 'undefined' ? require('../info/ini_get')('locutus.sortByReference') : undefined) || 'on'
+  const iniVal = 'on'
   sortByReference = iniVal === 'on'
   populateArr = sortByReference ? inputArr : populateArr
 

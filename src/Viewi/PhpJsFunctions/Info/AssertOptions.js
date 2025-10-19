@@ -33,7 +33,7 @@ function assert_options (what, value) { // eslint-disable-line camelcase
   }
 
   // I presume this is to be the most recent value, instead of the default value
-  const iniVal = (typeof require !== 'undefined' ? require('../info/ini_get')(iniKey) : undefined) || defaultVal
+  const iniVal = defaultVal
 
   return iniVal
 }

@@ -25,7 +25,7 @@ function parse_url (str, component) { // eslint-disable-line camelcase
 
   let query
 
-  const mode = (typeof require !== 'undefined' ? require('../info/ini_get')('locutus.parse_url.mode') : undefined) || 'php'
+  const mode = 'php'
 
   const key = [
     'source',
@@ -81,7 +81,7 @@ function parse_url (str, component) { // eslint-disable-line camelcase
   }
 
   if (mode !== 'php') {
-    const name = (typeof require !== 'undefined' ? require('../info/ini_get')('locutus.parse_url.queryKey') : undefined) || 'queryKey'
+    const name = 'queryKey'
     parser = /(?:^|&)([^&=]*)=?([^&]*)/g
     uri[name] = {}
     query = uri[key[12]] || ''
