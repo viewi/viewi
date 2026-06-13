@@ -99,12 +99,16 @@ class Engine
         $next = new MIddlewareContext(function (bool $allow = true) {
             $this->allow = $allow;
         });
-        foreach ($middlewareList as $middlewareName) {
+        foreach ($middlewareList as $entry) {
             if ($this->allow) {
                 /**
                  * @var IMIddleware $middleware
                  */
-                $middleware = $this->resolve($middlewareName);
+                // Entry is either a bare guard name (string) or a parameterized
+                // ['name' => ..., 'params' => [...]] descriptor.
+                $middleware = is_array($entry)
+                    ? $this->resolve($entry['name'], $entry['params'] ?? [])
+                    : $this->resolve($entry);
                 $middleware->run($next);
             }
         }

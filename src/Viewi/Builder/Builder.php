@@ -845,12 +845,34 @@ class Builder
                                  * @var Middleware $middlewareAttribute
                                  */
                                 $middlewareAttribute = $attribute->newInstance();
-                                $shortNames = array_map(function (string $className) {
+                                $middlewareList = array_map(function ($entry) {
+                                    // Plain guard: a class-string -> short name (back-compat).
+                                    if (is_string($entry)) {
+                                        $exp = explode('\\', $entry);
+                                        return array_pop($exp);
+                                    }
+                                    // Parameterized guard: [GuardClass::class, ...positional ctor args].
+                                    // Positional literals are zipped onto the guard constructor's
+                                    // parameter names so resolve() can inject them by argName at
+                                    // runtime (the same channel route params use).
+                                    $className = $entry[0];
+                                    $args = array_slice($entry, 1);
                                     $exp = explode('\\', $className);
-                                    return array_pop($exp);
+                                    $shortName = array_pop($exp);
+                                    $params = [];
+                                    if ($args) {
+                                        $constructor = (new \ReflectionClass($className))->getConstructor();
+                                        $ctorParams = $constructor ? $constructor->getParameters() : [];
+                                        foreach (array_values($args) as $i => $value) {
+                                            if (isset($ctorParams[$i])) {
+                                                $params[$ctorParams[$i]->getName()] = $value;
+                                            }
+                                        }
+                                    }
+                                    return ['name' => $shortName, 'params' => $params];
                                 }, $middlewareAttribute->middlewareList);
-                                $componentMeta['middleware'] = $shortNames;
-                                $this->metaList->publicJson[$buildItem->ComponentName]['middleware'] = $shortNames;
+                                $componentMeta['middleware'] = $middlewareList;
+                                $this->metaList->publicJson[$buildItem->ComponentName]['middleware'] = $middlewareList;
                                 break;
                             }
                         case OverrideComponent::class: {

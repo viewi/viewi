@@ -56,8 +56,12 @@ export function renderApp(
                 globalAllow = allow;
                 current++;
                 if (globalAllow && current < total) {
-                    // run next middleware
-                    const middleware: IMiddleware = resolve(info.middleware![current]);
+                    // run next middleware: either a bare guard name (string) or a
+                    // parameterized { name, params } descriptor.
+                    const entry = info.middleware![current];
+                    const middleware: IMiddleware = typeof entry === 'string'
+                        ? resolve(entry)
+                        : resolve(entry.name, entry.params || {});
                     middleware.run(context);
                 } else {
                     // render app

@@ -18,7 +18,7 @@ export type ComponentMetaData = {
     parent?: string,
     lazy?: string,
     override?: string,
-    middleware?: string[],
+    middleware?: (string | { name: string, params?: { [key: string]: any } })[],
     hooks?: {
         init?: boolean,
         mounting?: boolean,
