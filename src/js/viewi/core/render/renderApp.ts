@@ -59,14 +59,13 @@ export function renderApp(
                     // run next middleware: either a bare guard name (string) or a
                     // parameterized { name, params } descriptor.
                     const entry = info.middleware![current];
-                    let middlewareParams = {...params};
+                    let middlewareParams = { ...params };
                     let middlewareName = '';
-                    if (typeof entry === 'string')
-                    {
+                    if (typeof entry === 'string') {
                         middlewareName = entry;
                     } else {
                         middlewareName = entry.name;
-                        middlewareParams = {...middlewareParams, ...entry.params};
+                        middlewareParams = { ...middlewareParams, ...entry.params };
                     }
                     const middleware: IMiddleware = resolve(middlewareName, middlewareParams);
                     middleware.run(context);
