@@ -50,7 +50,7 @@ class Engine
             $this->setUp($this->meta['startup']);
         }
         if (isset($this->meta['components'][$component]['middleware'])) {
-            $this->guard($this->meta['components'][$component]['middleware']);
+            $this->guard($this->meta['components'][$component]['middleware'], $params);
         }
         $response = $this->getResponse();
         if ($this->allow) {
@@ -94,7 +94,7 @@ class Engine
         }
     }
 
-    public function guard(array $middlewareList): void
+    public function guard(array $middlewareList, array $params): void
     {
         $next = new MIddlewareContext(function (bool $allow = true) {
             $this->allow = $allow;
@@ -107,8 +107,8 @@ class Engine
                 // Entry is either a bare guard name (string) or a parameterized
                 // ['name' => ..., 'params' => [...]] descriptor.
                 $middleware = is_array($entry)
-                    ? $this->resolve($entry['name'], $entry['params'] ?? [])
-                    : $this->resolve($entry);
+                    ? $this->resolve($entry['name'], [...$params, ...($entry['params'] ?? [])])
+                    : $this->resolve($entry, $params);
                 $middleware->run($next);
             }
         }
