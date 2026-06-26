@@ -41,6 +41,11 @@ class Platform
         return $this->engine->getRequest()?->url;
     }
 
+    public function replaceUrl(string $url): void
+    {
+        // only client-side
+    }
+
     public function setResponseStatus(int $status): void
     {
         $this->engine->getResponse()->status = $status;

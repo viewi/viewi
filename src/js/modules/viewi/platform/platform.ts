@@ -25,6 +25,15 @@ class Platform {
         return location.pathname + location.search;
     }
 
+    replaceUrl(href: string) {
+        if (href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0) {
+            // external, do not allow
+            return;
+        }
+
+        window.history.replaceState(window.history.state, '', href);
+    }
+
     setResponseStatus(status: number): void {
         // server side only
     }

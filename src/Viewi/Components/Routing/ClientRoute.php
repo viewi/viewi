@@ -33,6 +33,11 @@ class ClientRoute
         return $this->platform->getCurrentUrl();
     }
 
+    public function replaceUrl(string $url): void
+    {
+        $this->platform->replaceUrl($url);
+    }
+
     public function getUrlPath(): ?string
     {
         return $this->platform->getCurrentUrlPath();
