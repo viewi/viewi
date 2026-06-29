@@ -102,6 +102,10 @@ class JsTranspiler
     private ?string $buffer = null;
     private string $forks = '';
     private array $localVariables = [];
+    /** @var array<string,bool> instance method names in the current class — for the method/property collision guard */
+    private array $classMethodNames = [];
+    /** @var array<string,bool> instance property names in the current class — for the method/property collision guard */
+    private array $classPropertyNames = [];
     private int $foreachKeyIndex = 0;
     /** @var array<string,array<string,string[]>> */
     private array $variablePaths;
@@ -344,10 +348,24 @@ class JsTranspiler
                     }
                 }
                 $this->hasConstructor = false;
+                $this->classMethodNames = [];
+                $this->classPropertyNames = [];
                 if ($node->stmts !== null) {
                     $this->currentPath[] = $node->name; // TODO: const
                     $this->processStmts($node->stmts);
                     array_pop($this->currentPath);
+                }
+                // Guard: PHP keeps method and property namespaces separate, but both transpile to the
+                // same JS member (this.x). A method + property sharing a name produces a silently-broken
+                // this.x (the instance property shadows the prototype method). Fail loudly instead.
+                foreach ($this->classMethodNames as $member => $_) {
+                    if (isset($this->classPropertyNames[$member])) {
+                        throw new ConvertError(
+                            "Component '{$node->name}' declares both a method and a property named '{$member}'. "
+                                . "In PHP these are separate, but they transpile to the same JS member (this.{$member}) — "
+                                . "the property shadows the method, so calls to {$member}() fail at runtime. Rename one of them."
+                        );
+                    }
                 }
                 // "var $this = this;
                 // $base(this);"
@@ -408,6 +426,7 @@ class JsTranspiler
                 } else {
                     $publicOrProtected = !$node->isPrivate();
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name = ";
+                    $this->classPropertyNames[$name] = true;
                     if (!$publicOrProtected) {
                         $this->privateProperties[$name] = true;
                     }
@@ -482,6 +501,7 @@ class JsTranspiler
                                 $promoted = true;
                             }
                             if ($promoted) {
+                                $this->classPropertyNames[$paramName] = true; // promoted ctor param → instance property
                                 $promotedParams[$paramName] =
                                     [
                                         $this->indentationPattern . str_repeat($this->indentationPattern, $this->level) .
@@ -495,6 +515,9 @@ class JsTranspiler
                     }
                     $publicOrProtected = !$node->isPrivate();
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name(";
+                    if (!$itsConstructor) {
+                        $this->classMethodNames[$name] = true; // instance method (prototype) — for collision guard
+                    }
                     if (!$publicOrProtected) {
                         $this->privateProperties[$name] = true;
                     }
@@ -1209,7 +1232,13 @@ class JsTranspiler
                     if ($node->var instanceof Variable) {
                         $name = $node->var->name;
                         $isThis = $name === 'this';
-                        if (!$isThis && !$this->inlineExpression && !isset($this->localVariables[$name]) && !isset($this->privateProperties[$name])) {
+                        // A local variable assignment (LHS is a Variable, never `$this->x`) must always
+                        // declare with `var` on first use. Do NOT skip it when the name happens to match a
+                        // private method/property: in PHP `$ts` (local) and `$this->ts` (member) are separate
+                        // namespaces, and JS keeps them separate too (members are always emitted qualified as
+                        // `$this.ts`). Gating on privateProperties here dropped the `var`, leaking the local to
+                        // the global scope (e.g. a local `$ts` beside a private `ts()` method).
+                        if (!$isThis && !$this->inlineExpression && !isset($this->localVariables[$name])) {
                             $this->jsCode .= 'var ';
                             $this->localVariables[$name] = true;
                         }
