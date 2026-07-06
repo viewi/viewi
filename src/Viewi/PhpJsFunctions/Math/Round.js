@@ -43,8 +43,8 @@ function round (value, precision = 0, mode = 'PHP_ROUND_HALF_UP') {
   // the code is heavily based on the native PHP implementation
   // https://github.com/php/php-src/blob/PHP-7.4/ext/standard/math.c#L355
 
-  value = floatCast(value)
-  precision = intCast(precision)
+  value = _php_cast_float(value)
+  precision = _php_cast_int(precision)
   p = Math.pow(10, precision)
 
   if (isNaN(value) || !isFinite(value)) {
