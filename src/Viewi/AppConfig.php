@@ -6,6 +6,7 @@ use Viewi\Packages\ViewiPackage;
 
 class AppConfig
 {
+    public bool $versionSubFolder = false;
     /**
      * @param string Unique name
      * @param null|string $buildPath Destination folder for Viewi's build files
@@ -218,6 +219,12 @@ class AppConfig
     public function use($package): self
     {
         $this->packages[] = $package;
+        return $this;
+    }
+
+    public function versionSubFolder(?bool $versionSubFolder = null): self
+    {
+        $this->versionSubFolder = $versionSubFolder ?? true;
         return $this;
     }
 }

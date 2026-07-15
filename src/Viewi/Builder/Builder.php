@@ -129,6 +129,8 @@ class Builder
      * @var array{action: IPostBuildAction, component: string}[]
      */
     private array $postBuild = [];
+    private string $buildId = '';
+    private string $buildPublicAssetsPath = '';
 
     public function __construct(private Router $router)
     {
@@ -156,16 +158,23 @@ class Builder
      */
     public function build(AppConfig $config, array $publicConfig)
     {
+        $this->buildId = Helpers::randomString();
         $d = DIRECTORY_SEPARATOR;
         $this->reset();
         $this->appName = $config->name;
         $this->buildPath = $config->buildPath;
         $this->jsPath = $config->jsPath;
         $subFolderName = $config->getSubFolderName();
+        $this->buildPublicAssetsPath = $config->publicPath . ($config->publicUrl ? $config->publicUrl : '') . $d . $subFolderName;
+        if ($config->versionSubFolder) {
+            $subFolderName = "$subFolderName/{$this->buildId}";
+            $publicConfig['assetsUrl'] .= "/{$this->buildId}";
+        }
         $this->publicRootPath = $config->publicPath;
         $this->publicRootUrl = $config->publicUrl;
         $this->publicPath = $config->publicPath . ($config->publicUrl ? $config->publicUrl : '') . $d . $subFolderName;
         $this->assetsPath = $config->publicUrl . "/$subFolderName";
+
         $this->assetsSourcePath = $config->assetsPath;
         $this->minifyJs = $config->minifyJs;
         $this->internalDevMode = $config->internalDevMode;
@@ -177,6 +186,7 @@ class Builder
         $this->noJsNamespaces = $config->noJsNamespace;
         $this->jsTranspiler->setSkipNamespaces(array_merge($this->noJsNamespaces, $this->ignoreNamespaces));
         $this->publicConfig = $publicConfig;
+
         // $includes will be shaken if not used in the $entryPath
         // 1. collect available components
         // 2. transpile to js and collect uses, props, methods and paths
@@ -691,11 +701,11 @@ class Builder
         if (!file_exists($this->buildPath)) {
             mkdir($this->buildPath, 0777, true);
         }
+        Helpers::removeDirectory($this->buildPublicAssetsPath);
+        Helpers::removeDirectory($this->buildPath);
         if (!file_exists($this->publicPath)) {
             mkdir($this->publicPath, 0777, true);
         }
-        Helpers::removeDirectory($this->publicPath);
-        Helpers::removeDirectory($this->buildPath);
         [$jsComponentsPath, $jsFunctionsPath, $jsResourcesPath] = $this->makeAppFolders();
         $chunks = new Chunks();
         $mainChunk = $chunks->create(Chunk::MAIN, $jsComponentsPath, $jsFunctionsPath, $jsResourcesPath);
@@ -1155,11 +1165,10 @@ class Builder
         $chunkBaseName = $this->appName === 'default' ? "viewi" : "viewi.{$this->appName}";
         $componentsJsonPublicPath = $this->assetsPath . "/$chunkBaseName.json";
         $publicPath = $this->assetsPath . '/';
-        $buildId = Helpers::randomString();
         $this->metaList->meta['assets'] = [
             'app' => $this->assetsPath . "/$chunkBaseName.js",
             'app-min' => $this->assetsPath . "/$chunkBaseName.min.js",
-            'build-id' => $buildId,
+            'build-id' => $this->buildId,
             'minify' => $this->minifyJs,
             'append-version' => $this->appendVersion,
             'components' => $componentsJsonPublicPath,
@@ -1217,7 +1226,7 @@ class Builder
         $resourcesIndexJs .= "    minify: {$minifyStr}," . PHP_EOL;
         $resourcesIndexJs .= "    combine: {$combineStr}," . PHP_EOL;
         $resourcesIndexJs .= "    appendVersion: {$appendVersionStr}," . PHP_EOL;
-        $resourcesIndexJs .= "    build: '$buildId'," . PHP_EOL;
+        $resourcesIndexJs .= "    build: '{$this->buildId}'," . PHP_EOL;
         $resourcesIndexJs .= "    version: '$viewiVersion'," . PHP_EOL;
         $resourcesIndexJs .= '};';
 
