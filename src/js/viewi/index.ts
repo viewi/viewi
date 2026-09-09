@@ -37,7 +37,7 @@ window.ViewiApp[resources.name] = ViewiApp;
 (async () => {
     let data: ComponentsJson = JSON.parse(templates);
     if (!resources.combine) {
-        const componentsResponse = await fetch(resources.componentsPath, { mode: 'same-origin' });
+        const componentsResponse = await fetch(resources.componentsPath);
         if (!componentsResponse.ok) {
             throw new Error(`Failed to load components: ${componentsResponse.status} ${componentsResponse.statusText}`);
         }
