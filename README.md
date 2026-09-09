@@ -43,8 +43,8 @@ Discover more at [https://viewi.net](https://viewi.net).
 
 ## In production
 
-[Urlicer](https://urlicer.com) — branded short links, QR codes, team workspaces and click
-analytics — runs its entire frontend on Viewi: server-rendered PHP components hydrated in the
+[Urlicer](https://urlicer.com) is branded short links, QR codes, team workspaces and click
+analytics. It runs its entire frontend on Viewi: server-rendered PHP components hydrated in the
 browser, with no JavaScript framework. Built and maintained by Viewi's author.
 
 
