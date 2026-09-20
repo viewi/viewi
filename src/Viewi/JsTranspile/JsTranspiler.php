@@ -42,6 +42,7 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\InterpolatedStringPart;
 use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
+use PhpParser\Node\Scalar\Float_ as ScalarFloat_;
 use PhpParser\Node\Scalar\Int_ as ScalarInt_;
 use PhpParser\Node\Scalar\InterpolatedString;
 use PhpParser\Node\Scalar\String_;
@@ -645,6 +646,10 @@ class JsTranspiler
             } elseif ($node instanceof InterpolatedStringPart) {
                 $this->jsCode .= json_encode($node->value);
             } elseif ($node instanceof ScalarInt_) {
+                $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
+            } elseif ($node instanceof ScalarFloat_) {
+                // Same as an int: JS has one number type, and rawValue keeps the literal as
+                // written (1.0 stays 1.0, 1e3 stays 1e3) rather than round-tripping through PHP.
                 $this->jsCode .= $node->getAttribute('rawValue', "{$node->value}");
             } elseif ($node instanceof Foreach_) {
                 $key = $node->keyVar ?? ('_i' . ($this->foreachKeyIndex++));
