@@ -11,6 +11,18 @@ abstract class DomEvent
     public HtmlNode $target;
     public $detail;
     public $keyCode;
+    /**
+     * The modern key fields. `keyCode` is deprecated and says nothing readable — `key` is 'Enter',
+     * 'Escape', 'ArrowDown', ' ' — and a component cannot implement a keyboard interaction without
+     * knowing whether a modifier was held.
+     */
+    public $key;
+    public $code;
+    public $altKey;
+    public $ctrlKey;
+    public $metaKey;
+    public $shiftKey;
+    public $repeat;
     public abstract function currentTarget();
     public abstract function eventPhase();
     public abstract function bubbles();
