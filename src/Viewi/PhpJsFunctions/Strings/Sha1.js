@@ -10,19 +10,6 @@ function sha1 (str) {
   //   example 1: sha1('Kevin van Zonneveld')
   //   returns 1: '54916d2e62f65b3afa6e192e6a601cdbe5cb5897'
 
-  let hash
-  try {
-
-    const sha1sum = crypto.createHash('sha1')
-    sha1sum.update(str)
-    hash = sha1sum.digest('hex')
-  } catch (e) {
-    hash = undefined
-  }
-
-  if (hash !== undefined) {
-    return hash
-  }
 
   const _rotLeft = function (n, s) {
     const t4 = (n << s) | (n >>> (32 - s))

@@ -10,7 +10,7 @@ class Sha1 extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['crypto'];
+        return [];
     }
 
     public static function getJs(): string

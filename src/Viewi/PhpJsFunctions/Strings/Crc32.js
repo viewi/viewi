@@ -6,7 +6,8 @@ function crc32(str) {
   //   returns 1: 1249991249
 
 
-  str = utf8_encode(str)
+  // utf8_encode
+  str = unescape(encodeURIComponent(str))
   const table = [
     '00000000',
     '77073096',
@@ -279,5 +280,6 @@ function crc32(str) {
     crc = (crc >>> 8) ^ x
   }
 
-  return crc ^ (-1)
+  // unsigned, as 64-bit PHP returns it
+  return (crc ^ (-1)) >>> 0
 }

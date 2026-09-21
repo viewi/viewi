@@ -10,7 +10,7 @@ class Md5 extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['crypto', 'utf8_encode'];
+        return [];
     }
 
     public static function getJs(): string

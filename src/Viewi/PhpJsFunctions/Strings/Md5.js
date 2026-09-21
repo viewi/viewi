@@ -12,19 +12,6 @@ function md5 (str) {
   //   example 1: md5('Kevin van Zonneveld')
   //   returns 1: '6e658d4bfcb59cc13f96c14450ac40b9'
 
-  let hash
-  try {
-
-    const md5sum = crypto.createHash('md5')
-    md5sum.update(str)
-    hash = md5sum.digest('hex')
-  } catch (e) {
-    hash = undefined
-  }
-
-  if (hash !== undefined) {
-    return hash
-  }
 
 
   let xl
@@ -152,7 +139,8 @@ function md5 (str) {
   const S43 = 15
   const S44 = 21
 
-  str = utf8Encode(str)
+  // utf8_encode
+  str = unescape(encodeURIComponent(str))
   x = _convertToWordArray(str)
   a = 0x67452301
   b = 0xEFCDAB89

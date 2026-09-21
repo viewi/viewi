@@ -10,7 +10,7 @@ class Crc32 extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['utf8_encode'];
+        return [];
     }
 
     public static function getJs(): string
