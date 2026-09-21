@@ -57,7 +57,6 @@ use Viewi\PhpJsFunctions\Array\Arsort;
 use Viewi\PhpJsFunctions\Array\Asort;
 use Viewi\PhpJsFunctions\Array\Count;
 use Viewi\PhpJsFunctions\Array\Current;
-use Viewi\PhpJsFunctions\Array\Each;
 use Viewi\PhpJsFunctions\Array\End;
 use Viewi\PhpJsFunctions\Array\InArray;
 use Viewi\PhpJsFunctions\Array\Key;
@@ -102,12 +101,9 @@ use Viewi\PhpJsFunctions\Datetime\Getdate;
 use Viewi\PhpJsFunctions\Datetime\Gettimeofday;
 use Viewi\PhpJsFunctions\Datetime\Gmdate;
 use Viewi\PhpJsFunctions\Datetime\Gmmktime;
-use Viewi\PhpJsFunctions\Datetime\Gmstrftime;
 use Viewi\PhpJsFunctions\Datetime\Idate;
 use Viewi\PhpJsFunctions\Datetime\Microtime;
 use Viewi\PhpJsFunctions\Datetime\Mktime;
-use Viewi\PhpJsFunctions\Datetime\Strftime;
-use Viewi\PhpJsFunctions\Datetime\Strptime;
 use Viewi\PhpJsFunctions\Datetime\Strtotime;
 use Viewi\PhpJsFunctions\Datetime\Time;
 use Viewi\PhpJsFunctions\Exec\Escapeshellarg;
@@ -118,7 +114,6 @@ use Viewi\PhpJsFunctions\Filesystem\Pathinfo;
 use Viewi\PhpJsFunctions\Filesystem\Realpath;
 use Viewi\PhpJsFunctions\Funchand\CallUserFunc;
 use Viewi\PhpJsFunctions\Funchand\CallUserFuncArray;
-use Viewi\PhpJsFunctions\Funchand\CreateFunction;
 use Viewi\PhpJsFunctions\Funchand\FunctionExists;
 use Viewi\PhpJsFunctions\Funchand\GetDefinedFunctions;
 use Viewi\PhpJsFunctions\I18n\I18nLocGetDefault;
@@ -180,7 +175,6 @@ use Viewi\PhpJsFunctions\Math\Tan;
 use Viewi\PhpJsFunctions\Math\Tanh;
 use Viewi\PhpJsFunctions\Misc\Pack;
 use Viewi\PhpJsFunctions\Misc\Uniqid;
-use Viewi\PhpJsFunctions\Netgopher\GopherParsedir;
 use Viewi\PhpJsFunctions\Network\InetNtop;
 use Viewi\PhpJsFunctions\Network\InetPton;
 use Viewi\PhpJsFunctions\Network\Ip2long;
@@ -190,14 +184,12 @@ use Viewi\PhpJsFunctions\Network\Setrawcookie;
 use Viewi\PhpJsFunctions\Pcre\PregMatch;
 use Viewi\PhpJsFunctions\Pcre\PregQuote;
 use Viewi\PhpJsFunctions\Pcre\PregReplace;
-use Viewi\PhpJsFunctions\Pcre\SqlRegcase;
 use Viewi\PhpJsFunctions\Strings\Addcslashes;
 use Viewi\PhpJsFunctions\Strings\Addslashes;
 use Viewi\PhpJsFunctions\Strings\Bin2hex;
 use Viewi\PhpJsFunctions\Strings\Chop;
 use Viewi\PhpJsFunctions\Strings\Chr;
 use Viewi\PhpJsFunctions\Strings\ChunkSplit;
-use Viewi\PhpJsFunctions\Strings\ConvertCyrString;
 use Viewi\PhpJsFunctions\Strings\ConvertUuencode;
 use Viewi\PhpJsFunctions\Strings\CountChars;
 use Viewi\PhpJsFunctions\Strings\Crc32;
@@ -219,7 +211,6 @@ use Viewi\PhpJsFunctions\Strings\MbStrlen;
 use Viewi\PhpJsFunctions\Strings\Md5;
 use Viewi\PhpJsFunctions\Strings\Md5File;
 use Viewi\PhpJsFunctions\Strings\Metaphone;
-use Viewi\PhpJsFunctions\Strings\MoneyFormat;
 use Viewi\PhpJsFunctions\Strings\Nl2br;
 use Viewi\PhpJsFunctions\Strings\NlLanginfo;
 use Viewi\PhpJsFunctions\Strings\NumberFormat;
@@ -235,7 +226,6 @@ use Viewi\PhpJsFunctions\Strings\Sha1;
 use Viewi\PhpJsFunctions\Strings\Sha1File;
 use Viewi\PhpJsFunctions\Strings\SimilarText;
 use Viewi\PhpJsFunctions\Strings\Soundex;
-use Viewi\PhpJsFunctions\Strings\Split;
 use Viewi\PhpJsFunctions\Strings\Sprintf;
 use Viewi\PhpJsFunctions\Strings\Sscanf;
 use Viewi\PhpJsFunctions\Strings\StrGetcsv;
@@ -298,9 +288,7 @@ use Viewi\PhpJsFunctions\Var\Floatval;
 use Viewi\PhpJsFunctions\Var\Gettype;
 use Viewi\PhpJsFunctions\Var\Intval;
 use Viewi\PhpJsFunctions\Var\IsArray;
-use Viewi\PhpJsFunctions\Var\IsBinary;
 use Viewi\PhpJsFunctions\Var\IsBool;
-use Viewi\PhpJsFunctions\Var\IsBuffer;
 use Viewi\PhpJsFunctions\Var\IsCallable;
 use Viewi\PhpJsFunctions\Var\IsDouble;
 use Viewi\PhpJsFunctions\Var\IsFloat;
@@ -310,10 +298,8 @@ use Viewi\PhpJsFunctions\Var\IsLong;
 use Viewi\PhpJsFunctions\Var\IsNull;
 use Viewi\PhpJsFunctions\Var\IsNumeric;
 use Viewi\PhpJsFunctions\Var\IsObject;
-use Viewi\PhpJsFunctions\Var\IsReal;
 use Viewi\PhpJsFunctions\Var\IsScalar;
 use Viewi\PhpJsFunctions\Var\IsString;
-use Viewi\PhpJsFunctions\Var\IsUnicode;
 use Viewi\PhpJsFunctions\Var\_Isset;
 use Viewi\PhpJsFunctions\Var\PrintR;
 use Viewi\PhpJsFunctions\Var\Serialize;
@@ -321,10 +307,6 @@ use Viewi\PhpJsFunctions\Var\Strval;
 use Viewi\PhpJsFunctions\Var\Unserialize;
 use Viewi\PhpJsFunctions\Var\VarDump;
 use Viewi\PhpJsFunctions\Var\VarExport;
-use Viewi\PhpJsFunctions\Xdiff\XdiffStringDiff;
-use Viewi\PhpJsFunctions\Xdiff\XdiffStringPatch;
-use Viewi\PhpJsFunctions\Xml\Utf8Decode;
-use Viewi\PhpJsFunctions\Xml\Utf8Encode;
 
 
 return [
@@ -385,7 +367,6 @@ return [
     'asort' => Asort::class,
     'count' => Count::class,
     'current' => Current::class,
-    'each' => Each::class,
     'end' => End::class,
     'in_array' => InArray::class,
     'key' => Key::class,
@@ -430,12 +411,9 @@ return [
     'gettimeofday' => Gettimeofday::class,
     'gmdate' => Gmdate::class,
     'gmmktime' => Gmmktime::class,
-    'gmstrftime' => Gmstrftime::class,
     'idate' => Idate::class,
     'microtime' => Microtime::class,
     'mktime' => Mktime::class,
-    'strftime' => Strftime::class,
-    'strptime' => Strptime::class,
     'strtotime' => Strtotime::class,
     'time' => Time::class,
     'escapeshellarg' => Escapeshellarg::class,
@@ -446,7 +424,6 @@ return [
     'realpath' => Realpath::class,
     'call_user_func' => CallUserFunc::class,
     'call_user_func_array' => CallUserFuncArray::class,
-    'create_function' => CreateFunction::class,
     'function_exists' => FunctionExists::class,
     'get_defined_functions' => GetDefinedFunctions::class,
     'i18n_loc_get_default' => I18nLocGetDefault::class,
@@ -508,7 +485,6 @@ return [
     'tanh' => Tanh::class,
     'pack' => Pack::class,
     'uniqid' => Uniqid::class,
-    'gopher_parsedir' => GopherParsedir::class,
     'inet_ntop' => InetNtop::class,
     'inet_pton' => InetPton::class,
     'ip2long' => Ip2long::class,
@@ -518,14 +494,12 @@ return [
     'preg_match' => PregMatch::class,
     'preg_quote' => PregQuote::class,
     'preg_replace' => PregReplace::class,
-    'sql_regcase' => SqlRegcase::class,
     'addcslashes' => Addcslashes::class,
     'addslashes' => Addslashes::class,
     'bin2hex' => Bin2hex::class,
     'chop' => Chop::class,
     'chr' => Chr::class,
     'chunk_split' => ChunkSplit::class,
-    'convert_cyr_string' => ConvertCyrString::class,
     'convert_uuencode' => ConvertUuencode::class,
     'count_chars' => CountChars::class,
     'crc32' => Crc32::class,
@@ -546,7 +520,6 @@ return [
     'md5' => Md5::class,
     'md5_file' => Md5File::class,
     'metaphone' => Metaphone::class,
-    'money_format' => MoneyFormat::class,
     'nl2br' => Nl2br::class,
     'nl_langinfo' => NlLanginfo::class,
     'number_format' => NumberFormat::class,
@@ -562,7 +535,6 @@ return [
     'sha1_file' => Sha1File::class,
     'similar_text' => SimilarText::class,
     'soundex' => Soundex::class,
-    'split' => Split::class,
     'sprintf' => Sprintf::class,
     'sscanf' => Sscanf::class,
     'str_getcsv' => StrGetcsv::class,
@@ -626,9 +598,7 @@ return [
     'gettype' => Gettype::class,
     'intval' => Intval::class,
     'is_array' => IsArray::class,
-    'is_binary' => IsBinary::class,
     'is_bool' => IsBool::class,
-    'is_buffer' => IsBuffer::class,
     'is_callable' => IsCallable::class,
     'is_double' => IsDouble::class,
     'is_float' => IsFloat::class,
@@ -638,19 +608,13 @@ return [
     'is_null' => IsNull::class,
     'is_numeric' => IsNumeric::class,
     'is_object' => IsObject::class,
-    'is_real' => IsReal::class,
     'is_scalar' => IsScalar::class,
     'is_string' => IsString::class,
-    'is_unicode' => IsUnicode::class,
     'isset' => _Isset::class,
     'print_r' => PrintR::class,
     'serialize' => Serialize::class,
     'strval' => Strval::class,
     'unserialize' => Unserialize::class,
     'var_dump' => VarDump::class,
-    'var_export' => VarExport::class,
-    'xdiff_string_diff' => XdiffStringDiff::class,
-    'xdiff_string_patch' => XdiffStringPatch::class,
-    'utf8_decode' => Utf8Decode::class,
-    'utf8_encode' => Utf8Encode::class
+    'var_export' => VarExport::class
 ];
