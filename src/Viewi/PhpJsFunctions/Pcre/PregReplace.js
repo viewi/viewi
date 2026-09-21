@@ -1,20 +1,40 @@
-function preg_replace (pattern, replacement, string) { // eslint-disable-line camelcase
-  //   original by: rony2k6 (https://github.com/rony2k6)
-  //   example 1: preg_replace('/xmas/i', 'Christmas', 'It was the night before Xmas.')
-  //   returns 1: "It was the night before Christmas."
-  //   example 2: preg_replace('/xmas/ig', 'Christmas', 'xMas: It was the night before Xmas.')
-  //   returns 2: "Christmas: It was the night before Christmas."
-  //   example 3: preg_replace('\/(\\w+) (\\d+), (\\d+)\/i', '$11,$3', 'April 15, 2003')
-  //   returns 3: "April1,2003"
-  //   example 4: preg_replace('/[^a-zA-Z0-9]+/', '', 'The Development of code . http://www.')
-  //   returns 4: "TheDevelopmentofcodehttpwww"
-  //   example 5: preg_replace('/[^A-Za-z0-9_\\s]/', '', 'D"usseldorfer H"auptstrasse')
-  //   returns 5: "Dusseldorfer Hauptstrasse"
-  let _flag = pattern.substr(pattern.lastIndexOf(pattern[0]) + 1)
-  _flag = (_flag !== '') ? _flag : 'g'
-  const _pattern = pattern.substr(1, pattern.lastIndexOf(pattern[0]) - 1)
-  const regex = new RegExp(_pattern, _flag)
-  const result = string.replace(regex, replacement)
-
-  return result
+function preg_replace(pattern, replacement, subject, limit) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.preg-replace.php
+  // pattern/replacement/subject may be arrays (patterns applied in order; a missing replacement
+  // is ''). The replacement uses PHP's references: $1, ${1}, \1 (not JS's $&). limit -1 = all.
+  limit = limit === undefined || limit === null ? -1 : _php_cast_int(limit)
+  const patterns = Array.isArray(pattern) ? pattern : [pattern]
+  const replacements = Array.isArray(replacement) ? replacement : null
+  const one = function (text) {
+    text = _phpCastString(text)
+    patterns.forEach(function (p, i) {
+      const rep = _phpCastString(replacements ? (i < replacements.length ? replacements[i] : '') : replacement)
+      const re = _php_regex(p, 'g')
+      let count = 0
+      text = text.replace(re, function () {
+        const groups = Array.prototype.slice.call(arguments, 0, -2)
+        if (typeof groups[groups.length - 1] === 'object') {
+          groups.pop() // named groups object
+        }
+        if (limit >= 0 && count >= limit) {
+          return groups[0]
+        }
+        count++
+        return rep.replace(/\\\\|\$\{(\d{1,2})\}|\$(\d{1,2})|\\(\d{1,2})/g, function (m, a, b, c) {
+          if (m === '\\\\') {
+            return '\\'
+          }
+          const n = +(a || b || c)
+          return groups[n] === undefined ? '' : groups[n]
+        })
+      })
+    })
+    return text
+  }
+  if (subject !== null && typeof subject === 'object') {
+    return _php_array(_php_array_entries(subject).map(function (entry) {
+      return [entry[0], one(entry[1])]
+    }))
+  }
+  return one(subject)
 }

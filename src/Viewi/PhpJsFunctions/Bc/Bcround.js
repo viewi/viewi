@@ -1,53 +1,31 @@
-function bcround (val, precision) {
-  //  discuss at: https://locutus.io/php/bcround/
-  // original by: lmeyrick (https://sourceforge.net/projects/bcmath-js/)
-  //   example 1: bcround(1, 2)
-  //   returns 1: '1.00'
-
-
-  const libbcmath = _bc()
-
-  let temp, result, digit
-  let rightOperand
-
-  // create number
-  temp = libbcmath.bc_init_num()
-  temp = libbcmath.php_str2num(val.toString())
-
-  // check if any rounding needs
-  if (precision >= temp.n_scale) {
-    // nothing to round, just add the zeros.
-    while (temp.n_scale < precision) {
-      temp.n_value[temp.n_len + temp.n_scale] = 0
-      temp.n_scale++
-    }
-    return temp.toString()
+function bcround(num, precision) {
+  //  discuss at: https://www.php.net/manual/en/function.bcround.php
+  // Rounds half away from zero (PHP 8.4's default) to precision decimals; a negative precision
+  // rounds to tens, hundreds…: bcround('1234.5678', -2) is '1200'. Exact, on BigInt.
+  const match = _phpCastString(num).trim().match(/^([+-]?)(\d*)(?:\.(\d*))?$/)
+  if (!match || (match[2] === '' && (match[3] || '') === '')) {
+    throw new Error('bcround(): Argument #1 ($num) is not well-formed')
   }
-
-  // get the digit we are checking (1 after the precision)
-  // loop through digits after the precision marker
-  digit = temp.n_value[temp.n_len + precision]
-
-  rightOperand = libbcmath.bc_init_num()
-  rightOperand = libbcmath.bc_new_num(1, precision)
-
-  if (digit >= 5) {
-    // round away from zero by adding 1 (or -1) at the "precision"..
-    // ie 1.44999 @ 3dp = (1.44999 + 0.001).toString().substr(0,5)
-    rightOperand.n_value[rightOperand.n_len + rightOperand.n_scale - 1] = 1
-    if (temp.n_sign === libbcmath.MINUS) {
-      // round down
-      rightOperand.n_sign = libbcmath.MINUS
+  precision = _php_cast_int(precision || 0)
+  const negative = match[1] === '-'
+  const fraction = match[3] || ''
+  let value = BigInt((match[2] || '0') + fraction)
+  let scale = fraction.length
+  if (precision < scale) {
+    const divisor = 10n ** BigInt(scale - precision)
+    let quotient = value / divisor
+    if ((value % divisor) * 2n >= divisor) {
+      quotient += 1n
     }
-    result = libbcmath.bc_add(temp, rightOperand, precision)
+    value = precision < 0 ? quotient * 10n ** BigInt(-precision) : quotient
+    scale = Math.max(precision, 0)
   } else {
-    // leave-as-is.. just truncate it.
-    result = temp
+    value = value * 10n ** BigInt(precision - scale)
+    scale = precision
   }
-
-  if (result.n_scale > precision) {
-    result.n_scale = precision
+  let digits = value.toString().padStart(scale + 1, '0')
+  if (scale > 0) {
+    digits = digits.slice(0, -scale) + '.' + digits.slice(-scale)
   }
-
-  return result.toString()
+  return (negative && value !== 0n ? '-' : '') + digits
 }

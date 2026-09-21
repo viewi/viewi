@@ -10,7 +10,7 @@ class Bcscale extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['_bc'];
+        return ['_bc', '_php_cast_int'];
     }
 
     public static function getJs(): string

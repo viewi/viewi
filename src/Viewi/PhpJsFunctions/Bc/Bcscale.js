@@ -1,20 +1,15 @@
-function bcscale (scale) {
-  //  discuss at: https://locutus.io/php/bcscale/
-  // original by: lmeyrick (https://sourceforge.net/projects/bcmath-js/)
-  //   example 1: bcscale(1)
-  //   returns 1: true
-
-
+function bcscale(scale) {
+  //  discuss at: https://www.php.net/manual/en/function.bcscale.php
+  // PHP 8: returns the previous default scale; with no argument, just the current one.
   const libbcmath = _bc()
-
-  scale = parseInt(scale, 10)
-  if (isNaN(scale)) {
-    return false
+  const previous = libbcmath.scale || 0
+  if (scale === undefined || scale === null) {
+    return previous
   }
+  scale = _php_cast_int(scale)
   if (scale < 0) {
-    return false
+    throw new Error('bcscale(): Argument #1 ($scale) must be between 0 and 2147483647')
   }
   libbcmath.scale = scale
-
-  return true
+  return previous
 }

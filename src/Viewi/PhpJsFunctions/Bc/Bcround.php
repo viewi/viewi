@@ -10,7 +10,7 @@ class Bcround extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['_bc'];
+        return ['_phpCastString', '_php_cast_int'];
     }
 
     public static function getJs(): string

@@ -10,7 +10,7 @@ class Dirname extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_phpCastString', '_php_cast_int'];
     }
 
     public static function getJs(): string

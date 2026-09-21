@@ -11,7 +11,7 @@ function bccomp (leftOperand, rightOperand, scale) {
   //   returns 4: 1
 
 
-  const libbcmath = bc()
+  const libbcmath = _bc()
 
   // bc_num
   let first, second

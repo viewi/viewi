@@ -1,34 +1,30 @@
-function date_parse (date) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/date_parse/
-  // original by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: date_parse('2006-12-12 10:00:00')
-  //   returns 1: {year : 2006, month: 12, day: 12, hour: 10, minute: 0, second: 0, fraction: 0, is_localtime: false}
-
-
+function date_parse(date) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.date-parse.php
+  // The parts the string gives, via strtotime (read as UTC): hour/minute/second/fraction are
+  // false when the string has no time, as PHP. Relative formats and zone details are not
+  // reported. A string strtotime can't read gives one error with Viewi's own message: PHP's
+  // parser reports per-position errors and warnings this port does not reproduce.
   let ts
-
   try {
     ts = strtotime(date)
   } catch (e) {
     ts = false
   }
-
-  if (!ts) {
-    return false
+  const hasTime = /\d{1,2}:\d{2}/.test(_phpCastString(date))
+  const failed = ts === false || ts === null
+  const dt = new Date((failed ? 0 : ts) * 1000)
+  return {
+    year: failed ? false : dt.getUTCFullYear(),
+    month: failed ? false : dt.getUTCMonth() + 1,
+    day: failed ? false : dt.getUTCDate(),
+    hour: failed || !hasTime ? false : dt.getUTCHours(),
+    minute: failed || !hasTime ? false : dt.getUTCMinutes(),
+    second: failed || !hasTime ? false : dt.getUTCSeconds(),
+    fraction: failed || !hasTime ? false : 0,
+    warning_count: 0,
+    warnings: [],
+    error_count: failed ? 1 : 0,
+    errors: failed ? { 0: 'The date could not be parsed' } : [],
+    is_localtime: false
   }
-
-  const dt = new Date(ts * 1000)
-
-  const retObj = {}
-
-  retObj.year = dt.getFullYear()
-  retObj.month = dt.getMonth() + 1
-  retObj.day = dt.getDate()
-  retObj.hour = dt.getHours()
-  retObj.minute = dt.getMinutes()
-  retObj.second = dt.getSeconds()
-  retObj.fraction = parseFloat('0.' + dt.getMilliseconds())
-  retObj.is_localtime = dt.getTimezoneOffset() !== 0
-
-  return retObj
 }

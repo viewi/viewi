@@ -15,4 +15,42 @@ return [
         [''],
         ['-1'],
     ],
+    // --- task 10: the rest of the Ctype group ---
+    'ctype_alpha' => [
+        ['abcXYZ'],
+        ['abc1'],
+        [''],
+    ],
+    'ctype_cntrl' => [
+        ["\n\t"],
+        ['a'],
+    ],
+    'ctype_graph' => [
+        ['abc!'],
+        ['a b'],
+    ],
+    'ctype_lower' => [
+        ['abc'],
+        ['aBc'],
+    ],
+    'ctype_upper' => [
+        ['ABC'],
+        ['AbC'],
+    ],
+    'ctype_print' => [
+        ['a b!'],
+        ["a\n"],
+    ],
+    'ctype_punct' => [
+        ['!?.,'],
+        ['!a'],
+    ],
+    'ctype_space' => [
+        [" \n\t\r\x0B\f"],
+        [' a'],
+    ],
+    'ctype_xdigit' => [
+        ['AbCdEf09'],
+        ['0xff'],
+    ],
 ];

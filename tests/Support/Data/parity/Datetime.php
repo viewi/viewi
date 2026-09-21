@@ -45,4 +45,36 @@ return [
     'time' => [
         ['args' => [], 'shape' => true],
     ],
+    // --- task 10: the rest of the Datetime group ---
+    'checkdate' => [
+        [2, 29, 2024],
+        [2, 29, 2023],
+        [13, 1, 2024],
+        [4, 31, 2024],
+    ],
+    'mktime' => [
+        [0, 0, 0, 1, 1, 2024],
+        [25, 70, 0, 1, 1, 2024],
+        [0, 0, 0, 2, 30, 2024],
+    ],
+    'getdate' => [
+        ['args' => [$t], 'knownDiff' => 'int-key-order'],
+    ],
+    'idate' => [
+        ['Y', $t],
+        ['m', $t],
+        ['z', $t],
+        ['U', $t],
+    ],
+    'date_parse' => [
+        ['2024-01-15 10:30:45'],
+        ['2024-01-15'],
+        ['15 January 2024 08:05'],
+    ],
+    'gettimeofday' => [
+        ['args' => [true], 'shape' => true],
+    ],
+    'microtime' => [
+        ['args' => [true], 'shape' => true],
+    ],
 ];

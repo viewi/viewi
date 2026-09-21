@@ -13,5 +13,5 @@ function call_user_func (cb, parameters) { // eslint-disable-line camelcase
 
 
   parameters = Array.prototype.slice.call(arguments, 1)
-  return callUserFuncArray(cb, parameters)
+  return call_user_func_array(cb, parameters)
 }

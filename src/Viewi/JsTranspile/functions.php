@@ -10,6 +10,7 @@ use Viewi\PhpJsFunctions\Helpers\PhpArrayEntries;
 use Viewi\PhpJsFunctions\Helpers\PhpArray;
 use Viewi\PhpJsFunctions\Helpers\PhpArraySet;
 use Viewi\PhpJsFunctions\Helpers\PhpTrim;
+use Viewi\PhpJsFunctions\Helpers\PhpRegex;
 use Viewi\PhpJsFunctions\Helpers\PhpSortCompare;
 use Viewi\PhpJsFunctions\Helpers\PhpSetOp;
 use Viewi\PhpJsFunctions\Helpers\PhpSort;
@@ -333,6 +334,7 @@ return [
     '_php_array' => PhpArray::class,
     '_php_array_set' => PhpArraySet::class,
     '_php_trim' => PhpTrim::class,
+    '_php_regex' => PhpRegex::class,
     '_php_sort_compare' => PhpSortCompare::class,
     '_php_set_op' => PhpSetOp::class,
     '_php_sort' => PhpSort::class,

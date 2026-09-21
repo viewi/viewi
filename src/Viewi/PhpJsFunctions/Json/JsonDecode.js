@@ -1,4 +1,5 @@
-function json_decode (strJson) { // eslint-disable-line camelcase
+function json_decode (strJson, associative) { // eslint-disable-line camelcase
+  // associative: objects become PHP arrays, so {"0": "a", "1": "b"} is the list ['a', 'b'] as in PHP
   //       discuss at: https://phpjs.org/functions/json_decode/
   //      original by: Public Domain (https://www.json.org/json2.js)
   // reimplemented by: Kevin van Zonneveld (https://kevin.vanzonneveld.net)
@@ -26,7 +27,20 @@ function json_decode (strJson) { // eslint-disable-line camelcase
   const json = $global.JSON
   if (typeof json === 'object' && typeof json.parse === 'function') {
     try {
-      return json.parse(strJson)
+      const decoded = json.parse(strJson)
+      $locutus.php.last_error_json = 0
+      if (!associative) {
+        return decoded
+      }
+      const toArray = function (v) {
+        if (v === null || typeof v !== 'object') {
+          return v
+        }
+        return _php_array(_php_array_entries(v).map(function (entry) {
+          return [entry[0], toArray(entry[1])]
+        }))
+      }
+      return toArray(decoded)
     } catch (err) {
       if (!(err instanceof SyntaxError)) {
         throw new Error('Unexpected error type in json_decode()')

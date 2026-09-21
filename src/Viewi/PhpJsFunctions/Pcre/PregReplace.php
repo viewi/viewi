@@ -10,7 +10,7 @@ class PregReplace extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_regex', '_phpCastString', '_php_cast_int', '_php_array', '_php_array_entries'];
     }
 
     public static function getJs(): string

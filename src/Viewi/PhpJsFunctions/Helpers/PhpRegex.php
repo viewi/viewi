@@ -1,12 +1,12 @@
 <?php
 
-namespace Viewi\PhpJsFunctions\Pcre;
+namespace Viewi\PhpJsFunctions\Helpers;
 
 use Viewi\JsTranspile\BaseFunction;
 
-class PregQuote extends BaseFunction
+class PhpRegex extends BaseFunction
 {
-    public static string $name = 'preg_quote';
+    public static string $name = '_php_regex';
 
     public static function getUses(): array
     {
@@ -15,7 +15,7 @@ class PregQuote extends BaseFunction
 
     public static function getJs(): string
     {
-        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'PregQuote.js';
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'PhpRegex.js';
         return file_get_contents($jsToInclude);
     }
 }

@@ -1,97 +1,78 @@
-function parse_url (str, component) { // eslint-disable-line camelcase
-  //       discuss at: https://locutus.io/php/parse_url/
-  //      original by: Steven Levithan (https://blog.stevenlevithan.com)
-  // reimplemented by: Brett Zamir (https://brett-zamir.me)
-  //         input by: Lorenzo Pisani
-  //         input by: Tony
-  //      improved by: Brett Zamir (https://brett-zamir.me)
-  //           note 1: original by https://stevenlevithan.com/demo/parseuri/js/assets/parseuri.js
-  //           note 1: blog post at https://blog.stevenlevithan.com/archives/parseuri
-  //           note 1: demo at https://stevenlevithan.com/demo/parseuri/js/assets/parseuri.js
-  //           note 1: Does not replace invalid characters with '_' as in PHP,
-  //           note 1: nor does it return false with
-  //           note 1: a seriously malformed URL.
-  //           note 1: Besides function name, is essentially the same as parseUri as
-  //           note 1: well as our allowing
-  //           note 1: an extra slash after the scheme/protocol (to allow file:/// as in PHP)
-  //        example 1: parse_url('https://user:pass@host/path?a=v#a')
-  //        returns 1: {scheme: 'https', host: 'host', user: 'user', pass: 'pass', path: '/path', query: 'a=v', fragment: 'a'}
-  //        example 2: parse_url('https://en.wikipedia.org/wiki/%22@%22_%28album%29')
-  //        returns 2: {scheme: 'https', host: 'en.wikipedia.org', path: '/wiki/%22@%22_%28album%29'}
-  //        example 3: parse_url('https://host.domain.tld/a@b.c/folder')
-  //        returns 3: {scheme: 'https', host: 'host.domain.tld', path: '/a@b.c/folder'}
-  //        example 4: parse_url('https://gooduser:secretpassword@www.example.com/a@b.c/folder?foo=bar')
-  //        returns 4: { scheme: 'https', host: 'www.example.com', path: '/a@b.c/folder', query: 'foo=bar', user: 'gooduser', pass: 'secretpassword' }
-
-  let query
-
-  const mode = 'php'
-
-  const key = [
-    'source',
-    'scheme',
-    'authority',
-    'userInfo',
-    'user',
-    'pass',
-    'host',
-    'port',
-    'relative',
-    'path',
-    'directory',
-    'file',
-    'query',
-    'fragment'
-  ]
-
-  // For loose we added one optional slash to post-scheme to catch file:/// (should restrict this)
-  let parser = {
-    php: new RegExp([
-      '(?:([^:\\/?#]+):)?',
-      '(?:\\/\\/()(?:(?:()(?:([^:@\\/]*):?([^:@\\/]*))?@)?([^:\\/?#]*)(?::(\\d*))?))?',
-      '()',
-      '(?:(()(?:(?:[^?#\\/]*\\/)*)()(?:[^?#]*))(?:\\?([^#]*))?(?:#(.*))?)'
-    ].join('')),
-    strict: new RegExp([
-      '(?:([^:\\/?#]+):)?',
-      '(?:\\/\\/((?:(([^:@\\/]*):?([^:@\\/]*))?@)?([^:\\/?#]*)(?::(\\d*))?))?',
-      '((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)'
-    ].join('')),
-    loose: new RegExp([
-      '(?:(?![^:@]+:[^:@\\/]*@)([^:\\/?#.]+):)?',
-      '(?:\\/\\/\\/?)?',
-      '((?:(([^:@\\/]*):?([^:@\\/]*))?@)?([^:\\/?#]*)(?::(\\d*))?)',
-      '(((\\/(?:[^?#](?![^?#\\/]*\\.[^?#\\/.]+(?:[?#]|$)))*\\/?)?([^?#\\/]*))',
-      '(?:\\?([^#]*))?(?:#(.*))?)'
-    ].join(''))
+function parse_url(url, component) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.parse-url.php
+  // Keys in PHP's order (scheme, host, port, user, pass, path, query, fragment), port as an int,
+  // only the parts present; false for a URL PHP can't parse ('http:///x'). component:
+  // PHP_URL_SCHEME 0, HOST 1, PORT 2, USER 3, PASS 4, PATH 5, QUERY 6, FRAGMENT 7 → that part or null.
+  url = _phpCastString(url)
+  const parts = {}
+  let rest = url
+  const hash = rest.indexOf('#')
+  let fragment
+  if (hash !== -1) {
+    fragment = rest.slice(hash + 1)
+    rest = rest.slice(0, hash)
   }
-
-  const m = parser[mode].exec(str)
-  const uri = {}
-  let i = 14
-
-  while (i--) {
-    if (m[i]) {
-      uri[key[i]] = m[i]
+  const q = rest.indexOf('?')
+  let query
+  if (q !== -1) {
+    query = rest.slice(q + 1)
+    rest = rest.slice(0, q)
+  }
+  const scheme = rest.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/)
+  if (scheme && !/^\d+$/.test(rest.slice(scheme[0].length).split('/')[0])) {
+    parts.scheme = scheme[1]
+    rest = rest.slice(scheme[0].length)
+  }
+  if (rest.startsWith('//')) {
+    const authorityEnd = rest.indexOf('/', 2)
+    let authority = authorityEnd === -1 ? rest.slice(2) : rest.slice(2, authorityEnd)
+    rest = authorityEnd === -1 ? '' : rest.slice(authorityEnd)
+    if (authority === '') {
+      return false
+    }
+    const at = authority.lastIndexOf('@')
+    let user, pass
+    if (at !== -1) {
+      const credentials = authority.slice(0, at)
+      authority = authority.slice(at + 1)
+      const colon = credentials.indexOf(':')
+      user = colon === -1 ? credentials : credentials.slice(0, colon)
+      pass = colon === -1 ? undefined : credentials.slice(colon + 1)
+    }
+    const port = authority.match(/:(\d*)$/)
+    if (port) {
+      authority = authority.slice(0, -port[0].length)
+    }
+    parts.host = authority
+    if (port && port[1] !== '') {
+      parts.port = parseInt(port[1], 10)
+    }
+    if (user !== undefined) {
+      parts.user = user
+    }
+    if (pass !== undefined) {
+      parts.pass = pass
     }
   }
-
-  if (component) {
-    return uri[component.replace('PHP_URL_', '').toLowerCase()]
+  if (rest !== '') {
+    parts.path = rest
   }
-
-  if (mode !== 'php') {
-    const name = 'queryKey'
-    parser = /(?:^|&)([^&=]*)=?([^&]*)/g
-    uri[name] = {}
-    query = uri[key[12]] || ''
-    query.replace(parser, function ($0, $1, $2) {
-      if ($1) {
-        uri[name][$1] = $2
-      }
-    })
+  if (query !== undefined) {
+    parts.query = query
   }
-
-  delete uri.source
-  return uri
+  if (fragment !== undefined) {
+    parts.fragment = fragment
+  }
+  if (component !== undefined && component !== -1) {
+    const names = ['scheme', 'host', 'port', 'user', 'pass', 'path', 'query', 'fragment']
+    const value = parts[names[component]]
+    return value === undefined ? null : value
+  }
+  const ordered = {}
+  for (const key of ['scheme', 'host', 'port', 'user', 'pass', 'path', 'query', 'fragment']) {
+    if (parts[key] !== undefined) {
+      ordered[key] = parts[key]
+    }
+  }
+  return ordered
 }

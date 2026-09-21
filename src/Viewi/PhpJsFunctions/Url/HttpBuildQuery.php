@@ -10,7 +10,7 @@ class HttpBuildQuery extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['rawurlencode', 'urlencode'];
+        return ['_php_array_entries', '_phpCastString', 'urlencode', 'rawurlencode'];
     }
 
     public static function getJs(): string

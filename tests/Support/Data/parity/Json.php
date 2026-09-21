@@ -34,4 +34,19 @@ return [
         ['🙂'],
         [NAN],
     ],
+    // --- task 10: the rest of the Json group ---
+    'json_decode' => [
+        ['{"a":1,"b":[1,2],"c":{"d":null}}', true],
+        ['{"a":1}'],
+        ['[1,"2",true,null]'],
+        ['"\\u00e9"'],
+        ['1.0'],
+        ['invalid'],
+        ['12345678901234567890'],
+        ['{"0":"a","1":"b"}', true],
+    ],
+    'json_last_error' => [
+        // PHP's value depends on the json call before it in the process: shape only
+        ['args' => [], 'shape' => true],
+    ],
 ];

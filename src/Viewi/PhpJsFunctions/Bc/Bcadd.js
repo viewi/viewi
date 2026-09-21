@@ -9,7 +9,7 @@ function bcadd (leftOperand, rightOperand, scale) {
   //   returns 3: '8728932003911564969352217864684.00'
 
 
-  const libbcmath = bc()
+  const libbcmath = _bc()
 
   let first, second, result
 
