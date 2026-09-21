@@ -36,6 +36,7 @@ use Viewi\JsTranspile\BaseFunction;
 use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
+use Viewi\JsTranspile\RestrictedFunctions;
 use Viewi\JsTranspile\UseItem;
 use Viewi\Packages\ViewiPackage;
 use Viewi\Router\ComponentRoute;
@@ -509,6 +510,18 @@ class Builder
     }
 
     /**
+     * A direct call from component code or a template; dependencies pulled in through getUses() are not checked.
+     * @throws Exception when the function is server-only or an internal helper (see RestrictedFunctions)
+     */
+    private function assertCallableFromComponent(string $functionName, string $file): void
+    {
+        $message = RestrictedFunctions::message($functionName);
+        if ($message !== null) {
+            throw new Exception(Helpers::terminalRed($message) . PHP_EOL . '  in ' . $file);
+        }
+    }
+
+    /**
      * 
      * @param BaseFunction|string $functionMeta 
      * @return void 
@@ -579,6 +592,7 @@ class Builder
                                 $fullName = implode('\\', $useItem->Parts);
                                 throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                             }
+                            $this->assertCallableFromComponent($baseName, $buildItem->ReflectionClass->getFileName());
                         }
                     }
                 }
@@ -614,6 +628,7 @@ class Builder
                         if (!isset($this->availableFunctions[$funcName])) {
                             throw new Exception("Function '$funcName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                         }
+                        $this->assertCallableFromComponent($funcName, $buildItem->TemplatePath);
                         if (!isset($buildItem->Uses[$funcName])) {
                             $buildItem->Uses[$funcName] = new UseItem([$funcName], UseItem::Function);
                         }
