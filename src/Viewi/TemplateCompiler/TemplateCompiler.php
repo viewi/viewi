@@ -565,7 +565,10 @@ class TemplateCompiler
                             $this->localScopeArguments = $backupLocalScopeArg;
                             $jsEventCode = $values[0]->JsExpression;
                             if (!ctype_alnum(str_replace(['_', '->', '$'], '', $combinedValue))) { // closure
-                                $jsEventCode = "function () { $jsEventCode; }";
+                                // `event` is the PAYLOAD emitEvent() hands the callback. Without the
+                                // parameter, `$event` in `(select)="pick($row->Id, $event)"` resolved to
+                                // the outer render scope instead, and was always undefined.
+                                $jsEventCode = "function (event) { $jsEventCode; }";
                             } else {
                                 $jsEventCode = "function (event) { $jsEventCode(event); }";
                             }
