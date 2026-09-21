@@ -14,6 +14,8 @@ abstract class HtmlNode
     public ?array $files = null;
     public $value;
     public $checked;
+    /** A checkbox's half-checked state: a DOM property with no attribute, so it can only be set. */
+    public $indeterminate = null;
     public $usedByRenderer = null;
     public $disabled = null;
     public $form = null;
@@ -152,6 +154,8 @@ abstract class HtmlNode
     public abstract function blur();
     public abstract function click();
     public abstract function focus();
+    /** Select an input's text. */
+    public abstract function select();
     public $inert = null;
     public $enterKeyHint = null;
     public $virtualKeyboardPolicy = null;
@@ -203,16 +207,16 @@ abstract class HtmlNode
     public abstract function append();
     public abstract function attachShadow();
     public abstract function before();
-    public abstract function closest();
+    public abstract function closest(string $selectors): ?HtmlNode;
     public abstract function computedStyleMap();
-    public abstract function getAttribute();
+    public abstract function getAttribute(string $name);
     public abstract function getAttributeNS();
     public abstract function getAttributeNames();
     public abstract function getAttributeNode();
     public abstract function getAttributeNodeNS();
     public abstract function getBoundingClientRect();
     public abstract function getClientRects();
-    public abstract function getElementById(): ?HtmlNode;
+    public abstract function getElementById(string $id): ?HtmlNode;
     public abstract function getElementsByClassName();
     public abstract function getElementsByTagName();
     public abstract function getElementsByTagNameNS();
@@ -226,8 +230,8 @@ abstract class HtmlNode
     public abstract function insertAdjacentText();
     public abstract function matches();
     public abstract function prepend();
-    public abstract function querySelector();
-    public abstract function querySelectorAll();
+    public abstract function querySelector(string $selectors): ?HtmlNode;
+    public abstract function querySelectorAll(string $selectors);
     public abstract function releasePointerCapture();
     public abstract function remove();
     public abstract function removeAttribute();
@@ -239,7 +243,7 @@ abstract class HtmlNode
     public abstract function requestPointerLock();
     public abstract function scroll();
     public abstract function scrollBy();
-    public abstract function scrollIntoView();
+    public abstract function scrollIntoView($options = null);
     public abstract function scrollIntoViewIfNeeded();
     public abstract function scrollTo();
     public abstract function setAttribute();

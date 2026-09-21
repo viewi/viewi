@@ -40,4 +40,34 @@ class DomHelper
             javascript;
         return [];
     }
+
+    /** document.getElementById — for elements outside the component's refs (an Overlay's content). */
+    public static function getElementById(string $id): ?HtmlNode
+    {
+        <<<'javascript'
+        return document.getElementById(id);
+        javascript;
+        // nothing on server-side
+        return null;
+    }
+
+    /** The focused element, to check whether a focus() call landed. */
+    public static function getActiveElement(): ?HtmlNode
+    {
+        <<<'javascript'
+        return document.activeElement;
+        javascript;
+        // nothing on server-side
+        return null;
+    }
+
+    /** Run $action before the next repaint — after the pending render has reached the DOM. */
+    public static function requestAnimationFrame(callable $action): int
+    {
+        <<<'javascript'
+        return window.requestAnimationFrame(action);
+        javascript;
+        // nothing on server-side
+        return 0;
+    }
 }
