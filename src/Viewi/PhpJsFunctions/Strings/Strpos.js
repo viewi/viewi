@@ -1,13 +1,14 @@
-function strpos (haystack, needle, offset) {
-  //  discuss at: https://locutus.io/php/strpos/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // improved by: Onno Marsman (https://twitter.com/onnomarsman)
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  // bugfixed by: Daniel Esteban
-  //   example 1: strpos('Kevin van Zonneveld', 'e', 5)
-  //   returns 1: 14
-
-  const i = (haystack + '')
-    .indexOf(needle, (offset || 0))
+function strpos(haystack, needle, offset) {
+  //  discuss at: https://www.php.net/manual/en/function.strpos.php
+  // A negative offset counts from the end; an offset outside the string throws, as PHP 8 does.
+  haystack = _phpCastString(haystack)
+  offset = Math.trunc(offset) || 0
+  if (offset < 0) {
+    offset += haystack.length
+  }
+  if (offset < 0 || offset > haystack.length) {
+    throw new Error('strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)')
+  }
+  const i = haystack.indexOf(_phpCastString(needle), offset)
   return i === -1 ? false : i
 }

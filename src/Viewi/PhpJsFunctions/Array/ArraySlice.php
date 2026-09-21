@@ -10,7 +10,7 @@ class ArraySlice extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['is_int'];
+        return ['_php_array_entries', '_php_array'];
     }
 
     public static function getJs(): string

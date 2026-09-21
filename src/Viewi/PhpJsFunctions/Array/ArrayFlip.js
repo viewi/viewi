@@ -1,20 +1,11 @@
-function array_flip (trans) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/array_flip/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // improved by: Pier Paolo Ramon (https://www.mastersoup.com/)
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: array_flip( {a: 1, b: 1, c: 2} )
-  //   returns 1: {1: 'b', 2: 'c'}
-
-  let key
-  const tmpArr = {}
-
-  for (key in trans) {
-    if (!trans.hasOwnProperty(key)) {
-      continue
+function array_flip(trans) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.array-flip.php
+  // Only int and string values can become keys; PHP skips the rest with a warning.
+  const pairs = []
+  for (const [key, value] of _php_array_entries(trans)) {
+    if (typeof value === 'string' || (typeof value === 'number' && Number.isInteger(value))) {
+      pairs.push([value, key])
     }
-    tmpArr[trans[key]] = key
   }
-
-  return tmpArr
+  return _php_array(pairs)
 }

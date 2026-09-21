@@ -232,13 +232,8 @@ function date (format, timestamp) {
 
     // Timezone
     e: function () {
-      // Timezone identifier; e.g. Atlantic/Azores, ...
-      // The following works, but requires inclusion of the very large
-      // timezone_abbreviations_list() function.
-      /*              return that.date_default_timezone_get();
-       */
-      const msg = 'Not supported (see source code of date() for timezone on how to add support)'
-      throw new Error(msg)
+      // Timezone identifier; e.g. Europe/Amsterdam — the browser's zone (see the timezone known difference)
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     },
     I: function () {
       // DST observed?; 0 or 1
@@ -266,32 +261,12 @@ function date (format, timestamp) {
       return (O.substr(0, 3) + ':' + O.substr(3, 2))
     },
     T: function () {
-      // The following works, but requires inclusion of the very
-      // large timezone_abbreviations_list() function.
-      /*              var abbr, i, os, _default;
-      if (!tal.length) {
-        tal = that.timezone_abbreviations_list();
-      }
-      if ($locutus && $locutus.default_timezone) {
-        _default = $locutus.default_timezone;
-        for (abbr in tal) {
-          for (i = 0; i < tal[abbr].length; i++) {
-            if (tal[abbr][i].timezone_id === _default) {
-              return abbr.toUpperCase();
-            }
-          }
-        }
-      }
-      for (abbr in tal) {
-        for (i = 0; i < tal[abbr].length; i++) {
-          os = -jsdate.getTimezoneOffset() * 60;
-          if (tal[abbr][i].offset === os) {
-            return abbr.toUpperCase();
-          }
-        }
-      }
-      */
-      return 'UTC'
+      // Timezone abbreviation as the browser names it: 'UTC', 'CET'/'GMT+1' depending on the locale data
+      const part = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(jsdate)
+        .find(function (p) {
+          return p.type === 'timeZoneName'
+        })
+      return part ? part.value : 'UTC'
     },
     Z: function () {
       // Timezone offset in seconds (-43200...50400)

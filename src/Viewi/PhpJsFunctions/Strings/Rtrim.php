@@ -10,7 +10,7 @@ class Rtrim extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_trim'];
     }
 
     public static function getJs(): string

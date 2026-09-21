@@ -10,7 +10,7 @@ class Intval extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_cast_int'];
     }
 
     public static function getJs(): string

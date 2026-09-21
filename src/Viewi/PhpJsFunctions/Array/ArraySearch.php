@@ -10,7 +10,7 @@ class ArraySearch extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_compare', '_php_array_key'];
     }
 
     public static function getJs(): string

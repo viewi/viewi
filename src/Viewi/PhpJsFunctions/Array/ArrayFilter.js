@@ -1,34 +1,22 @@
-function array_filter(arr, func) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/array_filter/
-  // original by: Brett Zamir (https://brett-zamir.me)
-  //    input by: max4ever
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  //      note 1: Takes a function as an argument, not a function's name
-  //   example 1: var odd = function (num) {return (num & 1);}
-  //   example 1: array_filter({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, odd)
-  //   returns 1: {"a": 1, "c": 3, "e": 5}
-  //   example 2: var even = function (num) {return (!(num & 1));}
-  //   example 2: array_filter([6, 7, 8, 9, 10, 11, 12], even)
-  //   returns 2: [ 6, , 8, , 10, , 12 ]
-  //   example 3: array_filter({"a": 1, "b": false, "c": -1, "d": 0, "e": null, "f":'', "g":undefined})
-  //   returns 3: {"a":1, "c":-1}
-  const isArray = Array.isArray(arr);
-  let retObj = isArray ? [] : {};
-  let k
-
-  func = func || function (v) {
-    return v
+function array_filter(arr, func, mode) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.array-filter.php
+  // Keys are preserved, as in PHP: filtering [1, 0, 2] leaves {0: 1, 2: 2}, not a list.
+  // mode: ARRAY_FILTER_USE_BOTH (1) passes (value, key), ARRAY_FILTER_USE_KEY (2) passes key.
+  const truthy = function (v) {
+    if (v === null || v === undefined || v === false || v === 0 || v === '' || v === '0') {
+      return false
+    }
+    return typeof v !== 'object' || Object.keys(v).length > 0
   }
-
-  for (k in arr) {
-    if (func(arr[k])) {
-      if (isArray) {
-        retObj.push(arr[k]);
-      } else {
-        retObj[k] = arr[k]
-      }
+  const kept = []
+  for (const [key, value] of _php_array_entries(arr)) {
+    let keep = value
+    if (typeof func === 'function') {
+      keep = mode === 2 ? func(key) : (mode === 1 ? func(value, key) : func(value))
+    }
+    if (truthy(keep)) {
+      kept.push([key, value])
     }
   }
-
-  return retObj
+  return _php_array(kept)
 }

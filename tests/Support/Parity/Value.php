@@ -9,7 +9,7 @@ use InvalidArgumentException;
  *
  * Every value becomes ['t' => tag, 'v' => payload] so int/bool/null/[]/{} survive JSON:
  *   null | bool | int | float | string | bytes (non-UTF-8, base64) | list | map ([[key, value]…])
- * Arguments only: const (a PhpConstant — resolved per language, see there).
+ * Arguments only: const (a PhpConstant) and callback (a PhpCallback) — resolved per language.
  * JS adds: undefined | badstring (lone UTF-16 surrogates) | function | object | error.
  * Floats that JSON can't carry travel as the strings "NAN" / "INF" / "-INF" / "-0".
  */
@@ -30,6 +30,7 @@ final class Value
                 : ['t' => 'map', 'v' => self::encodePairs($value)],
             $value instanceof \stdClass => ['t' => 'map', 'v' => self::encodePairs((array)$value)],
             $value instanceof PhpConstant => ['t' => 'const', 'v' => $value->name],
+            $value instanceof PhpCallback => ['t' => 'callback', 'v' => $value->js],
             default => throw new InvalidArgumentException('Parity: can not encode ' . get_debug_type($value)),
         };
     }

@@ -10,7 +10,7 @@ class ArrayMerge extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries', '_php_array'];
     }
 
     public static function getJs(): string

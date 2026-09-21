@@ -1,64 +1,44 @@
-function _phpCastString (value) {
-  // original by: Rafał Kukawski
-  //   example 1: _phpCastString(true)
-  //   returns 1: '1'
-  //   example 2: _phpCastString(false)
-  //   returns 2: ''
-  //   example 3: _phpCastString('foo')
-  //   returns 3: 'foo'
-  //   example 4: _phpCastString(0/0)
-  //   returns 4: 'NAN'
-  //   example 5: _phpCastString(1/0)
-  //   returns 5: 'INF'
-  //   example 6: _phpCastString(-1/0)
-  //   returns 6: '-INF'
-  //   example 7: _phpCastString(null)
-  //   returns 7: ''
-  //   example 8: _phpCastString(undefined)
-  //   returns 8: ''
-  //   example 9: _phpCastString([])
-  //   returns 9: 'Array'
-  //   example 10: _phpCastString({})
-  //   returns 10: 'Object'
-  //   example 11: _phpCastString(0)
-  //   returns 11: '0'
-  //   example 12: _phpCastString(1)
-  //   returns 12: '1'
-  //   example 13: _phpCastString(3.14)
-  //   returns 13: '3.14'
-
-  const type = typeof value
-
-  switch (type) {
+function _phpCastString(value) { // eslint-disable-line camelcase
+  // PHP's (string): true → '1', false/null → '', arrays → 'Array'. Floats print the way PHP
+  // does (precision 14): 0.1 + 0.2 → '0.3', 1e20 → '1.0E+20', 1.5e-5 → '1.5E-5', -0.0 → '-0'.
+  // An integral number within the safe range prints as an integer (JS can't tell 1 from 1.0).
+  switch (typeof value) {
     case 'boolean':
       return value ? '1' : ''
     case 'string':
       return value
-    case 'number':
+    case 'number': {
       if (isNaN(value)) {
         return 'NAN'
       }
-
       if (!isFinite(value)) {
         return (value < 0 ? '-' : '') + 'INF'
       }
-
-      return value + ''
+      if (Object.is(value, -0)) {
+        return '-0'
+      }
+      if (Number.isSafeInteger(value)) {
+        return String(value)
+      }
+      const rounded = Number(value.toPrecision(14))
+      const parts = rounded.toExponential(13).split('e')
+      const exponent = parseInt(parts[1], 10)
+      if (exponent < -4 || exponent >= 14) {
+        let mantissa = parts[0].replace(/\.?0+$/, '')
+        if (mantissa.indexOf('.') === -1) {
+          mantissa += '.0'
+        }
+        return mantissa + 'E' + (exponent < 0 ? '-' : '+') + Math.abs(exponent)
+      }
+      return String(rounded)
+    }
     case 'undefined':
       return ''
     case 'object':
-      if (Array.isArray(value)) {
-        return 'Array'
+      if (value === null) {
+        return ''
       }
-
-      if (value !== null) {
-        return 'Object'
-      }
-
-      return ''
-    case 'function':
-      // fall through
-    default:
-      throw new Error('Unsupported value type')
+      return Array.isArray(value) ? 'Array' : 'Object'
   }
+  throw new Error('Unsupported value type')
 }

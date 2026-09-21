@@ -1,180 +1,102 @@
-function json_encode (mixedVal) { // eslint-disable-line camelcase
-  //       discuss at: https://phpjs.org/functions/json_encode/
-  //      original by: Public Domain (https://www.json.org/json2.js)
-  // reimplemented by: Kevin van Zonneveld (https://kevin.vanzonneveld.net)
-  //      improved by: Michael White
-  //         input by: felix
-  //      bugfixed by: Brett Zamir (https://brett-zamir.me)
-  //        example 1: json_encode('Kevin')
-  //        returns 1: '"Kevin"'
-
-  /*
-    https://www.JSON.org/json2.js
-    2008-11-19
-    Public Domain.
-    NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
-    See https://www.JSON.org/js.html
-  */
-
-  const $global = (typeof window !== 'undefined' ? window : global)
-  $global.$locutus = $global.$locutus || {}
-  const $locutus = $global.$locutus
-  $locutus.php = $locutus.php || {}
-
-  const json = $global.JSON
-  let retVal
+function json_encode(value, flags) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.json-encode.php
+  // PHP's output, not JSON.stringify's: '/' is escaped and non-ASCII becomes \uXXXX unless
+  // JSON_UNESCAPED_SLASHES (64) / JSON_UNESCAPED_UNICODE (256); JSON_PRETTY_PRINT (128) indents
+  // with 4 spaces; JSON_FORCE_OBJECT (16); JSON_HEX_TAG/AMP/APOS/QUOT (1/2/4/8).
+  // Floats as PHP writes them (1.0e+25). NaN/INF can't be encoded: false, as PHP returns.
+  flags = flags || 0
+  const pretty = (flags & 128) !== 0
+  const quote = function (str) {
+    let out = '"'
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i]
+      const code = str.charCodeAt(i)
+      const hex = function (upper) {
+        const h = ('000' + code.toString(16)).slice(-4)
+        return '\\u' + (upper ? h.toUpperCase() : h)
+      }
+      if (ch === '"') {
+        out += flags & 8 ? hex(true) : '\\"'
+      } else if (ch === '\\') {
+        out += '\\\\'
+      } else if (ch === '/') {
+        out += flags & 64 ? '/' : '\\/'
+      } else if (ch === '\b') {
+        out += '\\b'
+      } else if (ch === '\f') {
+        out += '\\f'
+      } else if (ch === '\n') {
+        out += '\\n'
+      } else if (ch === '\r') {
+        out += '\\r'
+      } else if (ch === '\t') {
+        out += '\\t'
+      } else if (code < 0x20) {
+        out += hex(false)
+      } else if ((ch === '<' || ch === '>') && flags & 1) {
+        out += hex(true)
+      } else if (ch === '&' && flags & 2) {
+        out += hex(true)
+      } else if (ch === "'" && flags & 4) {
+        out += hex(true)
+      } else if (code > 0x7f && (!(flags & 256) || ((code === 0x2028 || code === 0x2029) && !(flags & 2048)))) {
+        out += hex(false)
+      } else {
+        out += ch
+      }
+    }
+    return out + '"'
+  }
+  const number = function (n) {
+    if (Object.is(n, -0)) {
+      return '-0'
+    }
+    if (Number.isSafeInteger(n)) {
+      return String(n) // an integer to PHP too — microsecond timestamps must not turn into 1.7e+15
+    }
+    const parts = n.toExponential().split('e') // shortest round-trip digits, as serialize_precision -1
+    const exponent = parseInt(parts[1], 10)
+    if (exponent < -4 || exponent >= 15) {
+      const mantissa = parts[0].indexOf('.') === -1 ? parts[0] + '.0' : parts[0]
+      return mantissa + 'e' + (exponent < 0 ? '-' : '+') + Math.abs(exponent)
+    }
+    return String(n)
+  }
+  const encode = function (v, indent) {
+    if (v === null || v === undefined) {
+      return 'null'
+    }
+    switch (typeof v) {
+      case 'boolean':
+        return v ? 'true' : 'false'
+      case 'number':
+        if (!isFinite(v)) {
+          throw new Error('Inf and NaN cannot be JSON encoded')
+        }
+        return number(v)
+      case 'string':
+        return quote(v)
+      case 'object': {
+        const isList = Array.isArray(v) && !(flags & 16)
+        const keys = Object.keys(v)
+        if (keys.length === 0) {
+          return isList ? '[]' : '{}'
+        }
+        const inner = indent + '    '
+        const items = keys.map(function (key) {
+          const item = encode(v[key], inner)
+          return isList ? item : quote(key) + (pretty ? ': ' : ':') + item
+        })
+        return pretty
+          ? (isList ? '[' : '{') + '\n' + inner + items.join(',\n' + inner) + '\n' + indent + (isList ? ']' : '}')
+          : (isList ? '[' : '{') + items.join(',') + (isList ? ']' : '}')
+      }
+    }
+    return 'null'
+  }
   try {
-    if (typeof json === 'object' && typeof json.stringify === 'function') {
-      // Errors will not be caught here if our own equivalent to resource
-      retVal = json.stringify(mixedVal)
-      if (retVal === undefined) {
-        throw new SyntaxError('json_encode')
-      }
-      return retVal
-    }
-
-    const value = mixedVal
-
-    const quote = function (string) {
-      const escapeChars = [
-        '\u0000-\u001f',
-        '\u007f-\u009f',
-        '\u00ad',
-        '\u0600-\u0604',
-        '\u070f',
-        '\u17b4',
-        '\u17b5',
-        '\u200c-\u200f',
-        '\u2028-\u202f',
-        '\u2060-\u206f',
-        '\ufeff',
-        '\ufff0-\uffff'
-      ].join('')
-      const escapable = new RegExp('[\\"' + escapeChars + ']', 'g')
-      const meta = {
-        // table of character substitutions
-        '\b': '\\b',
-        '\t': '\\t',
-        '\n': '\\n',
-        '\f': '\\f',
-        '\r': '\\r',
-        '"': '\\"',
-        '\\': '\\\\'
-      }
-
-      escapable.lastIndex = 0
-      return escapable.test(string)
-        ? '"' + string.replace(escapable, function (a) {
-          const c = meta[a]
-          return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4)
-        }) + '"'
-        : '"' + string + '"'
-    }
-
-    var _str = function (key, holder) {
-      let gap = ''
-      const indent = '    '
-      // The loop counter.
-      let i = 0
-      // The member key.
-      let k = ''
-      // The member value.
-      let v = ''
-      let length = 0
-      const mind = gap
-      let partial = []
-      let value = holder[key]
-
-      // If the value has a toJSON method, call it to obtain a replacement value.
-      if (value && typeof value === 'object' && typeof value.toJSON === 'function') {
-        value = value.toJSON(key)
-      }
-
-      // What happens next depends on the value's type.
-      switch (typeof value) {
-        case 'string':
-          return quote(value)
-
-        case 'number':
-          // JSON numbers must be finite. Encode non-finite numbers as null.
-          return isFinite(value) ? String(value) : 'null'
-
-        case 'boolean':
-          // If the value is a boolean or null, convert it to a string.
-          return String(value)
-
-        case 'object':
-          // If the type is 'object', we might be dealing with an object or an array or
-          // null.
-          // Due to a specification blunder in ECMAScript, typeof null is 'object',
-          // so watch out for that case.
-          if (!value) {
-            return 'null'
-          }
-
-          // Make an array to hold the partial results of stringifying this object value.
-          gap += indent
-          partial = []
-
-          // Is the value an array?
-          if (Object.prototype.toString.apply(value) === '[object Array]') {
-            // The value is an array. Stringify every element. Use null as a placeholder
-            // for non-JSON values.
-            length = value.length
-            for (i = 0; i < length; i += 1) {
-              partial[i] = _str(i, value) || 'null'
-            }
-
-            // Join all of the elements together, separated with commas, and wrap them in
-            // brackets.
-            v = partial.length === 0
-              ? '[]'
-              : gap
-                ? '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']'
-                : '[' + partial.join(',') + ']'
-            // gap = mind // not used
-            return v
-          }
-
-          // Iterate through all of the keys in the object.
-          for (k in value) {
-            if (Object.hasOwnProperty.call(value, k)) {
-              v = _str(k, value)
-              if (v) {
-                partial.push(quote(k) + (gap ? ': ' : ':') + v)
-              }
-            }
-          }
-
-          // Join all of the member texts together, separated with commas,
-          // and wrap them in braces.
-          v = partial.length === 0
-            ? '{}'
-            : gap
-              ? '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}'
-              : '{' + partial.join(',') + '}'
-          // gap = mind // Not used
-          return v
-        case 'undefined':
-        case 'function':
-        default:
-          throw new SyntaxError('json_encode')
-      }
-    }
-
-    // Make a fake root object containing our value under the key of ''.
-    // Return the result of stringifying the value.
-    return _str('', {
-      '': value
-    })
-  } catch (err) {
-    // @todo: ensure error handling above throws a SyntaxError in all cases where it could
-    // (i.e., when the JSON global is not available and there is an error)
-    if (!(err instanceof SyntaxError)) {
-      throw new Error('Unexpected error type in json_encode()')
-    }
-    // usable by json_last_error()
-    $locutus.php.last_error_json = 4
-    return null
+    return encode(value, '')
+  } catch (e) {
+    return false
   }
 }

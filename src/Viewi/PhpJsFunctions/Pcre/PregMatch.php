@@ -10,7 +10,7 @@ class PregMatch extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_phpCastString', '_php_array_set'];
     }
 
     public static function getJs(): string

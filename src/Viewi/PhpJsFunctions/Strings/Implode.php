@@ -10,7 +10,7 @@ class Implode extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries', '_phpCastString'];
     }
 
     public static function getJs(): string

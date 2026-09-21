@@ -44,6 +44,8 @@ return function decode(tagged) {
                 throw new ReferenceError(v + ' is not defined');
             }
             return globalThis[v];
+        case 'callback':
+            return new Function('return (' + v + ');')();
         case 'list': {
             const list = [];
             for (const item of v) {

@@ -32,10 +32,19 @@ return [
             . 'for that reason.',
         'advice' => 'Don\'t branch on int vs float in component code.',
     ],
-    'float-to-string' => [
-        'functions' => ['implode', 'strval', '(string)'],
-        'why' => 'Very large and very small floats print differently: PHP writes 1.0E+20 and 1.0E-7, '
-            . 'JS writes 100000000000000000000 and 1e-7.',
-        'advice' => 'Format numbers for display with number_format() or sprintf().',
+    'by-ref-type-change' => [
+        'functions' => ['usort', 'sort', 'array_splice', 'array_unshift'],
+        'why' => 'A by-reference function rewrites the caller\'s array in place, because JS can not '
+            . 'rebind the caller\'s variable. So it can not turn a map (JS object) into a list (JS '
+            . 'array): usort([\'b\' => 2, \'a\' => 1]) leaves PHP a list and the browser an object '
+            . 'with keys 0 and 1. Iterating and counting behave the same; array checks do not.',
+        'advice' => 'Sort lists, or assign the result: $sorted = array_values($map); usort($sorted, …).',
+    ],
+    'timezone' => [
+        'functions' => ['date', 'mktime', 'strtotime', 'getdate', 'idate'],
+        'why' => 'PHP formats and parses times in the server\'s default timezone; the browser uses the '
+            . 'visitor\'s. The same timestamp can render as a different hour or even day after '
+            . 'hydration. (The parity tests run both sides in UTC.)',
+        'advice' => 'Use gmdate()/gmmktime(), or format on the server and pass the string in.',
     ],
 ];

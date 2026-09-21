@@ -15,6 +15,7 @@ final class PhpEquivalents
             '_php_cast_int' => fn($value) => (int)$value,
             '_php_cast_float' => fn($value) => (float)$value,
             '_phpCastString' => fn($value) => (string)$value,
+            '_php_compare' => fn($a, $b) => $a <=> $b,
             'isset' => function (...$values) {
                 foreach ($values as $value) {
                     if ($value === null) {

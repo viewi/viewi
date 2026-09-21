@@ -10,7 +10,7 @@ class ArraySplice extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['is_int'];
+        return ['_php_array_entries', '_php_array', '_php_array_set'];
     }
 
     public static function getJs(): string

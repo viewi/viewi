@@ -1,52 +1,21 @@
-function _php_cast_int (value) { // eslint-disable-line camelcase
-  // original by: Rafał Kukawski
-  //   example 1: _php_cast_int(false)
-  //   returns 1: 0
-  //   example 2: _php_cast_int(true)
-  //   returns 2: 1
-  //   example 3: _php_cast_int(0)
-  //   returns 3: 0
-  //   example 4: _php_cast_int(1)
-  //   returns 4: 1
-  //   example 5: _php_cast_int(3.14)
-  //   returns 5: 3
-  //   example 6: _php_cast_int('')
-  //   returns 6: 0
-  //   example 7: _php_cast_int('0')
-  //   returns 7: 0
-  //   example 8: _php_cast_int('abc')
-  //   returns 8: 0
-  //   example 9: _php_cast_int(null)
-  //   returns 9: 0
-  //  example 10: _php_cast_int(undefined)
-  //  returns 10: 0
-  //  example 11: _php_cast_int('123abc')
-  //  returns 11: 123
-  //  example 12: _php_cast_int('123e4')
-  //  returns 12: 123
-  //  example 13: _php_cast_int(0x200000001)
-  //  returns 13: 8589934593
-
-  const type = typeof value
-
-  switch (type) {
+function _php_cast_int(value) { // eslint-disable-line camelcase
+  // PHP's (int): strings take their leading numeric part, exponent included ("1e3" → 1000,
+  // " 42abc" → 42, "abc" → 0); floats truncate toward zero; NaN/INF → 0; arrays → 0 or 1.
+  switch (typeof value) {
     case 'number':
-      if (isNaN(value) || !isFinite(value)) {
-        // from PHP 7, NaN and Infinity are casted to 0
+      return Number.isFinite(value) ? Math.trunc(value) : 0
+    case 'string': {
+      const prefix = value.match(/^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/)
+      if (!prefix) {
         return 0
       }
-
-      return value < 0 ? Math.ceil(value) : Math.floor(value)
-    case 'string':
-      return parseInt(value, 10) || 0
+      const n = Number(prefix[0].trim())
+      return Number.isFinite(n) ? Math.trunc(n) : 0
+    }
     case 'boolean':
-      // fall through
-    default:
-      // Behaviour for types other than float, string, boolean
-      // is undefined and can change any time.
-      // To not invent complex logic
-      // that mimics PHP 7.0 behaviour
-      // casting value->bool->number is used
-      return +!!value
+      return +value
+    case 'object':
+      return value === null ? 0 : (Object.keys(value).length > 0 ? 1 : 0)
   }
+  return 0
 }

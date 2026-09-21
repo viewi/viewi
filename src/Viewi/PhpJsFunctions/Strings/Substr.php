@@ -10,7 +10,7 @@ class Substr extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['_phpCastString', 'ini_get'];
+        return ['_phpCastString'];
     }
 
     public static function getJs(): string

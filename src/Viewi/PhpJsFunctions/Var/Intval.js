@@ -1,44 +1,28 @@
-function intval (mixedVar, base) {
-  //  discuss at: https://locutus.io/php/intval/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // improved by: stensi
-  // bugfixed by: Kevin van Zonneveld (https://kvz.io)
-  // bugfixed by: Brett Zamir (https://brett-zamir.me)
-  // bugfixed by: Rafał Kukawski (https://blog.kukawski.pl)
-  //    input by: Matteo
-  //   example 1: intval('Kevin van Zonneveld')
-  //   returns 1: 0
-  //   example 2: intval(4.2)
-  //   returns 2: 4
-  //   example 3: intval(42, 8)
-  //   returns 3: 42
-  //   example 4: intval('09')
-  //   returns 4: 9
-  //   example 5: intval('1e', 16)
-  //   returns 5: 30
-  //   example 6: intval(0x200000001)
-  //   returns 6: 8589934593
-  //   example 7: intval('0xff', 0)
-  //   returns 7: 255
-  //   example 8: intval('010', 0)
-  //   returns 8: 8
-
-  let tmp, match
-
-  const type = typeof mixedVar
-
-  if (type === 'boolean') {
-    return +mixedVar
-  } else if (type === 'string') {
-    if (base === 0) {
-      match = mixedVar.match(/^\s*0(x?)/i)
-      base = match ? (match[1] ? 16 : 8) : 10
-    }
-    tmp = parseInt(mixedVar, base || 10)
-    return (isNaN(tmp) || !isFinite(tmp)) ? 0 : tmp
-  } else if (type === 'number' && isFinite(mixedVar)) {
-    return mixedVar < 0 ? Math.ceil(mixedVar) : Math.floor(mixedVar)
-  } else {
-    return 0
+function intval(value, base) {
+  //  discuss at: https://www.php.net/manual/en/function.intval.php
+  // Base 10 (the default) is PHP's (int) cast. Other bases apply to strings only: an optional
+  // 0x / 0o / 0b prefix matching the base is skipped, and base 0 picks the base from the prefix
+  // ("0x1A" → 16, "012" → 8, "0b11" → 2).
+  if (typeof value !== 'string' || base === undefined || base === 10) {
+    return _php_cast_int(value)
   }
+  const match = value.match(/^[ \t\n\r\v\f]*([+-]?)(0[xX]|0[oO]|0[bB]|0)?(.*)$/)
+  const sign = match[1] === '-' ? -1 : 1
+  const prefix = (match[2] || '').toLowerCase()
+  let digits = match[3]
+  if (base === 0) {
+    base = prefix === '0x' ? 16 : (prefix === '0b' ? 2 : (prefix === '0o' || prefix === '0' ? 8 : 10))
+  } else if (prefix && !((base === 16 && prefix === '0x') || (base === 2 && prefix === '0b') || (base === 8 && (prefix === '0o' || prefix === '0')))) {
+    digits = match[2] + digits // the prefix is not a prefix in this base: "0" is a digit
+  }
+  const valid = '0123456789abcdefghijklmnopqrstuvwxyz'.slice(0, base)
+  let result = 0
+  for (const ch of digits.toLowerCase()) {
+    const digit = valid.indexOf(ch)
+    if (digit === -1) {
+      break
+    }
+    result = result * base + digit
+  }
+  return sign * result
 }

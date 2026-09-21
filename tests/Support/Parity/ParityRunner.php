@@ -18,7 +18,8 @@ use Viewi\JsTranspile\BaseFunction;
  *                                 the case must keep differing
  *   'shape'     => true           compare types and sizes only (rand, uniqid, shuffle…)
  *   'label'     => '…'            test name, defaults to the arguments
- * PHP constants go in as new PhpConstant('NAME'), never as their value.
+ * PHP constants go in as new PhpConstant('NAME'), never as their value; callbacks as
+ * new PhpCallback(php closure, 'equivalent JS function source').
  */
 final class ParityRunner
 {
@@ -86,6 +87,7 @@ final class ParityRunner
         $parts = array_map(
             fn($arg) => match (true) {
                 $arg instanceof PhpConstant => $arg->name,
+                $arg instanceof PhpCallback => 'fn',
                 is_string($arg) && !mb_check_encoding($arg, 'UTF-8') => 'bytes:' . bin2hex($arg),
                 default => json_encode($arg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_PARTIAL_OUTPUT_ON_ERROR),
             },
@@ -164,7 +166,11 @@ final class ParityRunner
         if (!is_callable($callable)) {
             return ['php' => ['t' => 'error', 'v' => "no PHP function '$fn' — add it to PhpEquivalents"], 'phpRefs' => []];
         }
-        $args = array_map(fn($arg) => $arg instanceof PhpConstant ? constant($arg->name) : $arg, $case['args']);
+        $args = array_map(fn($arg) => match (true) {
+            $arg instanceof PhpConstant => constant($arg->name),
+            $arg instanceof PhpCallback => $arg->php,
+            default => $arg,
+        }, $case['args']);
         $previousZone = date_default_timezone_get();
         date_default_timezone_set('UTC');
         // Warnings/deprecations don't change what PHP returns; only the return value is compared.

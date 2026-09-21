@@ -4,6 +4,12 @@ use Viewi\PhpJsFunctions\Helpers\Bc;
 use Viewi\PhpJsFunctions\Helpers\PhpCastString;
 use Viewi\PhpJsFunctions\Helpers\PhpCastFloat;
 use Viewi\PhpJsFunctions\Helpers\PhpCastInt;
+use Viewi\PhpJsFunctions\Helpers\PhpCompare;
+use Viewi\PhpJsFunctions\Helpers\PhpArrayKey;
+use Viewi\PhpJsFunctions\Helpers\PhpArrayEntries;
+use Viewi\PhpJsFunctions\Helpers\PhpArray;
+use Viewi\PhpJsFunctions\Helpers\PhpArraySet;
+use Viewi\PhpJsFunctions\Helpers\PhpTrim;
 use Viewi\PhpJsFunctions\Array\ArrayChangeKeyCase;
 use Viewi\PhpJsFunctions\Array\ArrayChunk;
 use Viewi\PhpJsFunctions\Array\ArrayColumn;
@@ -314,6 +320,12 @@ return [
     '_phpCastString' => PhpCastString::class,
     '_php_cast_float' => PhpCastFloat::class,
     '_php_cast_int' => PhpCastInt::class,
+    '_php_compare' => PhpCompare::class,
+    '_php_array_key' => PhpArrayKey::class,
+    '_php_array_entries' => PhpArrayEntries::class,
+    '_php_array' => PhpArray::class,
+    '_php_array_set' => PhpArraySet::class,
+    '_php_trim' => PhpTrim::class,
     'array_change_key_case' => ArrayChangeKeyCase::class,
     'array_chunk' => ArrayChunk::class,
     'array_column' => ArrayColumn::class,
