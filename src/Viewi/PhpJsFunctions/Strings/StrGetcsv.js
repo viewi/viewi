@@ -1,60 +1,60 @@
-function str_getcsv (input, delimiter, enclosure, escape) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/str_getcsv/
-  // original by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: str_getcsv('"abc","def","ghi"')
-  //   returns 1: ['abc', 'def', 'ghi']
-  //   example 2: str_getcsv('"row2""cell1","row2cell2","row2cell3"', null, null, '"')
-  //   returns 2: ['row2"cell1', 'row2cell2', 'row2cell3']
-
-  /*
-  // These test cases allowing for missing delimiters are not currently supported
-    str_getcsv('"row2""cell1",row2cell2,row2cell3', null, null, '"');
-    ['row2"cell1', 'row2cell2', 'row2cell3']
-
-    str_getcsv('row1cell1,"row1,cell2",row1cell3', null, null, '"');
-    ['row1cell1', 'row1,cell2', 'row1cell3']
-
-    str_getcsv('"row2""cell1",row2cell2,"row2""""cell3"');
-    ['row2"cell1', 'row2cell2', 'row2""cell3']
-
-    str_getcsv('row1cell1,"row1,cell2","row1"",""cell3"', null, null, '"');
-    ['row1cell1', 'row1,cell2', 'row1","cell3'];
-
-    Should also test newlines within
-  */
-
-  let i
-  let inpLen
-  const output = []
-  const _backwards = function (str) {
-    // We need to go backwards to simulate negative look-behind (don't split on
-    // an escaped enclosure even if followed by the delimiter and another enclosure mark)
-    return str.split('').reverse().join('')
+function str_getcsv(input, separator, enclosure, escape) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.str-getcsv.php
+  // One CSV line into fields. A doubled enclosure is a literal quote; the escape character
+  // (default \) keeps the next character inside the field, both kept in the output as PHP does.
+  // An empty line gives [null], as PHP.
+  input = _phpCastString(input)
+  separator = separator === undefined ? ',' : separator
+  enclosure = enclosure === undefined ? '"' : enclosure
+  escape = escape === undefined ? '\\' : escape
+  if (input === '') {
+    return [null]
   }
-  const _pq = function (str) {
-    // preg_quote()
-    return String(str).replace(/([\\.+*?[^\]$(){}=!<>|:])/g, '\\$1')
+  const fields = []
+  let field = ''
+  let i = 0
+  let quoted = false
+  let started = false
+  while (i < input.length) {
+    const ch = input[i]
+    if (quoted) {
+      if (escape !== '' && ch === escape && i + 1 < input.length) {
+        field += ch + input[i + 1]
+        i += 2
+        continue
+      }
+      if (ch === enclosure) {
+        if (input[i + 1] === enclosure) {
+          field += enclosure
+          i += 2
+          continue
+        }
+        quoted = false
+        i++
+        continue
+      }
+      field += ch
+      i++
+      continue
+    }
+    if (ch === separator) {
+      fields.push(field)
+      field = ''
+      started = false
+      i++
+      continue
+    }
+    if (ch === enclosure && !started && field.trim() === '') {
+      quoted = true
+      started = true
+      field = ''
+      i++
+      continue
+    }
+    field += ch
+    started = true
+    i++
   }
-
-  delimiter = delimiter || ','
-  enclosure = enclosure || '"'
-  escape = escape || '\\'
-  const pqEnc = _pq(enclosure)
-  const pqEsc = _pq(escape)
-
-  input = input
-    .replace(new RegExp('^\\s*' + pqEnc), '')
-    .replace(new RegExp(pqEnc + '\\s*$'), '')
-
-  // PHP behavior may differ by including whitespace even outside of the enclosure
-  input = _backwards(input)
-    .split(new RegExp(pqEnc + '\\s*' + _pq(delimiter) + '\\s*' + pqEnc + '(?!' + pqEsc + ')', 'g'))
-    .reverse()
-
-  for (i = 0, inpLen = input.length; i < inpLen; i++) {
-    output.push(_backwards(input[i])
-      .replace(new RegExp(pqEsc + pqEnc, 'g'), enclosure))
-  }
-
-  return output
+  fields.push(field)
+  return fields
 }

@@ -152,4 +152,56 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         $output = trim(str_replace(["\n", "\r"], [PHP_EOL, ''], $input));
         return $output;
     }
+
+    public function testConcatenationCastsLikePhp()
+    {
+        // PHP's . never adds and prints true/null/floats its own way: non-string operands are cast
+        $this->assertEquals(
+            'var a = ("x" + _phpCastString(f));',
+            trim($this->transpiler->convert('<?php $a = "x" . $f;'))
+        );
+        $this->assertEquals(
+            'var c = (_phpCastString(1) + _phpCastString(2));',
+            trim($this->transpiler->convert('<?php $c = 1 . 2;'))
+        );
+        $this->assertEquals(
+            'var h = ("n=" + 5);',
+            trim($this->transpiler->convert('<?php $h = "n=" . 5;'))
+        );
+        $this->assertEquals(
+            'var e = (_phpCastString(x) + _phpCastString(y) + "!");',
+            trim($this->transpiler->convert('<?php $e = $x . $y . "!";'))
+        );
+        // parenthesised, so the chain stays one operand
+        $this->assertEquals(
+            'var w = (_phpCastString(a) + _phpCastString(b))[0];',
+            trim($this->transpiler->convert('<?php $w = ($a . $b)[0];'))
+        );
+        $this->assertEquals(
+            's = _phpCastString(s) + _phpCastString(f);',
+            trim($this->transpiler->convert('<?php $s .= $f;'))
+        );
+        $this->assertEquals(
+            'var b = ("v: " + _phpCastString(f) + "!");',
+            trim($this->transpiler->convert('<?php $b = "v: $f!";'))
+        );
+    }
+
+    public function testSpaceshipUsesPhpCompare()
+    {
+        $this->assertEquals(
+            'var g = _php_compare(p, q);',
+            trim($this->transpiler->convert('<?php $g = $p <=> $q;'))
+        );
+    }
+
+    public function testInternalHelperUsesAreMarked()
+    {
+        $uses = $this->transpiler->convert('<?php $a = "x" . $f; $b = strlen($a);')->getUses();
+        $this->assertTrue($uses['_phpCastString']->Internal);
+        $this->assertFalse($uses['strlen']->Internal);
+        // a direct call to the helper is a user call: checked by RestrictedFunctions
+        $uses = $this->transpiler->convert('<?php $a = "x" . $f; $b = _phpCastString($a);')->getUses();
+        $this->assertFalse($uses['_phpCastString']->Internal);
+    }
 }

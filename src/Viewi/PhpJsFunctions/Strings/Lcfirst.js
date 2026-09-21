@@ -1,11 +1,6 @@
-function lcfirst (str) {
-  //  discuss at: https://locutus.io/php/lcfirst/
-  // original by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: lcfirst('Kevin Van Zonneveld')
-  //   returns 1: 'kevin Van Zonneveld'
-
-  str += ''
-  const f = str.charAt(0)
-    .toLowerCase()
-  return f + str.substr(1)
+function lcfirst(str) {
+  //  discuss at: https://www.php.net/manual/en/function.lcfirst.php
+  // ASCII only, as since PHP 8.2: 'ÉCOLE' stays 'ÉCOLE'.
+  str = _phpCastString(str)
+  return /^[A-Z]/.test(str) ? String.fromCharCode(str.charCodeAt(0) + 32) + str.slice(1) : str
 }

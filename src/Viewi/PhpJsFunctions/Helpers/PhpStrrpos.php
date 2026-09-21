@@ -1,21 +1,21 @@
 <?php
 
-namespace Viewi\PhpJsFunctions\Strings;
+namespace Viewi\PhpJsFunctions\Helpers;
 
 use Viewi\JsTranspile\BaseFunction;
 
-class Ord extends BaseFunction
+class PhpStrrpos extends BaseFunction
 {
-    public static string $name = 'ord';
+    public static string $name = '_php_strrpos';
 
     public static function getUses(): array
     {
-        return ['_phpCastString'];
+        return [];
     }
 
     public static function getJs(): string
     {
-        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'Ord.js';
+        $jsToInclude = __DIR__ . DIRECTORY_SEPARATOR . 'PhpStrrpos.js';
         return file_get_contents($jsToInclude);
     }
 }

@@ -10,7 +10,7 @@ class Strtr extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['krsort', 'ini_set'];
+        return ['_php_array_entries', '_phpCastString'];
     }
 
     public static function getJs(): string

@@ -10,7 +10,7 @@ class HtmlspecialcharsDecode extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_html_unescape'];
     }
 
     public static function getJs(): string

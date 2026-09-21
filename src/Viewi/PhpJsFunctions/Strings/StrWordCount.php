@@ -10,7 +10,7 @@ class StrWordCount extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['ctype_alpha'];
+        return ['_php_array', '_phpCastString'];
     }
 
     public static function getJs(): string

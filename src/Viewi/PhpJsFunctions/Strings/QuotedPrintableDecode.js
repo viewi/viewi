@@ -1,30 +1,15 @@
-function quoted_printable_decode (str) { // eslint-disable-line camelcase
-  //       discuss at: https://locutus.io/php/quoted_printable_decode/
-  //      original by: Ole Vrijenhoek
-  //      bugfixed by: Brett Zamir (https://brett-zamir.me)
-  //      bugfixed by: Theriault (https://github.com/Theriault)
-  // reimplemented by: Theriault (https://github.com/Theriault)
-  //      improved by: Brett Zamir (https://brett-zamir.me)
-  //        example 1: quoted_printable_decode('a=3Db=3Dc')
-  //        returns 1: 'a=b=c'
-  //        example 2: quoted_printable_decode('abc  =20\r\n123  =20\r\n')
-  //        returns 2: 'abc   \r\n123   \r\n'
-  //        example 3: quoted_printable_decode('012345678901234567890123456789012345678901234567890123456789012345678901234=\r\n56789')
-  //        returns 3: '01234567890123456789012345678901234567890123456789012345678901234567890123456789'
-  //        example 4: quoted_printable_decode("Lorem ipsum dolor sit amet=23, consectetur adipisicing elit")
-  //        returns 4: 'Lorem ipsum dolor sit amet#, consectetur adipisicing elit'
-
-  // Decodes all equal signs followed by two hex digits
-  const RFC2045Decode1 = /=\r\n/gm
-
-  // the RFC states against decoding lower case encodings, but following apparent PHP behavior
-  const RFC2045Decode2IN = /=([0-9A-F]{2})/gim
-  // RFC2045Decode2IN = /=([0-9A-F]{2})/gm,
-
-  const RFC2045Decode2OUT = function (sMatch, sHex) {
-    return String.fromCharCode(parseInt(sHex, 16))
+function quoted_printable_decode(str) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.quoted-printable-decode.php
+  // =XX becomes that byte and soft breaks (=\r\n, =\n) vanish; the bytes are then read as UTF-8
+  // (Latin-1 if they are not valid UTF-8), so =C3=A9 is 'é' as PHP prints it.
+  const bytes = _phpCastString(str)
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-Fa-f]{2})/g, function (m, hex) {
+      return String.fromCharCode(parseInt(hex, 16))
+    })
+  try {
+    return decodeURIComponent(escape(bytes))
+  } catch (e) {
+    return bytes
   }
-
-  return str.replace(RFC2045Decode1, '')
-    .replace(RFC2045Decode2IN, RFC2045Decode2OUT)
 }

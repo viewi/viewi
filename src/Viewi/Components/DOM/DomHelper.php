@@ -41,7 +41,7 @@ class DomHelper
         return [];
     }
 
-    /** document.getElementById — for elements outside the component's refs (an Overlay's content). */
+    /** document.getElementById - for elements outside the component's refs (an Overlay's content). */
     public static function getElementById(string $id): ?HtmlNode
     {
         <<<'javascript'
@@ -61,7 +61,7 @@ class DomHelper
         return null;
     }
 
-    /** Run $action before the next repaint — after the pending render has reached the DOM. */
+    /** Run $action before the next repaint - after the pending render has reached the DOM. */
     public static function requestAnimationFrame(callable $action): int
     {
         <<<'javascript'

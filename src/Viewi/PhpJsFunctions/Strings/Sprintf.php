@@ -10,7 +10,7 @@ class Sprintf extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_phpCastString', '_php_cast_int', '_php_cast_float'];
     }
 
     public static function getJs(): string

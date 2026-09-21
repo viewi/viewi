@@ -1,18 +1,6 @@
-function chr (codePt) {
-  //  discuss at: https://locutus.io/php/chr/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: chr(75) === 'K'
-  //   example 1: chr(65536) === '\uD800\uDC00'
-  //   returns 1: true
-  //   returns 1: true
-
-  if (codePt > 0xFFFF) { // Create a four-byte string (length 2) since this code point is high
-    //   enough for the UTF-16 encoding (JavaScript internal use), to
-    //   require representation with two surrogates (reserved non-characters
-    //   used for building other characters; the first is "high" and the next "low")
-    codePt -= 0x10000
-    return String.fromCharCode(0xD800 + (codePt >> 10), 0xDC00 + (codePt & 0x3FF))
-  }
-  return String.fromCharCode(codePt)
+function chr(codePt) {
+  //  discuss at: https://www.php.net/manual/en/function.chr.php
+  // One byte, like PHP: the code wraps mod 256 (chr(321) is 'A', chr(-1) is chr(255)).
+  // Codes 128-255 give the Latin-1 character where PHP gives a raw byte (bytes-vs-chars).
+  return String.fromCharCode(((_php_cast_int(codePt) % 256) + 256) % 256)
 }

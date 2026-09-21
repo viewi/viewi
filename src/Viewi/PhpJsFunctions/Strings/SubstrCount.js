@@ -1,37 +1,31 @@
-function substr_count (haystack, needle, offset, length) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/substr_count/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // bugfixed by: Onno Marsman (https://twitter.com/onnomarsman)
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  // improved by: Thomas
-  //   example 1: substr_count('Kevin van Zonneveld', 'e')
-  //   returns 1: 3
-  //   example 2: substr_count('Kevin van Zonneveld', 'K', 1)
-  //   returns 2: 0
-  //   example 3: substr_count('Kevin van Zonneveld', 'Z', 0, 10)
-  //   returns 3: false
-
-  let cnt = 0
-
-  haystack += ''
-  needle += ''
-  if (isNaN(offset)) {
-    offset = 0
+function substr_count(haystack, needle, offset, length) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.substr-count.php
+  // Non-overlapping, as PHP: substr_count('aaa', 'aa') is 1. offset/length may be negative.
+  haystack = _phpCastString(haystack)
+  needle = _phpCastString(needle)
+  if (needle === '') {
+    throw new Error('substr_count(): Argument #2 ($needle) cannot be empty')
   }
-  if (isNaN(length)) {
-    length = 0
+  offset = Math.trunc(offset) || 0
+  if (offset < 0) {
+    offset += haystack.length
   }
-  if (needle.length === 0) {
-    return false
+  if (offset < 0 || offset > haystack.length) {
+    throw new Error('substr_count(): Argument #3 ($offset) must be contained in argument #1 ($haystack)')
   }
-  offset--
-
-  while ((offset = haystack.indexOf(needle, offset + 1)) !== -1) {
-    if (length > 0 && (offset + needle.length) > length) {
-      return false
+  let end = haystack.length
+  if (length !== undefined && length !== null) {
+    end = length < 0 ? haystack.length + Math.trunc(length) : offset + Math.trunc(length)
+    if (end < offset || end > haystack.length) {
+      throw new Error('substr_count(): Argument #4 ($length) must be contained in argument #1 ($haystack)')
     }
-    cnt++
   }
-
-  return cnt
+  const part = haystack.slice(offset, end)
+  let count = 0
+  let pos = part.indexOf(needle)
+  while (pos !== -1) {
+    count++
+    pos = part.indexOf(needle, pos + needle.length)
+  }
+  return count
 }

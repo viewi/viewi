@@ -25,7 +25,9 @@ class RenderItem
         public array $usedFunctions,
         public array $inlineExpressions,
         public bool $hasHtmlTag,
-        public array $usedComponents
+        public array $usedComponents,
+        /** @var array<string, bool> helpers the transpiler added itself (_phpCastString, _php_compare) */
+        public array $internalFunctions = []
     ) {
     }
 

@@ -1,77 +1,25 @@
-function convert_uuencode (str) { // eslint-disable-line camelcase
-  //       discuss at: https://locutus.io/php/convert_uuencode/
-  //      original by: Ole Vrijenhoek
-  //      bugfixed by: Kevin van Zonneveld (https://kvz.io)
-  //      bugfixed by: Brett Zamir (https://brett-zamir.me)
-  // reimplemented by: Ole Vrijenhoek
-  //        example 1: convert_uuencode("test\ntext text\r\n")
-  //        returns 1: "0=&5S=`IT97AT('1E>'0-\"@\n`\n"
-
-
-
-  const chr = function (c) {
-    return String.fromCharCode(c)
+function convert_uuencode(str) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.convert-uuencode.php
+  // Over the UTF-8 bytes, as PHP sees the string: lines of up to 45 bytes, each prefixed with its
+  // length; every 3 bytes (zero-padded) become 4 characters, 0 written as `; ends with "`\n".
+  const bytes = unescape(encodeURIComponent(_phpCastString(str)))
+  if (bytes === '') {
+    return ''
   }
-
-  if (!str || str === '') {
-    return chr(0)
-  } else if (!isScalar(str)) {
-    return false
+  const enc = function (c) {
+    return c === 0 ? '`' : String.fromCharCode(c + 32)
   }
-
-  let c = 0
-  let u = 0
-  let i = 0
-  let a = 0
-  let encoded = ''
-  let tmp1 = ''
-  let tmp2 = ''
-  let bytes = {}
-
-  // divide string into chunks of 45 characters
-  const chunk = function () {
-    bytes = str.substr(u, 45).split('')
-    for (i in bytes) {
-      bytes[i] = bytes[i].charCodeAt(0)
+  let out = ''
+  for (let start = 0; start < bytes.length; start += 45) {
+    const line = bytes.slice(start, start + 45)
+    out += String.fromCharCode(line.length + 32)
+    for (let i = 0; i < line.length; i += 3) {
+      const a = line.charCodeAt(i)
+      const b = i + 1 < line.length ? line.charCodeAt(i + 1) : 0
+      const c = i + 2 < line.length ? line.charCodeAt(i + 2) : 0
+      out += enc(a >> 2) + enc(((a << 4) | (b >> 4)) & 63) + enc(((b << 2) | (c >> 6)) & 63) + enc(c & 63)
     }
-    return bytes.length || 0
+    out += '\n'
   }
-
-  while ((c = chunk()) !== 0) {
-    u += 45
-
-    // New line encoded data starts with number of bytes encoded.
-    encoded += chr(c + 32)
-
-    // Convert each char in bytes[] to a byte
-    for (i in bytes) {
-      tmp1 = bytes[i].toString(2)
-      while (tmp1.length < 8) {
-        tmp1 = '0' + tmp1
-      }
-      tmp2 += tmp1
-    }
-
-    while (tmp2.length % 6) {
-      tmp2 = tmp2 + '0'
-    }
-
-    for (i = 0; i <= (tmp2.length / 6) - 1; i++) {
-      tmp1 = tmp2.substr(a, 6)
-      if (tmp1 === '000000') {
-        encoded += chr(96)
-      } else {
-        encoded += chr(parseInt(tmp1, 2) + 32)
-      }
-      a += 6
-    }
-    a = 0
-    tmp2 = ''
-    encoded += '\n'
-  }
-
-  // Add termination characters
-  encoded += chr(96) + '\n'
-
-  return encoded
+  return out + '`\n'
 }

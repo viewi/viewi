@@ -1,116 +1,40 @@
-function str_word_count (str, format, charlist) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/str_word_count/
-  // original by: Ole Vrijenhoek
-  // bugfixed by: Kevin van Zonneveld (https://kvz.io)
-  // bugfixed by: Brett Zamir (https://brett-zamir.me)
-  // bugfixed by: Brett Zamir (https://brett-zamir.me)
-  //    input by: Bug?
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: str_word_count("Hello fri3nd, you're\r\n       looking          good today!", 1)
-  //   returns 1: ['Hello', 'fri', 'nd', "you're", 'looking', 'good', 'today']
-  //   example 2: str_word_count("Hello fri3nd, you're\r\n       looking          good today!", 2)
-  //   returns 2: {0: 'Hello', 6: 'fri', 10: 'nd', 14: "you're", 29: 'looking', 46: 'good', 51: 'today'}
-  //   example 3: str_word_count("Hello fri3nd, you're\r\n       looking          good today!", 1, '\u00e0\u00e1\u00e3\u00e73')
-  //   returns 3: ['Hello', 'fri3nd', "you're", 'looking', 'good', 'today']
-  //   example 4: str_word_count('hey', 2)
-  //   returns 4: {0: 'hey'}
-
-
-  const len = str.length
-  const cl = charlist && charlist.length
-  let chr = ''
-  let tmpStr = ''
+function str_word_count(str, format, charlist) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.str-word-count.php
+  // A word is ASCII letters plus ' and -, not starting with either (and not ending with -);
+  // charlist adds characters. format 0: the count, 1: the words, 2: offset → word.
+  str = _phpCastString(str)
+  const extra = charlist === undefined || charlist === null ? '' : _phpCastString(charlist)
+  const isWordChar = function (ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === "'" || ch === '-' ||
+      extra.indexOf(ch) !== -1
+  }
+  const words = []
   let i = 0
-  let c = ''
-  const wArr = []
-  let wC = 0
-  const assoc = {}
-  let aC = 0
-  let reg = ''
-  let match = false
-
-  const _pregQuote = function (str) {
-    return (str + '').replace(/([\\.+*?[^\]$(){}=!<>|:])/g, '\\$1')
-  }
-  const _getWholeChar = function (str, i) {
-    // Use for rare cases of non-BMP characters
-    const code = str.charCodeAt(i)
-    if (code < 0xD800 || code > 0xDFFF) {
-      return str.charAt(i)
+  while (i < str.length) {
+    // a word may not start with ' or - (unless the charlist allows it)
+    while (i < str.length && (!isWordChar(str[i]) ||
+      ((str[i] === "'" || str[i] === '-') && extra.indexOf(str[i]) === -1))) {
+      i++
     }
-    if (code >= 0xD800 && code <= 0xDBFF) {
-      // High surrogate (could change last hex to 0xDB7F to treat high private surrogates as single
-      // characters)
-      if (str.length <= (i + 1)) {
-        throw new Error('High surrogate without following low surrogate')
-      }
-      const next = str.charCodeAt(i + 1)
-      if (next < 0xDC00 || next > 0xDFFF) {
-        throw new Error('High surrogate without following low surrogate')
-      }
-      return str.charAt(i) + str.charAt(i + 1)
+    const start = i
+    while (i < str.length && isWordChar(str[i])) {
+      i++
     }
-    // Low surrogate (0xDC00 <= code && code <= 0xDFFF)
-    if (i === 0) {
-      throw new Error('Low surrogate without preceding high surrogate')
+    let end = i
+    if (end > start && str[end - 1] === '-' && extra.indexOf('-') === -1) {
+      end-- // PHP drops a trailing hyphen
     }
-    const prev = str.charCodeAt(i - 1)
-    if (prev < 0xD800 || prev > 0xDBFF) {
-      // (could change last hex to 0xDB7F to treat high private surrogates as single characters)
-      throw new Error('Low surrogate without preceding high surrogate')
-    }
-    // We can pass over low surrogates now as the second component in a pair which we have already
-    // processed
-    return false
-  }
-
-  if (cl) {
-    reg = '^(' + _pregQuote(_getWholeChar(charlist, 0))
-    for (i = 1; i < cl; i++) {
-      if ((chr = _getWholeChar(charlist, i)) === false) {
-        continue
-      }
-      reg += '|' + _pregQuote(chr)
-    }
-    reg += ')$'
-    reg = new RegExp(reg)
-  }
-
-  for (i = 0; i < len; i++) {
-    if ((c = _getWholeChar(str, i)) === false) {
-      continue
-    }
-    // No hyphen at beginning or end unless allowed in charlist (or locale)
-    // No apostrophe at beginning unless allowed in charlist (or locale)
-    // @todo: Make this more readable
-    match = ctypeAlpha(c) ||
-      (reg && c.search(reg) !== -1) ||
-      ((i !== 0 && i !== len - 1) && c === '-') ||
-      (i !== 0 && c === "'")
-    if (match) {
-      if (tmpStr === '' && format === 2) {
-        aC = i
-      }
-      tmpStr = tmpStr + c
-    }
-    if (i === len - 1 || !match && tmpStr !== '') {
-      if (format !== 2) {
-        wArr[wArr.length] = tmpStr
-      } else {
-        assoc[aC] = tmpStr
-      }
-      tmpStr = ''
-      wC++
+    if (end > start) {
+      words.push([start, str.slice(start, end)])
     }
   }
-
-  if (!format) {
-    return wC
-  } else if (format === 1) {
-    return wArr
-  } else if (format === 2) {
-    return assoc
+  if (format === 1) {
+    return words.map(function (w) {
+      return w[1]
+    })
   }
-
-  throw new Error('You have supplied an incorrect format')
+  if (format === 2) {
+    return _php_array(words)
+  }
+  return words.length
 }

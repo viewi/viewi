@@ -2,12 +2,12 @@
 
 // PHP↔JS differences Viewi accepts instead of fixing: a JS port can't close them without
 // becoming something else. A parity case opts in with 'knownDiff' => '<id>' and must then keep
-// differing — once it matches, PhpJsParityTest fails and asks for the marker to be removed.
+// differing - once it matches, PhpJsParityTest fails and asks for the marker to be removed.
 // `functions` lists where it shows; `advice` is what a component author should do about it.
 
 return [
     'bytes-vs-chars' => [
-        'functions' => ['strlen', 'substr'],
+        'functions' => ['strlen', 'substr', 'strpos', 'bin2hex', 'ord', 'chr'],
         'why' => 'PHP string functions count UTF-8 bytes; JS strings count UTF-16 characters. '
             . 'strlen("héllo") is 6 on the server and 5 in the browser, and substr() offsets land '
             . 'on different characters once the text has any non-ASCII in it.',
@@ -33,7 +33,7 @@ return [
         'advice' => 'Don\'t branch on int vs float in component code.',
     ],
     'by-ref-type-change' => [
-        'functions' => ['usort', 'sort', 'array_splice', 'array_unshift'],
+        'functions' => ['usort', 'sort', 'array_splice', 'array_unshift', 'parse_str'],
         'why' => 'A by-reference function rewrites the caller\'s array in place, because JS can not '
             . 'rebind the caller\'s variable. So it can not turn a map (JS object) into a list (JS '
             . 'array): usort([\'b\' => 2, \'a\' => 1]) leaves PHP a list and the browser an object '

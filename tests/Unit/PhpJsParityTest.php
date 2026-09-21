@@ -32,7 +32,7 @@ class PhpJsParityTest extends \Codeception\Test\Unit
         $result = ParityRunner::result($fn, $index);
         $call = "$fn($case[label])"; // Codeception lowercases test names; the message keeps the real call
         if ($result['php']['t'] === 'error') {
-            $this->markTestSkipped("PHP throws, so SSR fails before the browser runs: {$result['php']['v']} — drop the case");
+            $this->markTestSkipped("PHP throws, so SSR fails before the browser runs: {$result['php']['v']} - drop the case");
         }
 
         $render = $case['shape'] ? [Value::class, 'shape'] : [Value::class, 'render'];
@@ -48,7 +48,7 @@ class PhpJsParityTest extends \Codeception\Test\Unit
             $this->assertNotSame(
                 $expected,
                 $actual,
-                "$call is marked as known difference '$case[knownDiff]' but PHP and JS now agree — remove the marker"
+                "$call is marked as known difference '$case[knownDiff]' but PHP and JS now agree - remove the marker"
             );
             return;
         }

@@ -17,7 +17,7 @@ function soundex (str) {
 
   str = (str + '').toUpperCase()
   if (!str) {
-    return ''
+    return '0000' // PHP 8: soundex('') is '0000'
   }
 
   const sdx = [0, 0, 0, 0]

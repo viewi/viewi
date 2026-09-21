@@ -11,7 +11,7 @@ use Viewi\JsTranspile\BaseFunction;
  * suite), and caches both results for PhpJsParityTest.
  *
  * Cases live in tests/Support/Data/parity/<Group>.php, each returning [fn => [case, …]].
- * A case is either a plain argument list — ['abc', 2] — or an array with 'args' and any of:
+ * A case is either a plain argument list - ['abc', 2] - or an array with 'args' and any of:
  *   'refs'      => [argIndex, …]  by-reference arguments compared after the call too
  *                                 (sort, preg_match's $matches, array_splice…)
  *   'knownDiff' => 'id'           an accepted difference from Data/parity-known-differences.php;
@@ -138,7 +138,7 @@ final class ParityRunner
         return $results;
     }
 
-    /** The port plus everything it pulls in through getUses(), dependencies first — what the Builder ships. */
+    /** The port plus everything it pulls in through getUses(), dependencies first - what the Builder ships. */
     private static function jsSource(string $fn): string
     {
         $functions = self::functions();
@@ -148,7 +148,7 @@ final class ParityRunner
                 return;
             }
             if (!isset($functions[$name])) {
-                throw new RuntimeException("dependency '$name' (required by $requiredBy) is not in functions.php — the Builder would fail too");
+                throw new RuntimeException("dependency '$name' (required by $requiredBy) is not in functions.php - the Builder would fail too");
             }
             $ordered[$name] = false; // in progress: tolerate cycles
             foreach ($functions[$name]::getUses() as $dependency) {
@@ -164,7 +164,7 @@ final class ParityRunner
     {
         $callable = PhpEquivalents::get($fn) ?? $fn;
         if (!is_callable($callable)) {
-            return ['php' => ['t' => 'error', 'v' => "no PHP function '$fn' — add it to PhpEquivalents"], 'phpRefs' => []];
+            return ['php' => ['t' => 'error', 'v' => "no PHP function '$fn' - add it to PhpEquivalents"], 'phpRefs' => []];
         }
         $args = array_map(fn($arg) => match (true) {
             $arg instanceof PhpConstant => constant($arg->name),
@@ -175,6 +175,7 @@ final class ParityRunner
         date_default_timezone_set('UTC');
         // Warnings/deprecations don't change what PHP returns; only the return value is compared.
         set_error_handler(fn() => true);
+        ob_start(); // printf/vprintf/echo write output; only return values are compared
         try {
             $ret = Value::encode($callable(...$args)); // by-ref params write back into $args
             $refs = [];
@@ -185,6 +186,7 @@ final class ParityRunner
         } catch (Throwable $e) {
             return ['php' => ['t' => 'error', 'v' => get_class($e) . ': ' . $e->getMessage()], 'phpRefs' => []];
         } finally {
+            ob_end_clean();
             restore_error_handler();
             date_default_timezone_set($previousZone);
         }
@@ -201,7 +203,7 @@ final class ParityRunner
             $pipes
         );
         if (!is_resource($process)) {
-            throw new RuntimeException('Parity: can not start node — is it on PATH?');
+            throw new RuntimeException('Parity: can not start node - is it on PATH?');
         }
         fwrite($pipes[0], json_encode(['jobs' => $jobs], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
         fclose($pipes[0]);

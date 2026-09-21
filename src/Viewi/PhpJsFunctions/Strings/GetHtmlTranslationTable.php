@@ -10,7 +10,7 @@ class GetHtmlTranslationTable extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_html_entities'];
     }
 
     public static function getJs(): string

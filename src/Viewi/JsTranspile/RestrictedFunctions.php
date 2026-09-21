@@ -7,7 +7,7 @@ namespace Viewi\JsTranspile;
  * other ports depend on them (ctype_* → setlocale, printf → echo, round → _php_cast_int…), but a
  * direct call from component code or a template fails the build with the reason below.
  *
- * SERVER_ONLY: meaningless in a browser — the port would answer about the browser, or fake it.
+ * SERVER_ONLY: meaningless in a browser - the port would answer about the browser, or fake it.
  * INTERNAL:    helpers and language constructs that other ports / the transpiler use; not PHP
  *              functions a component calls.
  */
@@ -51,6 +51,10 @@ class RestrictedFunctions
         '_php_array' => [self::INTERNAL, 'builds a PHP array from [key, value] pairs (list or map, as PHP decides)'],
         '_php_array_set' => [self::INTERNAL, 'writes a by-reference result back into the caller\'s array'],
         '_php_trim' => [self::INTERNAL, 'the shared body of trim, ltrim and rtrim'],
+        '_php_strrpos' => [self::INTERNAL, 'the shared body of strrpos and strripos'],
+        '_php_html_unescape' => [self::INTERNAL, 'the shared body of htmlspecialchars_decode and html_entity_decode'],
+        '_php_html_escape' => [self::INTERNAL, 'the shared body of htmlspecialchars and htmlentities'],
+        '_php_html_entities' => [self::INTERNAL, 'the HTML 4.01 entity table, generated from PHP'],
         'i18n_loc_get_default' => [self::INTERNAL, 'a locale helper for the sort functions'],
         'i18n_loc_set_default' => [self::INTERNAL, 'a locale helper for the sort functions'],
         'echo' => [self::INTERNAL, 'a language construct; printf/print_r/var_dump use it for output'],

@@ -2,7 +2,7 @@
  * Event modifiers: `(keyup.enter)`, `(keydown.escape)`, `(click.prevent)`, `(keydown.ctrl.enter)`.
  *
  * Before this, the attribute text went to addEventListener as it was written, so `(keyup.enter)`
- * listened for an event literally named "keyup.enter" — one no browser ever fires — and the
+ * listened for an event literally named "keyup.enter" - one no browser ever fires - and the
  * handler silently never ran. The template compiler now rejects an unknown modifier at build time
  * (Viewi\TemplateCompiler\EventModifiers keeps the same list), and this turns the known ones into
  * a guard around the handler.

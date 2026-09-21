@@ -1,6 +1,6 @@
 <?php
 
-// Parity cases for PhpJsFunctions/Pcre — see tests/Support/Parity/ParityRunner.php for the format.
+// Parity cases for PhpJsFunctions/Pcre - see tests/Support/Parity/ParityRunner.php for the format.
 
 return [
     'preg_match' => [

@@ -10,7 +10,7 @@ class Htmlentities extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['get_html_translation_table'];
+        return ['_php_html_escape'];
     }
 
     public static function getJs(): string

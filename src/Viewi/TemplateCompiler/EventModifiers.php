@@ -8,7 +8,7 @@ use Exception;
  * The event modifiers a template may use: `(keyup.enter)`, `(keydown.ctrl.enter)`, `(click.prevent)`.
  *
  * The runtime applies them (src/js/viewi/core/events/eventModifiers.ts); this list only lets the
- * build refuse one it does not know. Without that, a typo — or a modifier from another framework —
+ * build refuse one it does not know. Without that, a typo - or a modifier from another framework -
  * compiled into a listener for an event named "keyup.entr" that no browser fires, and the handler
  * silently never ran. Keep the two lists in step.
  */

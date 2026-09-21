@@ -1,19 +1,14 @@
-function strncmp (str1, str2, lgth) {
-  //       discuss at: https://locutus.io/php/strncmp/
-  //      original by: Waldo Malqui Silva (https://waldo.malqui.info)
-  //         input by: Steve Hilder
-  //      improved by: Kevin van Zonneveld (https://kvz.io)
-  //       revised by: gorthaur
-  // reimplemented by: Brett Zamir (https://brett-zamir.me)
-  //        example 1: strncmp('aaa', 'aab', 2)
-  //        returns 1: 0
-  //        example 2: strncmp('aaa', 'aab', 3 )
-  //        returns 2: -1
-
-  const s1 = (str1 + '')
-    .substr(0, lgth)
-  const s2 = (str2 + '')
-    .substr(0, lgth)
-
-  return ((s1 === s2) ? 0 : ((s1 > s2) ? 1 : -1))
+function strncmp(str1, str2, len) {
+  //  discuss at: https://www.php.net/manual/en/function.strncmp.php
+  // Compares the first len characters. Like PHP, a mismatch returns the difference of the two
+  // character codes (strncmp('abcd', 'abcf', 4) is -2), otherwise the difference in length.
+  str1 = _phpCastString(str1).slice(0, len)
+  str2 = _phpCastString(str2).slice(0, len)
+  const n = Math.min(str1.length, str2.length)
+  for (let i = 0; i < n; i++) {
+    if (str1[i] !== str2[i]) {
+      return str1.charCodeAt(i) - str2.charCodeAt(i)
+    }
+  }
+  return str1.length - str2.length
 }

@@ -1,6 +1,6 @@
 <?php
 
-// Parity cases for PhpJsFunctions/Var — see tests/Support/Parity/ParityRunner.php for the format.
+// Parity cases for PhpJsFunctions/Var - see tests/Support/Parity/ParityRunner.php for the format.
 
 return [
     'is_array' => [

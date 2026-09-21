@@ -232,7 +232,7 @@ function date (format, timestamp) {
 
     // Timezone
     e: function () {
-      // Timezone identifier; e.g. Europe/Amsterdam — the browser's zone (see the timezone known difference)
+      // Timezone identifier; e.g. Europe/Amsterdam - the browser's zone (see the timezone known difference)
       return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     },
     I: function () {

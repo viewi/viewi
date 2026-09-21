@@ -1,7 +1,7 @@
 /**
  * Builds a PHP array from [key, value] pairs the way PHP would: keys normalised (true → 1,
  * null → "", 1.7 → 1, "5" → 5), a repeated key keeps its first position and takes the last value,
- * and the result is a JS array only when the keys are exactly 0..n-1 in order — otherwise an object.
+ * and the result is a JS array only when the keys are exactly 0..n-1 in order - otherwise an object.
  */
 function _php_array(pairs) {
   const keyOf = function (key) {

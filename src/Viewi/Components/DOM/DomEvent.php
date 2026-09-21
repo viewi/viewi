@@ -12,8 +12,8 @@ abstract class DomEvent
     public $detail;
     public $keyCode;
     /**
-     * The modern key fields. `keyCode` is deprecated and says nothing readable — `key` is 'Enter',
-     * 'Escape', 'ArrowDown', ' ' — and a component cannot implement a keyboard interaction without
+     * The modern key fields. `keyCode` is deprecated and says nothing readable - `key` is 'Enter',
+     * 'Escape', 'ArrowDown', ' ' - and a component cannot implement a keyboard interaction without
      * knowing whether a modifier was held.
      */
     public $key;

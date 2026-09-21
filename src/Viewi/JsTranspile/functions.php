@@ -10,6 +10,10 @@ use Viewi\PhpJsFunctions\Helpers\PhpArrayEntries;
 use Viewi\PhpJsFunctions\Helpers\PhpArray;
 use Viewi\PhpJsFunctions\Helpers\PhpArraySet;
 use Viewi\PhpJsFunctions\Helpers\PhpTrim;
+use Viewi\PhpJsFunctions\Helpers\PhpStrrpos;
+use Viewi\PhpJsFunctions\Helpers\PhpHtmlUnescape;
+use Viewi\PhpJsFunctions\Helpers\PhpHtmlEscape;
+use Viewi\PhpJsFunctions\Helpers\PhpHtmlEntities;
 use Viewi\PhpJsFunctions\Array\ArrayChangeKeyCase;
 use Viewi\PhpJsFunctions\Array\ArrayChunk;
 use Viewi\PhpJsFunctions\Array\ArrayColumn;
@@ -326,6 +330,10 @@ return [
     '_php_array' => PhpArray::class,
     '_php_array_set' => PhpArraySet::class,
     '_php_trim' => PhpTrim::class,
+    '_php_strrpos' => PhpStrrpos::class,
+    '_php_html_unescape' => PhpHtmlUnescape::class,
+    '_php_html_escape' => PhpHtmlEscape::class,
+    '_php_html_entities' => PhpHtmlEntities::class,
     'array_change_key_case' => ArrayChangeKeyCase::class,
     'array_chunk' => ArrayChunk::class,
     'array_column' => ArrayColumn::class,

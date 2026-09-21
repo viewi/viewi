@@ -63,8 +63,8 @@ function sprintf () {
   }
 
   const _formatBaseX = function (value, base, leftJustify, minWidth, precision, padChar) {
-    // Note: casts negative numbers to positive ones
-    const number = value >>> 0
+    // PHP formats the 64-bit unsigned value: sprintf('%u', -1) is 18446744073709551615
+    const number = BigInt.asUintN(64, BigInt(_php_cast_int(value)))
     value = _pad(number.toString(base), precision || 0, '0', false)
     return justify(value, '', leftJustify, minWidth, padChar)
   }
@@ -142,9 +142,9 @@ function sprintf () {
       case '%':
         return '%'
       case 's':
-        return _formatString(value + '', leftJustify, minWidth, precision, padChar)
+        return _formatString(_phpCastString(value), leftJustify, minWidth, precision, padChar)
       case 'c':
-        return _formatString(String.fromCharCode(+value), leftJustify, minWidth, precision, padChar)
+        return _formatString(String.fromCharCode(_php_cast_int(value) & 255), leftJustify, minWidth, precision, padChar)
       case 'b':
         return _formatBaseX(value, 2, leftJustify, minWidth, precision, padChar)
       case 'o':
@@ -158,9 +158,7 @@ function sprintf () {
         return _formatBaseX(value, 10, leftJustify, minWidth, precision, padChar)
       case 'i':
       case 'd':
-        number = +value || 0
-        // Plain Math.round doesn't just truncate
-        number = Math.round(number - number % 1)
+        number = _php_cast_int(value) // '12abc' → 12, as PHP
         prefix = number < 0 ? '-' : positiveNumberPrefix
         value = prefix + _pad(String(Math.abs(number)), precision, '0', false)
 
@@ -175,7 +173,7 @@ function sprintf () {
       case 'F':
       case 'g':
       case 'G':
-        number = +value
+        number = _php_cast_float(value)
         prefix = number < 0 ? '-' : positiveNumberPrefix
         method = ['toExponential', 'toFixed', 'toPrecision']['efg'.indexOf(specifier.toLowerCase())]
         textTransform = ['toString', 'toUpperCase']['eEfFgG'.indexOf(specifier) % 2]

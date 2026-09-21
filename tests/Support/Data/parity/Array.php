@@ -3,7 +3,7 @@
 use Tests\Support\Parity\PhpCallback;
 use Tests\Support\Parity\PhpConstant;
 
-// Parity cases for PhpJsFunctions/Array — see tests/Support/Parity/ParityRunner.php for the format.
+// Parity cases for PhpJsFunctions/Array - see tests/Support/Parity/ParityRunner.php for the format.
 
 $odd = new PhpCallback(fn($v) => $v % 2 === 1, 'function (v) { return v % 2 === 1; }');
 $byN = new PhpCallback(fn($a, $b) => $a['n'] - $b['n'], 'function (a, b) { return a["n"] - b["n"]; }');

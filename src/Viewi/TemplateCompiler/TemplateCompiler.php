@@ -9,6 +9,7 @@ use Viewi\Helpers;
 use Viewi\JsTranspile\ExportItem;
 use Viewi\JsTranspile\JsOutput;
 use Viewi\JsTranspile\JsTranspiler;
+use Viewi\JsTranspile\UseItem;
 use Viewi\Meta\Meta;
 use Viewi\TemplateParser\DataExpression;
 use Viewi\TemplateParser\TagItem;
@@ -51,6 +52,7 @@ class TemplateCompiler
     private array $localScope = [];
     private array $localScopeArguments = [];
     private array $usedFunctions = [];
+    private array $internalFunctions = [];
     private array $inlineExpressions = [];
     private array $usedComponents = [];
     private bool $hasHtmlTag = false;
@@ -130,7 +132,8 @@ class TemplateCompiler
                 $this->usedFunctions,
                 $this->inlineExpressions,
                 $this->hasHtmlTag,
-                $this->usedComponents
+                $this->usedComponents,
+                $this->internalFunctions
             );
         } catch (Throwable $th) {
             $error = new CompileTemplateError($th->getMessage());
@@ -156,6 +159,7 @@ class TemplateCompiler
             $this->localScope = [];
             $this->forIterationKey = 0;
             $this->usedFunctions = [];
+            $this->internalFunctions = [];
             $this->inlineExpressions = [];
             $this->hasHtmlTag = false;
             $this->usedComponents = [];
@@ -872,7 +876,7 @@ class TemplateCompiler
         foreach ($attributes as &$attributeItem) {
             $attributeName = $attributeItem->Content;
             $valueToReplace = false;
-            // `class.active="…"` binds one class; an EVENT's dot is a modifier — `(keyup.enter)` —
+            // `class.active="…"` binds one class; an EVENT's dot is a modifier - `(keyup.enter)` -
             // and splitting it here turned the attribute into "(keyup", losing the modifier.
             if (!$attributeItem->ItsExpression && strpos($attributeName, '.') !== false && $attributeName[0] !== '(') {
                 $parts = explode('.', $attributeName, 2);
@@ -1099,6 +1103,11 @@ class TemplateCompiler
         //     Helpers::debug([$tagItem->JsExpression, $phpCode, $jsOutput->getDeps()]);
         // }
         $tagItem->JsExpression = $jsOutput->__toString();
+        foreach ($jsOutput->getUses() as $name => $useItem) {
+            if ($useItem->Type === UseItem::Function && $useItem->Internal) {
+                $this->internalFunctions[$name] = true;
+            }
+        }
         $transforms = $jsOutput->getTransforms();
         $subsIncluded = false;
         foreach ($transforms as $input => $replacement) {

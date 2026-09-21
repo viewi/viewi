@@ -1,6 +1,6 @@
 /**
  * Writes a by-reference result back into the caller's array (sort, array_splice, array_unshift…).
- * JS can't rebind the caller's variable, so the array/object is emptied and refilled in place —
+ * JS can't rebind the caller's variable, so the array/object is emptied and refilled in place -
  * which also means it can't change from object to array (see the by-ref-type-change known difference).
  */
 function _php_array_set(target, value) {

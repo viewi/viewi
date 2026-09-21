@@ -10,7 +10,7 @@ class ConvertUuencode extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['is_scalar'];
+        return ['_phpCastString'];
     }
 
     public static function getJs(): string

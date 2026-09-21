@@ -10,7 +10,7 @@ class SubstrCount extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_phpCastString'];
     }
 
     public static function getJs(): string

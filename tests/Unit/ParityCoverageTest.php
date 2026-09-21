@@ -38,7 +38,7 @@ class ParityCoverageTest extends \Codeception\Test\Unit
     {
         $serverOnly = array_filter(RestrictedFunctions::all(), fn($entry) => $entry[0] === RestrictedFunctions::SERVER_ONLY);
         $both = array_keys(array_intersect_key(ParityRunner::cases(), $serverOnly));
-        $this->assertSame([], $both, 'server-only functions never run in a browser — drop their parity cases');
+        $this->assertSame([], $both, 'server-only functions never run in a browser - drop their parity cases');
     }
 
     public function testEveryPortDependencyExists(): void

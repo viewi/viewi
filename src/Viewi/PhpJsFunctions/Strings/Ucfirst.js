@@ -1,13 +1,6 @@
-function ucfirst (str) {
-  //  discuss at: https://locutus.io/php/ucfirst/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // bugfixed by: Onno Marsman (https://twitter.com/onnomarsman)
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: ucfirst('kevin van zonneveld')
-  //   returns 1: 'Kevin van zonneveld'
-
-  str += ''
-  const f = str.charAt(0)
-    .toUpperCase()
-  return f + str.substr(1)
+function ucfirst(str) {
+  //  discuss at: https://www.php.net/manual/en/function.ucfirst.php
+  // ASCII only, as since PHP 8.2: 'école' stays 'école'.
+  str = _phpCastString(str)
+  return /^[a-z]/.test(str) ? String.fromCharCode(str.charCodeAt(0) - 32) + str.slice(1) : str
 }

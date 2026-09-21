@@ -52,7 +52,7 @@ function json_encode(value, flags) { // eslint-disable-line camelcase
       return '-0'
     }
     if (Number.isSafeInteger(n)) {
-      return String(n) // an integer to PHP too — microsecond timestamps must not turn into 1.7e+15
+      return String(n) // an integer to PHP too - microsecond timestamps must not turn into 1.7e+15
     }
     const parts = n.toExponential().split('e') // shortest round-trip digits, as serialize_precision -1
     const exponent = parseInt(parts[1], 10)

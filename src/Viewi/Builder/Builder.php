@@ -592,7 +592,9 @@ class Builder
                                 $fullName = implode('\\', $useItem->Parts);
                                 throw new Exception("Function '$fullName' can not be found or is used outside of your source paths."); // TODO: create exception classes
                             }
-                            $this->assertCallableFromComponent($baseName, $buildItem->ReflectionClass->getFileName());
+                            if (!$useItem->Internal) {
+                                $this->assertCallableFromComponent($baseName, $buildItem->ReflectionClass->getFileName());
+                            }
                         }
                     }
                 }
@@ -632,6 +634,9 @@ class Builder
                         if (!isset($buildItem->Uses[$funcName])) {
                             $buildItem->Uses[$funcName] = new UseItem([$funcName], UseItem::Function);
                         }
+                    }
+                    foreach ($template->internalFunctions as $funcName => $_) {
+                        $buildItem->Uses[$funcName] ??= new UseItem([$funcName], UseItem::Function, true);
                     }
                     $buildItem->RenderFunction = $template;
                     $buildItem->RootTag = $rootTag;

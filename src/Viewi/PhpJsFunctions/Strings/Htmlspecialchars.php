@@ -10,7 +10,7 @@ class Htmlspecialchars extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_html_escape'];
     }
 
     public static function getJs(): string

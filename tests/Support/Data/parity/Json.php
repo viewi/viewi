@@ -2,7 +2,7 @@
 
 use Tests\Support\Parity\PhpConstant;
 
-// Parity cases for PhpJsFunctions/Json — see tests/Support/Parity/ParityRunner.php for the format.
+// Parity cases for PhpJsFunctions/Json - see tests/Support/Parity/ParityRunner.php for the format.
 
 return [
     'json_encode' => [

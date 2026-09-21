@@ -9,7 +9,7 @@ use InvalidArgumentException;
  *
  * Every value becomes ['t' => tag, 'v' => payload] so int/bool/null/[]/{} survive JSON:
  *   null | bool | int | float | string | bytes (non-UTF-8, base64) | list | map ([[key, value]…])
- * Arguments only: const (a PhpConstant) and callback (a PhpCallback) — resolved per language.
+ * Arguments only: const (a PhpConstant) and callback (a PhpCallback) - resolved per language.
  * JS adds: undefined | badstring (lone UTF-16 surrogates) | function | object | error.
  * Floats that JSON can't carry travel as the strings "NAN" / "INF" / "-INF" / "-0".
  */

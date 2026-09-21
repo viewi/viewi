@@ -1,6 +1,6 @@
 <?php
 
-// Parity cases for PhpJsFunctions/Math and the transpiler's cast helpers — see
+// Parity cases for PhpJsFunctions/Math and the transpiler's cast helpers - see
 // tests/Support/Parity/ParityRunner.php for the format.
 
 return [

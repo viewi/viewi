@@ -10,7 +10,7 @@ class Strripos extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_strrpos', '_phpCastString'];
     }
 
     public static function getJs(): string

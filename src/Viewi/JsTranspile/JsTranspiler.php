@@ -90,7 +90,7 @@ class JsTranspiler
     /**
      * Set while emitting the operand of an isset(): every property fetch, array fetch and method
      * call in that chain becomes optional (?.), so a null/undefined/scalar link yields undefined
-     * instead of throwing — which is what PHP's isset() promises. Array KEYS are ordinary
+     * instead of throwing - which is what PHP's isset() promises. Array KEYS are ordinary
      * expressions and are emitted with it off.
      */
     private bool $nullSafeChain = false;
@@ -110,9 +110,9 @@ class JsTranspiler
     private ?string $buffer = null;
     private string $forks = '';
     private array $localVariables = [];
-    /** @var array<string,bool> instance method names in the current class — for the method/property collision guard */
+    /** @var array<string,bool> instance method names in the current class - for the method/property collision guard */
     private array $classMethodNames = [];
-    /** @var array<string,bool> instance property names in the current class — for the method/property collision guard */
+    /** @var array<string,bool> instance property names in the current class - for the method/property collision guard */
     private array $classPropertyNames = [];
     private int $foreachKeyIndex = 0;
     /** @var array<string,array<string,string[]>> */
@@ -177,6 +177,59 @@ class JsTranspiler
         $this->buffer = null;
         $this->forks .= $ret;
         return $ret;
+    }
+
+    /**
+     * Emits a call to a Viewi helper the transpiler adds on its own (_phpCastString, _php_compare):
+     * a bare name, so it works in component code and template expressions alike, recorded as an
+     * Internal use - shipped, but not refused by RestrictedFunctions. A direct call to the same name
+     * elsewhere replaces the entry and is checked as usual.
+     * @param Node[] $args
+     */
+    private function internalCall(string $name, array $args): void
+    {
+        $this->usingList[$name] ??= new UseItem([$name], UseItem::Function, true);
+        $this->jsCode .= $name . '(';
+        foreach ($args as $i => $arg) {
+            if ($i > 0) {
+                $this->jsCode .= ', ';
+            }
+            $this->processStmts([$arg]);
+        }
+        $this->jsCode .= ')';
+    }
+
+    /**
+     * PHP's . is string concatenation; JS + adds two numbers and prints true, null and floats its own
+     * way. Operands that are not already strings go through _phpCastString. The whole chain is
+     * parenthesised (a + b + c), so it stays one operand wherever it lands: -($a . $b), ($a . $b)[0].
+     */
+    private function concat(BinaryOp\Concat $node, bool $parentheses): void
+    {
+        if ($parentheses) {
+            $this->jsCode .= '(';
+        }
+        foreach ([[$node->left, $node->right], [$node->right, $node->left]] as $i => [$operand, $other]) {
+            if ($i === 1) {
+                $this->jsCode .= ' + ';
+            }
+            if ($operand instanceof BinaryOp\Concat && $i === 0) {
+                $this->concat($operand, false); // a left-nested chain stays flat: (a + b + c)
+            } elseif ($this->isStringNode($operand) || ($operand instanceof ScalarInt_ && $this->isStringNode($other))) {
+                $this->processStmts([$operand]);
+            } else {
+                $this->internalCall('_phpCastString', [$operand]);
+            }
+        }
+        if ($parentheses) {
+            $this->jsCode .= ')';
+        }
+    }
+
+    /** A node whose JS value is already a string, so concatenation needs no cast. */
+    private function isStringNode(Node $node): bool
+    {
+        return $node instanceof String_ || $node instanceof InterpolatedString || $node instanceof BinaryOp\Concat;
     }
 
     public function setSkipNamespaces(array $toSkip)
@@ -370,7 +423,7 @@ class JsTranspiler
                     if (isset($this->classPropertyNames[$member])) {
                         throw new ConvertError(
                             "Component '{$node->name}' declares both a method and a property named '{$member}'. "
-                                . "In PHP these are separate, but they transpile to the same JS member (this.{$member}) — "
+                                . "In PHP these are separate, but they transpile to the same JS member (this.{$member}) - "
                                 . "the property shadows the method, so calls to {$member}() fail at runtime. Rename one of them."
                         );
                     }
@@ -524,7 +577,7 @@ class JsTranspiler
                     $publicOrProtected = !$node->isPrivate();
                     $this->jsCode .= PHP_EOL . str_repeat($this->indentationPattern, $this->level) . "$name(";
                     if (!$itsConstructor) {
-                        $this->classMethodNames[$name] = true; // instance method (prototype) — for collision guard
+                        $this->classMethodNames[$name] = true; // instance method (prototype) - for collision guard
                     }
                     if (!$publicOrProtected) {
                         $this->privateProperties[$name] = true;
@@ -640,16 +693,27 @@ class JsTranspiler
                 }
                 // TODO: multiline string <<<pre
             } elseif ($node instanceof InterpolatedString) {
-                $parts = [];
+                // "v: $f" - every expression part is cast the way PHP casts it (see concat()), and the
+                // whole string is parenthesised so it stays one operand: "v: $f"[0]
+                $parentheses = count($node->parts) > 1;
+                if ($parentheses) {
+                    $this->jsCode .= '(';
+                }
                 $insert = false;
                 foreach ($node->parts as $part) {
                     if ($insert) {
-                        $parts[] = ' + ';
+                        $this->jsCode .= ' + ';
                     }
-                    $parts[] = $part;
+                    if ($part instanceof InterpolatedStringPart) {
+                        $this->processStmts([$part]);
+                    } else {
+                        $this->internalCall('_phpCastString', [$part]);
+                    }
                     $insert = true;
                 }
-                $this->processStmts($parts);
+                if ($parentheses) {
+                    $this->jsCode .= ')';
+                }
             } elseif ($node instanceof InterpolatedStringPart) {
                 $this->jsCode .= json_encode($node->value);
             } elseif ($node instanceof ScalarInt_) {
@@ -888,7 +952,7 @@ class JsTranspiler
                         $this->transforms[$name] = $this->objectRefName . '->' . $name;
                     }
                     $this->jsCode .=  $name;
-                    $this->usingList[$name] = new UseItem($parts, UseItem::Function);
+                    $this->usingList[$name] = new UseItem($parts, UseItem::Function); // a direct call: never Internal
                 } else {
                     $this->processStmts([$node->name]);
                 }
@@ -980,7 +1044,7 @@ class JsTranspiler
                 // TODO: variable declaration
             } elseif ($node instanceof Isset_) {
                 // PHP: isset() is false for a missing key/property, a null value, or any link in
-                // the chain being null/unset/a scalar — and never throws. JS: an optional chain
+                // the chain being null/unset/a scalar - and never throws. JS: an optional chain
                 // yields undefined for all of those, and `!= null` rejects null and undefined
                 // alike. `k in a` was wrong both ways: true for a key holding null, and a
                 // TypeError when `a` is null, undefined, a string or a number.
@@ -1137,7 +1201,12 @@ class JsTranspiler
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'throw ';
                 $this->processStmts([$node->expr, ';' . PHP_EOL]);
             } elseif ($node instanceof Concat) {
-                $this->processStmts([$node->var, ' += ', $node->expr]);
+                // $s .= $x → s = _phpCastString(s) + _phpCastString(x): JS += would add numbers
+                // and print true/null/floats the JS way
+                $this->processStmts([$node->var, ' = ']);
+                $this->internalCall('_phpCastString', [$node->var]);
+                $this->jsCode .= ' + ';
+                $this->internalCall('_phpCastString', [$node->expr]);
             } elseif ($node instanceof Block) {
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '{' . PHP_EOL;
                 $this->level++;
@@ -1207,6 +1276,11 @@ class JsTranspiler
                 }
                 $this->level--;
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . '}' . PHP_EOL;
+            } elseif ($node instanceof BinaryOp\Concat) {
+                $this->concat($node, true);
+            } elseif ($node instanceof BinaryOp\Spaceship) {
+                // JS has no <=>: PHP 8's comparison rules live in _php_compare
+                $this->internalCall('_php_compare', [$node->left, $node->right]);
             } elseif ($node instanceof BinaryOp) {
                 $className = get_class($node);
                 list($precedence, $associativity) = $this->precedenceMap[$className];
@@ -1287,7 +1361,10 @@ class JsTranspiler
             } elseif ($node instanceof AssignOp\Div) {
                 $this->processStmts([$node->var, '/=', $node->expr]);
             } elseif ($node instanceof AssignOp\Concat) {
-                $this->processStmts([$node->var, '+=', $node->expr]);
+                $this->processStmts([$node->var, ' = ']);
+                $this->internalCall('_phpCastString', [$node->var]);
+                $this->jsCode .= ' + ';
+                $this->internalCall('_phpCastString', [$node->expr]);
             } elseif ($node instanceof AssignOp\Mod) {
                 $this->processStmts([$node->var, '%=', $node->expr]);
             } elseif ($node instanceof AssignOp\BitwiseAnd) {
