@@ -204,4 +204,30 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         $uses = $this->transpiler->convert('<?php $a = "x" . $f; $b = _phpCastString($a);')->getUses();
         $this->assertFalse($uses['_phpCastString']->Internal);
     }
+
+    public function testBuiltInConstantsAreInlined()
+    {
+        // the browser has no STR_PAD_LEFT: the value is written in at build time
+        $this->assertEquals(
+            'var a = str_pad(x, 3, "0", 0);',
+            trim($this->transpiler->convert('<?php $a = str_pad($x, 3, "0", STR_PAD_LEFT);'))
+        );
+        $this->assertEquals(
+            'var b = [true, null, false, 128 | 64, Infinity, "/"];',
+            trim($this->transpiler->convert('<?php $b = [TRUE, null, False, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES, INF, DIRECTORY_SEPARATOR];'))
+        );
+        // a built-in string constant needs no cast in a concatenation
+        $this->assertEquals(
+            'var c = ("a" + "\n");',
+            trim($this->transpiler->convert('<?php $c = "a" . PHP_EOL;'))
+        );
+    }
+
+    public function testUnknownConstantFailsInCodeButIsAMemberInTemplates()
+    {
+        $output = $this->transpiler->convert('<?php $d = MY_APP_CONST;');
+        $this->assertStringContainsString("Constant 'MY_APP_CONST' is not a built-in PHP constant", $output->errorMessage);
+        // template expression: (click)="runNow" names a component method
+        $this->assertEquals('runNow', trim((string)$this->transpiler->convert('runNow', true)));
+    }
 }

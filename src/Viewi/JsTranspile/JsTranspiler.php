@@ -95,6 +95,8 @@ class JsTranspiler
      */
     private bool $nullSafeChain = false;
     private ?string $objectRefName = null;
+    /** @var array<string, mixed>|null built-in PHP constants by name, read once */
+    private static ?array $builtInConstants = null;
     private int $level = 0;
     private int $membersCount = 0;
     private string $indentationPattern = '    ';
@@ -226,9 +228,57 @@ class JsTranspiler
         }
     }
 
+    /**
+     * A PHP constant in browser code: true/false/null as they are; a built-in PHP constant
+     * (STR_PAD_LEFT, PHP_EOL, M_PI, JSON_PRETTY_PRINT…) as its value, written in at build time,
+     * since the browser has no such names. User-defined and unknown constants fail the build in
+     * component code; in a template expression a bare name stays as it is (a member: (click)="runNow").
+     * @throws ConvertError
+     */
+    private function constant(Name $name): string
+    {
+        $parts = $name->getParts();
+        $constant = implode('\\', $parts);
+        $lower = strtolower($constant);
+        if ($lower === 'true' || $lower === 'false' || $lower === 'null') {
+            return $lower;
+        }
+        if (self::$builtInConstants === null) {
+            self::$builtInConstants = [];
+            foreach (get_defined_constants(true) as $category => $constants) {
+                if ($category !== 'user') {
+                    self::$builtInConstants += $constants;
+                }
+            }
+        }
+        if (count($parts) > 1 || !array_key_exists($constant, self::$builtInConstants)) {
+            if ($this->inlineExpression) {
+                // a template expression: a bare name is a component member, (click)="runNow"
+                return $constant;
+            }
+            throw new ConvertError("Constant '$constant' is not a built-in PHP constant: the browser has no user-defined or unknown constants. Use a class constant (SomeClass::NAME) instead.");
+        }
+        $value = self::$builtInConstants[$constant];
+        return match (true) {
+            is_bool($value) => $value ? 'true' : 'false',
+            $value === null => 'null',
+            is_int($value) => (string)$value,
+            is_float($value) && is_nan($value) => 'NaN',
+            is_float($value) && is_infinite($value) => $value > 0 ? 'Infinity' : '-Infinity',
+            default => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
+        };
+    }
+
     /** A node whose JS value is already a string, so concatenation needs no cast. */
     private function isStringNode(Node $node): bool
     {
+        if ($node instanceof ConstFetch) {
+            try {
+                return str_starts_with($this->constant($node->name), '"'); // a built-in string constant: PHP_EOL
+            } catch (ConvertError $e) {
+                return false; // reported where the constant is emitted
+            }
+        }
         return $node instanceof String_ || $node instanceof InterpolatedString || $node instanceof BinaryOp\Concat;
     }
 
@@ -827,8 +877,7 @@ class JsTranspiler
                     $this->jsCode .= '[]';
                 }
             } elseif ($node instanceof ConstFetch) {
-                // TODO: validate parts
-                $this->jsCode .= implode(',', $node->name->getParts());
+                $this->jsCode .= $this->constant($node->name);
             } elseif ($node instanceof PropertyFetch || $node instanceof NullsafePropertyFetch) {
                 /**
                  * @var PropertyFetch $node
@@ -1147,13 +1196,21 @@ class JsTranspiler
                 }
                 $this->jsCode .= str_repeat($this->indentationPattern, $this->level) . 'continue;' . PHP_EOL;
             } elseif ($node instanceof Cast) {
-                // skip
-                if ($node instanceof Cast\Int_) {
-                    $this->processStmts(['parseInt(', $node->expr, ')']);
-                } elseif ($node instanceof Cast\Double) {
-                    $this->processStmts(['parseFloat(', $node->expr, ')']);
-                } else {
+                // PHP's casts, not JS's: (int)'1e3' is 1000 and (int)null is 0 (parseInt gives 1 and
+                // NaN), (bool)'0' is false, (string)true is '1'. (object) stays as it is: a PHP array
+                // is already an object in the browser.
+                $helper = match (true) {
+                    $node instanceof Cast\Int_ => '_php_cast_int',
+                    $node instanceof Cast\Double => '_php_cast_float',
+                    $node instanceof Cast\String_ => '_phpCastString',
+                    $node instanceof Cast\Bool_ => '_php_cast_bool',
+                    $node instanceof Cast\Array_ => '_php_cast_array',
+                    default => null,
+                };
+                if ($helper === null) {
                     $this->processStmts([$node->expr]);
+                } else {
+                    $this->internalCall($helper, [$node->expr]);
                 }
             } elseif ($node instanceof Echo_) {
                 $forStmts = [str_repeat($this->indentationPattern, $this->level) . 'console.log('];

@@ -51,6 +51,8 @@ class RestrictedFunctions
         '_php_array' => [self::INTERNAL, 'builds a PHP array from [key, value] pairs (list or map, as PHP decides)'],
         '_php_array_set' => [self::INTERNAL, 'writes a by-reference result back into the caller\'s array'],
         '_php_trim' => [self::INTERNAL, 'the shared body of trim, ltrim and rtrim'],
+        '_php_cast_array' => [self::INTERNAL, 'the transpiler\'s (array) cast helper'],
+        '_php_cast_bool' => [self::INTERNAL, 'the transpiler\'s (bool) cast helper'],
         '_php_regex' => [self::INTERNAL, 'turns a PHP regex into a JS RegExp for the preg functions'],
         '_php_sort_compare' => [self::INTERNAL, 'a comparator for PHP\'s sort flags'],
         '_php_set_op' => [self::INTERNAL, 'the shared body of the array_diff and array_intersect family'],

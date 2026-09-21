@@ -29,7 +29,7 @@ final class Value
                 ? ['t' => 'list', 'v' => array_map([self::class, 'encode'], $value)]
                 : ['t' => 'map', 'v' => self::encodePairs($value)],
             $value instanceof \stdClass => ['t' => 'map', 'v' => self::encodePairs((array)$value)],
-            $value instanceof PhpConstant => ['t' => 'const', 'v' => $value->name],
+            $value instanceof PhpConstant => ['t' => 'const', 'v' => $value->jsExpression()],
             $value instanceof PhpCallback => ['t' => 'callback', 'v' => $value->js],
             default => throw new InvalidArgumentException('Parity: can not encode ' . get_debug_type($value)),
         };

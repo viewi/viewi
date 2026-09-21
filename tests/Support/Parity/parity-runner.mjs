@@ -39,11 +39,8 @@ return function decode(tagged) {
         case 'string': return v;
         case 'float': return decodeFloat(v);
         case 'const':
-            // the transpiler emits the bare identifier: resolve it the way the browser would
-            if (!(v in globalThis)) {
-                throw new ReferenceError(v + ' is not defined');
-            }
-            return globalThis[v];
+            // the expression the transpiler emits for the constant (PhpConstant::jsExpression)
+            return new Function('return (' + v + ');')();
         case 'callback':
             return new Function('return (' + v + ');')();
         case 'list': {

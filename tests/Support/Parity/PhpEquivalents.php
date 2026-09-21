@@ -15,6 +15,8 @@ final class PhpEquivalents
             '_php_cast_int' => fn($value) => (int)$value,
             '_php_cast_float' => fn($value) => (float)$value,
             '_phpCastString' => fn($value) => (string)$value,
+            '_php_cast_bool' => fn($value) => (bool)$value,
+            '_php_cast_array' => fn($value) => (array)$value,
             '_php_compare' => fn($a, $b) => $a <=> $b,
             // PHP 8.2+ documents -1/0/1 for these, but a call PHP folds at compile time can still
             // return the byte difference (-2), so the PHP side is compared by sign
