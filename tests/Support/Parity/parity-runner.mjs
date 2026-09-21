@@ -113,7 +113,10 @@ function runCase(script, fn, testCase) {
         }
         const decode = vm.runInContext(decoderSource, context);
         const args = testCase.args.map((arg) => decode(unbytes(arg)));
-        const ret = target(...args);
+        // Called inside the context with a time limit: a port that loops forever (or grows an
+        // array without end) fails its own case instead of taking the whole suite down.
+        context.__parityArgs = args;
+        const ret = vm.runInContext(`${fn}(...__parityArgs)`, context, { timeout: 250 });
         const refs = {};
         for (const index of testCase.refs) {
             refs[index] = encode(args[index]);

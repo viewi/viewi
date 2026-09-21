@@ -15,7 +15,8 @@ return [
             . '(mb_substr() has no JS port yet).',
     ],
     'int-key-order' => [
-        'functions' => ['array_keys', 'array_values', 'foreach'],
+        'functions' => ['array_keys', 'array_values', 'array_merge', 'array_reverse', 'array_fill_keys',
+            'array_count_values', 'array_change_key_case', 'array_diff_assoc', 'asort', 'natsort', 'foreach'],
         'why' => 'A PHP array with integer keys that is not a list becomes a plain JS object, and JS '
             . 'objects always iterate integer-like keys first, in ascending order. [5 => "x", 2 => "y"] '
             . 'arrives in the browser as {"2": "y", "5": "x"}: json_encode keeps the order in the JSON '

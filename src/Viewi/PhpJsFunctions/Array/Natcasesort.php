@@ -10,7 +10,7 @@ class Natcasesort extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['strnatcasecmp'];
+        return ['_php_sort'];
     }
 
     public static function getJs(): string

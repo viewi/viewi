@@ -1,41 +1,27 @@
-function array_column (input, ColumnKey, IndexKey = null) { // eslint-disable-line camelcase
-  //   discuss at: https://locutus.io/php/array_column/
-  //   original by: Enzo Dañobeytía
-  //   example 1: array_column([{name: 'Alex', value: 1}, {name: 'Elvis', value: 2}, {name: 'Michael', value: 3}], 'name')
-  //   returns 1: {0: "Alex", 1: "Elvis", 2: "Michael"}
-  //   example 2: array_column({0: {name: 'Alex', value: 1}, 1: {name: 'Elvis', value: 2}, 2: {name: 'Michael', value: 3}}, 'name')
-  //   returns 2: {0: "Alex", 1: "Elvis", 2: "Michael"}
-  //   example 3: array_column([{name: 'Alex', value: 1}, {name: 'Elvis', value: 2}, {name: 'Michael', value: 3}], 'name', 'value')
-  //   returns 3: {1: "Alex", 2: "Elvis", 3: "Michael"}
-  //   example 4: array_column([{name: 'Alex', value: 1}, {name: 'Elvis', value: 2}, {name: 'Michael', value: 3}], null, 'value')
-  //   returns 4: {1: {name: 'Alex', value: 1}, 2: {name: 'Elvis', value: 2}, 3: {name: 'Michael', value: 3}}
-
-  if (input !== null && (typeof input === 'object' || Array.isArray(input))) {
-    const newarray = []
-    if (typeof input === 'object') {
-      const temparray = []
-      for (const key of Object.keys(input)) {
-        temparray.push(input[key])
-      }
-      input = temparray
+function array_column(rows, columnKey, indexKey) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.array-column.php
+  // columnKey null takes the whole row; rows without the column are skipped; indexKey (when the
+  // row has it) becomes the key, otherwise the next integer.
+  const pairs = []
+  let next = 0
+  for (const [, row] of _php_array_entries(rows)) {
+    if (row === null || typeof row !== 'object') {
+      continue
     }
-    if (Array.isArray(input)) {
-      for (const key of input.keys()) {
-        if (IndexKey && input[key][IndexKey]) {
-          if (ColumnKey) {
-            newarray[input[key][IndexKey]] = input[key][ColumnKey]
-          } else {
-            newarray[input[key][IndexKey]] = input[key]
-          }
-        } else {
-          if (ColumnKey) {
-            newarray.push(input[key][ColumnKey])
-          } else {
-            newarray.push(input[key])
-          }
-        }
-      }
+    if (columnKey !== null && columnKey !== undefined && !Object.prototype.hasOwnProperty.call(row, columnKey)) {
+      continue
     }
-    return Object.assign({}, newarray)
+    const value = columnKey === null || columnKey === undefined ? row : row[columnKey]
+    const hasIndex = indexKey !== null && indexKey !== undefined && Object.prototype.hasOwnProperty.call(row, indexKey)
+    if (hasIndex) {
+      const key = _php_array_key(_phpCastString(row[indexKey]))
+      pairs.push([key, value])
+      if (typeof key === 'number' && key >= next) {
+        next = key + 1
+      }
+    } else {
+      pairs.push([next++, value])
+    }
   }
+  return _php_array(pairs)
 }

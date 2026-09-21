@@ -28,5 +28,13 @@ function array_rand (array, num) { // eslint-disable-line camelcase
     keys[i] = tmp
   }
 
-  return num === 1 ? keys[0] : keys.slice(0, num)
+  // keys as PHP holds them (5, not "5"); several keys come back in their original order
+  const picked = keys.slice(0, num).map(_php_array_key)
+  if (num === 1) {
+    return picked[0]
+  }
+  const order = Object.keys(array).map(_php_array_key)
+  return picked.sort(function (a, b) {
+    return order.indexOf(a) - order.indexOf(b)
+  })
 }

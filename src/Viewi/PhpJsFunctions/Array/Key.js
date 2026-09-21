@@ -36,15 +36,15 @@ function key (arr) {
     let ct = 0
     for (const k in arr) {
       if (ct === cursor) {
-        return k
+        return _php_array_key(k) // 7, not "7"
       }
       ct++
     }
     // Empty
-    return false
+    return null // PHP 8: null past the end
   }
   if (arr.length === 0) {
-    return false
+    return null
   }
 
   return cursor

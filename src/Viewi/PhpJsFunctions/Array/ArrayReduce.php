@@ -10,7 +10,7 @@ class ArrayReduce extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries'];
     }
 
     public static function getJs(): string

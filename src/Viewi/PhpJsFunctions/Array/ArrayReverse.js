@@ -1,37 +1,8 @@
-function array_reverse (array, preserveKeys) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/array_reverse/
-  // original by: Kevin van Zonneveld (https://kvz.io)
-  // improved by: Karol Kowalski
-  //   example 1: array_reverse( [ 'php', '4.0', ['green', 'red'] ], true)
-  //   returns 1: { 2: ['green', 'red'], 1: '4.0', 0: 'php'}
-
-  const isArray = Object.prototype.toString.call(array) === '[object Array]'
-  const tmpArr = preserveKeys ? {} : []
-  let key
-
-  if (isArray && !preserveKeys) {
-    return array.slice(0).reverse()
-  }
-
-  if (preserveKeys) {
-    const keys = []
-    for (key in array) {
-      keys.push(key)
-    }
-
-    let i = keys.length
-    while (i--) {
-      key = keys[i]
-      // @todo: don't rely on browsers keeping keys in insertion order
-      // it's implementation specific
-      // eg. the result will differ from expected in Google Chrome
-      tmpArr[key] = array[key]
-    }
-  } else {
-    for (key in array) {
-      tmpArr.unshift(array[key])
-    }
-  }
-
-  return tmpArr
+function array_reverse(arr, preserveKeys) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.array-reverse.php
+  // String keys are kept; integer keys are renumbered unless preserveKeys.
+  let next = 0
+  return _php_array(_php_array_entries(arr).reverse().map(function ([key, value]) {
+    return [typeof key === 'number' && !preserveKeys ? next++ : key, value]
+  }))
 }

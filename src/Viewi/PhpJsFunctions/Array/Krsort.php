@@ -10,7 +10,7 @@ class Krsort extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['i18n_loc_get_default', 'strnatcmp'];
+        return ['_php_sort'];
     }
 
     public static function getJs(): string

@@ -10,7 +10,7 @@ class ArrayMultisort extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries', '_php_array', '_php_array_set', '_php_sort_compare'];
     }
 
     public static function getJs(): string

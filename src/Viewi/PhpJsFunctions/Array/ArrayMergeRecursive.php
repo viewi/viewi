@@ -10,7 +10,7 @@ class ArrayMergeRecursive extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['array_merge'];
+        return ['_php_array_entries', '_php_array'];
     }
 
     public static function getJs(): string

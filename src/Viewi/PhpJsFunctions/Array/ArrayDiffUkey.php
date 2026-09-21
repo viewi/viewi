@@ -10,7 +10,7 @@ class ArrayDiffUkey extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_set_op'];
     }
 
     public static function getJs(): string

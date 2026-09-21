@@ -1,13 +1,8 @@
-function array_reduce(aInput, callback, initial) { // eslint-disable-line camelcase
-  let result = initial === undefined ? 0 : initial;
-  if (Array.isArray(aInput)) {
-    for (i = 0; i < aInput.length; i++) {
-      result = callback.apply(null, [result, aInput[i]]);
-    }
-  } else {
-    for (let k in aInput) {
-      result = callback.apply(null, [result, aInput[k]]);
-    }
+function array_reduce(arr, callback, initial) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.array-reduce.php
+  let carry = initial === undefined ? null : initial
+  for (const entry of _php_array_entries(arr)) {
+    carry = callback(carry, entry[1])
   }
-  return result;
+  return carry
 }

@@ -10,7 +10,7 @@ class Natsort extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['strnatcmp'];
+        return ['_php_sort'];
     }
 
     public static function getJs(): string

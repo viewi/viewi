@@ -10,7 +10,7 @@ class Sort extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['i18n_loc_get_default'];
+        return ['_php_sort'];
     }
 
     public static function getJs(): string

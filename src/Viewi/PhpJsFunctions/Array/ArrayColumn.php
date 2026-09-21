@@ -10,7 +10,7 @@ class ArrayColumn extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries', '_php_array', '_php_array_key', '_phpCastString'];
     }
 
     public static function getJs(): string

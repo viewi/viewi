@@ -10,7 +10,7 @@ class ArrayUnique extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_array_entries', '_php_array', '_php_compare', '_php_cast_float', '_phpCastString'];
     }
 
     public static function getJs(): string
