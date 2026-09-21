@@ -1,17 +1,5 @@
-function decoct (number) {
-  //  discuss at: https://locutus.io/php/decoct/
-  // original by: Enrique Gonzalez
-  // bugfixed by: Onno Marsman (https://twitter.com/onnomarsman)
-  // improved by: https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hex-in-javascript
-  //    input by: pilus
-  //   example 1: decoct(15)
-  //   returns 1: '17'
-  //   example 2: decoct(264)
-  //   returns 2: '410'
-
-  if (number < 0) {
-    number = 0xFFFFFFFF + number + 1
-  }
-  return parseInt(number, 10)
-    .toString(8)
+function decoct(number) {
+  //  discuss at: https://www.php.net/manual/en/function.decoct.php
+  // The 64-bit unsigned value, as PHP: decoct(-1) is all ones.
+  return BigInt.asUintN(64, BigInt(_php_cast_int(number))).toString(8)
 }

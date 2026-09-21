@@ -35,7 +35,9 @@ class PhpJsParityTest extends \Codeception\Test\Unit
             $this->markTestSkipped("PHP throws, so SSR fails before the browser runs: {$result['php']['v']} - drop the case");
         }
 
-        $render = $case['shape'] ? [Value::class, 'shape'] : [Value::class, 'render'];
+        $render = $case['shape']
+            ? [Value::class, 'shape']
+            : fn(array $tagged) => Value::render($tagged, 0, $case['approx']);
         $expected = [$render($result['php'])];
         $actual = [$render($result['js'])];
         foreach ($result['phpRefs'] as $argIndex => $phpRef) {

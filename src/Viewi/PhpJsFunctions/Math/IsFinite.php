@@ -10,7 +10,7 @@ class IsFinite extends BaseFunction
 
     public static function getUses(): array
     {
-        return [];
+        return ['_php_cast_float'];
     }
 
     public static function getJs(): string

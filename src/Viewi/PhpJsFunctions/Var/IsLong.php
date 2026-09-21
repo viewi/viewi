@@ -10,7 +10,7 @@ class IsLong extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['is_float'];
+        return ['is_int'];
     }
 
     public static function getJs(): string

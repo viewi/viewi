@@ -1,9 +1,8 @@
-function pow (base, exp) {
-  //  discuss at: https://locutus.io/php/pow/
-  // original by: Onno Marsman (https://twitter.com/onnomarsman)
-  // improved by: Waldo Malqui Silva (https://fayr.us/waldo/)
-  //   example 1: pow(8723321.4, 7)
-  //   returns 1: 3.8439091680779e+48
-
-  return Number(Math.pow(base, exp).toPrecision(15))
+function pow(base, exp) {
+  //  discuss at: https://www.php.net/manual/en/function.pow.php
+  // Numeric strings count as numbers ('3' ** 2 is 9); no rounding of the result.
+  const toNumber = function (v) {
+    return typeof v === 'number' ? v : _php_cast_float(v)
+  }
+  return Math.pow(toNumber(base), toNumber(exp))
 }

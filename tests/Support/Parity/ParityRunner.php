@@ -17,6 +17,7 @@ use Viewi\JsTranspile\BaseFunction;
  *   'knownDiff' => 'id'           an accepted difference from Data/parity-known-differences.php;
  *                                 the case must keep differing
  *   'shape'     => true           compare types and sizes only (rand, uniqid, shuffle…)
+ *   'approx'    => true           floats to 14 significant digits (sin, exp, log…: libm vs V8)
  *   'label'     => '…'            test name, defaults to the arguments
  * PHP constants go in as new PhpConstant('NAME'), never as their value; callbacks as
  * new PhpCallback(php closure, 'equivalent JS function source').
@@ -78,6 +79,7 @@ final class ParityRunner
         $case['refs'] ??= [];
         $case['knownDiff'] ??= null;
         $case['shape'] ??= false;
+        $case['approx'] ??= false;
         $case['label'] ??= self::label($case['args']);
         return $case;
     }
@@ -88,6 +90,7 @@ final class ParityRunner
             fn($arg) => match (true) {
                 $arg instanceof PhpConstant => $arg->name,
                 $arg instanceof PhpCallback => 'fn',
+                is_float($arg) && !is_finite($arg) => is_nan($arg) ? 'NAN' : ($arg > 0 ? 'INF' : '-INF'),
                 is_string($arg) && !mb_check_encoding($arg, 'UTF-8') => 'bytes:' . bin2hex($arg),
                 default => json_encode($arg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_PARTIAL_OUTPUT_ON_ERROR),
             },

@@ -33,6 +33,14 @@ return [
             . 'for that reason.',
         'advice' => 'Don\'t branch on int vs float in component code.',
     ],
+    'float-last-digit' => [
+        'functions' => ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'sinh', 'cosh', 'tanh',
+            'asinh', 'acosh', 'atanh', 'exp', 'expm1', 'log', 'log10', 'log1p', 'pow', 'hypot'],
+        'why' => 'PHP uses the C math library, the browser uses V8\'s: the last binary digit of a '
+            . 'transcendental result can differ. Nothing shows once the number is printed with PHP\'s '
+            . '14-digit precision; the parity cases compare these functions that way (\'approx\').',
+        'advice' => 'Round before comparing floats for equality.',
+    ],
     'by-ref-type-change' => [
         'functions' => ['usort', 'sort', 'array_splice', 'array_unshift', 'parse_str'],
         'why' => 'A by-reference function rewrites the caller\'s array in place, because JS can not '

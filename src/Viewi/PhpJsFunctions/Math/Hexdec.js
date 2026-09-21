@@ -1,11 +1,6 @@
-function hexdec (hexString) {
-  //  discuss at: https://locutus.io/php/hexdec/
-  // original by: Philippe Baumann
-  //   example 1: hexdec('that')
-  //   returns 1: 10
-  //   example 2: hexdec('a0')
-  //   returns 2: 160
-
-  hexString = (hexString + '').replace(/[^a-f0-9]/gi, '')
-  return parseInt(hexString, 16)
+function hexdec(str) {
+  //  discuss at: https://www.php.net/manual/en/function.hexdec.php
+  // Characters that are not base-16 digits are ignored, as PHP does; '' is 0.
+  const digits = _phpCastString(str).replace(/[^0123456789abcdefABCDEF]/g, '')
+  return digits === '' ? 0 : parseInt(digits, 16)
 }

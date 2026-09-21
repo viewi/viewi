@@ -1,14 +1,6 @@
-function bindec (binaryString) {
-  //  discuss at: https://locutus.io/php/bindec/
-  // original by: Philippe Baumann
-  //   example 1: bindec('110011')
-  //   returns 1: 51
-  //   example 2: bindec('000110011')
-  //   returns 2: 51
-  //   example 3: bindec('111')
-  //   returns 3: 7
-
-  binaryString = (binaryString + '').replace(/[^01]/gi, '')
-
-  return parseInt(binaryString, 2)
+function bindec(str) {
+  //  discuss at: https://www.php.net/manual/en/function.bindec.php
+  // Characters that are not base-2 digits are ignored, as PHP does; '' is 0.
+  const digits = _phpCastString(str).replace(/[^01]/g, '')
+  return digits === '' ? 0 : parseInt(digits, 2)
 }

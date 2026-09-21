@@ -1,9 +1,6 @@
-function octdec (octString) {
-  //  discuss at: https://locutus.io/php/octdec/
-  // original by: Philippe Baumann
-  //   example 1: octdec('77')
-  //   returns 1: 63
-
-  octString = (octString + '').replace(/[^0-7]/gi, '')
-  return parseInt(octString, 8)
+function octdec(str) {
+  //  discuss at: https://www.php.net/manual/en/function.octdec.php
+  // Characters that are not base-8 digits are ignored, as PHP does; '' is 0.
+  const digits = _phpCastString(str).replace(/[^01234567]/g, '')
+  return digits === '' ? 0 : parseInt(digits, 8)
 }

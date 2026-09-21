@@ -10,7 +10,7 @@ class Gettype extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['is_float'];
+        return ['is_object'];
     }
 
     public static function getJs(): string

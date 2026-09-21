@@ -10,7 +10,7 @@ class PrintR extends BaseFunction
 
     public static function getUses(): array
     {
-        return ['echo'];
+        return ['_phpCastString', '_php_array_entries', 'is_object', 'echo'];
     }
 
     public static function getJs(): string

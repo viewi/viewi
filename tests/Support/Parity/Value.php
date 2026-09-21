@@ -41,7 +41,7 @@ final class Value
      * indistinguishable in the browser and comparing them would only produce noise.
      * Map keys render as strings: PHP canonicalises "5" to 5, JS object keys are always strings.
      */
-    public static function render(array $tagged, int $depth = 0): string
+    public static function render(array $tagged, int $depth = 0, bool $approx = false): string
     {
         $pad = str_repeat('  ', $depth);
         $v = $tagged['v'] ?? null;
@@ -54,7 +54,7 @@ final class Value
                 return 'bool(' . ($v ? 'true' : 'false') . ')';
             case 'int':
             case 'float':
-                return 'number(' . self::renderNumber($v) . ')';
+                return 'number(' . ($approx && !is_string($v) ? self::renderApprox((float)$v) : self::renderNumber($v)) . ')';
             case 'string':
                 return 'string(' . json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ')';
             case 'badstring':
@@ -69,14 +69,14 @@ final class Value
                 if ($v === []) {
                     return 'list[]';
                 }
-                $items = array_map(fn($item) => $pad . '  ' . self::render($item, $depth + 1), $v);
+                $items = array_map(fn($item) => $pad . '  ' . self::render($item, $depth + 1, $approx), $v);
                 return "list[\n" . implode(",\n", $items) . "\n$pad]";
             case 'map':
                 if ($v === []) {
                     return 'map{}';
                 }
                 $items = array_map(
-                    fn($pair) => $pad . '  ' . json_encode((string)$pair[0], JSON_UNESCAPED_UNICODE) . ': ' . self::render($pair[1], $depth + 1),
+                    fn($pair) => $pad . '  ' . json_encode((string)$pair[0], JSON_UNESCAPED_UNICODE) . ': ' . self::render($pair[1], $depth + 1, $approx),
                     $v
                 );
                 return "map{\n" . implode(",\n", $items) . "\n$pad}";
@@ -105,6 +105,12 @@ final class Value
             $value === 0.0 && fdiv(1, $value) < 0 => '-0',
             default => $value,
         };
+    }
+
+    /** 14 significant digits, PHP's display precision: hides a last-bit difference between libms. */
+    private static function renderApprox(float $v): string
+    {
+        return sprintf('%.13e', $v);
     }
 
     private static function renderNumber(int|float|string $v): string

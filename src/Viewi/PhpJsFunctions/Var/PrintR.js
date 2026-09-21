@@ -1,71 +1,25 @@
-function print_r (array, returnVal) { // eslint-disable-line camelcase
-  //  discuss at: https://locutus.io/php/print_r/
-  // original by: Michael White (https://getsprink.com)
-  // improved by: Ben Bryan
-  // improved by: Brett Zamir (https://brett-zamir.me)
-  // improved by: Kevin van Zonneveld (https://kvz.io)
-  //    input by: Brett Zamir (https://brett-zamir.me)
-  //   example 1: print_r(1, true)
-  //   returns 1: '1'
-
-
-
-  let output = ''
-  const padChar = ' '
-  const padVal = 4
-
-  const _repeatChar = function (len, padChar) {
-    let str = ''
-    for (let i = 0; i < len; i++) {
-      str += padChar
-    }
-    return str
+function print_r(value, returnOutput) { // eslint-disable-line camelcase
+  //  discuss at: https://www.php.net/manual/en/function.print-r.php
+  // PHP's layout: nested arrays indent by 8 and end with a blank line; scalars print as PHP casts
+  // them (true → '1', null → ''). Returns the text with returnOutput, else prints it and returns true.
+  const pad = function (n) {
+    return ' '.repeat(n)
   }
-  var _formatArray = function (obj, curDepth, padVal, padChar) {
-    if (curDepth > 0) {
-      curDepth++
+  const format = function (v, indent) {
+    if (v === null || typeof v !== 'object') {
+      return _phpCastString(v)
     }
-
-    const basePad = _repeatChar(padVal * curDepth, padChar)
-    const thickPad = _repeatChar(padVal * (curDepth + 1), padChar)
-    let str = ''
-
-    if (typeof obj === 'object' &&
-      obj !== null &&
-      obj.constructor) {
-      str += 'Array\n' + basePad + '(\n'
-      for (const key in obj) {
-        if (Object.prototype.toString.call(obj[key]) === '[object Array]') {
-          str += thickPad
-          str += '['
-          str += key
-          str += '] => '
-          str += _formatArray(obj[key], curDepth + 1, padVal, padChar)
-        } else {
-          str += thickPad
-          str += '['
-          str += key
-          str += '] => '
-          str += obj[key]
-          str += '\n'
-        }
-      }
-      str += basePad + ')\n'
-    } else if (obj === null || obj === undefined) {
-      str = ''
-    } else {
-      // for our "resource" class
-      str = obj.toString()
+    const head = is_object(v) ? v.constructor.name + ' Object' : 'Array'
+    let out = head + '\n' + pad(indent) + '(\n'
+    for (const [key, item] of _php_array_entries(v)) {
+      out += pad(indent + 4) + '[' + key + '] => ' + format(item, indent + 8) + '\n'
     }
-
-    return str
+    return out + pad(indent) + ')\n'
   }
-
-  output = _formatArray(array, 0, padVal, padChar)
-
-  if (returnVal !== true) {
-    echo(output)
-    return true
+  const text = format(value, 0)
+  if (returnOutput) {
+    return text
   }
-  return output
+  echo(text)
+  return true
 }
