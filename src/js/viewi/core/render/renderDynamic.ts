@@ -1,3 +1,4 @@
+import { parseEventName } from "../events/eventModifiers";
 import { BaseComponent } from "../component/baseComponent";
 import { TemplateNode } from "../node/templateNode";
 import { PropsContext } from "../lifecycle/propsContext";
@@ -81,7 +82,8 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
                     : (attribute.content ?? '');
                 if (attrName[0] === '(') {
                     // event
-                    const eventName = attrName.substring(1, attrName.length - 1);
+                    // "(keyup.enter)" -> listen for keyup, run only for Enter (events/eventModifiers).
+                    const parsedEvent = parseEventName(attrName.substring(1, attrName.length - 1));
                     if (attribute.children) {
                         const eventHandler =
                             instance.$$t[
@@ -89,7 +91,7 @@ export function renderDynamic(instance: BaseComponent<any>, node: TemplateNode, 
                                     ? attribute.dynamic.code!
                                     : attribute.children[0].code!
                             ](instance) as EventListener;
-                        element.addEventListener(eventName, eventHandler);
+                        element.addEventListener(parsedEvent.name, parsedEvent.wrap(eventHandler), parsedEvent.options);
                         // console.log('Event', attribute, eventName, eventHandler);
                     }
                 } else {

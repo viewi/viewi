@@ -12,6 +12,7 @@ import { track } from "../reactivity/track";
 import { renderComponent } from "./renderComponent";
 import { unpack } from "../node/unpack";
 import { renderDynamic } from "./renderDynamic";
+import { parseEventName } from "../events/eventModifiers";
 import { PropsContext } from "../lifecycle/propsContext";
 import { Slots } from "../node/slots";
 import { renderRaw } from "./renderRaw";
@@ -609,7 +610,8 @@ export function render(
                     const isModel = attrName === 'model';
                     if (attrName[0] === '(') {
                         // event
-                        const eventName = attrName.substring(1, attrName.length - 1);
+                        // "(keyup.enter)" -> listen for keyup, run only for Enter (events/eventModifiers).
+                        const parsedEvent = parseEventName(attrName.substring(1, attrName.length - 1));
                         if (attribute.children) {
                             const eventHandler =
                                 instance.$$t[
@@ -617,7 +619,7 @@ export function render(
                                         ? attribute.dynamic.code!
                                         : attribute.children[0].code!
                                 ].apply(null, callArguments) as EventListener;
-                            element.addEventListener(eventName, eventHandler);
+                            element.addEventListener(parsedEvent.name, parsedEvent.wrap(eventHandler), parsedEvent.options);
                             // console.log('Event', attribute, eventName, eventHandler);
                         }
                     } else if (isModel) {

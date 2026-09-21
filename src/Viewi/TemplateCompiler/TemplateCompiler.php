@@ -510,6 +510,9 @@ class TemplateCompiler
                         $hasValues = count($values) > 0;
                         $combinedValue = $hasValues ? '' : 'true';
                         $isEvent = $attributeItem->Content[0] === '(';
+                        if ($isEvent) {
+                            EventModifiers::validate($attributeItem->Content);
+                        }
                         $itsModel = $attributeItem->Content === 'model';
                         $backupLocalScope = $this->localScope;
                         $backupLocalScopeArg = $this->localScopeArguments;
@@ -866,7 +869,9 @@ class TemplateCompiler
         foreach ($attributes as &$attributeItem) {
             $attributeName = $attributeItem->Content;
             $valueToReplace = false;
-            if (!$attributeItem->ItsExpression && strpos($attributeName, '.') !== false) {
+            // `class.active="…"` binds one class; an EVENT's dot is a modifier — `(keyup.enter)` —
+            // and splitting it here turned the attribute into "(keyup", losing the modifier.
+            if (!$attributeItem->ItsExpression && strpos($attributeName, '.') !== false && $attributeName[0] !== '(') {
                 $parts = explode('.', $attributeName, 2);
                 $attributeName = $parts[0];
                 $valueToReplace = $parts[1];
@@ -919,6 +924,9 @@ class TemplateCompiler
         }
         $itsModel = $attributeItem->Content === 'model';
         $itsEvent = $attributeItem->Content[0] === '(';
+        if ($itsEvent) {
+            EventModifiers::validate($attributeItem->Content);
+        }
         // $itsRef = $attributeItem->Content[0] === '#';
         if (!$attributeItem->Content || $itsEvent || $attributeItem->ItsExpression || $itsModel) {
             $expression = '';
