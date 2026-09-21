@@ -87,6 +87,13 @@ class JsTranspiler
     /** @var array<string, UseItem>> */
     private array $usingList = [];
     private bool $inlineExpression = false;
+    /**
+     * Set while emitting the operand of an isset(): every property fetch, array fetch and method
+     * call in that chain becomes optional (?.), so a null/undefined/scalar link yields undefined
+     * instead of throwing — which is what PHP's isset() promises. Array KEYS are ordinary
+     * expressions and are emitted with it off.
+     */
+    private bool $nullSafeChain = false;
     private ?string $objectRefName = null;
     private int $level = 0;
     private int $membersCount = 0;
@@ -762,7 +769,7 @@ class JsTranspiler
                 /**
                  * @var PropertyFetch $node
                  */
-                $nullSafe = $node instanceof NullsafePropertyFetch;
+                $nullSafe = $node instanceof NullsafePropertyFetch || $this->nullSafeChain;
                 $fetchOperand = $nullSafe ? '?.' : '.';
                 $isThis = $node->var instanceof Variable && $node->var->name === 'this';
                 if ($isThis && isset($this->privateProperties[$node->name->name])) {
@@ -825,7 +832,7 @@ class JsTranspiler
                 // if ($node->var instanceof Variable && $node->var->name === 'this' && isset($this->privateProperties[$node->name->name])) {
                 //     $this->jsCode .= $node->name->name . '(';
                 // } else {
-                $nullSafe = $node instanceof NullsafeMethodCall;
+                $nullSafe = $node instanceof NullsafeMethodCall || $this->nullSafeChain;
                 // if ($node->name->name === 'await') {
                 //     $this->jsCode .= 'await ';
                 // }
@@ -834,12 +841,15 @@ class JsTranspiler
 
                 // }
                 if (count($node->args) > 0) {
+                    $chain = $this->nullSafeChain;
+                    $this->nullSafeChain = false;
                     $comma = '';
                     foreach ($node->args as $argument) {
                         $this->jsCode .= $comma;
                         $this->processStmts([$argument->value]);
                         $comma = ', ';
                     }
+                    $this->nullSafeChain = $chain;
                 }
                 $this->jsCode .= ')';
                 // if($node->name->name === 'emitEvent') {
@@ -969,18 +979,24 @@ class JsTranspiler
                 }
                 // TODO: variable declaration
             } elseif ($node instanceof Isset_) {
+                // PHP: isset() is false for a missing key/property, a null value, or any link in
+                // the chain being null/unset/a scalar — and never throws. JS: an optional chain
+                // yields undefined for all of those, and `!= null` rejects null and undefined
+                // alike. `k in a` was wrong both ways: true for a key holding null, and a
+                // TypeError when `a` is null, undefined, a string or a number.
+                // Outer parentheses keep isset($a, $b) a single operand, whatever surrounds it.
+                $chain = $this->nullSafeChain;
+                $this->jsCode .= '(';
                 $comma = '';
                 foreach ($node->vars as $var) {
-                    $this->jsCode .= $comma;
-                    if ($var instanceof ArrayDimFetch) {
-                        $this->processStmts(['(', $var->dim, ' in ', $var->var, ')']);
-                    } else {
-                        $this->jsCode .= 'isset(';
-                        $this->processStmts([$var]);
-                        $this->jsCode .= ')';
-                    }
+                    $this->jsCode .= $comma . '(';
+                    $this->nullSafeChain = true;
+                    $this->processStmts([$var]);
+                    $this->nullSafeChain = $chain;
+                    $this->jsCode .= ' != null)';
                     $comma = ' && ';
                 }
+                $this->jsCode .= ')';
             } elseif ($node instanceof Unset_) {
                 $comma = '';
                 foreach ($node->vars as $var) {
@@ -997,12 +1013,15 @@ class JsTranspiler
                 if ($node->dim === null) {
                     throw new ConvertError("ArrayDimFetch with empty 'dim' should be handled in Assign Expression step.");
                 } else {
+                    $chain = $this->nullSafeChain;
                     $this->propertyFetchQueue[] = '[]';
-                    $this->processStmts([$node->var, '[']);
+                    $this->processStmts([$node->var, $chain ? '?.[' : '[']);
                     array_pop($this->propertyFetchQueue);
                     $queue = $this->propertyFetchQueue;
                     $this->propertyFetchQueue = [];
+                    $this->nullSafeChain = false;
                     $this->processStmts([$node->dim, ']']);
+                    $this->nullSafeChain = $chain;
                     $this->propertyFetchQueue = $queue;
                 }
             } elseif ($node instanceof ClassConstFetch) {
