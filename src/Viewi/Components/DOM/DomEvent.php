@@ -10,6 +10,8 @@ abstract class DomEvent
     public abstract function type();
     public HtmlNode $target;
     public $detail;
+    /** Drag and drop events: setData(), dropEffect, effectAllowed. Firefox starts no drag without setData(). */
+    public $dataTransfer;
     public $keyCode;
     /**
      * The modern key fields. `keyCode` is deprecated and says nothing readable - `key` is 'Enter',
