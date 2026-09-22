@@ -35,6 +35,10 @@
             "email": "col606v@gmail.com"
         }
     ],
+    "scripts": {
+        "test": "codecept run Unit",
+        "functions-doc": "@php tools/functions-doc.php"
+    },
     "require-dev": {
         "codeception/codeception": "^5.0",
         "codeception/module-phpbrowser": "*",

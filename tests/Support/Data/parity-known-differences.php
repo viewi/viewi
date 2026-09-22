@@ -21,8 +21,8 @@ return [
             . 'objects always iterate integer-like keys first, in ascending order. [5 => "x", 2 => "y"] '
             . 'arrives in the browser as {"2": "y", "5": "x"}: json_encode keeps the order in the JSON '
             . 'text, but JSON.parse reorders the keys on the way in. '
-            . 'The key-returning functions (array_keys, array_search, key, array_key_first/last, '
-            . 'array_flip) give integer-like keys back as numbers; foreach keys stay strings.',
+            . 'The key-returning functions (array_keys, array_search, array_flip, array_rand, key) '
+            . 'give integer-like keys back as numbers; foreach keys stay strings.',
         'advice' => 'Keep ordered data as a list of records ([["id" => 5, …], …]), not as a map '
             . 'keyed by id.',
     ],

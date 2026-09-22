@@ -40,6 +40,8 @@ Discover more at [https://viewi.net](https://viewi.net).
 
 [Discussions (Forum)](https://github.com/viewi/viewi/discussions)
 
+[PHP functions in the browser](FUNCTIONS.md): every PHP function a component can call, and how closely its browser version matches PHP.
+
 
 ## In production
 
@@ -53,6 +55,10 @@ Testing
 
 #### Run tests
 
+Unit tests, including the PHP↔JS parity suite (needs `node` on the PATH):
+
+`composer test`
+
 All tests:
 
 `php vendor/bin/codecept run`
@@ -65,6 +71,10 @@ Specific test:
 
 `php vendor/bin/codecept run Unit JsTranspilerTest`
 
+
+After adding or changing a JS port in `src/Viewi/PhpJsFunctions`, add its cases to `tests/Support/Data/parity/` and regenerate `FUNCTIONS.md`:
+
+`composer functions-doc`
 
 #### Create test
 

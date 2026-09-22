@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Tests\Support\Parity\FunctionsDoc;
 use Tests\Support\Parity\ParityRunner;
 use Viewi\JsTranspile\RestrictedFunctions;
 
@@ -91,5 +92,15 @@ class ParityCoverageTest extends \Codeception\Test\Unit
             }
         }
         $this->assertSame([], $unknown, 'cases point at known differences that parity-known-differences.php does not declare');
+    }
+
+    public function testFunctionsDocIsCurrent(): void
+    {
+        $this->assertFileExists(FunctionsDoc::PATH, 'FUNCTIONS.md is missing - run composer functions-doc');
+        $this->assertSame(
+            FunctionsDoc::render(),
+            file_get_contents(FunctionsDoc::PATH),
+            'FUNCTIONS.md is out of date - run composer functions-doc'
+        );
     }
 }
