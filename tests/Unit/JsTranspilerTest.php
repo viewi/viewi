@@ -262,4 +262,44 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         );
         $this->assertTrue($this->transpiler->convert('<?php $a = (int)$x;')->getUses()['_php_cast_int']->Internal);
     }
+
+    public function testByReferenceArgumentsAreFilled()
+    {
+        $js = trim((string)$this->transpiler->convert(
+            '<?php namespace T; class ParityRefs { public function run($s) { $list = [3, 1, 2]; sort($list); if (preg_match("/(a)(b)?(c)?/", $s, $m)) { return [$m, $list]; } return [null, $list]; } }'
+        ));
+        $this->assertStringContainsString('(m = _php_by_ref(m))', $js);
+        $this->assertStringContainsString('var m;', $js);
+
+        // run it with the real ports: $m is filled, $list is sorted in place, as in PHP
+        $functions = require __DIR__ . '/../../src/Viewi/JsTranspile/functions.php';
+        $ported = [];
+        $collect = function (string $name) use (&$collect, &$ported, $functions) {
+            if (isset($ported[$name])) {
+                return;
+            }
+            $ported[$name] = '';
+            foreach ($functions[$name]::getUses() as $dependency) {
+                $collect($dependency);
+            }
+            $ported[$name] = $functions[$name]::getJs();
+        };
+        foreach (['preg_match', 'sort', '_php_by_ref'] as $name) {
+            $collect($name);
+        }
+        $script = '"use strict";' . "\n" . implode("\n", $ported) . "\n" . $js . "\n"
+            . 'const refs = new ParityRefs();' . "\n"
+            . 'process.stdout.write(JSON.stringify([refs.run("ab"), refs.run("xyz")]));';
+        $output = json_decode((string)shell_exec('node -e ' . escapeshellarg($script) . ' 2>&1'), true);
+
+        $php = function ($s) {
+            $list = [3, 1, 2];
+            sort($list);
+            if (preg_match('/(a)(b)?(c)?/', $s, $m)) {
+                return [$m, $list];
+            }
+            return [null, $list];
+        };
+        $this->assertSame([$php('ab'), $php('xyz')], $output);
+    }
 }

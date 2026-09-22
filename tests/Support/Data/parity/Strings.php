@@ -70,6 +70,7 @@ return [
         ['a', 'b', ['aa', 'ba']],
         ['', 'x', 'abc'],
         ['1', 'x', 101],
+        ['args' => ['a', 'b', 'banana', 0], 'refs' => [3], 'knownDiff' => 'by-ref-scalar'],
     ],
     'strtolower' => [
         ['HeLLo 123'],

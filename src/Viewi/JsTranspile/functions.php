@@ -10,6 +10,7 @@ use Viewi\PhpJsFunctions\Helpers\PhpArrayEntries;
 use Viewi\PhpJsFunctions\Helpers\PhpArray;
 use Viewi\PhpJsFunctions\Helpers\PhpArraySet;
 use Viewi\PhpJsFunctions\Helpers\PhpTrim;
+use Viewi\PhpJsFunctions\Helpers\PhpByRef;
 use Viewi\PhpJsFunctions\Helpers\PhpCastArray;
 use Viewi\PhpJsFunctions\Helpers\PhpCastBool;
 use Viewi\PhpJsFunctions\Helpers\PhpRegex;
@@ -336,6 +337,7 @@ return [
     '_php_array' => PhpArray::class,
     '_php_array_set' => PhpArraySet::class,
     '_php_trim' => PhpTrim::class,
+    '_php_by_ref' => PhpByRef::class,
     '_php_cast_array' => PhpCastArray::class,
     '_php_cast_bool' => PhpCastBool::class,
     '_php_regex' => PhpRegex::class,

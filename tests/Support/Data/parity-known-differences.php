@@ -49,6 +49,14 @@ return [
             . 'with keys 0 and 1. Iterating and counting behave the same; array checks do not.',
         'advice' => 'Sort lists, or assign the result: $sorted = array_values($map); usort($sorted, …).',
     ],
+    'by-ref-scalar' => [
+        'functions' => ['str_replace', 'str_ireplace', 'preg_replace', 'similar_text', 'sscanf', 'is_callable'],
+        'why' => 'A by-reference argument works when it holds an array (preg_match fills $matches, sort '
+            . 'sorts in place), but JS can not write a number or string back into the caller\'s '
+            . 'variable: str_replace\'s $count and similar_text\'s $percent stay an empty array in the '
+            . 'browser.',
+        'advice' => 'Compute the count yourself (substr_count) instead of reading the out-parameter.',
+    ],
     'timezone' => [
         'functions' => ['date', 'mktime', 'strtotime', 'getdate', 'idate'],
         'why' => 'PHP formats and parses times in the server\'s default timezone; the browser uses the '

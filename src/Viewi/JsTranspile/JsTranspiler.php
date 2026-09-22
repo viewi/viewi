@@ -96,6 +96,10 @@ class JsTranspiler
      */
     private bool $nullSafeChain = false;
     private ?string $objectRefName = null;
+    /** @var array<string, array> by-reference parameters per PHP function, read once */
+    private static array $byRefCache = [];
+    /** @var array<string, true> variables first seen as by-reference arguments, declared after the statement */
+    private array $pendingDeclarations = [];
     /** @var array<string, mixed>|null built-in PHP constants by name, read once */
     private static ?array $builtInConstants = null;
     private int $level = 0;
@@ -145,6 +149,7 @@ class JsTranspiler
     {
         // v2
         $this->jsCode = '';
+        $this->pendingDeclarations = [];
         $this->level = 0;
         $this->membersCount = 0;
         $this->privateProperties = [];
@@ -268,6 +273,58 @@ class JsTranspiler
             is_float($value) && is_infinite($value) => $value > 0 ? 'Infinity' : '-Infinity',
             default => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
         };
+    }
+
+    /**
+     * By-reference parameters of a PHP function, from reflection: [index => true], plus
+     * 'variadic' => index when a variadic parameter is by-reference (array_multisort).
+     * @return array<int|string, true|int>
+     */
+    private function byRefParameters(string $function): array
+    {
+        if (!isset(self::$byRefCache[$function])) {
+            $byRef = [];
+            if (function_exists($function)) {
+                foreach ((new \ReflectionFunction($function))->getParameters() as $i => $parameter) {
+                    if ($parameter->isPassedByReference()) {
+                        if ($parameter->isVariadic()) {
+                            $byRef['variadic'] = $i;
+                        } else {
+                            $byRef[$i] = true;
+                        }
+                    }
+                }
+            }
+            self::$byRefCache[$function] = $byRef;
+        }
+        return self::$byRefCache[$function];
+    }
+
+    /** Something PHP can pass by reference: a variable, property or array element. */
+    private function isAssignable(Node $node): bool
+    {
+        return ($node instanceof Variable && $node->name !== 'this')
+            || $node instanceof PropertyFetch
+            || $node instanceof ArrayDimFetch
+            || $node instanceof StaticPropertyFetch;
+    }
+
+    /**
+     * A by-reference argument: (m = _php_by_ref(m)). The port fills or rewrites the array in place,
+     * and a variable that held no array gets a fresh one it can fill (preg_match's $matches).
+     */
+    private function byRefArgument(Node $value): void
+    {
+        if ($value instanceof Variable && is_string($value->name) && !$this->inlineExpression
+            && !isset($this->localVariables[$value->name])) {
+            $this->localVariables[$value->name] = true;
+            $this->pendingDeclarations[$value->name] = true;
+        }
+        $this->jsCode .= '(';
+        $this->processStmts([$value]);
+        $this->jsCode .= ' = ';
+        $this->internalCall('_php_by_ref', [$value]);
+        $this->jsCode .= ')';
     }
 
     /** A node whose JS value is already a string, so concatenation needs no cast. */
@@ -1007,11 +1064,18 @@ class JsTranspiler
                     $this->processStmts([$node->name]);
                 }
                 $this->jsCode .= '(';
+                $byRef = $node->name instanceof Name ? $this->byRefParameters($node->name->toString()) : [];
                 if (count($node->args) > 0) {
                     $comma = '';
-                    foreach ($node->args as $argument) {
+                    foreach ($node->args as $index => $argument) {
                         $this->jsCode .= $comma;
-                        $this->processStmts([$argument->value]);
+                        $referenced = $byRef !== [] && !$argument->unpack
+                            && (isset($byRef[$index]) || (isset($byRef['variadic']) && $index >= $byRef['variadic']));
+                        if ($referenced && $this->isAssignable($argument->value)) {
+                            $this->byRefArgument($argument->value);
+                        } else {
+                            $this->processStmts([$argument->value]);
+                        }
                         $comma = ', ';
                     }
                 }
@@ -1462,6 +1526,13 @@ class JsTranspiler
                 // Helpers::debug([PHP_EOL . $this->phpCode,  PHP_EOL . $this->jsCode, $node]);
                 // Helpers::debug($node);
                 throw new ConvertError("Node type '{$node->getType()}' is not handled in JsTranslator->processStmts");
+            }
+            if ($node instanceof \PhpParser\Node\Stmt && $this->pendingDeclarations !== []) {
+                // a variable first seen as a by-reference argument: var is function-scoped and
+                // hoisted, so declaring it after the statement covers its use inside it
+                $this->jsCode .= str_repeat($this->indentationPattern, $this->level)
+                    . 'var ' . implode(', ', array_keys($this->pendingDeclarations)) . ';' . PHP_EOL;
+                $this->pendingDeclarations = [];
             }
         }
     }
