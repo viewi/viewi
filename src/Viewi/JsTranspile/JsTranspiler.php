@@ -21,6 +21,7 @@ use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\Empty_;
 use PhpParser\Node\Expr\Isset_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
@@ -1110,6 +1111,15 @@ class JsTranspiler
                     $comma = ' && ';
                 }
                 $this->jsCode .= ')';
+            } elseif ($node instanceof Empty_) {
+                // PHP: empty($x) is !isset($x) || !$x, and never throws. The expression is read as
+                // an optional chain (as in isset), so a missing key or property gives undefined, and
+                // "falsy" is PHP's: '0', '' and [] are empty, '0.0' and ' ' are not.
+                $chain = $this->nullSafeChain;
+                $this->nullSafeChain = true;
+                $this->jsCode .= '!';
+                $this->internalCall('_php_cast_bool', [$node->expr]);
+                $this->nullSafeChain = $chain;
             } elseif ($node instanceof Unset_) {
                 $comma = '';
                 foreach ($node->vars as $var) {

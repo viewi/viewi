@@ -230,4 +230,36 @@ class JsTranspilerTest extends \Codeception\Test\Unit
         // template expression: (click)="runNow" names a component method
         $this->assertEquals('runNow', trim((string)$this->transpiler->convert('runNow', true)));
     }
+
+    public function testEmptyFollowsPhp()
+    {
+        $this->assertEquals('var a = !_php_cast_bool(b);', trim($this->transpiler->convert('<?php $a = empty($b);')));
+        // never throws: the expression is an optional chain, as in isset()
+        $this->assertEquals(
+            'var c = !_php_cast_bool($this?.items?.["k"]?.[0]);',
+            trim($this->transpiler->convert('<?php $c = empty($this->items["k"][0]);'))
+        );
+        $this->assertTrue($this->transpiler->convert('<?php $a = empty($b);')->getUses()['_php_cast_bool']->Internal);
+
+        // run it: the compiled check against PHP's empty() on the values where JS truthiness differs
+        $helpers = \Viewi\PhpJsFunctions\Var\IsObject::getJs() . "\n" . \Viewi\PhpJsFunctions\Helpers\PhpCastBool::getJs();
+        $values = ['0', '', '0.0', ' ', 0, 0.0, [], [0], null, 'a'];
+        $php = array_map(fn($v) => empty($v), $values);
+        $script = $helpers . "\nconst values = " . json_encode($values) . ";\n"
+            . "process.stdout.write(JSON.stringify(values.map(function (b) { return " . rtrim(trim((string)$this->transpiler->convert('empty($b)', true)), ';') . "; })));";
+        $js = json_decode((string)shell_exec('node -e ' . escapeshellarg($script)), true);
+        $this->assertSame($php, $js);
+    }
+
+    public function testCastsFollowPhp()
+    {
+        // parseInt('1e3') is 1 and parseInt(null) NaN; !!'0' is true: the casts go through PHP's rules
+        $this->assertEquals(
+            'var a = _php_cast_int(x);' . PHP_EOL . 'var b = _php_cast_float(y);' . PHP_EOL
+            . 'var c = _phpCastString(n);' . PHP_EOL . 'var d = _php_cast_bool(s);' . PHP_EOL
+            . 'var e = _php_cast_array(v);' . PHP_EOL . 'var f = w;',
+            trim($this->transpiler->convert('<?php $a = (int)$x; $b = (float)$y; $c = (string)$n; $d = (bool)$s; $e = (array)$v; $f = (object)$w;'))
+        );
+        $this->assertTrue($this->transpiler->convert('<?php $a = (int)$x;')->getUses()['_php_cast_int']->Internal);
+    }
 }
