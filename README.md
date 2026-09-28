@@ -42,6 +42,10 @@ Discover more at [https://viewi.net](https://viewi.net).
 
 [PHP functions in the browser](FUNCTIONS.md): every PHP function a component can call, and how closely its browser version matches PHP.
 
+## Editor support
+
+VS Code extension: [Viewi Components](https://marketplace.visualstudio.com/items?itemName=viewi.viewi-components) ([source](https://github.com/viewi/viewi-vscode)). Highlighting and autocomplete in templates, Go to Definition for components, props and global methods.
+
 
 ## In production
 
