@@ -88,11 +88,10 @@ After adding or changing a JS port in `src/Viewi/PhpJsFunctions`, add its cases 
 Support
 --------
 
-We all have full-time jobs and dedicate our free time to this project, and we would appreciate Your help of any kind. If you like what we are creating here and want us to spend more time on this, please consider supporting:
+Viewi is built in our free time. If you like it, here is how you can help:
 
  - Give us a star⭐.
- - Support me on [buymeacoffee](https://www.buymeacoffee.com/ivan.v)
- - Follow us on [Twitter](https://twitter.com/viewiphp).
+ - Follow us on [X](https://x.com/viewiphp).
  - Contribute by sending pull requests.
  - Any other ideas or proposals? Please mail me contact@viewi.net.
  - Feel welcome to share this project with your friends.
