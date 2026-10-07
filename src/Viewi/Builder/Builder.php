@@ -254,9 +254,10 @@ class Builder
     private function prepareRoutes()
     {
         $routes = $this->router->getRoutes();
-        foreach ($routes as $route) {
+        foreach ($routes as $position => $route) {
             if ($route->action instanceof ComponentRoute) {
                 $item = (array)$route;
+                $item['position'] = $position;
                 $component = $route->action->component;
                 $action = strpos($component, '\\') !== false ?
                     substr(strrchr($component, "\\"), 1)
@@ -787,10 +788,16 @@ class Builder
                     $this->components[$item['action']]->LazyLoad = true;
                     $this->components[$item['action']]->LazyLoadName = $item['route']->action->lazyGroup;
                 }
-                unset($item['route']);
-                $publicRoutes[] = $item;
+                // routesMap groups routes by component. The client matches the first route that
+                // fits, as the server does, so it gets them in the server's order: grouped, a
+                // component's later `{param}` route jumped ahead of a literal declared before it.
+                $position = $item['position'];
+                unset($item['route'], $item['position']);
+                $publicRoutes[$position] = $item;
             }
         }
+        ksort($publicRoutes);
+        $publicRoutes = array_values($publicRoutes);
         /** COMPONENTS FOREACH **/
         while ($componentFilter < 2) {
             $componentFilter++;
