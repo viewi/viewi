@@ -5,6 +5,7 @@ namespace Tests\Unit;
 
 use Tests\Support\UnitTester;
 use Viewi\TemplateParser\TagItem;
+use Viewi\TemplateParser\TagItemConverter;
 use Viewi\TemplateParser\TagItemType;
 use Viewi\TemplateParser\TemplateParser;
 
@@ -31,6 +32,20 @@ class TemplateParserTest extends \Codeception\Test\Unit
         $text = $div->currentChild();
         $this->assertEquals(TagItemType::TextContent, $text->Type->Name);
         $this->assertEquals('Hello World!', $text->Content);
+    }
+
+    public function testWhitespaceAroundPageRootIsDropped()
+    {
+        $this->parser->setAvailableComponents(['Layout' => 1]);
+        $raw = fn(string $html) => TagItemConverter::getRaw($this->parser->parse($html));
+        // a component or <html> at the root: the template can render onto the document
+        $this->assertEquals($raw('<Layout> <b>$name</b> </Layout>'), $raw("\n\n<Layout> <b>\$name</b> </Layout>\r\n\n"));
+        $this->assertEquals($raw('<!DOCTYPE html><html><body>a</body></html>'), $raw("<!DOCTYPE html><html><body>a</body></html>\n"));
+        // only the edges go
+        $this->assertCount(3, $raw("<Layout /> <Layout />\n")['h']);
+        // any other template keeps its whitespace
+        $this->assertEquals("\n", $raw("<div>a</div>\n")['h'][1]['c']);
+        $this->assertEquals("Hello\n", $raw("Hello\n")['h'][0]['c']);
     }
 
     public function testSlot()

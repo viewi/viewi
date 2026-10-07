@@ -466,6 +466,33 @@ class TemplateParser
             }
         }
 
+        // A page renders straight onto the document, which holds no text: whitespace around
+        // its root (the newline an editor adds at the end of the file) broke hydration there.
+        // Only a template with a component or <html> at its root can be such a page, so only
+        // those lose it; any other template keeps its whitespace as written.
+        $children = $template->getChildren();
+        $canBePage = false;
+        foreach ($children as $child) {
+            if (
+                $child->Type->Name === TagItemType::Component
+                || ($child->Type->Name === TagItemType::Tag && ($child->ItsExpression || strtolower($child->Content) === 'html'))
+            ) {
+                $canBePage = true;
+                break;
+            }
+        }
+        if ($canBePage) {
+            $isSpace = fn(TagItem $item) => $item->Type->Name === TagItemType::TextContent
+                && !$item->ItsExpression && ctype_space($item->Content ?? '');
+            while ($children && $isSpace($children[0])) {
+                array_shift($children);
+            }
+            while ($children && $isSpace($children[count($children) - 1])) {
+                array_pop($children);
+            }
+            $template->setChildren($children);
+        }
+
         return $template;
     }
 }
