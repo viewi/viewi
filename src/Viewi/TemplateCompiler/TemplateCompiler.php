@@ -873,7 +873,21 @@ class TemplateCompiler
          * @var TagItem[]
          */
         $attributeMap = [];
-        foreach ($attributes as &$attributeItem) {
+        // A plain `class="…"` leads its `class.x="…"` bindings wherever it was written: parts are
+        // glued in merge order and only a dotted part brings the space that separates it, so
+        // `class.x="$on" class="btn"` rendered "xbtn". Names keep their first-seen order.
+        $groups = [];
+        foreach ($attributes as $index => $attributeItem) {
+            $attributeName = $attributeItem->Content;
+            $dotted = !$attributeItem->ItsExpression && strpos($attributeName, '.') !== false && $attributeName[0] !== '(';
+            $groups[$dotted ? explode('.', $attributeName, 2)[0] : $attributeName][$dotted ? 1 : 0][] = $index;
+        }
+        $order = [];
+        foreach ($groups as $group) {
+            $order = array_merge($order, $group[0] ?? [], $group[1] ?? []);
+        }
+        foreach ($order as $index) {
+            $attributeItem = &$attributes[$index];
             $attributeName = $attributeItem->Content;
             $valueToReplace = false;
             // `class.active="…"` binds one class; an EVENT's dot is a modifier - `(keyup.enter)` -
@@ -911,6 +925,7 @@ class TemplateCompiler
                 }
             }
         }
+        unset($attributeItem);
         foreach ($attributeMap as &$attributeItem) {
             $this->buildAttribute($attributeItem);
         }
